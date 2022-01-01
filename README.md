@@ -1,1 +1,1 @@
-springresearch
+Spring Research Project
