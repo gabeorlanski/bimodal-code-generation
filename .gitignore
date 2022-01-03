@@ -124,3 +124,7 @@ dmypy.json
 .pyre/
 
 .idea/
+
+data/APPS/
+
+data/MBPP/
