@@ -1,5 +1,5 @@
 from src.common.log_util import *
-
+from .registrable import Registrable
 from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).parents[2]

@@ -6,6 +6,8 @@ import pytest
 import json
 import shutil
 from unittest.mock import patch
+from transformers import AutoTokenizer
+from datasets import Dataset
 
 from src.common import FIXTURES_ROOT
 from src.data import mbpp
@@ -94,3 +96,31 @@ def test_setup_mbpp_splits_errors(tmpdir, copy_mbpp, copy_sanitized):
     else:
         expected = "Could not find 'sanitized-MBPP.json'"
     assert str(exception_info.value) == expected
+
+
+class TestMBPPTask:
+
+    def test_read(self):
+        mbpp_task = mbpp.MBPP(
+            FIXTURES_ROOT.joinpath('MBPP', 'mbpp.jsonl'),
+            None  # Type:ignore
+        )
+
+        expected_mbpp = Dataset.from_json(str(FIXTURES_ROOT.joinpath('MBPP', 'mbpp.jsonl')))
+
+        actual = mbpp_task._load_dataset()
+        assert actual.to_dict() == expected_mbpp.to_dict()
+
+    def test_preprocess(self):
+        tokenizer = AutoTokenizer.from_pretrained('patrickvonplaten/t5-tiny-random')
+        mbpp_task = mbpp.MBPP(
+            FIXTURES_ROOT.joinpath('MBPP', 'mbpp.jsonl'),
+            tokenizer
+        )
+
+        mbpp_task.read_data()
+        for example in mbpp_task._dataset:
+            expected_input = tokenizer(example['text'] + '\n' + '\n'.join(example['test_list']))
+            expected_labels = tokenizer(example['code'])
+            assert example['input_ids'] == expected_input['input_ids']
+            assert example['labels'] == expected_labels['input_ids']

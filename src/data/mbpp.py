@@ -4,20 +4,62 @@ https://arxiv.org/pdf/2108.07732.pdf
 """
 import argparse
 from pathlib import Path
-import random
 import logging
 import json
-from typing import Optional, Union
+import random
+from typing import Optional, Union, Callable, List, Tuple, Dict
 from tqdm import tqdm
+from transformers import PreTrainedTokenizer
+from datasets import Dataset
+
 import sys
 
 try:
-    from src.common import setup_basic_loggers, PROJECT_ROOT
+    from src.common import Registrable, setup_basic_loggers, PROJECT_ROOT
     from src.common.file_util import validate_files_exist
 except ModuleNotFoundError:
     sys.path.insert(0, str(Path(__file__).parents[2]))
     from src.common import setup_basic_loggers, PROJECT_ROOT
     from src.common.file_util import validate_files_exist
+
+from .task import Task
+
+logger = logging.getLogger(__name__)
+
+
+@Task.register('mbpp')
+class MBPP(Task):
+    def __init__(
+            self,
+            data_path: Path,
+            tokenizer: PreTrainedTokenizer,
+            preprocessors: List[Callable] = None,
+            postprocessors: List[Callable] = None,
+    ):
+        preprocessors = preprocessors or []
+        preprocessors.append(self.mbpp_preprocess)
+
+        super(MBPP, self).__init__(
+            data_path=data_path,
+            preprocessors=preprocessors,
+            tokenizer=tokenizer,
+            postprocessors=postprocessors
+        )
+
+        self._tokenizer = tokenizer
+        self._preprocessors = preprocessors or []
+        self.dataset = None
+        self.raw = None
+
+    def _load_dataset(self) -> Dataset:
+        # Load the data into a dict where the key is the task_id
+        return Dataset.from_json(str(self.data_path))
+
+    @staticmethod
+    def mbpp_preprocess(example):
+        example['input_sequence'] = example['text'] + '\n' + '\n'.join(example['test_list'])
+        example['target'] = example['code']
+        return example
 
 
 def setup_mbpp_splits(
@@ -38,36 +80,34 @@ def setup_mbpp_splits(
         test_size (int): Size of the test set.
         few_shot_size (int): Size of the set used for few-shot prompting.
         fine_tuning_size (int): Size of the set used for fine tuning.
-        log_dir (Optional[str]): Directory for logging. Mainly used for testing
-            so that logs do not override legitimate logs.
     """
     out_path = Path(data_path)
     data_path = Path(data_path)
 
-    logger = logging.getLogger('setup_mbpp')
-    logger.info(f"Setting up splits for MBPP files located in "
-                f"'{data_path.resolve()}'")
+    setup_mbpp_logger = logging.getLogger('setup_mbpp')
+    setup_mbpp_logger.info(f"Setting up splits for MBPP files located in "
+                           f"'{data_path.resolve()}'")
 
-    logger.info("Validating directory")
+    setup_mbpp_logger.info("Validating directory")
     try:
         mbpp_path, sanitized_path = validate_files_exist(
             data_path, ['mbpp.jsonl', 'sanitized-mbpp.json']
         )
     except FileExistsError as e:
-        logger.error(f"Missing '{e.file}' in '{data_path.resolve()}' ")
+        setup_mbpp_logger.error(f"Missing '{e.file}' in '{data_path.resolve()}' ")
         raise e
 
-    logger.info("Loading data from files")
-    logger.debug(f"Loading json lines from '{mbpp_path.resolve()}'")
+    setup_mbpp_logger.info("Loading data from files")
+    setup_mbpp_logger.debug(f"Loading json lines from '{mbpp_path.resolve()}'")
     mbpp_data = []
     for line in tqdm(mbpp_path.read_text('utf-8').splitlines(False), desc='Reading mbpp.jsonl',
                      file=sys.stdout):
         mbpp_data.append(json.loads(line))
-    logger.debug(f"Loading json from '{sanitized_path.resolve()}'")
+    setup_mbpp_logger.debug(f"Loading json from '{sanitized_path.resolve()}'")
     sanitized_data = json.loads(sanitized_path.read_text('utf-8'))
-    logger.info(f"{len(mbpp_data)} items in MBPP and {len(sanitized_data)} in Sanitized")
+    setup_mbpp_logger.info(f"{len(mbpp_data)} items in MBPP and {len(sanitized_data)} in Sanitized")
 
-    logger.info(f"Saving sanitized to '{out_path.joinpath('edited.jsonl')}'")
+    setup_mbpp_logger.info(f"Saving sanitized to '{out_path.joinpath('edited.jsonl')}'")
     with out_path.joinpath('edited.jsonl').open('w', encoding='utf-8') as f:
         for i in sanitized_data:
             f.write(json.dumps(i) + '\n')
@@ -83,7 +123,7 @@ def setup_mbpp_splits(
     current = 0
     for name, out_file_name, size in splits:
 
-        logger.info(f"Saving split {name} with {size} items to {out_file_name}")
+        setup_mbpp_logger.info(f"Saving split {name} with {size} items to {out_file_name}")
         with out_path.joinpath(out_file_name).open('w', encoding='utf-8') as split_file:
             for i in mbpp_data[current:current + size]:
                 split_file.write(json.dumps(i) + '\n')
