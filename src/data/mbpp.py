@@ -22,25 +22,23 @@ except ModuleNotFoundError:
     from src.common import setup_basic_loggers, PROJECT_ROOT
     from src.common.file_util import validate_files_exist
 
-from .task import Task
+from .dataset_reader import DatasetReader
 
 logger = logging.getLogger(__name__)
 
 
-@Task.register('mbpp')
-class MBPP(Task):
+@DatasetReader.register('mbpp')
+class MBPP(DatasetReader):
     def __init__(
             self,
-            data_path: Path,
             tokenizer: PreTrainedTokenizer,
             preprocessors: List[Callable] = None,
             postprocessors: List[Callable] = None,
     ):
         preprocessors = preprocessors or []
-        preprocessors.append(self.mbpp_preprocess)
+        preprocessors = [self.mbpp_preprocess] + preprocessors
 
         super(MBPP, self).__init__(
-            data_path=data_path,
             preprocessors=preprocessors,
             tokenizer=tokenizer,
             postprocessors=postprocessors
@@ -51,9 +49,9 @@ class MBPP(Task):
         self.dataset = None
         self.raw = None
 
-    def _load_dataset(self) -> Dataset:
+    def _load_dataset(self, data_path: Path) -> Dataset:
         # Load the data into a dict where the key is the task_id
-        return Dataset.from_json(str(self.data_path))
+        return Dataset.from_json(str(data_path))
 
     @staticmethod
     def mbpp_preprocess(example):
