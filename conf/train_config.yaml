@@ -1,0 +1,25 @@
+defaults:
+  - _self_
+  - dataset: ???
+  - override hydra/job_logging: custom
+
+# Required Arguments
+name: ???
+model_name: ???
+
+# General Arguments
+debug: False
+disable_tracking: False
+data_path: data
+
+seed: 1
+numpy_seed: 2
+pytorch_seed: 3
+
+
+
+preprocessors: null
+
+hydra:
+  run:
+    dir: outputs/${hydra.job.name}/${name}

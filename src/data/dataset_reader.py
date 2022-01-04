@@ -1,14 +1,22 @@
 from pathlib import Path
 from typing import Dict, List, Callable, Tuple
-
-from src.common import Registrable
 from datasets import Dataset
 from transformers import PreTrainedTokenizer
+from dataclasses import dataclass, field
+from omegaconf import MISSING
+from src.common import Registrable
+
+
+@dataclass
+class DatasetReaderConfig:
+    name: str
+    train_path: str = MISSING
+    validation_path: str = MISSING
 
 
 class DatasetReader(Registrable):
     """
-    Base class for reading in datasets
+    Base class for reading in dataset
 
     Args:
         tokenizer (PreTrainedTokenizer): HuggingFace Tokenizer.
@@ -34,7 +42,7 @@ class DatasetReader(Registrable):
         self.input_sequence_key = "input_sequence",
         self.target_key = "target"
         self.tokenizer = tokenizer
-        self.preprocessors = preprocessors or []
+        self.preprocessors = [self._map_to_standard_entries, *(preprocessors or [])]
         self.postprocessors = postprocessors or []
 
     def _load_dataset(
@@ -59,6 +67,10 @@ class DatasetReader(Registrable):
     ) -> Tuple[Dataset, Dataset]:
         """
         Method to read and preprocess dataset.
+
+        It returns the preprocessed dataset as well so that the tokenized
+        dataset can be re-aligned with the original data for evaluation later
+        on.
 
         Args:
             data_path (Path): Path to the data.
@@ -97,3 +109,20 @@ class DatasetReader(Registrable):
         )
 
         return preprocessed, tokenized
+
+    @staticmethod
+    def _map_to_standard_entries(sample: Dict) -> Dict:
+        """
+        Function that must be implemented by sub-classes for mapping dataset
+        specific columns to standardized ones.
+
+        The output dict must have the keys ``"input_sequence"`` and
+        ``"target"``.
+        Args:
+            sample (Dict): The dict for a given sample in the dataset.
+
+        Returns:
+            Dict: The sample with the added standard entries.
+
+        """
+        raise NotImplementedError()

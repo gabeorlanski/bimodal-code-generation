@@ -1,0 +1,39 @@
+version: 1
+formatters:
+  msg:
+    format: '[%(levelname)8s] %(message)s'
+  verbose_fmt:
+    format: '[%(asctime)s - %(levelname)8s - %(name)12s] %(message)s'
+    datefmt: '%Y-%m-%d %H:%M:%S'
+  error_fmt:
+    format: '[%(asctime)s - %(levelname)8s - %(name)12s - %(funcName)12s] %(message)s'
+    datefmt: '%Y-%m-%d %H:%M:%S'
+
+handlers:
+  console:
+    (): src.common.log_util.log_handlers.TQDMLoggingHandler
+    formatter: msg
+    level: INFO
+  normal_file:
+    class: logging.handlers.RotatingFileHandler
+    filename: out.log
+    level: DEBUG
+    formatter: verbose_fmt
+    maxBytes: 10485760
+    backupCount: 3
+    mode: w
+  error_file:
+    class: logging.handlers.RotatingFileHandler
+    filename: error.log
+    level: WARNING
+    formatter: error_fmt
+    maxBytes: 10485760
+    backupCount: 3
+    mode: w
+
+
+root:
+  handlers: [ console,normal_file,error_file ]
+  level: DEBUG
+
+disable_existing_loggers: false

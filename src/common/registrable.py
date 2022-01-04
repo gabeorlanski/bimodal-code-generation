@@ -1,4 +1,10 @@
-from typing import Optional
+from collections import defaultdict
+from typing import Optional, TypeVar, Tuple, Dict, Type, Callable, cast
+
+_T = TypeVar("_T")
+_RegistrableT = TypeVar("_RegistrableT", bound="Registrable")
+
+_SubclassRegistry = Dict[str, Tuple[type, Optional[str]]]
 
 
 class Registrable(object):
@@ -6,24 +12,24 @@ class Registrable(object):
     A class that collects all registered components,
     adapted from `common.registrable.Registrable` from AllenNLP
     """
-    registered_components = dict()
+    _registered_components = defaultdict(dict)
 
-    default_implementation: Optional[str] = None
+    @classmethod
+    def register(cls, name, override=False):
+        registry = Registrable._registered_components[cls]
 
-    @staticmethod
-    def register(name):
-        def register_class(cls):
-            if name in Registrable.registered_components:
+        def register_class(subclass: Type[_T]) -> Type[_T]:
+            if name in registry and not override:
                 raise RuntimeError('class %s already registered' % name)
 
-            Registrable.registered_components[name] = cls
-            return cls
+            registry[name] = subclass
+            return subclass
 
         return register_class
 
-    @staticmethod
-    def by_name(name):
-        return Registrable.registered_components[name]
+    @classmethod
+    def by_name(cls: Type[_RegistrableT], name) -> Callable[..., _RegistrableT]:
+        return Registrable._registered_components[cls][name]
 
-
-
+    def list_available(self):
+        return list(self._registered_components)

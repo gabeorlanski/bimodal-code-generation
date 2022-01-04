@@ -66,7 +66,7 @@ dependencies:
     - async-timeout==4.0.2
     - charset-normalizer==2.0.9
     - click==8.0.3
-    - datasets==1.17.0
+    - dataset==1.17.0
     - dill==0.3.4
     - filelock==3.4.2
     - frozenlist==1.2.0

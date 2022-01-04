@@ -42,11 +42,11 @@ def setup_basic_loggers(name: str,
     # The different message formats to use
     msg_format = logging.Formatter(fmt='[%(levelname)8s] %(message)s')
     verbose_format = logging.Formatter(
-        fmt='[%(asctime)s - %(levelname)8s] %(message)s',
+        fmt='[%(asctime)s - %(levelname)8s - %(name)12s] %(message)s',
         datefmt='%Y-%m-%d %H:%M:%S')
     error_format = logging.Formatter(
         fmt=
-        '[%(asctime)s - %(levelname)8s - %(name)20s - %(funcName)20s] %(message)s',
+        '[%(asctime)s - %(levelname)8s - %(name)12s - %(funcName)12s] %(message)s',
         datefmt='%Y-%m-%d %H:%M:%S')
 
     # Create the file handler
