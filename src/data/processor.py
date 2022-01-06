@@ -1,3 +1,5 @@
+from typing import Dict
+
 from src.common import Registrable
 
 
@@ -15,3 +17,9 @@ class Postprocessor(Registrable):
     registered.
     """
     pass
+
+
+@Preprocessor.register('add_prefix')
+def add_prefix(example: Dict, prefix: str):
+    example['input_sequence'] = f"{prefix} {example['input_sequence']}"
+    return example

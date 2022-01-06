@@ -94,4 +94,3 @@ def test_setup_mbpp_splits_errors(tmpdir, copy_mbpp, copy_sanitized):
     else:
         expected = "Could not find 'sanitized-mbpp.json'"
     assert str(exception_info.value) == expected
-

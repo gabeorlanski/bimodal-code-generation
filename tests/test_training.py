@@ -14,7 +14,7 @@ from datasets import Dataset
 from omegaconf import OmegaConf
 import yaml
 
-from src.common import FIXTURES_ROOT, PROJECT_ROOT
+from src.common.config import get_device_from_cfg
 from src.training import train_model, get_training_args_from_config
 from src.data import MBPP, MBPPConfig
 
@@ -65,7 +65,7 @@ def test_train_model(tmpdir, training_args, tiny_model_name, device_val):
     with patch('src.training.Seq2SeqTrainer') as mock_trainer:
         with patch(
                 'src.training.AutoModelForSeq2SeqLM.from_pretrained',
-                return_value=torch.zeros((1, 1))
+                return_value=torch.zeros((1, 1), device=get_device_from_cfg(cfg))
         ) as mock_model:
             train_model(cfg, tmpdir_path, reader)
 

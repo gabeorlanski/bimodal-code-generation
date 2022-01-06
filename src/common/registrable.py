@@ -28,7 +28,7 @@ class Registrable(object):
         return register_class
 
     @classmethod
-    def by_name(cls: Type[_RegistrableT], name) -> Callable[..., _RegistrableT]:
+    def by_name(cls: Type[_RegistrableT], name) -> Callable:
         return Registrable._registered_components[cls][name]
 
     def list_available(self):

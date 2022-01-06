@@ -2,8 +2,14 @@
 defaults:
   - _self_
 
-batch_size: 4
+batch_size: 2
 output_dir: models
 group_by_length: True
 predict_with_generate: True
-evaluation_strategy: epoch
+evaluation_strategy: steps
+generation_max_length: 300
+learning_rate: 5e-5
+max_steps: 1000
+logging_steps: 250
+gradient_accumulation_steps: 1
+eval_accumulation_steps: 1

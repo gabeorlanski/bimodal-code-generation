@@ -18,8 +18,11 @@ seed: 1
 numpy_seed: 2
 pytorch_seed: 3
 
-
-preprocessors: null
+metrics:
+  - exact-match
+preprocessors:
+  add_prefix:
+    prefix: "Generate Python:"
 
 hydra:
   run:
