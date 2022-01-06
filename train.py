@@ -35,6 +35,9 @@ def run(cfg: DictConfig):
     os.environ['CUBLAS_WORKSPACE_CONFIG'] = ":4096:8"
     torch.use_deterministic_algorithms(True)
 
+    if 'training' not in cfg:
+        raise KeyError("Missing 'training' key in config.")
+
     seed = cfg['seed']
     numpy_seed = cfg['numpy_seed']
     torch_seed = cfg['pytorch_seed']
@@ -69,9 +72,8 @@ def run(cfg: DictConfig):
         ]
     logger.info(f"{len(postprocessors)} postprocessors found")
 
-    logger.info(f"Loading tokenizer for '{cfg['model_name']}'")
-    tokenizer = AutoTokenizer.from_pretrained(cfg['model_name'])
-
+    logger.info(f"Loading tokenizer for '{cfg['model']}'")
+    tokenizer = AutoTokenizer.from_pretrained(cfg['model'])
     # Load the dataset reader
     logger.info(f"Initializing reader registered to name '{cfg['dataset']['name']}'")
     reader_cfg = asdict(OmegaConf.to_object(cfg['dataset']))
@@ -88,7 +90,7 @@ def run(cfg: DictConfig):
         **reader_cfg
     )
 
-    train_model(PROJECT_ROOT.joinpath(cfg['data_path']), cfg, reader)
+    train_model(cfg, PROJECT_ROOT.joinpath(cfg['data_path']), reader)
 
     logger.info("Training Finished")
 

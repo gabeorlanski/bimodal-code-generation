@@ -2,10 +2,11 @@
 Classes for Hydra's Structured Config.
 """
 from typing import Dict, Any
-
 from hydra.core.config_store import ConfigStore
 from omegaconf import OmegaConf, MISSING
 from dataclasses import dataclass, field
+
+from torch import device
 
 from src.data import READER_CONFIGS, DatasetReaderConfig
 
@@ -28,3 +29,4 @@ def setup_config_store() -> ConfigStore:
     for name, cfg in READER_CONFIGS.items():
         cs.store(group='dataset', name=name, node=cfg)
     return cs
+

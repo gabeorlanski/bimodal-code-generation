@@ -1,21 +1,22 @@
 defaults:
   - _self_
   - dataset: ???
+  - training_args
   - override hydra/job_logging: custom
 
 # Required Arguments
 name: ???
-model_name: ???
+model: ???
 
 # General Arguments
 debug: False
 disable_tracking: False
 data_path: data
+device: cpu
 
 seed: 1
 numpy_seed: 2
 pytorch_seed: 3
-
 
 
 preprocessors: null

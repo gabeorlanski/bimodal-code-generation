@@ -1,0 +1,9 @@
+# @package training
+defaults:
+  - _self_
+
+batch_size: 4
+output_dir: models
+group_by_length: True
+predict_with_generate: True
+evaluation_strategy: epoch

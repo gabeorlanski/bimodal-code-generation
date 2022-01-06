@@ -1,16 +1,12 @@
 """
 Tests for the MBPP dataset features
 """
-from pathlib import Path
-import pytest
-import json
-import shutil
-from unittest.mock import patch
 from transformers import AutoTokenizer
 from datasets import Dataset
 
 from src.common import FIXTURES_ROOT
 from src.data import mbpp
+
 
 class TestMBPPReader:
 

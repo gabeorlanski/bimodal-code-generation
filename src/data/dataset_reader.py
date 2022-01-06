@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Dict, List, Callable, Tuple
+from typing import Dict, List, Callable, Tuple, Optional
 from datasets import Dataset
 from transformers import PreTrainedTokenizer
 from dataclasses import dataclass, field
@@ -63,7 +63,8 @@ class DatasetReader(Registrable):
     def read_data(
             self,
             data_path: Path,
-            num_procs: int = 1
+            num_procs: int = 1,
+            set_format: Optional[str] = None
     ) -> Tuple[Dataset, Dataset]:
         """
         Method to read and preprocess dataset.
@@ -75,6 +76,8 @@ class DatasetReader(Registrable):
         Args:
             data_path (Path): Path to the data.
             num_procs (int): Number of processes to use in preprocessing.
+            set_format (Optional[str]): If passed, the tokenized dataset will
+                be set to this format.
 
         Returns:
             Tuple[Dataset]: The preprocessed and tokenized Datasets.
@@ -88,6 +91,9 @@ class DatasetReader(Registrable):
 
         def tokenize(example, idx):
             out = {"idx": idx, **self.tokenizer(example['input_sequence'])}
+
+            # We do not need the input sequence after tokenizing.
+            example.pop('input_sequence')
             target_tokenized = self.tokenizer(example.pop('target'))
             out.update({
                 'labels'              : target_tokenized['input_ids'],
@@ -107,6 +113,9 @@ class DatasetReader(Registrable):
             num_proc=num_procs,
             remove_columns=dataset.column_names
         )
+
+        if set_format:
+            tokenized.set_format(type=set_format)
 
         return preprocessed, tokenized
 
