@@ -21,4 +21,4 @@ wget https://raw.githubusercontent.com/google-research/google-research/master/mb
 mv mbpp.jsonl data/MBPP/mbpp.jsonl
 wget https://raw.githubusercontent.com/google-research/google-research/master/mbpp/sanitized-mbpp.json
 mv sanitized-mbpp.json data/MBPP/sanitized-mbpp.json
-python ./src/data/mbpp.py data/MBPP
+python ./scripts/setup_mbpp.py data/MBPP
