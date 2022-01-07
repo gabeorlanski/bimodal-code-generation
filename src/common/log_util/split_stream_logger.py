@@ -6,18 +6,19 @@ class SplitStreamLogger(logging.Logger):
     Dual Logger for log_util info messages and below to a certain handler. Then
     Warning and above are sent to a different one.
     """
+
     def __init__(self, name):
         super(SplitStreamLogger, self).__init__(name)
 
         self.error_handlers = []
         self.normal_handlers = []
         parent = self.parent
-        while parent is not None and parent.name != 'root':
+        while parent is not None and parent.name != "root":
             parent = parent.parent
 
         if isinstance(parent, SplitStreamLogger):
-            self.error_handlers = getattr(parent, 'error_handlers')
-            self.normal_handlers = getattr(parent, 'normal_handlers')
+            self.error_handlers = getattr(parent, "error_handlers")
+            self.normal_handlers = getattr(parent, "normal_handlers")
 
     def addErrorHandler(self, handler):
         self.error_handlers.append(len(self.handlers))

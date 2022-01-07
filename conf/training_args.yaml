@@ -8,8 +8,12 @@ group_by_length: True
 predict_with_generate: True
 evaluation_strategy: steps
 generation_max_length: 300
-learning_rate: 5e-5
+learning_rate: 5e-4
 max_steps: 1000
 logging_steps: 250
 gradient_accumulation_steps: 1
 eval_accumulation_steps: 1
+metric_for_best_model: 'eval_bleu'
+load_best_model_at_end: True
+save_steps: 250
+save_total_limit: 5

@@ -1,8 +1,8 @@
-from .mbpp import MBPP, MBPPConfig
-from .dataset_reader import DatasetReader, DatasetReaderConfig
+from .mbpp import MBPP
+from .task import Task, get_task_from_cfg
 from .preprocessors import *
-from .processor import Preprocessor, Postprocessor
+from .processor import Preprocessor, Postprocessor, load_processors
 
-READER_CONFIGS = {
-    "mbpp": MBPPConfig
-}
+# READER_CONFIGS = {
+#     "mbpp": MBPPConfig
+# }

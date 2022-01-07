@@ -15,8 +15,8 @@ ROOT = Path.cwd()
 @hydra.main(config_path="../conf", config_name="train_config")
 def debug_hydra(cfg) -> None:
     print(OmegaConf.to_yaml(cfg))
-    shutil.rmtree(ROOT.joinpath('outputs'))
+    shutil.rmtree(ROOT.joinpath("outputs"))
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     debug_hydra()

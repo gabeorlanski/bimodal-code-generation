@@ -12,6 +12,7 @@ class Registrable(object):
     A class that collects all registered components,
     adapted from `common.registrable.Registrable` from AllenNLP
     """
+
     _registered_components = defaultdict(dict)
 
     @classmethod
@@ -20,7 +21,7 @@ class Registrable(object):
 
         def register_class(subclass: Type[_T]) -> Type[_T]:
             if name in registry and not override:
-                raise RuntimeError('class %s already registered' % name)
+                raise RuntimeError("class %s already registered" % name)
 
             registry[name] = subclass
             return subclass

@@ -1,22 +1,19 @@
+import logging
 from pathlib import Path
 from typing import Dict, List, Callable, Tuple, Optional
 from datasets import Dataset
 from transformers import PreTrainedTokenizer
-from dataclasses import dataclass, field
-from omegaconf import MISSING
+from omegaconf import DictConfig, OmegaConf
+
 from src.common import Registrable
+from src.data.processor import load_processors
+
+logger = logging.getLogger(__name__)
 
 
-@dataclass
-class DatasetReaderConfig:
-    name: str
-    train_path: str = MISSING
-    validation_path: str = MISSING
-
-
-class DatasetReader(Registrable):
+class Task(Registrable):
     """
-    Base class for reading in dataset
+    Base class for a task.
 
     Args:
         tokenizer (PreTrainedTokenizer): HuggingFace Tokenizer.
@@ -34,21 +31,19 @@ class DatasetReader(Registrable):
     """
 
     def __init__(
-            self,
-            tokenizer: PreTrainedTokenizer,
-            preprocessors: List[Callable],
-            postprocessors: List[Callable]
+        self,
+        tokenizer: PreTrainedTokenizer,
+        preprocessors: List[Callable],
+        postprocessors: List[Callable],
+        **kwargs,
     ):
-        self.input_sequence_key = "input_sequence",
+        self.input_sequence_key = ("input_sequence",)
         self.target_key = "target"
         self.tokenizer = tokenizer
         self.preprocessors = [self._map_to_standard_entries, *(preprocessors or [])]
         self.postprocessors = postprocessors or []
 
-    def _load_dataset(
-            self,
-            data_path: Path
-    ) -> Dataset:
+    def _load_dataset(self, data_path: Path) -> Dataset:
         """
         Method to read in the raw data that is to be implemented by subclasses.
         Args:
@@ -61,10 +56,7 @@ class DatasetReader(Registrable):
         raise NotImplementedError()
 
     def read_data(
-            self,
-            data_path: Path,
-            num_procs: int = 1,
-            set_format: Optional[str] = None
+        self, data_path: Path, num_procs: int = 1, set_format: Optional[str] = None
     ) -> Tuple[Dataset, Dataset]:
         """
         Method to read and preprocess dataset.
@@ -90,28 +82,33 @@ class DatasetReader(Registrable):
             return {"idx": idx, **example}
 
         def tokenize(example, idx):
-            out = {"idx": idx, **self.tokenizer(example['input_sequence'])}
+            out = {"idx": idx, **self.tokenizer(example["input_sequence"])}
 
             # We do not need the input sequence after tokenizing.
-            example.pop('input_sequence')
-            target_tokenized = self.tokenizer(example.pop('target'))
-            out.update({
-                'labels'              : target_tokenized['input_ids'],
-                'label_attention_mask': target_tokenized['attention_mask']
-            })
+            example.pop("input_sequence")
+            target_tokenized = self.tokenizer(example.pop("target"))
+            out.update(
+                {
+                    "labels": target_tokenized["input_ids"],
+                    # 'label_attention_mask': target_tokenized['attention_mask']
+                }
+            )
+
+            # # Add in the length value here so we can group by length
+            # out['length'] = len(out['input_ids'])
             return out
 
         preprocessed = dataset.map(
             preprocess,
             with_indices=True,
             num_proc=num_procs,
-            remove_columns=dataset.column_names
+            remove_columns=dataset.column_names,
         )
         tokenized = preprocessed.map(
             tokenize,
             with_indices=True,
             num_proc=num_procs,
-            remove_columns=dataset.column_names
+            remove_columns=dataset.column_names,
         )
 
         if set_format:
@@ -135,3 +132,19 @@ class DatasetReader(Registrable):
 
         """
         raise NotImplementedError()
+
+
+def get_task_from_cfg(cfg: DictConfig, tokenizer: PreTrainedTokenizer) -> "Task":
+    logger.info(f"Initializing reader registered to name '{cfg['task']['name']}'")
+    task_cls = Task.by_name(cfg["task"]["name"])
+    cfg_dict = OmegaConf.to_object(cfg["task"])
+    preprocessors, postprocessors = load_processors(cfg)
+
+    cfg_dict.pop("paths")
+    cfg_dict.pop("name")
+    return task_cls(
+        tokenizer=tokenizer,
+        preprocessors=preprocessors,
+        postprocessors=postprocessors,
+        **cfg_dict,
+    )

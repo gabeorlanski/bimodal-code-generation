@@ -2,10 +2,7 @@ from pathlib import Path
 from typing import List, Callable, Optional, Dict
 
 
-def assert_list_of_files_exist(
-        target_dir: Path,
-        file_list: List[str]
-) -> None:
+def assert_list_of_files_exist(target_dir: Path, file_list: List[str]) -> None:
     """
     Assert that a list of files were created in a target directory.
 

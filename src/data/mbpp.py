@@ -5,38 +5,29 @@ https://arxiv.org/pdf/2108.07732.pdf
 from pathlib import Path
 import logging
 from transformers import PreTrainedTokenizer
-from typing import Optional, Union, Callable, List, Dict
+from typing import Callable, List, Dict
 from datasets import Dataset
-from dataclasses import dataclass, field
-from omegaconf import MISSING
-from src.data.dataset_reader import DatasetReader, DatasetReaderConfig
+from src.data.task import Task
 
 logger = logging.getLogger(__name__)
 
 
-@dataclass
-class MBPPConfig(DatasetReaderConfig):
-    name: str = 'mbpp'
-    train_path: str = "MBPP/train.jsonl"
-    validation_path: str = "MBPP/validation.jsonl"
-
-
-@DatasetReader.register('mbpp')
-class MBPP(DatasetReader):
+@Task.register("mbpp")
+class MBPP(Task):
     """
-    DatasetReader for the Mostly Basic Programming Problems Dataset.
+    Task for the Mostly Basic Programming Problems Dataset.
     """
 
     def __init__(
-            self,
-            tokenizer: PreTrainedTokenizer,
-            preprocessors: List[Callable] = None,
-            postprocessors: List[Callable] = None,
+        self,
+        tokenizer: PreTrainedTokenizer,
+        preprocessors: List[Callable] = None,
+        postprocessors: List[Callable] = None,
     ):
         super(MBPP, self).__init__(
             preprocessors=preprocessors,
             tokenizer=tokenizer,
-            postprocessors=postprocessors
+            postprocessors=postprocessors,
         )
 
         self._tokenizer = tokenizer
@@ -49,6 +40,8 @@ class MBPP(DatasetReader):
 
     @staticmethod
     def _map_to_standard_entries(sample: Dict) -> Dict:
-        sample['input_sequence'] = sample['text'] + '\n' + '\n'.join(sample['test_list'])
-        sample['target'] = sample['code']
+        sample["input_sequence"] = (
+            sample["text"] + "\n" + "\n".join(sample["test_list"])
+        )
+        sample["target"] = sample["code"]
         return sample

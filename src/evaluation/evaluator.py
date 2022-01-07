@@ -10,17 +10,13 @@ class Evaluator:
         self.metrics = [Metric.by_name(metric) for metric in metrics]
         self.tokenizer = tokenizer
 
-    def __call__(self, raw_predictions: EvalPrediction):
+    def eval_raw_predictions(self, raw_predictions: EvalPrediction):
         predictions, labels = raw_predictions
-        predictions = self.tokenizer.batch_decode(
-            predictions,
-            skip_special_tokens=True
-        )
-        labels = self.tokenizer.batch_decode(
-            labels,
-            skip_special_tokens=True
-        )
+        predictions = self.tokenizer.batch_decode(predictions, skip_special_tokens=True)
+        labels = self.tokenizer.batch_decode(labels, skip_special_tokens=True)
+        return self(predictions, labels)
 
+    def __call__(self, predictions, labels):
         out = {}
         for metric in self.metrics:
             out.update(metric(predictions, labels))

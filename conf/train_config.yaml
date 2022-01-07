@@ -1,6 +1,6 @@
 defaults:
   - _self_
-  - dataset: ???
+  - task: ???
   - training_args
   - override hydra/job_logging: custom
 
@@ -20,6 +20,7 @@ pytorch_seed: 3
 
 metrics:
   - exact-match
+  - bleu
 preprocessors:
   add_prefix:
     prefix: "Generate Python:"

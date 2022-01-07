@@ -11,14 +11,11 @@ ContextManagerFunctionReturnType = Generator[T, None, None]
 PathType = Union[os.PathLike, str]
 
 logger = logging.getLogger(__name__)
-__all__ = [
-    "validate_files_exist"
-]
+__all__ = ["validate_files_exist"]
 
 
 def validate_files_exist(
-        target_dir: Union[Path, str],
-        required_files: List[str]
+    target_dir: Union[Path, str], required_files: List[str]
 ) -> List[Path]:
     """
     Check if a list of files exist in a given directory
@@ -67,7 +64,9 @@ def push_python_path(path: PathType) -> ContextManagerFunctionReturnType[None]:
         sys.path.remove(path)
 
 
-def import_module_and_submodules(package_name: str, exclude: Optional[Set[str]] = None) -> None:
+def import_module_and_submodules(
+    package_name: str, exclude: Optional[Set[str]] = None
+) -> None:
     """
     Import all submodules under the given package.
     Primarily useful so that people using AllenNLP as a library

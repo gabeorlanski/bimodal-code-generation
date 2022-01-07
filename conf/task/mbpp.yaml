@@ -1,0 +1,5 @@
+name: mbpp
+
+paths:
+  train: "MBPP/train.jsonl"
+  validation: "MBPP/validation.jsonl"

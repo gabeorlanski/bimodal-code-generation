@@ -1,0 +1,14 @@
+defaults:
+  - _self_
+  - task: ???
+  - override hydra/job_logging: custom
+
+model_path: ???
+data_path: ???
+
+generation:
+  max_length: 300
+
+hydra:
+  run:
+    dir: outputs/evaluation/${task.name}
