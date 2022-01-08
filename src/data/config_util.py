@@ -1,5 +1,5 @@
 """
-Utility functions for dealing with configs
+Data Utility functions for dealing with configs
 """
 import logging
 from functools import partial
@@ -66,12 +66,9 @@ def load_task_from_cfg(cfg: DictConfig, tokenizer: PreTrainedTokenizer) -> Task:
     task_cls = Task.by_name(cfg["task"]["name"])
     cfg_dict = OmegaConf.to_object(cfg["task"])
     preprocessors, postprocessors = load_processors_from_cfg(cfg)
-
-    cfg_dict.pop("paths")
-    cfg_dict.pop("name")
     return task_cls(
         tokenizer=tokenizer,
         preprocessors=preprocessors,
         postprocessors=postprocessors,
-        **cfg_dict,
+        **cfg_dict.get('args', {}),
     )

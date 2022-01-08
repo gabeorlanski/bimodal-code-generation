@@ -1,0 +1,36 @@
+name: testing
+model: patrickvonplaten/t5-tiny-random
+debug: true
+disable_tracking: true
+data_path: data
+device: -1
+seed: 1
+numpy_seed: 2
+pytorch_seed: 3
+metrics:
+- exact-match
+- bleu
+preprocessors:
+  add_prefix:
+    prefix: 'Generate Python:'
+task:
+  name: dummy
+  paths:
+    train: MBPP/train.jsonl
+    validation: MBPP/validation.jsonl
+training:
+  batch_size: 2
+  output_dir: models
+  group_by_length: true
+  predict_with_generate: true
+  evaluation_strategy: steps
+  generation_max_length: 300
+  learning_rate: 0.0005
+  max_steps: 1000
+  logging_steps: 250
+  gradient_accumulation_steps: 1
+  eval_accumulation_steps: 1
+  metric_for_best_model: eval_bleu
+  load_best_model_at_end: true
+  save_steps: 250
+  save_total_limit: 5
