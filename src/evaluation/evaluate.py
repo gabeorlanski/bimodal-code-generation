@@ -11,7 +11,7 @@ from pathlib import Path
 from src.common import PROJECT_ROOT
 from src.common.config import get_device_from_cfg
 from src.evaluation.evaluator import Evaluator
-from src.data import Task, get_task_from_cfg
+from src.data import Task, load_task_from_cfg
 
 logger = logging.getLogger(__name__)
 
@@ -27,7 +27,7 @@ def evaluate_model(cfg: DictConfig, train_cfg: DictConfig, model: PreTrainedMode
     """
     logger.info(f"Loading reader '{train_cfg['task']['name']}'")
     tokenizer = AutoTokenizer.from_pretrained(train_cfg["model"])
-    task = get_task_from_cfg(cfg, tokenizer)
+    task = load_task_from_cfg(cfg, tokenizer)
 
     logger.info(f"Reading data from '{cfg['data_path']}'")
     raw_data, tokenized = task.read_data(

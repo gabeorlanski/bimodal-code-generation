@@ -8,7 +8,7 @@ import numpy as np
 import os
 import random
 
-from src.data import get_task_from_cfg
+from src.data import load_task_from_cfg
 from src.training import train_model
 
 logger = logging.getLogger(__name__)
@@ -47,7 +47,7 @@ def run(cfg: DictConfig):
 
     logger.info(f"Loading tokenizer for '{cfg['model']}'")
     tokenizer = AutoTokenizer.from_pretrained(cfg["model"])
-    task = get_task_from_cfg(cfg, tokenizer)
+    task = load_task_from_cfg(cfg, tokenizer)
 
     model = train_model(cfg, PROJECT_ROOT.joinpath(cfg["data_path"]), task)
 

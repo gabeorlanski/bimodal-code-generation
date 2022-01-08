@@ -3,10 +3,8 @@ from pathlib import Path
 from typing import Dict, List, Callable, Tuple, Optional
 from datasets import Dataset
 from transformers import PreTrainedTokenizer
-from omegaconf import DictConfig, OmegaConf
 
 from src.common import Registrable
-from src.data.processor import load_processors
 
 logger = logging.getLogger(__name__)
 
@@ -31,11 +29,11 @@ class Task(Registrable):
     """
 
     def __init__(
-        self,
-        tokenizer: PreTrainedTokenizer,
-        preprocessors: List[Callable],
-        postprocessors: List[Callable],
-        **kwargs,
+            self,
+            tokenizer: PreTrainedTokenizer,
+            preprocessors: List[Callable],
+            postprocessors: List[Callable],
+            **kwargs,
     ):
         self.input_sequence_key = ("input_sequence",)
         self.target_key = "target"
@@ -56,7 +54,7 @@ class Task(Registrable):
         raise NotImplementedError()
 
     def read_data(
-        self, data_path: Path, num_procs: int = 1, set_format: Optional[str] = None
+            self, data_path: Path, num_procs: int = 1, set_format: Optional[str] = None
     ) -> Tuple[Dataset, Dataset]:
         """
         Method to read and preprocess dataset.
@@ -132,19 +130,3 @@ class Task(Registrable):
 
         """
         raise NotImplementedError()
-
-
-def get_task_from_cfg(cfg: DictConfig, tokenizer: PreTrainedTokenizer) -> "Task":
-    logger.info(f"Initializing reader registered to name '{cfg['task']['name']}'")
-    task_cls = Task.by_name(cfg["task"]["name"])
-    cfg_dict = OmegaConf.to_object(cfg["task"])
-    preprocessors, postprocessors = load_processors(cfg)
-
-    cfg_dict.pop("paths")
-    cfg_dict.pop("name")
-    return task_cls(
-        tokenizer=tokenizer,
-        preprocessors=preprocessors,
-        postprocessors=postprocessors,
-        **cfg_dict,
-    )
