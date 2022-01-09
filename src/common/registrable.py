@@ -7,6 +7,7 @@ _RegistrableT = TypeVar("_RegistrableT", bound="Registrable")
 _SubclassRegistry = Dict[str, Tuple[type, Optional[str]]]
 
 
+# TODO(gabeorlanski): Fix type issues/make separate class for registering functions.
 class Registrable(object):
     """
     A class that collects all registered components,
@@ -34,3 +35,4 @@ class Registrable(object):
 
     def list_available(self):
         return list(self._registered_components)
+

@@ -10,6 +10,7 @@ import random
 
 from src.data import load_task_from_cfg
 from src.training import train_model
+from src.tracking import setup_tracking_env_from_cfg
 
 logger = logging.getLogger(__name__)
 
@@ -29,6 +30,8 @@ def run(cfg: DictConfig):
     os.environ["CUBLAS_WORKSPACE_CONFIG"] = ":4096:8"
     torch.use_deterministic_algorithms(True)
 
+    setup_tracking_env_from_cfg(cfg)
+
     if "training" not in cfg:
         raise KeyError("Missing 'training' key in config.")
 
@@ -45,11 +48,7 @@ def run(cfg: DictConfig):
     if torch.cuda.is_available():
         torch.cuda.manual_seed_all(torch_seed)
 
-    logger.info(f"Loading tokenizer for '{cfg['model']}'")
-    tokenizer = AutoTokenizer.from_pretrained(cfg["model"])
-    task = load_task_from_cfg(cfg, tokenizer)
-
-    model = train_model(cfg, PROJECT_ROOT.joinpath(cfg["data_path"]), task)
+    model = train_model(cfg, PROJECT_ROOT.joinpath(cfg["data_path"]))
 
     logger.info(f"Saving best model to {Path.cwd()}")
     torch.save(model.state_dict(), Path.cwd().joinpath("best_model.bin"))

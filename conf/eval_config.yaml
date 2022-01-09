@@ -1,7 +1,7 @@
 defaults:
   - _self_
   - task: ???
-  - override hydra/job_logging: custom
+  - base_config
 
 model_path: ???
 data_path: ???

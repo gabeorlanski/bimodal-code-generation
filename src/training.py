@@ -15,6 +15,7 @@ from src.data import Task
 from src.common.config import get_device_from_cfg
 from src.evaluation.evaluator import Evaluator
 from src.trainer import CustomTrainer
+from src.pipelines import LoadDataStage
 
 logger = logging.getLogger(__name__)
 
@@ -48,52 +49,53 @@ def get_training_args_from_config(cfg: DictConfig) -> Seq2SeqTrainingArguments:
 
 
 # TODO(gabeorlanski): Add in parallel support
-def train_model(cfg: DictConfig, data_path: Path, task: Task):
+def train_model(cfg: DictConfig, data_path: Path):
     """
     Train a model with a given reader.
 
     Args:
         cfg (DictConfig): The config.
-        data_path (Path): Path to the data folder.
-        task (Task): The dataset reader to use.
+        data_path (Path): Path to the data folder
 
     Returns:
         The best model.
     """
+    load_data_stage = LoadDataStage.from_cfg(cfg)
+    tokenizer = load_data_stage.tokenizer
+
     train_path = data_path.joinpath(cfg["task"]["paths"]["train"])
     logger.info(f"Reading training data is from '{train_path}'")
-    train_raw, train_data = task.read_data(train_path, set_format="torch")
+    train_data = load_data_stage(train_path, set_format="torch")
 
     validation_path = data_path.joinpath(cfg["task"]["paths"]["validation"])
     logger.info(f"Reading training data is from '{validation_path}'")
-    validation_raw, validation_data = task.read_data(
-        validation_path, set_format="torch"
-    )
+    validation_data = load_data_stage(validation_path, set_format="torch")
 
-    logger.info(f"{len(train_data)} training samples")
-    logger.info(f"{len(validation_data)} validation samples")
+    logger.info(f"{len(train_data['tokenized'])} training samples")
+    logger.info(f"{len(validation_data['tokenized'])} validation samples")
 
     device = get_device_from_cfg(cfg)
     logger.info(f"Using device {device}")
 
     logger.debug("Loading Model")
     model = AutoModelForSeq2SeqLM.from_pretrained(cfg["model"]).to(device)
-    evaluator = Evaluator(task.tokenizer, cfg.get("metrics", []))
+    evaluator = Evaluator(tokenizer, cfg.get("metrics", []))
 
     logger.debug("Initializing trainer")
     collator = DataCollatorForSeq2Seq(
-        task.tokenizer,
+        tokenizer,
         model,
         return_tensors="pt",
-        label_pad_token_id=task.tokenizer.pad_token_id,
+        label_pad_token_id=tokenizer.pad_token_id,
     )
     trainer = CustomTrainer(
+        cfg=cfg,
         model=model,
         args=get_training_args_from_config(cfg),
-        train_dataset=train_data,
-        eval_dataset=validation_data,
+        train_dataset=train_data['tokenized'],
+        eval_dataset=validation_data['tokenized'],
         data_collator=collator,
-        compute_metrics=evaluator.eval_raw_predictions,
+        compute_metrics=evaluator.eval_raw_predictions
     )
     trainer.train()
     return model

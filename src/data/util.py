@@ -5,7 +5,7 @@ import logging
 from functools import partial
 from omegaconf import DictConfig, OmegaConf
 from typing import Tuple, List, Callable
-from transformers import PreTrainedTokenizer
+from transformers import AutoTokenizer
 
 from src.data.processor import Preprocessor, Postprocessor
 from src.data.task import Task
@@ -51,7 +51,7 @@ def load_processors_from_cfg(cfg: DictConfig) -> Tuple[List[Callable], List[Call
     return preprocessors, postprocessors
 
 
-def load_task_from_cfg(cfg: DictConfig, tokenizer: PreTrainedTokenizer) -> Task:
+def load_task_from_cfg(cfg: DictConfig) -> Task:
     """
     Create a Task from a cfg
 
@@ -62,12 +62,12 @@ def load_task_from_cfg(cfg: DictConfig, tokenizer: PreTrainedTokenizer) -> Task:
     Returns:
         Task: The created task object.
     """
-    logger.info(f"Initializing reader registered to name '{cfg['task']['name']}'")
+    logger.info(f"Initializing task registered to name '{cfg['task']['name']}'")
     task_cls = Task.by_name(cfg["task"]["name"])
     cfg_dict = OmegaConf.to_object(cfg["task"])
     preprocessors, postprocessors = load_processors_from_cfg(cfg)
     return task_cls(
-        tokenizer=tokenizer,
+        tokenizer=AutoTokenizer.from_pretrained(cfg['model']),
         preprocessors=preprocessors,
         postprocessors=postprocessors,
         **cfg_dict.get('args', {}),

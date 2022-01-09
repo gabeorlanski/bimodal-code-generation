@@ -1,10 +1,15 @@
 from typing import Dict, Optional, Union
 import logging
+
+from omegaconf import DictConfig
 from transformers import Seq2SeqTrainer, ProgressCallback, TrainerCallback
+
+from transformers.integrations import WandbCallback
 from overrides import overrides
 from tqdm import tqdm
 import collections
 from datetime import datetime, timedelta
+from src.tracking import TrackingCallback, is_tracking_enabled
 
 logger = logging.getLogger(__name__)
 
@@ -48,7 +53,7 @@ class BetterProgress(TrainerCallback):
 
     def on_prediction_step(self, args, state, control, eval_dataloader=None, **kwargs):
         if state.is_local_process_zero and isinstance(
-            eval_dataloader.dataset, collections.abc.Sized
+                eval_dataloader.dataset, collections.abc.Sized
         ):
             if self.prediction_bar is None:
                 self.prediction_bar = tqdm(total=len(eval_dataloader))
@@ -76,10 +81,20 @@ class BetterProgress(TrainerCallback):
 
 
 class CustomTrainer(Seq2SeqTrainer):
-    def __init__(self, *args, **kwargs):
+    def __init__(self, cfg: DictConfig, *args, **kwargs):
+        # Initialize the variables to supress warnings
+        self.state = None
+        self.args = None
+        self.control = None
+
         super(CustomTrainer, self).__init__(*args, **kwargs)
         self.callback_handler.pop_callback(ProgressCallback)
         self.callback_handler.add_callback(BetterProgress)
+
+        if is_tracking_enabled(cfg):
+            self.callback_handler.pop_callback(WandbCallback)
+            self.callback_handler.add_callback(TrackingCallback('training', cfg))
+
         self.train_stats = None
 
     @overrides
@@ -107,9 +122,9 @@ class CustomTrainer(Seq2SeqTrainer):
 
     @staticmethod
     def _create_log_msg(
-        metric_name: str,
-        train_value: Optional[Union[str, float]],
-        eval_value: Optional[Union[str, float]],
+            metric_name: str,
+            train_value: Optional[Union[str, float]],
+            eval_value: Optional[Union[str, float]],
     ) -> str:
         def format_metric_msg(metric: Optional[float]):
             if metric is None:

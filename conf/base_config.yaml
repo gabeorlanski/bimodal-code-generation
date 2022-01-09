@@ -1,0 +1,11 @@
+# @package _global_
+defaults:
+  - _self_
+  - override hydra/job_logging: custom
+
+debug: False
+project: ???
+tracking:
+  watch: "all"
+  project: ${..project}
+  log_model: false

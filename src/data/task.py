@@ -1,6 +1,8 @@
 import logging
 from pathlib import Path
 from typing import Dict, List, Callable, Tuple, Optional
+
+import torch
 from datasets import Dataset
 from transformers import PreTrainedTokenizer
 

@@ -1,20 +1,22 @@
-name: testing
-model: patrickvonplaten/t5-tiny-random
 debug: true
-disable_tracking: true
+project: adversarial-code
+tracking: false
+name: debug
+group: testing
+model: patrickvonplaten/t5-tiny-random
 data_path: data
-device: -1
+device: 0
 seed: 1
 numpy_seed: 2
 pytorch_seed: 3
 metrics:
-- exact-match
-- bleu
+  - exact-match
+  - bleu
 preprocessors:
   add_prefix:
     prefix: 'Generate Python:'
 task:
-  name: dummy
+  name: mbpp
   paths:
     train: MBPP/train.jsonl
     validation: MBPP/validation.jsonl
