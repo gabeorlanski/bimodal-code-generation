@@ -8,7 +8,6 @@ import numpy as np
 import os
 import random
 
-from src.data import load_task_from_cfg
 from src.training import train_model
 from src.tracking import setup_tracking_env_from_cfg
 

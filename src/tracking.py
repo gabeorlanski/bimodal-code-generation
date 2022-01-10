@@ -7,7 +7,6 @@ from transformers.integrations import WandbCallback
 from omegaconf import DictConfig, OmegaConf
 import os
 import logging
-import wandb
 from src.common import flatten
 
 logger = logging.getLogger(__name__)

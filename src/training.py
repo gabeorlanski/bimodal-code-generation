@@ -1,21 +1,18 @@
 from pathlib import Path
-from typing import Dict
 
+import numpy as np
 from transformers import (
     AutoModelForSeq2SeqLM,
-    Seq2SeqTrainer,
     Seq2SeqTrainingArguments,
     DataCollatorForSeq2Seq,
 )
 import logging
-import torch
 from omegaconf import OmegaConf, DictConfig
 
-from src.data import Task
+from yamrf import Task, load_task_from_cfg
+
 from src.common.config import get_device_from_cfg
-from src.evaluation.evaluator import Evaluator
 from src.trainer import CustomTrainer
-from src.pipelines import LoadDataStage
 
 logger = logging.getLogger(__name__)
 
@@ -60,26 +57,27 @@ def train_model(cfg: DictConfig, data_path: Path):
     Returns:
         The best model.
     """
-    load_data_stage = LoadDataStage.from_cfg(cfg)
-    tokenizer = load_data_stage.tokenizer
+    task: Task = load_task_from_cfg(cfg)
+    tokenizer = task.tokenizer
 
     train_path = data_path.joinpath(cfg["task"]["paths"]["train"])
     logger.info(f"Reading training data is from '{train_path}'")
-    train_data = load_data_stage(train_path, set_format="torch")
+    train_data = task.get_dataset("train", num_procs=cfg.get('num_proc', 1), set_format="torch")
 
     validation_path = data_path.joinpath(cfg["task"]["paths"]["validation"])
     logger.info(f"Reading training data is from '{validation_path}'")
-    validation_data = load_data_stage(validation_path, set_format="torch")
+    validation_data = task.get_dataset(
+        "validation", num_procs=cfg.get('num_proc', 1), set_format="torch"
+    )
 
-    logger.info(f"{len(train_data['tokenized'])} training samples")
-    logger.info(f"{len(validation_data['tokenized'])} validation samples")
+    logger.info(f"{len(train_data)} training samples")
+    logger.info(f"{len(validation_data)} validation samples")
 
     device = get_device_from_cfg(cfg)
     logger.info(f"Using device {device}")
 
     logger.debug("Loading Model")
     model = AutoModelForSeq2SeqLM.from_pretrained(cfg["model"]).to(device)
-    evaluator = Evaluator(tokenizer, cfg.get("metrics", []))
 
     logger.debug("Initializing trainer")
     collator = DataCollatorForSeq2Seq(
@@ -92,10 +90,14 @@ def train_model(cfg: DictConfig, data_path: Path):
         cfg=cfg,
         model=model,
         args=get_training_args_from_config(cfg),
-        train_dataset=train_data['tokenized'],
-        eval_dataset=validation_data['tokenized'],
+        train_dataset=train_data,
+        eval_dataset=validation_data,
         data_collator=collator,
-        compute_metrics=evaluator.eval_raw_predictions
+        compute_metrics=lambda preds: task.evaluate(
+            *task.postprocess_np(
+                preds.predictions, preds.label_ids
+            )
+        )
     )
     trainer.train()
     return model

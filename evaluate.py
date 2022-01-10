@@ -1,21 +1,15 @@
 import logging
 import hydra
 import yaml
-from hydra.core.config_store import ConfigStore
 import torch
 from omegaconf import DictConfig, OmegaConf
 from pathlib import Path
 from transformers import AutoModelForSeq2SeqLM
 
-from src.config import setup_config_store
 from src.common.config import get_device_from_cfg
-from src.data import Task, Preprocessor, Postprocessor
-from src.training import train_model
 from src.evaluation import evaluate_model
 
 logger = logging.getLogger(__name__)
-
-cs = setup_config_store()
 
 # Hydra Messes with the CWD, so we need to save it at the beginning.
 PROJECT_ROOT = Path.cwd()

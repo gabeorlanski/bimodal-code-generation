@@ -4,6 +4,7 @@ defaults:
   - base_config
 
 model_path: ???
+split: ???
 data_path: ???
 
 generation:

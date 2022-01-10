@@ -8,19 +8,21 @@ from tqdm import tqdm
 
 import sys
 
+from src.common import setup_basic_loggers
+from src.common.file_util import validate_files_exist
+
 # If this file is called by itself (for creating the splits) then it will
 # have import issues.
 if str(Path(__file__).parents[1]) not in sys.path:
     sys.path.insert(0, str(Path(__file__).parents[1]))
-from src.common import setup_basic_loggers, PROJECT_ROOT
-from src.common.file_util import validate_files_exist
+from src.common import PROJECT_ROOT
 
 
 def setup_mbpp_splits(
-    data_path: Union[str, Path],
-    test_size: int = 500,
-    few_shot_size: int = 10,
-    fine_tuning_size: int = 374,
+        data_path: Union[str, Path],
+        test_size: int = 500,
+        few_shot_size: int = 10,
+        fine_tuning_size: int = 374,
 ) -> None:
     """
     Setup the splits for the mostly basic programming problems dataset.
@@ -56,9 +58,9 @@ def setup_mbpp_splits(
     setup_mbpp_logger.debug(f"Loading json lines from '{mbpp_path.resolve()}'")
     mbpp_data = []
     for line in tqdm(
-        mbpp_path.read_text("utf-8").splitlines(False),
-        desc="Reading mbpp.jsonl",
-        file=sys.stdout,
+            mbpp_path.read_text("utf-8").splitlines(False),
+            desc="Reading mbpp.jsonl",
+            file=sys.stdout,
     ):
         mbpp_data.append(json.loads(line))
     setup_mbpp_logger.debug(f"Loading json from '{sanitized_path.resolve()}'")
@@ -87,7 +89,7 @@ def setup_mbpp_splits(
             f"Saving split {name} with {size} items to {out_file_name}"
         )
         with out_path.joinpath(out_file_name).open("w", encoding="utf-8") as split_file:
-            for i in mbpp_data[current : current + size]:
+            for i in mbpp_data[current: current + size]:
                 split_file.write(json.dumps(i) + "\n")
                 progress_bar.update()
             current += size
@@ -102,8 +104,8 @@ if __name__ == "__main__":
     parser.add_argument(
         "data_path",
         help="Path to the MBPP data download dir"
-        "that contains both MBPP.jsonl and "
-        "sanititzed-MBPP.jsonl",
+             "that contains both MBPP.jsonl and "
+             "sanititzed-MBPP.jsonl",
     )
     parser.add_argument(
         "--seed", default=1, type=int, help="Seed used for randomization."

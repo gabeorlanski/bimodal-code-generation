@@ -5,6 +5,17 @@ import torch
 
 
 def get_device_from_cfg(cfg) -> torch.device:
+    """
+    Get the torch device from a config. Assumes that there is a ``device``
+    key at the top level.
+
+    Args:
+        cfg: The config.
+
+    Returns:
+        The torch device.
+    """
+
     # Cast to a string to guarantee that it will be one type rather than mixed
     # ints and strings.
     device_str = str(cfg.get("device", "cpu"))

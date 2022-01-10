@@ -15,9 +15,8 @@ from omegaconf import OmegaConf
 import yaml
 
 import src.training
-from src.common.config import get_device_from_cfg
+from yamrf.common.config import get_device_from_cfg
 from src.training import train_model, get_training_args_from_config
-from src.pipelines import LoadDataStage
 
 
 @pytest.fixture()
@@ -43,7 +42,7 @@ def test_get_training_args_from_config(training_args, batch_size):
     assert get_training_args_from_config(cfg) == expected
 
 
-@pytest.mark.parametrize("device_val", [-1, "cuda"],ids=['CPU','GPU'])
+@pytest.mark.parametrize("device_val", [-1, "cuda"], ids=['CPU', 'GPU'])
 def test_train_model(tmpdir, training_args, simple_config, tiny_model_name, device_val):
     tmpdir_path = Path(tmpdir)
     simple_config['device'] = device_val
