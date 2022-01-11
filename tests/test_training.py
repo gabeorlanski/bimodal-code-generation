@@ -15,7 +15,7 @@ from omegaconf import OmegaConf
 import yaml
 
 import src.training
-from yamrf.common.config import get_device_from_cfg
+from src.common.config import get_device_from_cfg
 from src.training import train_model, get_training_args_from_config
 
 
@@ -57,10 +57,10 @@ def test_train_model(tmpdir, training_args, simple_config, tiny_model_name, devi
                 "src.training.AutoModelForSeq2SeqLM.from_pretrained",
                 return_value=torch.zeros((1, 1), device=get_device_from_cfg(cfg)),
         ) as mock_model:
-            with patch('src.training.LoadDataStage.__call__') as mock_loader:
+            with patch('src.training.Task.get_dataset') as mock_loader:
                 mock_loader.side_effect = (
-                    {'raw': "TRAIN_RAW", 'tokenized': "TRAIN_TOK"},
-                    {'raw': "VAL_RAW", 'tokenized': "VAL_TOK"}
+                    "TRAIN_TOK",
+                    "VAL_TOK"
                 )
                 result = train_model(cfg, tmpdir_path)
 
@@ -68,12 +68,12 @@ def test_train_model(tmpdir, training_args, simple_config, tiny_model_name, devi
     assert mock_loader.call_count == 2
 
     train_args = mock_loader.call_args_list[0]
-    assert train_args.args == (tmpdir_path.joinpath(cfg['task']["paths"]["train"]),)
-    assert train_args.kwargs == {"set_format": "torch"}
+    assert train_args.args == ('train',)
+    assert train_args.kwargs == {'num_procs': 1, "set_format": "torch"}
 
     val_args = mock_loader.call_args_list[1]
-    assert val_args.args == (tmpdir_path.joinpath(cfg['task']["paths"]["validation"]),)
-    assert val_args.kwargs == {"set_format": "torch"}
+    assert val_args.args == ('validation',)
+    assert val_args.kwargs == {'num_procs': 1, "set_format": "torch"}
 
     assert mock_model.call_count == 1
     assert mock_model.call_args_list[0].args == (tiny_model_name,)

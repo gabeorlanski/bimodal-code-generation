@@ -1,7 +1,7 @@
 import pytest
 import torch
 
-from yamrf.common import config
+from src.common import config
 
 
 @pytest.mark.parametrize('device', [-1, 'cuda'], ids=['cpu', 'gpu'])

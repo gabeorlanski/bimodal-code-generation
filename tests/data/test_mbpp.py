@@ -1,40 +1,48 @@
 """
 Tests for the MBPP dataset features
 """
+import pytest
 from transformers import AutoTokenizer
 from datasets import Dataset
 
-from src.common import FIXTURES_ROOT
-from src.data import mbpp
+from yamrf.task import Task
+
+from src.common import FIXTURES_ROOT, PROJECT_ROOT
 
 
-class TestMBPPReader:
-    def test_read(self):
-        mbpp_task = mbpp.MBPP(None)  # Type:ignore
+@pytest.fixture(scope='module')
+def mbpp_task() -> Task:
+    yield Task.by_name('mbpp')(
+        tokenizer=AutoTokenizer.from_pretrained("patrickvonplaten/t5-tiny-random"),
+        preprocessors=[],
+        postprocessors=[],
+        metric_fns=[]
+    )
 
-        expected_mbpp = Dataset.from_json(
-            str(FIXTURES_ROOT.joinpath("MBPP", "mbpp.jsonl"))
-        )
 
-        actual = mbpp_task._load_dataset(FIXTURES_ROOT.joinpath("MBPP", "mbpp.jsonl"))
-        assert actual.to_dict() == expected_mbpp.to_dict()
+@pytest.mark.parametrize('split', ['train', 'test', 'validation'])
+def test_mbpp_task(mbpp_task, split):
+    expected = Dataset.from_json(str(
+        PROJECT_ROOT.joinpath('data', 'MBPP', f'{split}.jsonl')
+    ))
+    expected = expected.map(lambda ex: ex, remove_columns=[
+        "challenge_test_list",
+        "test_setup_code"
+    ])
 
-    def test_preprocess(self):
-        tokenizer = AutoTokenizer.from_pretrained("patrickvonplaten/t5-tiny-random")
-        mbpp_task = mbpp.MBPP(tokenizer)
+    result = mbpp_task.dataset_load_fn(split)
+    assert result[:10] == expected[:10]
 
-        preprocessed, tokenized = mbpp_task.read_data(
-            FIXTURES_ROOT.joinpath("MBPP", "mbpp.jsonl")
-        )
-        for example, example_tok in zip(preprocessed, tokenized):
-            expected_input_sequence = (
-                example["text"] + "\n" + "\n".join(example["test_list"])
-            )
-            expected_target = example["code"]
-            assert example["input_sequence"] == expected_input_sequence
-            assert example["target"] == expected_target
-            assert (
-                example_tok["input_ids"]
-                == tokenizer(expected_input_sequence)["input_ids"]
-            )
-            assert example_tok["labels"] == tokenizer(expected_target)["input_ids"]
+
+def test_mbpp_map_to_standard_entries(mbpp_task):
+    sample = {
+        "text"     : "A",
+        "code"     : "B",
+        "test_list": ["C", "D"]
+    }
+    result = mbpp_task.map_to_standard_entries(sample)
+    assert result == {
+        "input_sequence": "A\nC\nD",
+        "target"        : "B",
+        **sample
+    }

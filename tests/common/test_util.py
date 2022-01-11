@@ -1,4 +1,4 @@
-from yamrf.common import util
+from src.common import util
 
 
 def test_flatten():
