@@ -3,7 +3,7 @@ from datasets import Dataset
 from pathlib import Path
 from typing import Dict
 
-from yamrf import Task
+from tio import Task
 
 __all__ = [
     "DummyTask"

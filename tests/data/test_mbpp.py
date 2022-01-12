@@ -5,7 +5,7 @@ import pytest
 from transformers import AutoTokenizer
 from datasets import Dataset
 
-from yamrf.task import Task
+from tio.task import Task
 
 from src.common import FIXTURES_ROOT, PROJECT_ROOT
 

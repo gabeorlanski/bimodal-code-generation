@@ -11,7 +11,7 @@ from typing import Callable, List, Dict
 from datasets import Dataset, DatasetDict
 from src.common import PROJECT_ROOT
 
-from yamrf.task import Task, PathType
+from tio.task import Task, PathType
 
 logger = logging.getLogger(__name__)
 

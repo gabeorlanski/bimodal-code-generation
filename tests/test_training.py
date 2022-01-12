@@ -1,20 +1,12 @@
 """
 Tests for the training data.
 """
-from dataclasses import asdict
 from pathlib import Path
 import pytest
-import json
-import shutil
-from unittest.mock import patch, MagicMock
-
+from unittest.mock import patch
 import torch
-from transformers import AutoTokenizer, Seq2SeqTrainingArguments, DataCollatorForSeq2Seq
-from datasets import Dataset
+from transformers import Seq2SeqTrainingArguments
 from omegaconf import OmegaConf
-import yaml
-
-import src.training
 from src.common.config import get_device_from_cfg
 from src.training import train_model, get_training_args_from_config
 
@@ -57,7 +49,7 @@ def test_train_model(tmpdir, training_args, simple_config, tiny_model_name, devi
                 "src.training.AutoModelForSeq2SeqLM.from_pretrained",
                 return_value=torch.zeros((1, 1), device=get_device_from_cfg(cfg)),
         ) as mock_model:
-            with patch('src.training.Task.get_dataset') as mock_loader:
+            with patch('src.training.Task.get_split') as mock_loader:
                 mock_loader.side_effect = (
                     "TRAIN_TOK",
                     "VAL_TOK"

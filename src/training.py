@@ -9,7 +9,7 @@ from transformers import (
 import logging
 from omegaconf import OmegaConf, DictConfig
 
-from yamrf import Task, load_task_from_cfg
+from tio import Task, load_task_from_cfg
 
 from src.common.config import get_device_from_cfg
 from src.trainer import CustomTrainer
@@ -62,11 +62,11 @@ def train_model(cfg: DictConfig, data_path: Path):
 
     train_path = data_path.joinpath(cfg["task"]["paths"]["train"])
     logger.info(f"Reading training data is from '{train_path}'")
-    train_data = task.get_dataset("train", num_procs=cfg.get('num_proc', 1), set_format="torch")
+    train_data = task.get_split("train", num_procs=cfg.get('num_proc', 1), set_format="torch")
 
     validation_path = data_path.joinpath(cfg["task"]["paths"]["validation"])
     logger.info(f"Reading training data is from '{validation_path}'")
-    validation_data = task.get_dataset(
+    validation_data = task.get_split(
         "validation", num_procs=cfg.get('num_proc', 1), set_format="torch"
     )
 
