@@ -1,0 +1,13 @@
+model_path: outputs/train/debug
+split: test
+data_path: data/MBPP/test.jsonl
+generation:
+  max_length: 300
+task:
+  name: mbpp
+debug: false
+project: ???
+tracking:
+  watch: all
+  project: ${..project}
+  log_model: false

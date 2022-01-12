@@ -35,10 +35,10 @@ def test_get_training_args_from_config(training_args, batch_size):
 
 
 @pytest.mark.parametrize("device_val", [-1, "cuda"], ids=['CPU', 'GPU'])
-def test_train_model(tmpdir, training_args, simple_config, tiny_model_name, device_val):
+def test_train_model(tmpdir, training_args, simple_train_config, tiny_model_name, device_val):
     tmpdir_path = Path(tmpdir)
-    simple_config['device'] = device_val
-    cfg = OmegaConf.create(simple_config)
+    simple_train_config['device'] = device_val
+    cfg = OmegaConf.create(simple_train_config)
 
     import sys
 

@@ -5,7 +5,7 @@ import logging
 from tqdm import tqdm
 from pathlib import Path
 
-from yamrf import Task, load_task_from_cfg
+from tio import Task, load_task_from_cfg
 
 from src.common import PROJECT_ROOT
 from src.common.config import get_device_from_cfg
@@ -21,8 +21,7 @@ def generate_predictions(
         task,
         batch_size,
         device,
-        generation_kwargs,
-        postprocess_batch_count=5
+        generation_kwargs
 ):
     collator = DataCollatorForSeq2Seq(
         tokenizer=task.tokenizer,
@@ -45,8 +44,6 @@ def generate_predictions(
         shuffle=False,
         batch_size=batch_size,
     )
-
-    max_label_len = max(len(d) for d in tokenized['labels'])
 
     logger.info("Starting Generation")
     logger.info("Generation kwargs:")
@@ -81,8 +78,7 @@ def generate_predictions(
             for i in range(batch['input_ids'].shape[0]):
                 preds = postprocessed_preds[i]
                 gold = postprocessed_targets[i]
-                # Only use the first returned result for basic evaluation,
-                # maybe later will be more advanced.
+
                 predictions.append(preds)
                 labels.append(gold)
                 indices.append(batch['idx'][i].item())
@@ -119,19 +115,21 @@ def evaluate_model(cfg: DictConfig, train_cfg: DictConfig, model: PreTrainedMode
     task = load_task_from_cfg(cfg)
 
     logger.info(f"Reading data from '{cfg['data_path']}'")
-    tokenized = task.get_dataset(cfg['split'])
+    tokenized = task.get_split(cfg['split'])
     logger.info(f"{len(tokenized)} total samples found")
 
     logger.info("Initializing the evaluator")
 
     generation_results = generate_predictions(
         model,
-        tokenized,
-        task,
+        tokenized=tokenized,
+        task=task,
         batch_size=cfg["training"].get("batch_size", 4),
         device=get_device_from_cfg(cfg),
-        generation_kwargs=cfg.get('generation')
+        generation_kwargs=cfg.get('generation',{})
     )
+
+    # Unpack the returned dict from generate predictions
     indices = generation_results['indices']
     predictions = generation_results['predictions']
     labels = generation_results['labels']
@@ -143,15 +141,19 @@ def evaluate_model(cfg: DictConfig, train_cfg: DictConfig, model: PreTrainedMode
     for k, v in metrics.items():
         logger.info(f"\t{k:>20} = {v:0.3f}")
 
-    logger.info(f"Saving predictions to {Path('predictions.jsonl')}")
+    out_path = cfg.get('out_path', None)
+    out_path = Path(out_path) if out_path else Path()
+    out_path = out_path.joinpath('predictions.jsonl')
+    logger.info(f"Saving predictions to {out_path}")
     raw_data = task.preprocessed_splits[cfg['split']]
-    with Path("predictions.jsonl").open("w", encoding="utf-8") as f:
+    with out_path.open("w", encoding="utf-8") as f:
         for idx, preds in tqdm(zip(indices, predictions), desc="Saving"):
             f.write(serialize_prediction(
                 idx=idx,
                 input_sequence=raw_data[idx]["input_sequence"],
                 target=raw_data[idx]["target"],
                 predictions=preds
+
             ) + '\n')
 
     return metrics

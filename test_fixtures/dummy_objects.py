@@ -14,14 +14,14 @@ __all__ = [
 class DummyTask(Task):
 
     @staticmethod
-    def _map_to_standard_entries(sample: Dict) -> Dict:
+    def map_to_standard_entries(sample: Dict) -> Dict:
         sample['input_sequence'] = sample['input']
         sample['target'] = sample['output']
         return sample
 
-    def _load_dataset(self, data_path: Path) -> Dataset:
+    def dataset_load_fn(self, split: str) -> Dataset:
         return Dataset.from_dict({
-            "idx"   : [0, 1, 2],
-            "input" : ["The comment section is ", "The butcher of ", "Get "],
-            "output": ["out of control.", "Blevkin.", "Some."]
+            "idx"   : [0, 1, 2, 3],
+            "input" : ["The comment section is ", "The butcher of ", "Get ", "I hate"],
+            "output": ["out of control.", "Blevkin.", "Some.", "tf.data"]
         })
