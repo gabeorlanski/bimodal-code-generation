@@ -3,14 +3,10 @@ Tests for the training data.
 """
 import json
 from pathlib import Path
-import pytest
 from unittest.mock import patch, MagicMock
-import torch
-from transformers import Seq2SeqTrainingArguments
 from omegaconf import OmegaConf, open_dict
-from src.common.config import get_device_from_cfg
-from src.evaluation.evaluate import evaluate_model, merge_train_cfg_with_eval_cfg
-from tio import load_task_from_cfg
+from src.config import load_task_from_cfg, merge_configs
+from src.evaluation.evaluate import evaluate_model
 
 
 def test_evaluate_model(tmpdir, simple_train_config, simple_eval_config):
@@ -21,7 +17,7 @@ def test_evaluate_model(tmpdir, simple_train_config, simple_eval_config):
         gen_cfg.task.name = 'dummy'
         gen_cfg.out_path = str(tmpdir_path)
 
-    merged_cfg = merge_train_cfg_with_eval_cfg(gen_cfg, train_cfg)
+    merged_cfg = merge_configs(gen_cfg, train_cfg)
     import sys
 
     sys.path.insert(0, str(Path(__file__).parents[1]))
@@ -63,21 +59,21 @@ def test_evaluate_model(tmpdir, simple_train_config, simple_eval_config):
             'idx'           : 0,
             'input_sequence': 'Generate Python: The comment section is ',
             'target'        : 'out of control.',
-            "predictions"    : ["D"]
+            "predictions"   : ["D"]
         }, {
             'idx'           : 1,
             'input_sequence': 'Generate Python: The butcher of ',
             'target'        : 'Blevkin.',
-            "predictions"    : ["B"]
+            "predictions"   : ["B"]
         }, {
             'idx'           : 2,
             'input_sequence': 'Generate Python: Get ',
             'target'        : 'Some.',
-            "predictions"    : ["C"]
+            "predictions"   : ["C"]
         }, {
             'idx'           : 3,
             'input_sequence': 'Generate Python: I hate',
             'target'        : 'tf.data',
-            "predictions"    : ["A"]
+            "predictions"   : ["A"]
         },
     ]

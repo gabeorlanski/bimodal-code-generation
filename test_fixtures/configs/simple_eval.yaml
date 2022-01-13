@@ -6,7 +6,7 @@ generation:
 task:
   name: mbpp
 debug: false
-project: ???
+project: adversarial-code
 tracking:
   watch: all
   project: ${..project}

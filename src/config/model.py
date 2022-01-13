@@ -1,10 +1,22 @@
 """
 Config related util functions.
 """
+from typing import List, Dict, Tuple, Callable
 import torch
+from copy import deepcopy
+import logging
+from functools import partial
+from transformers import AutoTokenizer
+from omegaconf import DictConfig
+
+logger = logging.getLogger(__name__)
+
+__all__ = [
+    "get_device_from_cfg"
+]
 
 
-def get_device_from_cfg(cfg) -> torch.device:
+def get_device_from_cfg(cfg: DictConfig) -> torch.device:
     """
     Get the torch device from a config. Assumes that there is a ``device``
     key at the top level.

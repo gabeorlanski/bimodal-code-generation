@@ -51,8 +51,8 @@ indicates hierarchy in yaml configs):
     * `seq2seq`
       --> [`AutoModelForSeq2SeqLM`](https://huggingface.co/docs/transformers/model_doc/auto#transformers.AutoModelForSeq2SeqLM)
     * `causal_lm`
-      --> [`AutoModelForCausalLM`](https://huggingface.co/docs/transformers/model_doc/auto#transformers.AutoModelForCausalLM) **
-      NOTE:** This will add in a _postprocessor_ that removes the prompt/context
+      --> [`AutoModelForCausalLM`](https://huggingface.co/docs/transformers/model_doc/auto#transformers.AutoModelForCausalLM) 
+    **NOTE:** This will add in a _postprocessor_ that removes the prompt/context
       from the generated output.
 4. To load a checkpoint into training  (instead of starting from a HF
    checkpoint) set the argument `is_checkpoint=true`.

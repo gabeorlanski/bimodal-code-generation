@@ -3,12 +3,14 @@ defaults:
   - _self_
   - task: ???
   - training_args
+  - model_type: seq2seq
   - override hydra/job_logging: custom
 
 # Required Arguments
 name: ???
 group: ???
 model: ???
+is_checkpoint: false
 project: "adversarial-code"
 
 # General Arguments

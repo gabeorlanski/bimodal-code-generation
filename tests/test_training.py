@@ -7,8 +7,8 @@ from unittest.mock import patch
 import torch
 from transformers import Seq2SeqTrainingArguments
 from omegaconf import OmegaConf
-from src.common.config import get_device_from_cfg
-from src.training import train_model, get_training_args_from_config
+from src.config import get_device_from_cfg
+from src.training import train_model, get_training_args_from_cfg
 
 
 @pytest.fixture()
@@ -31,7 +31,7 @@ def test_get_training_args_from_config(training_args, batch_size):
 
     cfg = OmegaConf.create({"training": training_args})
     expected = Seq2SeqTrainingArguments(**training_args)
-    assert get_training_args_from_config(cfg) == expected
+    assert get_training_args_from_cfg(cfg) == expected
 
 
 @pytest.mark.parametrize("device_val", [-1, "cuda"], ids=['CPU', 'GPU'])
@@ -73,6 +73,6 @@ def test_train_model(tmpdir, training_args, simple_train_config, tiny_model_name
     assert mock_trainer.call_count == 1
 
     call_kwargs = mock_trainer.call_args_list[0].kwargs
-    assert call_kwargs["args"] == get_training_args_from_config(cfg)
+    assert call_kwargs["args"] == get_training_args_from_cfg(cfg)
     assert call_kwargs["train_dataset"] == "TRAIN_TOK"
     assert call_kwargs["eval_dataset"] == "VAL_TOK"

@@ -5,11 +5,7 @@ import logging
 from tqdm import tqdm
 from pathlib import Path
 
-from tio import Task, load_task_from_cfg
-
-from src.common import PROJECT_ROOT
-from src.common.config import get_device_from_cfg
-from src.evaluation.evaluator import Evaluator
+from src.config import get_device_from_cfg, merge_configs, load_task_from_cfg
 from src.evaluation.util import serialize_prediction
 
 logger = logging.getLogger(__name__)
@@ -91,14 +87,6 @@ def generate_predictions(
     }
 
 
-def merge_train_cfg_with_eval_cfg(cfg: DictConfig, train_cfg: DictConfig):
-    with open_dict(cfg):
-        for k, v in train_cfg.items():
-            if k not in cfg:
-                cfg[k] = v
-    return cfg
-
-
 def evaluate_model(cfg: DictConfig, train_cfg: DictConfig, model: PreTrainedModel):
     """
     Evaluate a model with a reader on a file
@@ -110,7 +98,7 @@ def evaluate_model(cfg: DictConfig, train_cfg: DictConfig, model: PreTrainedMode
     """
     # Need to add keys from training that would not show up in the evaluation
     # config.
-    cfg = merge_train_cfg_with_eval_cfg(cfg, train_cfg)
+    cfg = merge_configs(cfg, train_cfg)
 
     task = load_task_from_cfg(cfg)
 
@@ -126,7 +114,7 @@ def evaluate_model(cfg: DictConfig, train_cfg: DictConfig, model: PreTrainedMode
         task=task,
         batch_size=cfg["training"].get("batch_size", 4),
         device=get_device_from_cfg(cfg),
-        generation_kwargs=cfg.get('generation',{})
+        generation_kwargs=cfg.get('generation', {})
     )
 
     # Unpack the returned dict from generate predictions

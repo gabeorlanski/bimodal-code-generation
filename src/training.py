@@ -9,40 +9,12 @@ from transformers import (
 import logging
 from omegaconf import OmegaConf, DictConfig
 
-from tio import Task, load_task_from_cfg
+from tio import Task
 
-from src.common.config import get_device_from_cfg
+from src.config import get_device_from_cfg, load_task_from_cfg, get_training_args_from_cfg
 from src.trainer import CustomTrainer
 
 logger = logging.getLogger(__name__)
-
-
-def get_training_args_from_config(cfg: DictConfig) -> Seq2SeqTrainingArguments:
-    """
-    Get the training arguments to create a HuggingFace training arguments
-    objects from the passed in config.
-
-    Special Keys:
-        ``batch_size``: will be used for the keys ``per_device_train_batch_size``
-        and ``per_device_eval_batch_size``
-
-    Args:
-        cfg (DictConfig): The OmegaConf config.
-
-    Returns:
-        TrainingArguments: The processed training arguments.
-    """
-
-    training_args = OmegaConf.to_object(cfg["training"])
-    logger.info("Training Arguments:")
-    for k, v in training_args.items():
-        logger.info(f"\t{k:<30} = {v}")
-
-    batch_size = training_args.pop("batch_size", None)
-    if batch_size:
-        training_args["per_device_train_batch_size"] = batch_size
-        training_args["per_device_eval_batch_size"] = batch_size
-    return Seq2SeqTrainingArguments(**training_args)
 
 
 # TODO(gabeorlanski): Add in parallel support
@@ -89,7 +61,7 @@ def train_model(cfg: DictConfig, data_path: Path):
     trainer = CustomTrainer(
         cfg=cfg,
         model=model,
-        args=get_training_args_from_config(cfg),
+        args=get_training_args_from_cfg(cfg),
         train_dataset=train_data,
         eval_dataset=validation_data,
         data_collator=collator,
