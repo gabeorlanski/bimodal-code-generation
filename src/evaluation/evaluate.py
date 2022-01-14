@@ -67,8 +67,8 @@ def generate_predictions(
             targets = batch["labels"].detach().cpu()
 
             postprocessed_preds, postprocessed_targets = task.postprocess(
-                generated,
-                targets
+                generated.numpy(),
+                targets.numpy()
             )
 
             for i in range(batch['input_ids'].shape[0]):
@@ -107,6 +107,11 @@ def evaluate_model(cfg: DictConfig, train_cfg: DictConfig, model: PreTrainedMode
     logger.info(f"{len(tokenized)} total samples found")
 
     logger.info("Initializing the evaluator")
+
+    if task.tokenizer.pad_token is None:
+        task.tokenizer.pad_token = task.tokenizer.eos_token
+        model.config.pad_token_id = task.tokenizer.pad_token_id
+        model.config.eos_token_id = task.tokenizer.eos_token_id
 
     generation_results = generate_predictions(
         model,

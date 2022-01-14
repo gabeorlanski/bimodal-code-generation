@@ -7,8 +7,8 @@ from unittest.mock import patch
 import torch
 from transformers import Seq2SeqTrainingArguments
 from omegaconf import OmegaConf
-from src.config import get_device_from_cfg
-from src.training import train_model, get_training_args_from_cfg
+from src.config import get_device_from_cfg, get_training_args_from_cfg
+from src.training import train_model
 
 
 @pytest.fixture()

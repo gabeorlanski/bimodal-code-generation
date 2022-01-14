@@ -4,6 +4,8 @@ tracking: false
 name: debug
 group: testing
 model: patrickvonplaten/t5-tiny-random
+model_path: null
+is_checkpoint: false
 data_path: data
 device: 0
 seed: 1
@@ -35,3 +37,7 @@ training:
   load_best_model_at_end: true
   save_steps: 250
   save_total_limit: 5
+model_type:
+  name: seq2seq
+  preprocessors: null
+  postprocessors: null

@@ -1,19 +1,40 @@
-# @package training
+# @package _global_
 defaults:
   - _self_
+# Required Arguments
+name: ???
+group: ???
+model: ???
+model_path: null
+is_checkpoint: false
+project: "adversarial-code"
 
-batch_size: 2
-output_dir: models
-group_by_length: True
-predict_with_generate: True
-evaluation_strategy: steps
-generation_max_length: 300
-learning_rate: 5e-4
-max_steps: 1000
-logging_steps: 250
-gradient_accumulation_steps: 1
-eval_accumulation_steps: 1
-metric_for_best_model: 'eval_bleu'
-load_best_model_at_end: True
-save_steps: 250
-save_total_limit: 5
+
+# General Arguments
+data_path: data
+device: cpu
+
+seed: 1
+numpy_seed: 2
+pytorch_seed: 3
+
+hydra:
+  run:
+    dir: outputs/${project}/${hydra.job.name}/${group}/${name}.${task.name}
+
+training:
+  batch_size: 2
+  output_dir: models
+  group_by_length: True
+  predict_with_generate: True
+  evaluation_strategy: steps
+  generation_max_length: 512
+  learning_rate: 5e-5
+  max_steps: 1000
+  logging_steps: 500
+  gradient_accumulation_steps: 1
+  eval_accumulation_steps: 1
+  metric_for_best_model: 'eval_bleu'
+  load_best_model_at_end: True
+  save_steps: 500
+  save_total_limit: 5

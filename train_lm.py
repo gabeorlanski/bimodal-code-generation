@@ -7,7 +7,7 @@ import numpy as np
 import os
 import random
 
-from src.training import train_model
+from src.training import train_lm
 from src.tracking import setup_tracking_env_from_cfg
 
 logger = logging.getLogger(__name__)
@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 PROJECT_ROOT = Path.cwd()
 
 
-@hydra.main(config_path="conf", config_name="train_config")
+@hydra.main(config_path="conf", config_name="train_lm_config")
 def run(cfg: DictConfig):
     # For some reason it does not clear the log files. So it needs to be done
     # manually.
@@ -27,12 +27,12 @@ def run(cfg: DictConfig):
     logger.info("Starting Train")
     os.environ["CUBLAS_WORKSPACE_CONFIG"] = ":4096:8"
     torch.use_deterministic_algorithms(True)
+    if cfg.model_type.name != 'causal_lm':
+        logger.error("'train_lm' requires using 'model_type' of 'causal_lm'.")
+        raise ValueError("Invalid model type.")
 
     setup_tracking_env_from_cfg(cfg)
 
-    if cfg.model_type.name == 'causal_lm':
-        logger.error("'train' is not compatible with a language model.")
-        raise ValueError("Invalid model type.")
     if "training" not in cfg:
         raise KeyError("Missing 'training' key in config.")
 
@@ -49,7 +49,7 @@ def run(cfg: DictConfig):
     if torch.cuda.is_available():
         torch.cuda.manual_seed_all(torch_seed)
 
-    model = train_model(cfg)
+    model = train_lm(cfg)
 
     logger.info(f"Saving best model to {Path.cwd()}")
     torch.save(model.state_dict(), Path.cwd().joinpath("best_model.bin"))

@@ -1,8 +1,10 @@
 import collections
-from typing import Dict
+from typing import Dict, List
+import numpy as np
 
 __all__ = [
-    "flatten"
+    "flatten",
+    "get_stats_from_list"
 ]
 
 
@@ -27,3 +29,11 @@ def flatten(d: Dict, parent_key: str = '', sep: str = '_') -> Dict:
         else:
             items.append((new_key, v))
     return dict(items)
+
+
+def get_stats_from_list(values: List[int]):
+    return {
+        "mean"  : np.mean(values),
+        "median": np.median(values),
+        "max"   : np.max(values)
+    }

@@ -1,33 +1,15 @@
 defaults:
   - base_config
-  - _self_
   - task: ???
   - training_args
+  - _self_
   - model_type: seq2seq
   - override hydra/job_logging: custom
 
-# Required Arguments
-name: ???
-group: ???
-model: ???
-is_checkpoint: false
-project: "adversarial-code"
-
-# General Arguments
-data_path: data
-device: cpu
-
-seed: 1
-numpy_seed: 2
-pytorch_seed: 3
 
 metrics:
   - exact-match
   - bleu
 preprocessors:
-  add_prefix:
-    prefix: "Generate Python:"
-
-hydra:
-  run:
-    dir: outputs/${hydra.job.name}/${name}
+  - add-prefix:
+      prefix: "# You are an expert Python programmer, and here is your task: "

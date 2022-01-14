@@ -6,7 +6,7 @@ from omegaconf import DictConfig, OmegaConf
 from pathlib import Path
 from transformers import AutoModelForSeq2SeqLM
 
-from src.common.config import get_device_from_cfg
+from src.config import get_device_from_cfg, load_model_from_cfg, merge_configs
 from src.evaluation import evaluate_model
 
 logger = logging.getLogger(__name__)
@@ -33,10 +33,8 @@ def run(cfg: DictConfig):
     )
     logger.info(f"Evaluating '{train_cfg['name']}' on '{cfg['task']['name']}'")
 
-    logger.info(f"Loading model from '{model_path.joinpath('best_model.bin')}'")
-    model = AutoModelForSeq2SeqLM.from_pretrained(train_cfg["model"])
-    model.load_state_dict(torch.load(model_path.joinpath("best_model.bin")))
-    model = model.to(get_device_from_cfg(train_cfg))
+    merged_cfg = merge_configs(cfg, train_cfg)
+    model = load_model_from_cfg(merged_cfg, get_device_from_cfg(merged_cfg))
     evaluate_model(cfg, train_cfg=train_cfg, model=model)
 
     logger.info("Finished Evaluation")

@@ -10,7 +10,7 @@ from transformers import PreTrainedTokenizer
 from typing import Callable, List, Dict
 from datasets import Dataset, DatasetDict
 from src.common import PROJECT_ROOT
-
+from overrides import overrides
 from tio.task import Task, PathType
 
 logger = logging.getLogger(__name__)
@@ -38,7 +38,8 @@ class MBPP(Task):
             preprocessors: List[Callable],
             postprocessors: List[Callable],
             metric_fns: List[Callable],
-            additional_splits: Dict[str, PathType] = None
+            additional_splits: Dict[str, PathType] = None,
+            add_function_signature_to_input: bool = False
     ):
         super(MBPP, self).__init__(
             preprocessors=preprocessors,
@@ -51,6 +52,7 @@ class MBPP(Task):
         self._tokenizer = tokenizer
         self.dataset = None
         self.raw = None
+        self.add_function_signature_to_input = add_function_signature_to_input
         self._dataset_mapping = self.load_dataset_mapping()
 
     def load_dataset_mapping(self):
@@ -69,10 +71,15 @@ class MBPP(Task):
         # Load the data into a dict where the key is the task_id
         return self._dataset_mapping[split]
 
-    @staticmethod
-    def map_to_standard_entries(sample: Dict) -> Dict:
+    def map_to_standard_entries(self, sample: Dict) -> Dict:
         sample["input_sequence"] = (
-                sample["text"] + "\n" + "\n".join(sample["test_list"])
+                sample["text"] + "\n" + "\n".join(sample["test_list"]) + "\n# Solution\n"
         )
-        sample["target"] = sample["code"]
+
+        if not self.add_function_signature_to_input:
+            sample["target"] = sample["code"]
+        else:
+            function_signature, *new_target = sample['code'].split('\n')
+            sample["target"] = "\n".join(new_target)
+            sample["input_sequence"] += function_signature + '\n'
         return sample

@@ -1,19 +1,24 @@
 """
 Config related util functions.
 """
-from typing import List, Dict, Tuple, Callable
 import torch
-from copy import deepcopy
 import logging
-from functools import partial
-from transformers import AutoTokenizer
+from transformers import (AutoModelForSeq2SeqLM, AutoModelForCausalLM, AutoConfig, PreTrainedModel)
 from omegaconf import DictConfig
+
+from src.common import PROJECT_ROOT
 
 logger = logging.getLogger(__name__)
 
 __all__ = [
-    "get_device_from_cfg"
+    "get_device_from_cfg",
+    "load_model_from_cfg"
 ]
+
+MODEL_TYPE_TO_CLS = {
+    "seq2seq"  : AutoModelForSeq2SeqLM,
+    "causal_lm": AutoModelForCausalLM
+}
 
 
 def get_device_from_cfg(cfg: DictConfig) -> torch.device:
@@ -35,3 +40,18 @@ def get_device_from_cfg(cfg: DictConfig) -> torch.device:
         return torch.device("cpu")
     else:
         return torch.device(f'cuda{":" + device_str if device_str != "cuda" else ""}')
+
+
+def load_model_from_cfg(cfg: DictConfig, device: torch.device) -> PreTrainedModel:
+    logger.info(f"Loading model '{cfg['model']}' of type "
+                f"'{cfg['model_type']['name']}'")
+    model_cls = MODEL_TYPE_TO_CLS[cfg['model_type']['name']]
+
+    logger.info(f"Loading '{cfg['model']}' from HuggingFace'")
+    model = model_cls.from_pretrained(cfg['model'])
+    if cfg['is_checkpoint']:
+        logger.info(f"Loading checkpoint 'best_model.bin` from '{cfg['model_path']}'")
+        model_path = PROJECT_ROOT.joinpath(cfg["model_path"])
+        model.load_state_dict(torch.load(model_path.joinpath("best_model.bin")))
+
+    return model.to(device)

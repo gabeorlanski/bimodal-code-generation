@@ -1,0 +1,17 @@
+defaults:
+  - base_config
+  - task: ???
+  - training_args
+  - _self_
+  - model_type: causal_lm
+  - override hydra/job_logging: custom
+
+training:
+  logging_steps: 100
+  save_steps: 250
+  eval_steps: 250
+
+data_args:
+  seq_length: 512
+  num_sequences: 10
+  chars_per_token: 3.6

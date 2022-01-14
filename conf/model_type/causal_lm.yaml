@@ -1,0 +1,9 @@
+defaults:
+  - _self_
+
+name: causal_lm
+
+# Some model types need to add pre or post processors for their specific needs.
+preprocessors: null
+postprocessors: null
+

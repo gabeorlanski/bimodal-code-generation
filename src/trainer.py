@@ -113,24 +113,24 @@ class CustomTrainer(Seq2SeqTrainer):
             for k in sorted(all_keys):
                 eval_value = logs.get(k, logs.get(f"eval_{k}"))
                 train_value = self.train_stats.get(k)
-                logger.info(f"\t{self._create_log_msg(k, train_value, eval_value)}")
+                logger.info(f"\t{create_log_metric_message(k, train_value, eval_value)}")
             self.train_stats = None
         self.control = self.callback_handler.on_log(
             self.args, self.state, self.control, logs
         )
 
-    @staticmethod
-    def _create_log_msg(
-            metric_name: str,
-            train_value: Optional[Union[str, float]],
-            eval_value: Optional[Union[str, float]],
-    ) -> str:
-        def format_metric_msg(metric: Optional[float]):
-            if metric is None:
-                return f"{'N/A':>10}"
-            return f"{metric:>10.3f}"
 
-        msg = f"{metric_name:>20} | "
-        msg += f"{format_metric_msg(train_value)} |"
-        msg += f"{format_metric_msg(eval_value)}"
-        return msg
+def create_log_metric_message(
+        metric_name: str,
+        train_value: Optional[Union[str, float]],
+        eval_value: Optional[Union[str, float]],
+) -> str:
+    def format_metric_msg(metric: Optional[float]):
+        if metric is None:
+            return f"{'N/A':>10}"
+        return f"{metric:>10.3f}"
+
+    msg = f"{metric_name:>20} | "
+    msg += f"{format_metric_msg(train_value)} |"
+    msg += f"{format_metric_msg(eval_value)}"
+    return msg
