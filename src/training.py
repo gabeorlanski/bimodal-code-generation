@@ -9,8 +9,10 @@ import torch
 from tio import Task
 from src import config
 from src.common import get_stats_from_list
-from src.trainer import CustomTrainer, create_log_metric_message
+from src.old_trainer import CustomTrainer, create_log_metric_message
 from src.data.langauge_modeling import create_dataloaders
+from src.trainer import Trainer, TrainingArguments
+from functools import partial
 
 logger = logging.getLogger(__name__)
 
@@ -143,13 +145,14 @@ def train_lm(cfg: DictConfig):
     logger.info(f"Using device {device}")
 
     logger.debug("Loading Model")
-    model = config.load_model_from_cfg(cfg, device)
+    model = config.load_model_from_cfg(cfg)
 
     task: Task = config.load_task_from_cfg(cfg)
 
     # Add a preprocessor to concat the inputs and labels.
     def concat(ex):
         ex['input_sequence'] = f"{ex['input_sequence']} {ex['target']}"
+        ex['target'] = ex['input_sequence']
         return ex
 
     task.preprocessors.append(concat)
@@ -177,52 +180,19 @@ def train_lm(cfg: DictConfig):
             logger.info(f"\t\t{metric} = {value:0.2f}")
 
     logger.info("Creating the dataloaders")
-    train_loader, eval_loader = create_dataloaders(cfg, tokenizer, train_data, validation_data)
-    train_args = config.get_training_args_from_cfg(cfg)
-    train_args.predict_with_generate = False
+    # train_args = config.get_training_args_from_cfg(cfg)
+    # train_args.predict_with_generate = False
 
-    logger.info("Starting training")
-
-    optimizer = AdamW(get_grouped_params(model, train_args), lr=train_args.learning_rate)
-    lr_scheduler = get_scheduler(
-        name='cosine',
-        optimizer=optimizer,
-        num_warmup_steps=10,
-        num_training_steps=1000,
+    trainer = Trainer(
+        model,
+        TrainingArguments(**cfg['training']),
+        device,
+        tokenizer,
+        evaluate_fn=lambda *args, **kwargs: {'test': 1.0},
+        data_loading_fn=partial(create_dataloaders, tokenizer=tokenizer, cfg=cfg)
     )
-
-    model, optimizer, train_loader, eval_loader = accelerator.prepare(
-        model, optimizer, train_loader, eval_loader
+    trainer(
+        train_data,
+        validation_data
     )
-    samples_per_step = accelerator.state.num_processes * train_args.per_device_train_batch_size
-    model.train()
-    completed_steps = 0
-    for step, batch in enumerate(train_loader, start=1):
-        loss = model(batch, labels=batch, use_cache=False).loss
-
-        if step % train_args.logging_steps == 0:
-            log_metrics(
-                step, {
-                    "lr"   : optimizer.param_groups[0]["lr"], "samples": step * samples_per_step,
-                    "steps": completed_steps, "loss/train": loss.item()
-                }
-            )
-        loss = loss / train_args.gradient_accumulation_steps
-        accelerator.backward(loss)
-        if (step - 1) % train_args.gradient_accumulation_steps == 0:
-            accelerator.clip_grad_norm_(model.parameters(), 1.0)
-            optimizer.step()
-            lr_scheduler.step()
-            optimizer.zero_grad()
-            completed_steps += 1
-        if step % train_args.save_steps == 0:
-            logger.info("Evaluating and saving model checkpoint")
-            eval_loss, perplexity = evaluate(train_args, accelerator, model, eval_loader)
-            log_metrics(step, {"loss/eval": eval_loss, "perplexity": perplexity})
-            accelerator.wait_for_everyone()
-            unwrapped_model = accelerator.unwrap_model(model)
-            unwrapped_model.save_pretrained(str(Path()), save_function=accelerator.save)
-            model.train()
-        if completed_steps >= train_args.max_steps:
-            break
-    return model
+    return trainer.model

@@ -1,136 +1,249 @@
-from typing import Dict, Optional, Union
-import logging
-from omegaconf import DictConfig
-from transformers import Seq2SeqTrainer, ProgressCallback, TrainerCallback
-from transformers.integrations import WandbCallback
-from overrides import overrides
+from dataclasses import dataclass, field, asdict
+from typing import Literal, Optional, Union, Dict, Callable
+import torch
+from torch.utils.data import Dataset as pt_Dataset
+from transformers import AdamW, get_scheduler, DataCollatorWithPadding, PreTrainedTokenizer
 from tqdm import tqdm
-import collections
-from datetime import datetime, timedelta
+import math
+import logging
 
-from src.tracking import TrackingCallback, is_tracking_enabled
+from datetime import datetime, timedelta
 
 logger = logging.getLogger(__name__)
 
 
-class BetterProgress(TrainerCallback):
-    """
-    A [`TrainerCallback`] that displays the progress of training or evaluation.
-    """
+@dataclass
+class TrainingArguments:
+    train_batch_size: int = 2
+    eval_batch_size: int = 2
+    learning_rate: float = 5e-3
+    weight_decay: float = 0.0
+    save_epochs: int = 250
+    logging_steps: int = 100
+    gradient_accumulation_steps: int = 1
+    metric_for_best_model: str = "-loss"
+    max_steps: int = 1000
+    max_epochs: int = 32
+    epoch_steps: int = -1
 
-    def __init__(self):
-        self.training_bar = None
-        self.prediction_bar = None
-        self.start_time = None
-
-    def on_train_begin(self, args, state, control, **kwargs):
-        self.start_time = datetime.utcnow()
-
-    def on_step_end(self, args, state, control, **kwargs):
-        # if state.is_local_process_zero:
-        #     self.training_bar.update(state.global_step - self.current_step)
-        self.current_step = state.global_step
-        if self.current_step % 100 == 0:
-            elapsed = datetime.utcnow() - self.start_time
-            try:
-                elapsed_str, _ = str(elapsed).split(".")
-            except ValueError:
-                elapsed_str = str(elapsed)
-
-            logger.info(
-                f"Finished {self.current_step}/{state.max_steps} Steps in {elapsed_str}"
-            )
-            current_rate = self.current_step / elapsed.total_seconds()
-            estimated_rem = timedelta(
-                seconds=(state.max_steps - self.current_step) / current_rate
-            )
-            try:
-                estimated_rem, _ = str(estimated_rem).split(".")
-            except ValueError:
-                estimated_rem = str(estimated_rem)
-            logger.info(f"Estimated time remaining: {estimated_rem}")
-
-    def on_prediction_step(self, args, state, control, eval_dataloader=None, **kwargs):
-        if state.is_local_process_zero and isinstance(
-                eval_dataloader.dataset, collections.abc.Sized
-        ):
-            if self.prediction_bar is None:
-                self.prediction_bar = tqdm(total=len(eval_dataloader))
-            self.prediction_bar.update(1)
-        pass
-
-    def on_evaluate(self, args, state, control, **kwargs):
-        if state.is_local_process_zero:
-            if self.prediction_bar is not None:
-                self.prediction_bar.close()
-            self.prediction_bar = None
-        pass
-
-    def on_log(self, args, state, control, logs=None, **kwargs):
-        # if state.is_local_process_zero and self.training_bar is not None:
-        #     _ = logs.pop("total_flos", None)
-        # self.training_bar.write(str(logs))
-        pass
-
-    def on_train_end(self, args, state, control, **kwargs):
-        # if state.is_local_process_zero:
-        #     self.training_bar.close()
-        #     self.training_bar = None
-        pass
+    def __post_init__(self):
+        self.more_is_better = True if self.metric_for_best_model.startswith('+') else False
+        self.metric_for_best_model = self.metric_for_best_model[1:]
 
 
-class CustomTrainer(Seq2SeqTrainer):
-    def __init__(self, cfg: DictConfig, *args, **kwargs):
-        # Initialize the variables to supress warnings
-        self.state = None
-        self.args = None
-        self.control = None
+class Trainer:
 
-        super(CustomTrainer, self).__init__(*args, **kwargs)
-        self.callback_handler.pop_callback(ProgressCallback)
-        self.callback_handler.add_callback(BetterProgress)
-
-        if is_tracking_enabled(cfg):
-            self.callback_handler.pop_callback(WandbCallback)
-            self.callback_handler.add_callback(TrackingCallback('training', cfg))
-
-        self.train_stats = None
-
-    @overrides
-    def log(self, logs: Dict[str, float]):
-        if self.train_stats is None:
-            self.train_stats = logs
-            logger.info(
-                f"Finished {self.state.global_step} steps, starting evaluation."
-            )
-        else:
-            print()
-            logger.info(f"Metrics after {self.state.global_step} steps:")
-            all_keys = set("_".join(k.split("_")[1:]) for k in logs).union(
-                self.train_stats
-            )
-
-            for k in sorted(all_keys):
-                eval_value = logs.get(k, logs.get(f"eval_{k}"))
-                train_value = self.train_stats.get(k)
-                logger.info(f"\t{create_log_metric_message(k, train_value, eval_value)}")
-            self.train_stats = None
-        self.control = self.callback_handler.on_log(
-            self.args, self.state, self.control, logs
+    def __init__(
+            self,
+            model: torch.nn.Module,
+            args: TrainingArguments,
+            device: torch.device,
+            tokenizer: PreTrainedTokenizer,
+            evaluate_fn: Callable,
+            data_loading_fn: Optional[Callable] = None,
+            collator_fn: Optional[Callable] = None
+    ):
+        logger.info("Initializing trainer.")
+        self.args = args
+        self.tokenizer = tokenizer
+        self.device = device
+        self.model = model.to(self.device)
+        self.evaluate_fn = evaluate_fn
+        self.data_loading_fn = data_loading_fn or self._get_data_loaders
+        self.collate_fn = collator_fn or DataCollatorWithPadding(
+            tokenizer=self.tokenizer,
+            padding='longest',
+            pad_to_multiple_of=2,
+            return_tensors='np'
         )
+
+        logger.info("Setting up optimizer")
+        self.optimizer = AdamW(self.get_grouped_params(model), lr=self.args.learning_rate)
+        self.lr_scheduler = get_scheduler(
+            name='cosine',
+            optimizer=self.optimizer,
+            num_warmup_steps=10,
+            num_training_steps=1000,
+        )
+        self.global_step = 0
+
+    def __call__(
+            self,
+            train_dataset: pt_Dataset,
+            eval_dataset: pt_Dataset
+    ):
+        logger.info("Beginning training setup")
+
+        start_time = datetime.utcnow()
+        logger.info("Training Arguments:")
+        for arg, value in asdict(self.args).items():
+            logger.info(f"{arg:>20} = {value}")
+
+        logger.info("Setting up data loaders")
+        train_loader, eval_loader = self.data_loading_fn(
+            self.args,
+            train_dataset,
+            eval_dataset
+        )
+
+        if self.args.epoch_steps != -1:
+            steps_per_epoch = self.args.epoch_steps
+        else:
+            steps_per_epoch = math.ceil(len(train_loader) / self.args.train_batch_size)
+        stop_steps = min(
+            self.args.max_steps,
+            steps_per_epoch * self.args.max_epochs
+        )
+        logger.info(f"Stopping after {stop_steps} steps")
+
+        logger.info("Staring Training")
+
+        for epoch in range(1, self.args.max_epochs + 1):
+            train_metrics = self._train_epoch(train_loader, epoch)
+
+            logger.info(f"Finished training for epoch {epoch}")
+            self.log_eval_metrics(epoch, train_metrics, {})
+
+            if self.global_step >= self.args.max_steps:
+                logger.info("Passed Max Steps, stopping.")
+                break
+
+            elapsed, estimated = self.get_estimated_remaining_time(
+                datetime.utcnow() - start_time,
+                self.args.max_steps
+            )
+            logger.info(
+                f"Finished {self.global_step}/{self.args.max_steps} Steps in {elapsed}"
+            )
+            logger.info(f"Estimated time remaining: {estimated}")
+
+    def _train_epoch(self, data_loader, epoch):
+        self.model.train()
+        if self.args.epoch_steps == -1:
+            total_batches = len(data_loader)
+        else:
+            total_batches = self.args.epoch_steps
+
+        batch_iter = iter(data_loader)
+        total_loss = 0
+
+        pbar = tqdm(total=total_batches, desc=f'Epoch {epoch}')
+        for step in range(1, total_batches + 1):
+            batch = next(batch_iter)
+            local_batch = {k: v.to(self.device) for k, v in batch.items()}
+            outputs = self.model(
+                local_batch['input_ids'],
+                labels=batch.get('labels', local_batch['input_ids']),
+                use_cache=False
+            )
+            loss = outputs.loss
+            loss /= self.args.gradient_accumulation_steps
+            total_loss += loss.item()
+            # self.accelerator.backward(loss)
+            loss.backward()
+            if (
+                    step % self.args.gradient_accumulation_steps == 0
+                    or total_batches - step == 0
+            ):
+                self.optimizer.step()
+                self.lr_scheduler.step()
+                self.optimizer.zero_grad()
+
+            self.global_step += 1
+            if self.global_step > self.args.max_steps:
+                break
+            pbar.update()
+        pbar.close()
+
+        return {'loss': total_loss / total_batches}
+
+    def get_grouped_params(self, model, no_decay=None):
+        if no_decay is None:
+            no_decay = ["bias", "LayerNorm.weight"]
+        params_with_wd, params_without_wd = [], []
+        for n, p in model.named_parameters():
+            if any(nd in n for nd in no_decay):
+                params_without_wd.append(p)
+            else:
+                params_with_wd.append(p)
+        return [
+            {"params": params_with_wd, "weight_decay": self.args.weight_decay},
+            {"params": params_without_wd, "weight_decay": 0.0},
+        ]
+
+    def log_eval_metrics(
+            self,
+            epoch,
+            metrics: Dict[str, float],
+            eval_metrics: Dict[str, float] = None
+    ):
+        if eval_metrics is None:
+            eval_metrics = {}
+
+        logger.info(f"Metrics for Epoch {epoch}:")
+        # logger.info(create_log_metric_message('Name', 'Train', 'Eval'))
+
+        all_keys = set("_".join(k.split("_")[1:]) for k in eval_metrics).union(
+            metrics
+        )
+
+        for k in all_keys:
+            eval_value = eval_metrics.get(k, eval_metrics.get(f"eval_{k}"))
+            train_value = metrics.get(k)
+            logger.info(f"{create_log_metric_message(k, train_value, eval_value)}")
+
+    def _get_data_loaders(
+            self,
+            args: TrainingArguments,
+            train_dataset: pt_Dataset,
+            eval_dataset: pt_Dataset
+    ):
+        train_loader = torch.utils.data.DataLoader(
+            train_dataset,
+            collate_fn=self.collate_fn,
+            shuffle=False,
+            batch_size=args.train_batch_size,
+        )
+        eval_loader = torch.utils.data.DataLoader(
+            eval_dataset,
+            collate_fn=self.collate_fn,
+            shuffle=False,
+            batch_size=args.eval_batch_size,
+        )
+        return train_loader, eval_loader
+
+    def get_estimated_remaining_time(self, elapsed, max_steps):
+        current_rate = self.global_step / elapsed.total_seconds()
+        try:
+            elapsed_str, _ = str(elapsed).split(".")
+        except ValueError:
+            elapsed_str = str(elapsed)
+
+        estimated_rem = timedelta(
+            seconds=(max_steps - self.global_step) / current_rate
+        )
+        try:
+            estimated_rem, _ = str(estimated_rem).split(".")
+        except ValueError:
+            estimated_rem = str(estimated_rem)
+        return elapsed_str, estimated_rem
 
 
 def create_log_metric_message(
         metric_name: str,
         train_value: Optional[Union[str, float]],
         eval_value: Optional[Union[str, float]],
+        no_eval: bool = False
 ) -> str:
     def format_metric_msg(metric: Optional[float]):
         if metric is None:
             return f"{'N/A':>10}"
-        return f"{metric:>10.3f}"
+        if not isinstance(metric, str):
+            return f"{metric:>10.3f}"
+        return f"{metric:>10}"
 
     msg = f"{metric_name:>20} | "
-    msg += f"{format_metric_msg(train_value)} |"
-    msg += f"{format_metric_msg(eval_value)}"
+    msg += f"{format_metric_msg(train_value)} | "
+    if not no_eval:
+        msg += f"{format_metric_msg(eval_value)}"
     return msg

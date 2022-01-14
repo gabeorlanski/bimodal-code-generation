@@ -1,5 +1,5 @@
 """
-Tests for the training data.
+Tests for the training
 """
 from pathlib import Path
 import pytest

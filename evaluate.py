@@ -34,7 +34,7 @@ def run(cfg: DictConfig):
     logger.info(f"Evaluating '{train_cfg['name']}' on '{cfg['task']['name']}'")
 
     merged_cfg = merge_configs(cfg, train_cfg)
-    model = load_model_from_cfg(merged_cfg, get_device_from_cfg(merged_cfg))
+    model = load_model_from_cfg(merged_cfg).to(get_device_from_cfg(merged_cfg))
     evaluate_model(cfg, train_cfg=train_cfg, model=model)
 
     logger.info("Finished Evaluation")

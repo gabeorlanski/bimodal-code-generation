@@ -2,6 +2,8 @@
 This comes from
 https://github.com/huggingface/transformers/blob/master/examples/research_projects/codeparrot
 """
+import math
+
 from omegaconf import DictConfig
 from torch.utils.data import IterableDataset
 from torch.utils.data.dataloader import DataLoader
@@ -36,9 +38,10 @@ class ConstantLengthDataset(IterableDataset):
         self.concat_token_id = tokenizer.bos_token_id
         self.dataset = dataset
         self.seq_length = seq_length
-        self.input_characters = seq_length * chars_per_token * num_of_sequences
+        self.input_characters = seq_length
         self.epoch = 0
         self.infinite = infinite
+        self.pad_token = tokenizer.eos_token_id
 
     def __iter__(self):
         iterator = iter(self.dataset)
@@ -61,13 +64,20 @@ class ConstantLengthDataset(IterableDataset):
             all_token_ids = []
             for tokenized_input in buffer:
                 all_token_ids.extend(tokenized_input + [self.concat_token_id])
+
             for i in range(0, len(all_token_ids), self.seq_length):
                 input_ids = all_token_ids[i: i + self.seq_length]
                 if len(input_ids) == self.seq_length:
-                    yield torch.tensor(input_ids)
+                    yield {"input_ids": torch.tensor(input_ids)}
+                elif not more_examples:
+                    yield {
+                        "input_ids": torch.tensor(
+                            input_ids + [self.pad_token] * (self.seq_length - len(input_ids))
+                        )
+                    }
 
 
-def create_dataloaders(cfg: DictConfig, tokenizer, train_data: Dataset, val_data: Dataset):
+def create_dataloaders(args, train_data: Dataset, val_data: Dataset, cfg: DictConfig, tokenizer):
     train_data = train_data.shuffle(seed=cfg.seed)
     train_dataset = ConstantLengthDataset(
         tokenizer,
@@ -83,6 +93,6 @@ def create_dataloaders(cfg: DictConfig, tokenizer, train_data: Dataset, val_data
         seq_length=cfg.data_args.seq_length,
         num_of_sequences=cfg.data_args.num_sequences
     )
-    train_dataloader = DataLoader(train_dataset, batch_size=cfg.training.batch_size)
-    eval_dataloader = DataLoader(valid_dataset, batch_size=cfg.training.batch_size)
+    train_dataloader = DataLoader(train_dataset, batch_size=args.train_batch_size)
+    eval_dataloader = DataLoader(valid_dataset, batch_size=args.eval_batch_size)
     return train_dataloader, eval_dataloader

@@ -42,7 +42,7 @@ def get_device_from_cfg(cfg: DictConfig) -> torch.device:
         return torch.device(f'cuda{":" + device_str if device_str != "cuda" else ""}')
 
 
-def load_model_from_cfg(cfg: DictConfig, device: torch.device) -> PreTrainedModel:
+def load_model_from_cfg(cfg: DictConfig) -> PreTrainedModel:
     logger.info(f"Loading model '{cfg['model']}' of type "
                 f"'{cfg['model_type']['name']}'")
     model_cls = MODEL_TYPE_TO_CLS[cfg['model_type']['name']]
@@ -54,4 +54,4 @@ def load_model_from_cfg(cfg: DictConfig, device: torch.device) -> PreTrainedMode
         model_path = PROJECT_ROOT.joinpath(cfg["model_path"])
         model.load_state_dict(torch.load(model_path.joinpath("best_model.bin")))
 
-    return model.to(device)
+    return model

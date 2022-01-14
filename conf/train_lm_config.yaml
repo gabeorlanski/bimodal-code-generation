@@ -7,11 +7,19 @@ defaults:
   - override hydra/job_logging: custom
 
 training:
+  train_batch_size: 2
+  eval_batch_size: 2
+  learning_rate: 5e-3
+  weight_decay: 0.0
+  save_epochs: 1
   logging_steps: 100
-  save_steps: 250
-  eval_steps: 250
+  gradient_accumulation_steps: 1
+  metric_for_best_model: "-loss"
+  max_steps: 1000
+  max_epochs: 32
+  epoch_steps: 250
 
 data_args:
   seq_length: 512
-  num_sequences: 10
+  num_sequences: 5
   chars_per_token: 3.6
