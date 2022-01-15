@@ -12,6 +12,7 @@ from datasets import Dataset, DatasetDict
 from src.common import PROJECT_ROOT
 from overrides import overrides
 from tio.task import Task, PathType
+import re
 
 logger = logging.getLogger(__name__)
 
@@ -39,7 +40,7 @@ class MBPP(Task):
             postprocessors: List[Callable],
             metric_fns: List[Callable],
             additional_splits: Dict[str, PathType] = None,
-            add_function_signature_to_input: bool = False
+            add_def_to_prompt: bool = False
     ):
         super(MBPP, self).__init__(
             preprocessors=preprocessors,
@@ -52,8 +53,9 @@ class MBPP(Task):
         self._tokenizer = tokenizer
         self.dataset = None
         self.raw = None
-        self.add_function_signature_to_input = add_function_signature_to_input
         self._dataset_mapping = self.load_dataset_mapping()
+        self.add_def_to_prompt = add_def_to_prompt
+        self.find_def = re.compile(r'\ndef ')
 
     def load_dataset_mapping(self):
         out = {}
@@ -73,13 +75,16 @@ class MBPP(Task):
 
     def map_to_standard_entries(self, sample: Dict) -> Dict:
         sample["input_sequence"] = (
-                sample["text"] + "\n" + "\n".join(sample["test_list"]) + "\n# Solution\n"
+                sample["text"] + "\r\n" + "\r\n".join(sample["test_list"])+'\r\n'
         )
 
-        if not self.add_function_signature_to_input:
-            sample["target"] = sample["code"]
-        else:
-            function_signature, *new_target = sample['code'].split('\n')
-            sample["target"] = "\n".join(new_target)
-            sample["input_sequence"] += function_signature + '\n'
+        target_code = sample['code']
+
+        if self.add_def_to_prompt:
+            def_match = self.find_def.search(target_code)
+            if def_match is not None:
+                sample['input_sequence'] += target_code[:def_match.regs[0][1]]
+                target_code = target_code[def_match.regs[0][1]:]
+
+        sample['target'] = target_code
         return sample

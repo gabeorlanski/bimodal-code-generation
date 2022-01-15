@@ -1,3 +1,4 @@
+from datasets import set_caching_enabled
 from omegaconf import DictConfig, open_dict
 from transformers import PreTrainedModel, DataCollatorForSeq2Seq, PreTrainedTokenizer
 import torch
@@ -99,7 +100,7 @@ def evaluate_model(cfg: DictConfig, train_cfg: DictConfig, model: PreTrainedMode
     # Need to add keys from training that would not show up in the evaluation
     # config.
     cfg = merge_configs(cfg, train_cfg)
-
+    set_caching_enabled(not cfg.get('disable_cache', False))
     task = load_task_from_cfg(cfg)
 
     logger.info(f"Reading data from '{cfg['data_path']}'")

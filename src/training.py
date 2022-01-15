@@ -4,7 +4,6 @@ import logging
 from omegaconf import OmegaConf, DictConfig
 from transformers import DataCollatorForSeq2Seq
 from transformers import AdamW, get_scheduler
-from accelerate import Accelerator
 import torch
 from tio import Task
 from src import config
@@ -13,6 +12,7 @@ from src.old_trainer import CustomTrainer, create_log_metric_message
 from src.data.langauge_modeling import create_dataloaders
 from src.trainer import Trainer, TrainingArguments
 from functools import partial
+from datasets import set_caching_enabled
 
 logger = logging.getLogger(__name__)
 
@@ -143,9 +143,9 @@ def train_lm(cfg: DictConfig):
     Returns:
         The best model.
     """
+    set_caching_enabled(not cfg.get('disable_cache', False))
     # device = config.get_device_from_cfg(cfg)
-    accelerator = Accelerator()
-    device = accelerator.device
+    device = config.get_device_from_cfg(cfg)
     logger.info(f"Using device {device}")
 
     logger.debug("Loading Model")
@@ -169,19 +169,18 @@ def train_lm(cfg: DictConfig):
     validation_data = task.preprocess(
         "validation", num_procs=cfg.get('num_proc', 1)
     )
-
-    logger.info(f"{len(train_data)} training samples")
-    logger.info(f"{len(validation_data)} validation samples")
-    for name, ds in [('Train', train_data), ("Validation", validation_data)]:
-        logger.info(f"Stats for {name} data:")
-        input_lens = list(map(len, ds['input_ids']))
-        target_lens = list(map(len, ds['labels']))
-        logger.info(f"\t{name} Inputs:")
-        for metric, value in get_stats_from_list(input_lens).items():
-            logger.info(f"\t\t{metric} = {value:0.2f}")
-        logger.info(f"\t{name} Labels:")
-        for metric, value in get_stats_from_list(target_lens).items():
-            logger.info(f"\t\t{metric} = {value:0.2f}")
+    # logger.info(f"{len(train_data)} training samples")
+    # logger.info(f"{len(validation_data)} validation samples")
+    # for name, ds in [('Train', train_data), ("Validation", validation_data)]:
+    #     logger.info(f"Stats for {name} data:")
+    #     input_lens = list(map(len, ds['input_ids']))
+    #     target_lens = list(map(len, ds['labels']))
+    #     logger.info(f"\t{name} Inputs:")
+    #     for metric, value in get_stats_from_list(input_lens).items():
+    #         logger.info(f"\t\t{metric} = {value:0.2f}")
+    #     logger.info(f"\t{name} Labels:")
+    #     for metric, value in get_stats_from_list(target_lens).items():
+    #         logger.info(f"\t\t{metric} = {value:0.2f}")
 
     trainer = Trainer(
         model,

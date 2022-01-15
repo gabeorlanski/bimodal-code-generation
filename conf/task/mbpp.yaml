@@ -3,6 +3,3 @@ name: mbpp
 paths:
   train: "MBPP/train.jsonl"
   validation: "MBPP/validation.jsonl"
-
-additional_kwargs:
-  add_function_signature_to_input: false

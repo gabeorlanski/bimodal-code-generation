@@ -24,7 +24,7 @@ class TrainingArguments:
     metric_for_best_model: str = "-loss"
     max_steps: int = 1000
     max_epochs: int = 32
-    epoch_steps: int = -1
+    steps_per_epoch: int = -1
 
     def __post_init__(self):
         self.more_is_better = True if self.metric_for_best_model.startswith('+') else False
@@ -86,10 +86,7 @@ class Trainer:
             eval_dataset
         )
 
-        if self.args.epoch_steps != -1:
-            steps_per_epoch = self.args.epoch_steps
-        else:
-            steps_per_epoch = math.ceil(len(train_loader) / self.args.train_batch_size)
+        steps_per_epoch = math.ceil(len(train_loader) / self.args.train_batch_size)
         stop_steps = min(
             self.args.max_steps,
             steps_per_epoch * self.args.max_epochs
@@ -121,10 +118,7 @@ class Trainer:
 
     def _train_epoch(self, data_loader, epoch):
         self.model.train()
-        if self.args.epoch_steps == -1:
-            total_batches = len(data_loader)
-        else:
-            total_batches = self.args.epoch_steps
+        total_batches = len(data_loader)
 
         batch_iter = iter(data_loader)
         total_loss = 0
@@ -141,6 +135,8 @@ class Trainer:
             loss = outputs.loss
             loss /= self.args.grad_accumulation_steps
             total_loss += loss.item()
+            pbar.set_description(f'Epoch {epoch}: batch_loss={loss.item():0.3f} '
+                                 f'loss={total_loss / step:0.3f}')
             # self.accelerator.backward(loss)
             loss.backward()
             if (

@@ -85,5 +85,5 @@ def load_task_from_cfg(
         preprocessors=preprocessors,
         postprocessors=postprocessors,
         metric_fns=metrics,
-        additional_kwargs=cfg_dict.get('additional_kwargs', {}),
+        additional_kwargs=cfg.get('task_kwargs', {}),
     )

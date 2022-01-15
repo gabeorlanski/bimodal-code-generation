@@ -10,13 +10,17 @@ split: ???
 data_path: ???
 project: "adversarial-code"
 
+metrics:
+  - exact-match
+  - bleu
+
 generation:
   max_length: 400
   do_sample: true
-#  temperature: 0.8
-#  top_k: 50
-#  top_p: 0.95
-  num_return_sequences: 3
+  temperature: 0.8
+  top_k: 50
+  top_p: 0.95
+  num_return_sequences: 1
   min_length: 75
 
 hydra:

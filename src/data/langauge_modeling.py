@@ -16,7 +16,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-class ConstantLengthDataset(IterableDataset):
+class LanguageModelingDataset(IterableDataset):
     """
     Iterable dataset that returns constant length chunks of tokens from stream of text files.
         Args:
@@ -35,16 +35,32 @@ class ConstantLengthDataset(IterableDataset):
             infinite=False,
             seq_length=1024,
             num_of_sequences=3,
-            chars_per_token=3.6
+            chars_per_token=3.6,
+            streaming=True,
+            batches_per_epoch=100,
     ):
         self.concat_token_id = tokenizer.bos_token_id or tokenizer.eos_token_id
         self.dataset = dataset
         self.seq_length = seq_length
         self.max_chars_in_buffer = seq_length * chars_per_token * num_of_sequences
-        self.infinite = infinite
+        self.streaming = streaming
+        self.infinite = infinite and streaming
         self.tokenizer = tokenizer
+        self.samples_per_epoch = batches_per_epoch
+        self._ds_iterator = None
+        self.samples = []
+        self.samples_yielded = 0
+        if not self.streaming:
+            self.initialize()
 
-    def __iter__(self):
+    def initialize(self):
+        logger.info("Streaming is disabled, initializing the samples.")
+        for b in self._get_batch():
+            self.samples.append(b)
+        self.samples_per_epoch = len(self.samples)
+        logger.info(f"{len(self.samples)} total samples.")
+
+    def _get_batch(self):
         iterator = iter(self.dataset)
         more_examples = True
         while more_examples:
@@ -78,30 +94,50 @@ class ConstantLengthDataset(IterableDataset):
                 # them with the concat id. But, we also want those to be ignored
                 # so we need to create the attention mask.
                 pad_amount = self.seq_length - input_len
-                input_ids.extend([self.concat_token_id]*pad_amount)
-                attention_mask.extend([0]*pad_amount)
+                input_ids.extend([self.concat_token_id] * pad_amount)
+                attention_mask.extend([0] * pad_amount)
+
+                self.samples_yielded += 1
 
                 yield {
                     "input_ids"     : torch.tensor(input_ids),
                     "attention_mask": torch.tensor(attention_mask)
                 }
 
+                if self.samples_yielded == self.samples_per_epoch:
+                    return
+
+    def __iter__(self):
+        if self.streaming:
+            iterator_for_yielding = self._get_batch()
+        else:
+            iterator_for_yielding = self.samples
+        for b in iterator_for_yielding:
+            yield b
+
+    def __len__(self):
+        return self.samples_per_epoch
+
 
 def create_dataloaders(args, train_data: Dataset, val_data: Dataset, cfg: DictConfig, tokenizer):
     train_data = train_data.shuffle(seed=cfg.seed)
-    train_dataset = ConstantLengthDataset(
+    train_dataset = LanguageModelingDataset(
         tokenizer,
         train_data,
         infinite=True,
         seq_length=cfg.data_args.seq_length,
-        num_of_sequences=cfg.data_args.num_sequences
+        num_of_sequences=cfg.data_args.num_sequences,
+        streaming=cfg.data_args.streaming,
+        batches_per_epoch=args.steps_per_epoch * args.train_batch_size,
     )
-    valid_dataset = ConstantLengthDataset(
+    valid_dataset = LanguageModelingDataset(
         tokenizer,
         val_data,
         infinite=False,
         seq_length=cfg.data_args.seq_length,
-        num_of_sequences=cfg.data_args.num_sequences
+        num_of_sequences=cfg.data_args.num_sequences,
+        streaming=cfg.data_args.streaming,
+        batches_per_epoch=args.steps_per_epoch * args.eval_batch_size,
     )
     train_dataloader = DataLoader(train_dataset, batch_size=args.train_batch_size)
     eval_dataloader = DataLoader(valid_dataset, batch_size=args.eval_batch_size)
