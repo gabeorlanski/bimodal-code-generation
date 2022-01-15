@@ -20,7 +20,7 @@ class TrainingArguments:
     weight_decay: float = 0.0
     save_epochs: int = 250
     logging_steps: int = 100
-    gradient_accumulation_steps: int = 1
+    grad_accumulation_steps: int = 1
     metric_for_best_model: str = "-loss"
     max_steps: int = 1000
     max_epochs: int = 32
@@ -77,7 +77,7 @@ class Trainer:
         start_time = datetime.utcnow()
         logger.info("Training Arguments:")
         for arg, value in asdict(self.args).items():
-            logger.info(f"{arg:>20} = {value}")
+            logger.info(f"{arg:>24} = {value}")
 
         logger.info("Setting up data loaders")
         train_loader, eval_loader = self.data_loading_fn(
@@ -102,7 +102,9 @@ class Trainer:
             train_metrics = self._train_epoch(train_loader, epoch)
 
             logger.info(f"Finished training for epoch {epoch}")
-            self.log_eval_metrics(epoch, train_metrics, {})
+
+            eval_metrics = self.evaluate_fn(self.args, self.model, eval_loader, self.device)
+            self.log_eval_metrics(epoch, train_metrics, eval_metrics)
 
             if self.global_step >= self.args.max_steps:
                 logger.info("Passed Max Steps, stopping.")
@@ -133,16 +135,16 @@ class Trainer:
             local_batch = {k: v.to(self.device) for k, v in batch.items()}
             outputs = self.model(
                 local_batch['input_ids'],
-                labels=batch.get('labels', local_batch['input_ids']),
+                labels=local_batch.get('labels', local_batch['input_ids']),
                 use_cache=False
             )
             loss = outputs.loss
-            loss /= self.args.gradient_accumulation_steps
+            loss /= self.args.grad_accumulation_steps
             total_loss += loss.item()
             # self.accelerator.backward(loss)
             loss.backward()
             if (
-                    step % self.args.gradient_accumulation_steps == 0
+                    step % self.args.grad_accumulation_steps == 0
                     or total_batches - step == 0
             ):
                 self.optimizer.step()

@@ -33,7 +33,7 @@ def train_model(cfg: DictConfig):
     logger.info(f"Using device {device}")
 
     logger.debug("Loading Model")
-    model = config.load_model_from_cfg(cfg, device)
+    model = config.load_model_from_cfg(cfg)
 
     task: Task = config.load_task_from_cfg(cfg)
     tokenizer = task.tokenizer
@@ -98,20 +98,24 @@ def log_metrics(step_count, metrics):
         logger.info(f"{k:>20} = {v:0.3f}")
 
 
-def evaluate(args, accelerator, model, data_loader):
+def evaluate(args, model, data_loader, device):
     model.eval()
     losses = []
     for step, batch in enumerate(data_loader):
+        local_batch = {k: v.to(device) for k, v in batch.items()}
         with torch.no_grad():
-            outputs = model(batch, labels=batch)
-        loss = outputs.loss.repeat(args.per_device_eval_batch_size)
-        losses.append(accelerator.gather(loss))
+            outputs = model(
+                local_batch['input_ids'],
+                labels=local_batch.get('labels', local_batch['input_ids'])
+            )
+        loss = outputs.loss.repeat(args.eval_batch_size)
+        losses.append(loss)
     loss = torch.mean(torch.cat(losses))
     try:
         perplexity = torch.exp(loss)
     except OverflowError:
         perplexity = float("inf")
-    return loss.item(), perplexity.item()
+    return {'eval_loss': loss.item(), 'eval_perplexity': perplexity.item()}
 
 
 def get_grouped_params(model, args, no_decay=None):
@@ -160,9 +164,9 @@ def train_lm(cfg: DictConfig):
     tokenizer = task.tokenizer
 
     logger.info("Getting train data")
-    train_data = task.get_split("train", num_procs=cfg.get('num_proc', 1))
+    train_data = task.preprocess("train", num_procs=cfg.get('num_proc', 1))
     logger.info("Getting validation data")
-    validation_data = task.get_split(
+    validation_data = task.preprocess(
         "validation", num_procs=cfg.get('num_proc', 1)
     )
 
@@ -179,16 +183,12 @@ def train_lm(cfg: DictConfig):
         for metric, value in get_stats_from_list(target_lens).items():
             logger.info(f"\t\t{metric} = {value:0.2f}")
 
-    logger.info("Creating the dataloaders")
-    # train_args = config.get_training_args_from_cfg(cfg)
-    # train_args.predict_with_generate = False
-
     trainer = Trainer(
         model,
         TrainingArguments(**cfg['training']),
         device,
         tokenizer,
-        evaluate_fn=lambda *args, **kwargs: {'test': 1.0},
+        evaluate_fn=evaluate,
         data_loading_fn=partial(create_dataloaders, tokenizer=tokenizer, cfg=cfg)
     )
     trainer(

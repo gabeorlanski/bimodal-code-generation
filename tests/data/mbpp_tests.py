@@ -11,9 +11,9 @@ from src.common import FIXTURES_ROOT, PROJECT_ROOT
 
 
 @pytest.fixture(scope='module')
-def mbpp_task() -> Task:
+def mbpp_task(tokenizer) -> Task:
     yield Task.by_name('mbpp')(
-        tokenizer=AutoTokenizer.from_pretrained("patrickvonplaten/t5-tiny-random"),
+        tokenizer=tokenizer,
         preprocessors=[],
         postprocessors=[],
         metric_fns=[]

@@ -2,6 +2,7 @@ import pytest
 import yaml
 from src.common import FIXTURES_ROOT
 from .dummy_objects import *
+from transformers import AutoTokenizer
 
 
 @pytest.fixture()
@@ -23,3 +24,7 @@ def simple_eval_config():
         FIXTURES_ROOT.joinpath('configs', 'simple_eval.yaml').open('r', encoding='utf-8'),
         yaml.Loader
     )
+
+@pytest.fixture
+def tokenizer():
+    yield AutoTokenizer.from_pretrained("patrickvonplaten/t5-tiny-random")
