@@ -86,7 +86,7 @@ class Trainer:
             eval_dataset
         )
 
-        steps_per_epoch = math.ceil(len(train_loader) / self.args.train_batch_size)
+        steps_per_epoch = len(train_loader)
         stop_steps = min(
             self.args.max_steps,
             steps_per_epoch * self.args.max_epochs
@@ -112,7 +112,7 @@ class Trainer:
                 self.args.max_steps
             )
             logger.info(
-                f"Finished {self.global_step}/{self.args.max_steps} Steps in {elapsed}"
+                f"Finished {self.global_step}/{stop_steps} Steps in {elapsed}"
             )
             logger.info(f"Estimated time remaining: {estimated}")
 

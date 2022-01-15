@@ -3,28 +3,26 @@ defaults:
   - task: ???
   - training_args
   - _self_
-  - model_type: seq2seq
+  - objective: seq2seq
   - override hydra/job_logging: custom
 
+
 training:
-    batch_size: 2
-    output_dir: models
-    group_by_length: True
-    predict_with_generate: True
-    evaluation_strategy: steps
-    generation_max_length: 512
-    learning_rate: 5e-5
-    max_steps: 1000
-    logging_steps: 500
-    gradient_accumulation_steps: 1
-    eval_accumulation_steps: 1
-    metric_for_best_model: 'eval_bleu'
-    load_best_model_at_end: True
-    save_steps: 500
-    save_total_limit: 5
+  train_batch_size: 2
+  eval_batch_size: 2
+  learning_rate: 1e-5
+  weight_decay: 0.1
+  save_epochs: 1
+  logging_steps: 100
+  grad_accumulation_steps: 1
+  metric_for_best_model: "-loss"
+  max_steps: 1000
+  max_epochs: 4
+  steps_per_epoch: 250
+
 metrics:
   - exact-match
   - bleu
 preprocessors:
   - add-prefix:
-      prefix: "# You are an expert Python programmer, and here is your task: "
+      prefix: "You are an expert Python programmer, and here is your task: "

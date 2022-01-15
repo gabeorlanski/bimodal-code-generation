@@ -1,8 +1,0 @@
-defaults:
-  - _self_
-
-name: seq2seq
-
-# Some model types need to add pre or post processors for their specific needs.
-preprocessors: null
-postprocessors: null

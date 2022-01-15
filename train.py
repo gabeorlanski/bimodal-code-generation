@@ -30,9 +30,6 @@ def run(cfg: DictConfig):
 
     setup_tracking_env_from_cfg(cfg)
 
-    if cfg.model_type.name == 'causal_lm':
-        logger.error("'train' is not compatible with a language model.")
-        raise ValueError("Invalid model type.")
     if "training" not in cfg:
         raise KeyError("Missing 'training' key in config.")
 

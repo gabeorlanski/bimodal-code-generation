@@ -17,7 +17,7 @@ __all__ = [
 
 MODEL_TYPE_TO_CLS = {
     "seq2seq"  : AutoModelForSeq2SeqLM,
-    "causal_lm": AutoModelForCausalLM
+    "lm": AutoModelForCausalLM
 }
 
 
@@ -44,8 +44,8 @@ def get_device_from_cfg(cfg: DictConfig) -> torch.device:
 
 def load_model_from_cfg(cfg: DictConfig) -> PreTrainedModel:
     logger.info(f"Loading model '{cfg['model']}' of type "
-                f"'{cfg['model_type']['name']}'")
-    model_cls = MODEL_TYPE_TO_CLS[cfg['model_type']['name']]
+                f"'{cfg['objective']}'")
+    model_cls = MODEL_TYPE_TO_CLS[cfg['objective']]
 
     logger.info(f"Loading '{cfg['model']}' from HuggingFace'")
     model = model_cls.from_pretrained(cfg['model'])
