@@ -140,7 +140,6 @@ def train_model(cfg: DictConfig):
         cfg,
         accelerator,
         model,
-        model_cls,
         tokenizer,
         evaluate_fn=evaluate_fn,
         data_loading_fn=dataloader_fn

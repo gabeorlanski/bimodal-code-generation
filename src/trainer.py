@@ -48,7 +48,6 @@ class Trainer:
             cfg: DictConfig,
             accelerator: Accelerator,
             model: torch.nn.Module,
-            model_cls,
             tokenizer: PreTrainedTokenizer,
             evaluate_fn: Callable,
             data_loading_fn: Optional[Callable] = None,
@@ -62,10 +61,6 @@ class Trainer:
         self.accelerator = accelerator
         self.device = accelerator.device
         self.model = model.to(self.device)
-        if torch.cuda.device_count() > 1:
-            logger.info(f"Using data parallelism.")
-            self.model = nn.DataParallel(self.model)
-        self.model_cls = type(self.model)
         self.evaluate_fn = evaluate_fn
         self.data_loading_fn = data_loading_fn or self._get_data_loaders
         self.collate_fn = collator_fn or DataCollatorWithPadding(
@@ -99,6 +94,7 @@ class Trainer:
             train_dataset: pt_Dataset,
             eval_dataset: pt_Dataset
     ):
+
         logger.info("Beginning training setup")
 
         start_time = datetime.utcnow()
@@ -112,6 +108,10 @@ class Trainer:
             args=self.args,
             train_dataset=train_dataset,
             eval_dataset=eval_dataset
+        )
+
+        self.model, self.optimizer, train_loader, eval_loader = self.accelerator.prepare(
+            self.model, self.optimizer, train_loader, eval_loader
         )
 
         steps_per_epoch = len(train_loader)
