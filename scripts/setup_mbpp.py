@@ -8,14 +8,13 @@ from tqdm import tqdm
 
 import sys
 
-from src.common import setup_basic_loggers
-from src.common.file_util import validate_files_exist
-
 # If this file is called by itself (for creating the splits) then it will
 # have import issues.
 if str(Path(__file__).parents[1]) not in sys.path:
     sys.path.insert(0, str(Path(__file__).parents[1]))
 from src.common import PROJECT_ROOT
+from src.common import setup_basic_loggers
+from src.common.file_util import validate_files_exist
 
 
 def setup_mbpp_splits(
