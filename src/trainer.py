@@ -47,7 +47,7 @@ class Trainer:
     def __init__(
             self,
             cfg: DictConfig,
-            accelerator: Accelerator,
+            device: torch.device,
             model: torch.nn.Module,
             tokenizer: PreTrainedTokenizer,
             evaluate_fn: Callable,
@@ -59,8 +59,8 @@ class Trainer:
         self.cfg = cfg
         self.args = TrainingArguments(**cfg['training'])
         self.tokenizer = tokenizer
-        self.accelerator = accelerator
-        self.device = accelerator.device
+        # self.accelerator = accelerator
+        self.device = device
         self.model = model.to(self.device)
         self.evaluate_fn = evaluate_fn
         self.data_loading_fn = data_loading_fn or self._get_data_loaders
@@ -111,9 +111,9 @@ class Trainer:
             eval_dataset=eval_dataset
         )
 
-        self.model, self.optimizer, train_loader, eval_loader = self.accelerator.prepare(
-            self.model, self.optimizer, train_loader, eval_loader
-        )
+        # self.model, self.optimizer, train_loader, eval_loader = self.accelerator.prepare(
+        #     self.model, self.optimizer, train_loader, eval_loader
+        # )
 
         steps_per_epoch = len(train_loader)
         stop_steps = min(
@@ -302,7 +302,7 @@ class Trainer:
             model_is_better = True
 
         checkpoint_path = self.model_dir.joinpath(
-            f"{self.accelerator.local_process_index}_model_{self.global_step}.bin")
+            f"model_{self.global_step}.bin")
 
         if len(self.checkpoints) == self.args.checkpoints_to_save:
             logger.debug(f"{len(self.checkpoints)} checkpoints saved already, "

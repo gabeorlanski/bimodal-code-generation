@@ -66,7 +66,7 @@ def setup_seq2seq(cfg, task, model):
     return train_data, validation_data, create_dataloaders, evaluate
 
 
-def setup_lm(cfg, task, model):
+def setup_lm(cfg, task):
     # Add a preprocessor to concat the inputs and labels.
     def concat(ex):
         ex['input_sequence'] = f"{ex['input_sequence']} {ex['target']}"
@@ -100,9 +100,7 @@ def train_model(cfg: DictConfig):
         The best model.
     """
 
-    accelerator = Accelerator()
-    # device = config.get_device_from_cfg(cfg)
-    device = accelerator.device
+    device = config.get_device_from_cfg(cfg)
     logger.info(f"Using device {device}")
 
     set_caching_enabled(not cfg.get('disable_cache', False))
@@ -128,8 +126,7 @@ def train_model(cfg: DictConfig):
         logger.info("Setting up the LM objective")
         train_data, validation_data, dataloader_fn, evaluate_fn = setup_lm(
             cfg,
-            task,
-            model
+            task
         )
     else:
         logger.error(f"{cfg.objective} is not a valid objective")
@@ -138,7 +135,7 @@ def train_model(cfg: DictConfig):
     logger.debug("Initializing trainer")
     trainer = Trainer(
         cfg,
-        accelerator,
+        device,
         model,
         tokenizer,
         evaluate_fn=evaluate_fn,
