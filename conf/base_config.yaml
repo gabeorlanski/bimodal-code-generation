@@ -5,6 +5,8 @@ defaults:
 
 debug: False
 project: ???
+name: ???
+group: ???
 tracking:
   watch: "all"
   project: ${..project}

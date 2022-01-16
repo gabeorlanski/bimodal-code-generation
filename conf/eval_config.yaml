@@ -25,4 +25,4 @@ generation:
 
 hydra:
   run:
-    dir: outputs/evaluation/${task.name}
+    dir: outputs/${group}/${hydra.job.name}/${name}.${task.name}

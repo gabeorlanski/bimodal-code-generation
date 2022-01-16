@@ -8,7 +8,6 @@ import torch
 from tio import Task
 from src import config
 from src.common import get_stats_from_list
-from src.old_trainer import CustomTrainer, create_log_metric_message
 from src.data import langauge_modeling
 from src.trainer import Trainer, TrainingArguments
 from functools import partial
@@ -106,7 +105,7 @@ def train_model(cfg: DictConfig):
     set_caching_enabled(not cfg.get('disable_cache', False))
 
     logger.debug("Loading Model")
-    model = config.load_model_from_cfg(cfg)
+    model_cls, model = config.load_model_from_cfg(cfg)
 
     task: Task = config.load_task_from_cfg(cfg)
     tokenizer = task.tokenizer
@@ -135,8 +134,9 @@ def train_model(cfg: DictConfig):
 
     logger.debug("Initializing trainer")
     trainer = Trainer(
+        cfg,
         model,
-        TrainingArguments(**cfg.training),
+        model_cls,
         device,
         tokenizer,
         evaluate_fn=evaluate_fn,
@@ -144,6 +144,7 @@ def train_model(cfg: DictConfig):
     )
     trainer(train_data, validation_data)
     return trainer.model
+
 
 def evaluate(args, model, data_loader, device):
     model.eval()
@@ -162,4 +163,4 @@ def evaluate(args, model, data_loader, device):
         perplexity = torch.exp(loss)
     except OverflowError:
         perplexity = float("inf")
-    return {'eval_loss': loss.item(), 'eval_perplexity': perplexity.item()}
+    return {'loss': loss.item(), 'perplexity': perplexity.item()}

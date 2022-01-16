@@ -1,8 +1,13 @@
 debug: true
 project: adversarial-code
-tracking: false
 name: debug
 group: testing
+tracking: false
+task:
+  name: mbpp
+  paths:
+    train: MBPP/train.jsonl
+    validation: MBPP/validation.jsonl
 model: patrickvonplaten/t5-tiny-random
 model_path: null
 is_checkpoint: false
@@ -11,33 +16,28 @@ device: 0
 seed: 1
 numpy_seed: 2
 pytorch_seed: 3
-metrics:
-  - exact-match
-preprocessors:
-  add_prefix:
-    prefix: 'Generate Python:'
-task:
-  name: mbpp
-  paths:
-    train: MBPP/train.jsonl
-    validation: MBPP/validation.jsonl
 training:
-  batch_size: 2
-  output_dir: models
-  group_by_length: true
-  predict_with_generate: true
-  evaluation_strategy: steps
-  generation_max_length: 300
-  learning_rate: 0.0005
+  train_batch_size: 2
+  eval_batch_size: 2
+  learning_rate: 1.0e-05
+  weight_decay: 0.1
+  save_epochs: 1
+  logging_steps: 100
+  grad_accumulation_steps: 1
+  metric_for_best_model: -loss
   max_steps: 1000
-  logging_steps: 250
-  gradient_accumulation_steps: 1
-  eval_accumulation_steps: 1
-  metric_for_best_model: eval_bleu
-  load_best_model_at_end: true
-  save_steps: 250
-  save_total_limit: 5
-model_type:
-  name: seq2seq
-  preprocessors: null
-  postprocessors: null
+  max_epochs: 10
+  steps_per_epoch: 250
+  checkpoints_to_save: 2
+metrics:
+- exact-match
+- bleu
+preprocessors:
+- add-prefix:
+    prefix: 'Prompt: '
+objective: lm
+data_args:
+  seq_length: 512
+  num_sequences: 5
+  chars_per_token: 3.6
+  streaming: false

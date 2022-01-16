@@ -1,12 +1,25 @@
 defaults:
   - base_config
   - task: ???
-  - training_args
   - _self_
   - objective: seq2seq
   - override hydra/job_logging: custom
 
+# Required Arguments
+model: ???
+model_path: null
+is_checkpoint: false
+project: "adversarial-code"
 
+
+# General Arguments
+data_path: data
+device: cpu
+seed: 1
+numpy_seed: 2
+pytorch_seed: 3
+
+# Training Arguments
 training:
   train_batch_size: 2
   eval_batch_size: 2
@@ -17,8 +30,13 @@ training:
   grad_accumulation_steps: 1
   metric_for_best_model: "-loss"
   max_steps: 1000
-  max_epochs: 4
+  max_epochs: 10
   steps_per_epoch: 250
+  checkpoints_to_save: 2
+
+hydra:
+  run:
+    dir: outputs/${group}/${hydra.job.name}/${name}.${task.name}
 
 metrics:
   - exact-match

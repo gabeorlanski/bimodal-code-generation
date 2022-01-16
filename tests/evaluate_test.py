@@ -33,7 +33,8 @@ def test_evaluate_model(tmpdir, simple_train_config, simple_eval_config):
 
         result = evaluate_model(gen_cfg, train_cfg, model)
         assert result == {
-            "em": 50.00
+            "em"  : 50.0,
+            "bleu": 0.0
         }
     assert mock_generate.call_count == 1
     generate_args = mock_generate.call_args.args
@@ -46,7 +47,6 @@ def test_evaluate_model(tmpdir, simple_train_config, simple_eval_config):
 
     task = load_task_from_cfg(merged_cfg)
     assert generate_kwargs['tokenized'].to_dict() == task.get_split('test').to_dict()
-    assert generate_kwargs['batch_size'] == train_cfg.training.batch_size
     assert generate_kwargs['generation_kwargs'] == {"max_length": 300}
 
     preds_path = tmpdir_path.joinpath('predictions.jsonl')
@@ -57,22 +57,22 @@ def test_evaluate_model(tmpdir, simple_train_config, simple_eval_config):
     assert actual_saved_data == [
         {
             'idx'           : 0,
-            'input_sequence': 'Generate Python: The comment section is ',
+            'input_sequence': 'Prompt: The comment section is ',
             'target'        : 'out of control.',
             "predictions"   : ["D"]
         }, {
             'idx'           : 1,
-            'input_sequence': 'Generate Python: The butcher of ',
+            'input_sequence': 'Prompt: The butcher of ',
             'target'        : 'Blevkin.',
             "predictions"   : ["B"]
         }, {
             'idx'           : 2,
-            'input_sequence': 'Generate Python: Get ',
+            'input_sequence': 'Prompt: Get ',
             'target'        : 'Some.',
             "predictions"   : ["C"]
         }, {
             'idx'           : 3,
-            'input_sequence': 'Generate Python: I hate',
+            'input_sequence': 'Prompt: I hate',
             'target'        : 'tf.data',
             "predictions"   : ["A"]
         },

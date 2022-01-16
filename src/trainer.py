@@ -4,10 +4,13 @@ import torch
 from torch.utils.data import Dataset as pt_Dataset
 from transformers import AdamW, get_scheduler, DataCollatorWithPadding, PreTrainedTokenizer
 from tqdm import tqdm
-import math
+from omegaconf import DictConfig
 import logging
-
+from pathlib import Path
+import shutil
 from datetime import datetime, timedelta
+import os
+from src import config
 
 logger = logging.getLogger(__name__)
 
@@ -25,29 +28,38 @@ class TrainingArguments:
     max_steps: int = 1000
     max_epochs: int = 32
     steps_per_epoch: int = -1
+    model_dir: str = "checkpoints"
+    checkpoints_to_save: int = 5
+    eval_prefix: str = "eval"
 
     def __post_init__(self):
         self.more_is_better = True if self.metric_for_best_model.startswith('+') else False
         self.metric_for_best_model = self.metric_for_best_model[1:]
+        if self.checkpoints_to_save < 2:
+            raise ValueError("Checkpoints to save must be greater than 2")
 
 
 class Trainer:
 
     def __init__(
             self,
+            cfg: DictConfig,
             model: torch.nn.Module,
-            args: TrainingArguments,
+            model_cls,
             device: torch.device,
             tokenizer: PreTrainedTokenizer,
             evaluate_fn: Callable,
             data_loading_fn: Optional[Callable] = None,
-            collator_fn: Optional[Callable] = None
+            collator_fn: Optional[Callable] = None,
+            path_to_use: str = None
     ):
         logger.info("Initializing trainer.")
-        self.args = args
+        self.cfg = cfg
+        self.args = TrainingArguments(**cfg['training'])
         self.tokenizer = tokenizer
         self.device = device
         self.model = model.to(self.device)
+        self.model_cls = model_cls
         self.evaluate_fn = evaluate_fn
         self.data_loading_fn = data_loading_fn or self._get_data_loaders
         self.collate_fn = collator_fn or DataCollatorWithPadding(
@@ -66,6 +78,16 @@ class Trainer:
             num_training_steps=1000,
         )
         self.global_step = 0
+        self.path_to_best_model = None
+        self.best_metric = None
+        self.model_dir = Path(path_to_use) if path_to_use else Path()
+        self.model_dir = self.model_dir.joinpath(self.args.model_dir)
+        self.checkpoints = []
+        self.local_rank = 0
+        if not self.model_dir.exists():
+            logger.debug(f"Making directory at {self.model_dir}")
+            self.model_dir.mkdir(parents=True)
+        logger.info(f"Saving checkpoints to {self.model_dir}")
 
     def __call__(
             self,
@@ -81,9 +103,9 @@ class Trainer:
 
         logger.info("Setting up data loaders")
         train_loader, eval_loader = self.data_loading_fn(
-            self.args,
-            train_dataset,
-            eval_dataset
+            args=self.args,
+            train_dataset=train_dataset,
+            eval_dataset=eval_dataset
         )
 
         steps_per_epoch = len(train_loader)
@@ -96,25 +118,48 @@ class Trainer:
         logger.info("Staring Training")
 
         for epoch in range(1, self.args.max_epochs + 1):
-            train_metrics = self._train_epoch(train_loader, epoch)
+            epoch_start_time = datetime.utcnow()
+            train_metrics = self._train_epoch(
+                data_loader=train_loader,
+                epoch=epoch
+            )
 
-            logger.info(f"Finished training for epoch {epoch}")
+            elapsed = datetime.utcnow() - epoch_start_time
 
-            eval_metrics = self.evaluate_fn(self.args, self.model, eval_loader, self.device)
-            self.log_eval_metrics(epoch, train_metrics, eval_metrics)
+            logger.info(
+                f"Finished training for epoch {epoch}. "
+                f"{train_metrics.pop('elapsed')} Updates done in {str(elapsed)}"
+            )
 
-            if self.global_step >= self.args.max_steps:
+            eval_metrics = self.evaluate_fn(
+                args=self.args,
+                model=self.model,
+                eval_loader=eval_loader,
+                device=self.device
+            ).items()
+            eval_metrics = {f"{self.args.eval_prefix}_{k}": v for k, v in eval_metrics}
+            self.log_eval_metrics(
+                epoch=epoch,
+                metrics=train_metrics,
+                eval_metrics=eval_metrics
+            )
+
+            self.save_model(eval_metrics)
+
+            if self.global_step >= stop_steps:
                 logger.info("Passed Max Steps, stopping.")
                 break
 
             elapsed, estimated = self.get_estimated_remaining_time(
                 datetime.utcnow() - start_time,
-                self.args.max_steps
+                stop_steps
             )
             logger.info(
                 f"Finished {self.global_step}/{stop_steps} Steps in {elapsed}"
             )
             logger.info(f"Estimated time remaining: {estimated}")
+        logger.info(f"Loading best model from {self.path_to_best_model}")
+        self._load_best()
 
     def _train_epoch(self, data_loader, epoch):
         self.model.train()
@@ -122,7 +167,7 @@ class Trainer:
 
         batch_iter = iter(data_loader)
         total_loss = 0
-
+        updates = 0
         pbar = tqdm(total=total_batches, desc=f'Epoch {epoch}')
         for step in range(1, total_batches + 1):
             batch = next(batch_iter)
@@ -137,8 +182,11 @@ class Trainer:
             total_loss += loss.item()
             pbar.set_description(f'Epoch {epoch}: batch_loss={loss.item():0.3f} '
                                  f'loss={total_loss / step:0.3f}')
-            # self.accelerator.backward(loss)
+
             loss.backward()
+
+            # We make sure that even if grad accumulation is on, we still do
+            # the steps if this is the last batch in the epoch.
             if (
                     step % self.args.grad_accumulation_steps == 0
                     or total_batches - step == 0
@@ -146,14 +194,17 @@ class Trainer:
                 self.optimizer.step()
                 self.lr_scheduler.step()
                 self.optimizer.zero_grad()
+                updates += 1
 
             self.global_step += 1
             if self.global_step > self.args.max_steps:
                 break
             pbar.update()
         pbar.close()
-
-        return {'loss': total_loss / total_batches}
+        return {
+            'loss'   : total_loss / total_batches,
+            'updates': updates
+        }
 
     def get_grouped_params(self, model, no_decay=None):
         if no_decay is None:
@@ -225,6 +276,53 @@ class Trainer:
         except ValueError:
             estimated_rem = str(estimated_rem)
         return elapsed_str, estimated_rem
+
+    def save_model(self, eval_metrics: Dict):
+        logger.debug(f"Updating the best model at step {self.global_step}")
+
+        model_is_better = False
+        metric_value = eval_metrics[f"{self.args.eval_prefix}_{self.args.metric_for_best_model}"]
+        if self.best_metric is not None:
+            # A best model has been set.
+            logger.debug(f"Using {self.args.metric_for_best_model} to determine "
+                         f"the best model at step {self.global_step}")
+            if self.args.more_is_better and metric_value > self.best_metric:
+                model_is_better = True
+            elif not self.args.more_is_better and metric_value < self.best_metric:
+                model_is_better = True
+        else:
+            # No Best model is set
+            model_is_better = True
+
+        checkpoint_path = self.model_dir.joinpath(f"model_{self.global_step}.bin")
+
+        if len(self.checkpoints) == self.args.checkpoints_to_save:
+            logger.debug(f"{len(self.checkpoints)} checkpoints saved already, "
+                         f"removing oldest.")
+
+            to_remove = 0
+            if self.checkpoints[to_remove] == self.path_to_best_model:
+                logger.debug(f"Checkpoint at index {to_remove} is the best "
+                             f"model, trying the next index.")
+                to_remove = 1
+
+            path_to_remove = self.checkpoints.pop(to_remove)
+            logger.info(f"Deleting checkpoint at {path_to_remove}")
+            os.remove(path_to_remove)
+
+        logger.info(f"Saving checkpoint to {checkpoint_path}")
+        torch.save(self.model.state_dict(), checkpoint_path)
+        self.checkpoints.append(checkpoint_path)
+
+        if model_is_better:
+            logger.info(f"New Best Model with {self.args.metric_for_best_model}"
+                        f" = {metric_value:.3f}")
+            self.path_to_best_model = checkpoint_path
+            self.best_metric = metric_value
+
+    def _load_best(self):
+        state_dict = torch.load(self.path_to_best_model)
+        self.model = self.model_cls.from_pretrained(self.cfg['model'], state_dict=state_dict)
 
 
 def create_log_metric_message(
