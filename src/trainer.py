@@ -175,8 +175,7 @@ class Trainer:
         batch_iter = iter(data_loader)
         total_loss = 0
         updates = 0
-        pbar = tqdm(total=total_batches, desc=f'Epoch {epoch}',
-                    disable=not self.accelerator.is_local_main_process)
+        pbar = tqdm(total=total_batches, desc=f'Epoch {epoch}')
         for step in range(1, total_batches + 1):
             batch = next(batch_iter)
             local_batch = {k: v.to(self.device) for k, v in batch.items()}
@@ -191,7 +190,7 @@ class Trainer:
             pbar.set_description(f'Epoch {epoch}: batch_loss={loss.item():0.3f} '
                                  f'loss={total_loss / step:0.3f}')
 
-            self.accelerator.backward(loss)
+            loss.backward()
             # We make sure that even if grad accumulation is on, we still do
             # the steps if this is the last batch in the epoch.
             if (
