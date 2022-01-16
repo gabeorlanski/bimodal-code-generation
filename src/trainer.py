@@ -3,7 +3,8 @@ from typing import Literal, Optional, Union, Dict, Callable
 import torch
 from torch import nn
 from torch.utils.data import Dataset as pt_Dataset
-from transformers import AdamW, get_scheduler, DataCollatorWithPadding, PreTrainedTokenizer
+from transformers import AdamW, get_scheduler, DataCollatorWithPadding, PreTrainedTokenizer, \
+    AutoModelForCausalLM, AutoModelForSeq2SeqLM
 from tqdm import tqdm
 from omegaconf import DictConfig
 import logging
@@ -300,7 +301,8 @@ class Trainer:
             # No Best model is set
             model_is_better = True
 
-        checkpoint_path = self.model_dir.joinpath(f"model_{self.global_step}.bin")
+        checkpoint_path = self.model_dir.joinpath(
+            f"{self.accelerator.local_process_index}_model_{self.global_step}.bin")
 
         if len(self.checkpoints) == self.args.checkpoints_to_save:
             logger.debug(f"{len(self.checkpoints)} checkpoints saved already, "
@@ -328,7 +330,12 @@ class Trainer:
 
     def _load_best(self):
         state_dict = torch.load(self.path_to_best_model)
-        self.model = type(self.model).from_pretrained(self.cfg['model'], state_dict=state_dict)
+        if self.cfg.get('objective') == 'seq2seq':
+            self.model = AutoModelForSeq2SeqLM.from_pretrained(self.cfg['model'],
+                                                               state_dict=state_dict)
+        else:
+            self.model = AutoModelForCausalLM.from_pretrained(self.cfg['model'],
+                                                              state_dict=state_dict)
 
 
 def create_log_metric_message(
