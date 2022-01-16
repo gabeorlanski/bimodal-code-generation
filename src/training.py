@@ -142,7 +142,7 @@ def train_model(cfg: DictConfig):
         data_loading_fn=dataloader_fn
     )
     trainer(train_data, validation_data)
-    return trainer.model
+    return trainer.path_to_best_model
 
 
 def evaluate(args, model, data_loader, device):

@@ -6,6 +6,7 @@ from pathlib import Path
 import numpy as np
 import os
 import random
+import shutil
 
 from src.training import train_model
 from src.tracking import setup_tracking_env_from_cfg
@@ -46,10 +47,10 @@ def run(cfg: DictConfig):
     if torch.cuda.is_available():
         torch.cuda.manual_seed_all(torch_seed)
 
-    model = train_model(cfg)
+    path_to_best = train_model(cfg)
 
     logger.info(f"Saving best model to {Path.cwd()}")
-    torch.save(model.state_dict(), Path.cwd().joinpath("best_model.bin"))
+    shutil.copy2(path_to_best, Path('best_model.bin'))
     logger.info("Training Finished")
 
 

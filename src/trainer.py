@@ -165,8 +165,8 @@ class Trainer:
                 f"Finished {self.global_step}/{stop_steps} Steps in {elapsed}"
             )
             logger.info(f"Estimated time remaining: {estimated}")
-        logger.info(f"Loading best model from {self.path_to_best_model}")
-        self._load_best()
+        # logger.info(f"Loading best model from {self.path_to_best_model}")
+        # self._load_best()
 
     def _train_epoch(self, data_loader, epoch):
         self.model.train()

@@ -119,16 +119,17 @@ class LanguageModelingDataset(IterableDataset):
         return self.samples_per_epoch
 
 
-def create_dataloaders(args, train_dataset: Dataset, eval_dataset: Dataset, cfg: DictConfig, tokenizer):
+def create_dataloaders(args, train_dataset: Dataset, eval_dataset: Dataset, cfg: DictConfig,
+                       tokenizer):
     train_data = train_dataset.shuffle(seed=cfg.seed)
     train_dataset = LanguageModelingDataset(
         tokenizer,
         train_data,
-        infinite=True,
+        infinite=cfg.data_args.get('infinite', False),
         seq_length=cfg.data_args.seq_length,
         num_of_sequences=cfg.data_args.num_sequences,
         streaming=cfg.data_args.streaming,
-        batches_per_epoch=args.steps_per_epoch * args.train_batch_size,
+        # batches_per_epoch=args.steps_per_epoch * args.train_batch_size,
     )
     valid_dataset = LanguageModelingDataset(
         tokenizer,
@@ -137,7 +138,7 @@ def create_dataloaders(args, train_dataset: Dataset, eval_dataset: Dataset, cfg:
         seq_length=cfg.data_args.seq_length,
         num_of_sequences=cfg.data_args.num_sequences,
         streaming=cfg.data_args.streaming,
-        batches_per_epoch=args.steps_per_epoch * args.eval_batch_size,
+        # batches_per_epoch=args.steps_per_epoch * args.eval_batch_size,
     )
     train_dataloader = DataLoader(train_dataset, batch_size=args.train_batch_size)
     eval_dataloader = DataLoader(valid_dataset, batch_size=args.eval_batch_size)
