@@ -1,6 +1,7 @@
 from dataclasses import dataclass, field, asdict
 from typing import Literal, Optional, Union, Dict, Callable
 import torch
+from torch import nn
 from torch.utils.data import Dataset as pt_Dataset
 from transformers import AdamW, get_scheduler, DataCollatorWithPadding, PreTrainedTokenizer
 from tqdm import tqdm
@@ -10,6 +11,7 @@ from pathlib import Path
 import shutil
 from datetime import datetime, timedelta
 import os
+from accelerate import Accelerator
 from src import config
 
 logger = logging.getLogger(__name__)
@@ -44,9 +46,9 @@ class Trainer:
     def __init__(
             self,
             cfg: DictConfig,
+            accelerator: Accelerator,
             model: torch.nn.Module,
             model_cls,
-            device: torch.device,
             tokenizer: PreTrainedTokenizer,
             evaluate_fn: Callable,
             data_loading_fn: Optional[Callable] = None,
@@ -57,9 +59,13 @@ class Trainer:
         self.cfg = cfg
         self.args = TrainingArguments(**cfg['training'])
         self.tokenizer = tokenizer
-        self.device = device
+        self.accelerator = accelerator
+        self.device = accelerator.device
         self.model = model.to(self.device)
-        self.model_cls = model_cls
+        if torch.cuda.device_count() > 1:
+            logger.info(f"Using data parallelism.")
+            self.model = nn.DataParallel(self.model)
+        self.model_cls = type(self.model)
         self.evaluate_fn = evaluate_fn
         self.data_loading_fn = data_loading_fn or self._get_data_loaders
         self.collate_fn = collator_fn or DataCollatorWithPadding(
@@ -83,7 +89,6 @@ class Trainer:
         self.model_dir = Path(path_to_use) if path_to_use else Path()
         self.model_dir = self.model_dir.joinpath(self.args.model_dir)
         self.checkpoints = []
-        self.local_rank = 0
         if not self.model_dir.exists():
             logger.debug(f"Making directory at {self.model_dir}")
             self.model_dir.mkdir(parents=True)
@@ -97,6 +102,7 @@ class Trainer:
         logger.info("Beginning training setup")
 
         start_time = datetime.utcnow()
+
         logger.info("Training Arguments:")
         for arg, value in asdict(self.args).items():
             logger.info(f"{arg:>24} = {value}")
@@ -128,14 +134,14 @@ class Trainer:
 
             logger.info(
                 f"Finished training for epoch {epoch}. "
-                f"{train_metrics.pop('elapsed')} Updates done in {str(elapsed)}"
+                f"{train_metrics.pop('updates')} Updates done in {str(elapsed)}"
             )
 
             eval_metrics = self.evaluate_fn(
-                args=self.args,
-                model=self.model,
-                eval_loader=eval_loader,
-                device=self.device
+                self.args,
+                self.model,
+                eval_loader,
+                self.device
             ).items()
             eval_metrics = {f"{self.args.eval_prefix}_{k}": v for k, v in eval_metrics}
             self.log_eval_metrics(
@@ -168,7 +174,8 @@ class Trainer:
         batch_iter = iter(data_loader)
         total_loss = 0
         updates = 0
-        pbar = tqdm(total=total_batches, desc=f'Epoch {epoch}')
+        pbar = tqdm(total=total_batches, desc=f'Epoch {epoch}',
+                    disable=not self.accelerator.is_local_main_process)
         for step in range(1, total_batches + 1):
             batch = next(batch_iter)
             local_batch = {k: v.to(self.device) for k, v in batch.items()}
@@ -183,8 +190,7 @@ class Trainer:
             pbar.set_description(f'Epoch {epoch}: batch_loss={loss.item():0.3f} '
                                  f'loss={total_loss / step:0.3f}')
 
-            loss.backward()
-
+            self.accelerator.backward(loss)
             # We make sure that even if grad accumulation is on, we still do
             # the steps if this is the last batch in the epoch.
             if (
@@ -322,7 +328,7 @@ class Trainer:
 
     def _load_best(self):
         state_dict = torch.load(self.path_to_best_model)
-        self.model = self.model_cls.from_pretrained(self.cfg['model'], state_dict=state_dict)
+        self.model = type(self.model).from_pretrained(self.cfg['model'], state_dict=state_dict)
 
 
 def create_log_metric_message(

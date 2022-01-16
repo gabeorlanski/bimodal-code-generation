@@ -119,8 +119,8 @@ class LanguageModelingDataset(IterableDataset):
         return self.samples_per_epoch
 
 
-def create_dataloaders(args, train_data: Dataset, val_data: Dataset, cfg: DictConfig, tokenizer):
-    train_data = train_data.shuffle(seed=cfg.seed)
+def create_dataloaders(args, train_dataset: Dataset, eval_dataset: Dataset, cfg: DictConfig, tokenizer):
+    train_data = train_dataset.shuffle(seed=cfg.seed)
     train_dataset = LanguageModelingDataset(
         tokenizer,
         train_data,
@@ -132,7 +132,7 @@ def create_dataloaders(args, train_data: Dataset, val_data: Dataset, cfg: DictCo
     )
     valid_dataset = LanguageModelingDataset(
         tokenizer,
-        val_data,
+        eval_dataset,
         infinite=False,
         seq_length=cfg.data_args.seq_length,
         num_of_sequences=cfg.data_args.num_sequences,

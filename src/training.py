@@ -12,6 +12,7 @@ from src.data import langauge_modeling
 from src.trainer import Trainer, TrainingArguments
 from functools import partial
 from datasets import set_caching_enabled
+from accelerate import Accelerator
 
 logger = logging.getLogger(__name__)
 
@@ -99,7 +100,9 @@ def train_model(cfg: DictConfig):
         The best model.
     """
 
-    device = config.get_device_from_cfg(cfg)
+    accelerator = Accelerator()
+    # device = config.get_device_from_cfg(cfg)
+    device = accelerator.device
     logger.info(f"Using device {device}")
 
     set_caching_enabled(not cfg.get('disable_cache', False))
@@ -135,9 +138,9 @@ def train_model(cfg: DictConfig):
     logger.debug("Initializing trainer")
     trainer = Trainer(
         cfg,
+        accelerator,
         model,
         model_cls,
-        device,
         tokenizer,
         evaluate_fn=evaluate_fn,
         data_loading_fn=dataloader_fn

@@ -4,3 +4,4 @@ datasets==1.17.0
 overrides==6.1.0
 sacrebleu==2.0.0
 wandb==0.12.9
+accelerate==0.5.1

@@ -1,7 +1,10 @@
+import math
+
 from datasets import set_caching_enabled
 from omegaconf import DictConfig, open_dict
 from transformers import PreTrainedModel, DataCollatorForSeq2Seq, PreTrainedTokenizer
 import torch
+from torch.nn import functional as F
 import logging
 from tqdm import tqdm
 from pathlib import Path
@@ -18,7 +21,8 @@ def generate_predictions(
         task,
         batch_size,
         device,
-        generation_kwargs
+        generation_kwargs,
+        generate_steps
 ):
     collator = DataCollatorForSeq2Seq(
         tokenizer=task.tokenizer,
@@ -51,26 +55,41 @@ def generate_predictions(
     predictions = []
     labels = []
     num_return_sequences = generation_kwargs.get("num_return_sequences", 1)
+    num_steps_needed = generate_steps * len(data_loader)
+    logger.info(f"{num_steps_needed} total steps needed")
 
     model.eval()
     with torch.no_grad():
-        for batch in tqdm(data_loader, desc="Generating"):
-            generated_from_batch = model.generate(
-                inputs=batch["input_ids"].to(device),
-                **generation_kwargs,
-            )
+        progress_bar = tqdm(total=num_steps_needed, desc='Generating')
+        for batch in data_loader:
+            postprocessed_preds = []
+            postprocessed_targets = []
 
-            # We need to check how many sequences we return for each sample so
-            # we can adequately collect them.
-            b = batch['input_ids'].size()[0]
+            for _ in range(generate_steps):
+                generated_results = model.generate(
+                    inputs=batch["input_ids"].to(device),
+                    **generation_kwargs,
+                    output_scores=True,
+                    return_dict_in_generate=True
+                )
+                generated_from_batch = generated_results.sequences
 
-            generated = generated_from_batch.reshape((b, num_return_sequences, -1)).detach().cpu()
-            targets = batch["labels"].detach().cpu()
+                # We need to check how many sequences we return for each sample so
+                # we can adequately collect them.
+                b = batch['input_ids'].size()[0]
 
-            postprocessed_preds, postprocessed_targets = task.postprocess(
-                generated.numpy(),
-                targets.numpy()
-            )
+                generated = generated_from_batch.reshape(
+                    (b, num_return_sequences, -1)).detach().cpu()
+                targets = batch["labels"].detach().cpu()
+
+                b_preds, b_targets = task.postprocess(
+                    generated.numpy(),
+                    targets.numpy()
+                )
+
+                postprocessed_preds.extend(b_preds)
+                postprocessed_targets.extend(b_targets)
+                progress_bar.update()
 
             for i in range(batch['input_ids'].shape[0]):
                 preds = postprocessed_preds[i]
@@ -78,7 +97,9 @@ def generate_predictions(
 
                 predictions.append(preds)
                 labels.append(gold)
-                indices.append(batch['idx'][i].item())
+                indices.append(batch['idx'][i].detach().item())
+
+        progress_bar.close()
 
     logger.info("Generating finished.")
     return {
@@ -118,9 +139,10 @@ def evaluate_model(cfg: DictConfig, train_cfg: DictConfig, model: PreTrainedMode
         model,
         tokenized=tokenized,
         task=task,
-        batch_size=cfg["training"].get("batch_size", 4),
+        batch_size=cfg["training"].get("eval_batch_size", 4),
         device=get_device_from_cfg(cfg),
-        generation_kwargs=cfg.get('generation', {})
+        generation_kwargs=cfg.get('generation', {}),
+        generate_steps=cfg.get('generate_steps')
     )
 
     # Unpack the returned dict from generate predictions
