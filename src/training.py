@@ -118,11 +118,12 @@ def train_model(cfg: DictConfig):
     )
 
     train_args = config.get_training_args_from_cfg(cfg)
-    logger.info("Training Arguments:")
-    for arg_name in sorted(train_args.to_sanitized_dict()):
-        logger.info(
-            f"{arg_name:>30} = {getattr(train_args, arg_name)}"
-        )
+    if train_args.local_rank <= 0:
+        logger.info("Training Arguments:")
+        for arg_name in sorted(train_args.to_sanitized_dict()):
+            logger.info(
+                f"{arg_name:>30} = {getattr(train_args, arg_name)}"
+            )
 
     device = train_args.device
     logger.info(f"Using device {device}")
