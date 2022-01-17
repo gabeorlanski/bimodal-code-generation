@@ -20,16 +20,16 @@ numpy_seed: 2
 pytorch_seed: 3
 
 training:
-  batch_size: 2
+  batch_size: 1
   output_dir: models
   learning_rate: 1e-5
   logging_steps: 50
   warmup_steps: 0.0
   warmup_ratio: 0.0
   weight_decay: 0.0
-  gradient_accumulation_steps: 1
+  gradient_accumulation_steps: 2
   eval_accumulation_steps: 1
-  metric_for_best_model: 'loss'
+  metric_for_best_model: 'eval_loss'
   load_best_model_at_end: True
   save_total_limit: 5
   num_train_epochs: 10
@@ -39,6 +39,7 @@ training:
   group_by_length: True
   logging_first_step: True
   xpu_backend: "ccl"
+  fp16: False
 
 hydra:
   run:
@@ -50,3 +51,6 @@ metrics:
 preprocessors:
   - add-prefix:
       prefix: "You are an expert Python programmer, and here is your task: "
+  - add-suffix:
+      suffix: "#Solution:\n"
+      key: input_sequence

@@ -17,14 +17,14 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-def group_texts(texts: List, tokenizer, seq_length):
+def group_texts(texts: List, concat_token, seq_length, padding=False):
     buffer = []
     for text in texts:
         buffer.append(text)
     all_token_ids = []
 
-    for tokenized_input in tokenizer(buffer, add_special_tokens=False)['input_ids']:
-        all_token_ids.extend(tokenized_input + [tokenizer.eos_token_id])
+    for tokenized_input in buffer:
+        all_token_ids.extend(tokenized_input + [concat_token])
 
     all_input_ids = []
     all_attention_mask = []
@@ -36,9 +36,12 @@ def group_texts(texts: List, tokenizer, seq_length):
         # We do not want to skip any examples, so we must pad some of
         # them with the concat id. But, we also want those to be ignored
         # so we need to create the attention mask.
-        pad_amount = seq_length - input_len
-        input_ids.extend([tokenizer.eos_token_id] * pad_amount)
-        attention_mask.extend([0] * pad_amount)
+        if not padding and len(input_ids) != seq_length:
+            continue
+        elif padding:
+            pad_amount = seq_length - input_len
+            input_ids.extend([concat_token] * pad_amount)
+            attention_mask.extend([0] * pad_amount)
 
         all_input_ids.append(input_ids)
         all_attention_mask.append(attention_mask)

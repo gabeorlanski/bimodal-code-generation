@@ -63,7 +63,8 @@ def load_processors_from_cfg(cfg: DictConfig) -> Tuple[List[Callable], List[Call
 
 
 def load_task_from_cfg(
-        cfg: DictConfig
+        cfg: DictConfig,
+        tokenizer_kwargs=None
 ) -> Task:
     """
     Create a Task from a cfg
@@ -74,6 +75,8 @@ def load_task_from_cfg(
     Returns:
         Task: The created task object.
     """
+    if tokenizer_kwargs is None:
+        tokenizer_kwargs = {}
     logger.info(f"Initializing task registered to name '{cfg['task']['name']}'")
     preprocessors, postprocessors = load_processors_from_cfg(cfg)
     logger.info(f"Metrics are {cfg.get('metrics', [])}")
@@ -83,7 +86,8 @@ def load_task_from_cfg(
         name=cfg["task"]["name"],
         tokenizer=AutoTokenizer.from_pretrained(
             cfg['model'],
-            use_fast='LOCAL_RANK' not in os.environ
+            use_fast='LOCAL_RANK' not in os.environ,
+            **tokenizer_kwargs
         ),
         preprocessors=preprocessors,
         postprocessors=postprocessors,

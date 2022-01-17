@@ -50,10 +50,10 @@ def load_model_from_cfg(cfg: DictConfig) -> Tuple[Callable, PreTrainedModel]:
     model_cls = MODEL_TYPE_TO_CLS[cfg['objective']]
 
     logger.info(f"Loading '{cfg['model']}' from HuggingFace'")
-    model = model_cls.from_pretrained(cfg['model'])
     if cfg['is_checkpoint']:
-        logger.info(f"Loading checkpoint 'best_model.bin` from '{cfg['model_path']}'")
-        model_path = PROJECT_ROOT.joinpath(cfg["model_path"])
-        model.load_state_dict(torch.load(model_path.joinpath("best_model.bin")))
-
+        logger.info(f"Loading checkpoint 'best_model` from '{cfg['model_path']}'")
+        model_path = PROJECT_ROOT.joinpath(cfg["model_path"],'best_model')
+        model = model_cls.from_pretrained(model_path)
+    else:
+        model = model_cls.from_pretrained(cfg['model'])
     return model_cls, model

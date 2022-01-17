@@ -26,7 +26,7 @@ def generate_predictions(
 ):
     collator = DataCollatorForSeq2Seq(
         tokenizer=task.tokenizer,
-        pad_to_multiple_of=2,
+        pad_to_multiple_of=1,
         max_length=1024,
         padding="longest",
         label_pad_token_id=task.tokenizer.pad_token_id,
@@ -35,10 +35,7 @@ def generate_predictions(
         lambda ex: {'length': len(ex['input_ids']), **ex}
     )
     tokenized = tokenized.sort('length')
-    tokenized = tokenized.map(
-        lambda ex: ex,
-        remove_columns=['length']
-    )
+    tokenized = tokenized.remove_columns('length')
     data_loader = torch.utils.data.DataLoader(
         tokenized,
         collate_fn=collator,
@@ -66,13 +63,10 @@ def generate_predictions(
             postprocessed_targets = []
 
             for _ in range(generate_steps):
-                generated_results = model.generate(
-                    inputs=batch["input_ids"].to(device),
-                    **generation_kwargs,
-                    output_scores=True,
-                    return_dict_in_generate=True
+                generated_from_batch = model.generate(
+                    input_ids=batch["input_ids"].to(device),
+                    **generation_kwargs
                 )
-                generated_from_batch = generated_results.sequences
 
                 # We need to check how many sequences we return for each sample so
                 # we can adequately collect them.
@@ -123,33 +117,42 @@ def evaluate_model(cfg: DictConfig, train_cfg: DictConfig, model: PreTrainedMode
     cfg = merge_configs(cfg, train_cfg)
     set_caching_enabled(not cfg.get('disable_cache', False))
     task = load_task_from_cfg(cfg)
-
     logger.info(f"Reading data from '{cfg['data_path']}'")
-    tokenized = task.get_split(cfg['split'])
+
+    tokenized = task.get_split(cfg['split'], overwrite_cache=True)
     logger.info(f"{len(tokenized)} total samples found")
 
     logger.info("Initializing the evaluator")
 
-    if task.tokenizer.pad_token is None:
-        task.tokenizer.pad_token = task.tokenizer.eos_token
-        model.config.pad_token_id = task.tokenizer.pad_token_id
-        model.config.eos_token_id = task.tokenizer.eos_token_id
+    if cfg.objective == 'lm':
+        if task.tokenizer.pad_token is None:
+            task.tokenizer.pad_token = task.tokenizer.eos_token
 
     generation_results = generate_predictions(
         model,
         tokenized=tokenized,
         task=task,
-        batch_size=cfg["training"].get("eval_batch_size", 4),
+        batch_size=cfg["training"].get(
+            "batch_size",
+            cfg['training'].get('per_device_eval_batch_size', 1)
+        ),
         device=get_device_from_cfg(cfg),
         generation_kwargs=cfg.get('generation', {}),
         generate_steps=cfg.get('generate_steps')
     )
 
     # Unpack the returned dict from generate predictions
-    indices = generation_results['indices']
-    predictions = generation_results['predictions']
+    indices, predictions = [], []
+    raw_data = task.preprocessed_splits[cfg['split']]
     labels = generation_results['labels']
-
+    for idx, preds in zip(generation_results['indices'], generation_results['predictions']):
+        input_sequence = raw_data[idx]["input_sequence"]
+        indices.append(idx)
+        if cfg.objective == "lm":
+            # Remove the prompt from the predictions
+            predictions.append(list(map(lambda p: p[len(input_sequence):], preds)))
+        else:
+            predictions.append(predictions)
     metrics = task.evaluate(predictions, labels)
 
     # Get the full metrics suite for the predictions and the labels
@@ -161,7 +164,6 @@ def evaluate_model(cfg: DictConfig, train_cfg: DictConfig, model: PreTrainedMode
     out_path = Path(out_path) if out_path else Path()
     out_path = out_path.joinpath('predictions.jsonl')
     logger.info(f"Saving predictions to {out_path}")
-    raw_data = task.preprocessed_splits[cfg['split']]
     with out_path.open("w", encoding="utf-8") as f:
         for idx, preds in tqdm(zip(indices, predictions), desc="Saving"):
             f.write(serialize_prediction(

@@ -9,8 +9,7 @@ from tio import Task
 from src import config
 from src.common import get_stats_from_list
 from src.data import langauge_modeling
-from src.trainer import Trainer
-from src.old_trainer import CustomTrainer
+from src.trainer import CustomTrainer
 from functools import partial
 from datasets import set_caching_enabled, Dataset
 
@@ -44,7 +43,7 @@ def setup_seq2seq(cfg, task):
 def setup_lm(cfg, task):
     # Add a preprocessor to concat the inputs and labels.
     def concat(ex):
-        ex['input_sequence'] = f"{ex['input_sequence']} {ex['target']}"
+        ex['input_sequence'] = f"{ex['input_sequence']}{ex['target']}"
         ex['target'] = ex['input_sequence']
         return ex
 
@@ -52,13 +51,14 @@ def setup_lm(cfg, task):
 
     group_texts = partial(
         langauge_modeling.group_texts,
-        tokenizer=task.tokenizer,
-        seq_length=cfg.data_args.seq_length
+        concat_token=task.tokenizer.eos_token_id,
+        seq_length=cfg.data_args.seq_length,
+
     )
 
     def make_split(split_name):
-        split_data = task.preprocess(split_name, num_procs=cfg.get('num_proc', 1))
-        split_data = Dataset.from_dict(group_texts(split_data['input_sequence']))
+        split_data = task.get_split(split_name, num_procs=cfg.get('num_proc', 1))
+        split_data = Dataset.from_dict(group_texts(split_data['input_ids']))
         return split_data
 
     logger.info("Getting train data")
@@ -99,23 +99,38 @@ def train_model(cfg: DictConfig):
             cfg,
             task
         )
+        collator = DataCollatorForSeq2Seq(
+            tokenizer=tokenizer,
+            padding='longest',
+            pad_to_multiple_of=2,
+            return_tensors='pt'
+        )
     elif cfg.objective == "lm":
         logger.info("Setting up the LM objective")
+
+        if task.tokenizer.pad_token is None:
+            task.tokenizer.pad_token = task.tokenizer.eos_token
+
         train_data, validation_data, evaluate_fn = setup_lm(
             cfg,
             task
         )
+        model.config.eos_token_id = task.tokenizer.eos_token_id
+        model.config.pad_token_id = task.tokenizer.pad_token_id
+        model.config.bos_token_id = task.tokenizer.bos_token_id or task.tokenizer.eos_token
+
+        collator = DataCollatorForSeq2Seq(
+            tokenizer=tokenizer,
+            padding='longest',
+            pad_to_multiple_of=1,
+            return_tensors='pt'
+        )
     else:
         logger.error(f"{cfg.objective} is not a valid objective")
         raise ValueError("Invalid Objective")
+    model.resize_token_embeddings(len(tokenizer))
 
     logger.debug("Initializing trainer")
-    collator = DataCollatorForSeq2Seq(
-        tokenizer=tokenizer,
-        padding='longest',
-        pad_to_multiple_of=2,
-        return_tensors='pt'
-    )
 
     train_args = config.get_training_args_from_cfg(cfg)
     if train_args.local_rank <= 0:
@@ -139,8 +154,8 @@ def train_model(cfg: DictConfig):
     trainer.train()
 
     if cfg.training.local_rank <= 0:
-        logger.info(f"Saving best model to {Path().joinpath('best_model.bin')}")
-        torch.save(trainer.model.state_dict(), Path().joinpath('best_model.bin'))
+        logger.info(f"Saving best model to {Path().joinpath('best_model').absolute().resolve()}")
+        trainer.model.save_pretrained(Path().joinpath('best_model'))
 
     return
 
