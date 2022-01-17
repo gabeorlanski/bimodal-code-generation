@@ -84,8 +84,8 @@ class CustomTrainer(Seq2SeqTrainer):
         self.control = None
 
         super(CustomTrainer, self).__init__(*args, **kwargs)
-        self.callback_handler.pop_callback(ProgressCallback)
-        self.callback_handler.add_callback(BetterProgress)
+        # self.callback_handler.pop_callback(ProgressCallback)
+        # self.callback_handler.add_callback(BetterProgress)
 
         if is_tracking_enabled(cfg):
             self.callback_handler.pop_callback(WandbCallback)
