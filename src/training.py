@@ -119,7 +119,7 @@ def train_model(cfg: DictConfig):
 
     train_args = config.get_training_args_from_cfg(cfg)
     logger.info("Training Arguments:")
-    for arg_name in sorted(train_args.sanitized_dict()):
+    for arg_name in sorted(train_args.to_sanitized_dict()):
         logger.info(
             f"{arg_name:>30} = {getattr(train_args.training_args, arg_name)}"
         )
