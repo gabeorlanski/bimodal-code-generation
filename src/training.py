@@ -14,6 +14,7 @@ from src.old_trainer import CustomTrainer
 from functools import partial
 from datasets import set_caching_enabled, Dataset
 
+
 logger = logging.getLogger(__name__)
 
 
@@ -120,7 +121,7 @@ def train_model(cfg: DictConfig):
         return_tensors='pt'
     )
 
-    trainer= CustomTrainer(
+    trainer = CustomTrainer(
         cfg,
         model=model,
         args=config.get_training_args_from_cfg(cfg),
@@ -133,7 +134,7 @@ def train_model(cfg: DictConfig):
 
     if cfg.training.local_rank <= 0:
         logger.info(f"Saving best model to {Path().joinpath('best_model.bin')}")
-        torch.save(trainer.model.state_dict(),Path().joinpath('best_model.bin'))
+        torch.save(trainer.model.state_dict(), Path().joinpath('best_model.bin'))
 
     return
 

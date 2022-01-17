@@ -10,6 +10,7 @@ import os
 import random
 import shutil
 
+import torch.distributed as dist
 from src.training import train_model
 from src.config import setup_tracking_env_from_cfg
 
@@ -42,9 +43,11 @@ def run(cfg: DictConfig):
     logger.info(f"Seed={seed}")
     logger.info(f"NumPy Seed={numpy_seed}")
     logger.info(f"Torch Seed={torch_seed}")
+    if "LOCAL_RANK" in os.environ:
+        dist.init_process_group(backend="nccl")
 
     with open_dict(cfg):
-        cfg.training.local_rank=int(os.environ.get('LOCAL_RANK',-1))
+        cfg.training.local_rank = int(os.environ.get('LOCAL_RANK', '-1'))
 
     random.seed(cfg["seed"])
     np.random.seed(cfg["numpy_seed"])
