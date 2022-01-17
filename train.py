@@ -42,7 +42,7 @@ def run(cfg: DictConfig):
             else:
                 new_fmt = f'[%(asctime)s - %(levelname)8s - %(name)12s - %(funcName)12s] ' \
                           f'RANK {int(os.environ["LOCAL_RANK"])}: %(message)s'
-            logger.root.handlers.formatter._fmt = new_fmt
+            logger.root.handlers[i].formatter._fmt = new_fmt
 
     setup_tracking_env_from_cfg(cfg)
 
