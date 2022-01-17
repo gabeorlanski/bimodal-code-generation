@@ -1,6 +1,7 @@
 """
 Config related util functions.
 """
+import os
 from typing import List, Dict, Tuple, Callable
 import logging
 from functools import partial
@@ -80,7 +81,10 @@ def load_task_from_cfg(
 
     return Task.get_task(
         name=cfg["task"]["name"],
-        tokenizer=AutoTokenizer.from_pretrained(cfg['model'],use_fast=False),
+        tokenizer=AutoTokenizer.from_pretrained(
+            cfg['model'],
+            use_fast='LOCAL_RANK' not in os.environ
+        ),
         preprocessors=preprocessors,
         postprocessors=postprocessors,
         metric_fns=metrics,

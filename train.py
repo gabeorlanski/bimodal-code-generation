@@ -33,7 +33,7 @@ def run(cfg: DictConfig):
     torch.use_deterministic_algorithms(True)
 
     if "LOCAL_RANK" in os.environ:
-        for i in range(logger.root.handlers):
+        for i in range(len(logger.root.handlers)):
             if logger.root.handlers[i].name == "console":
                 new_fmt = f'[%(levelname)8s] RANK {int(os.environ["LOCAL_RANK"])}: %(message)s'
             elif logger.root.handlers[i].name == "normal_file":
