@@ -121,7 +121,7 @@ def train_model(cfg: DictConfig):
     logger.info("Training Arguments:")
     for arg_name in sorted(train_args.to_sanitized_dict()):
         logger.info(
-            f"{arg_name:>30} = {getattr(train_args.training_args, arg_name)}"
+            f"{arg_name:>30} = {getattr(train_args, arg_name)}"
         )
 
     device = train_args.device
