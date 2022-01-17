@@ -32,6 +32,18 @@ def run(cfg: DictConfig):
     os.environ["CUBLAS_WORKSPACE_CONFIG"] = ":4096:8"
     torch.use_deterministic_algorithms(True)
 
+    if "LOCAL_RANK" in os.environ:
+        for i in range(logger.root.handlers):
+            if logger.root.handlers[i].name == "console":
+                new_fmt = f'[%(levelname)8s] RANK {int(os.environ["LOCAL_RANK"])}: %(message)s'
+            elif logger.root.handlers[i].name == "normal_file":
+                new_fmt = f'[%(asctime)s - %(levelname)8s - %(name)12s] ' \
+                          f'RANK {int(os.environ["LOCAL_RANK"])}: %(message)s'
+            else:
+                new_fmt = f'[%(asctime)s - %(levelname)8s - %(name)12s - %(funcName)12s] ' \
+                          f'RANK {int(os.environ["LOCAL_RANK"])}: %(message)s'
+            logger.root.handlers.formatter._fmt = new_fmt
+
     setup_tracking_env_from_cfg(cfg)
 
     if "training" not in cfg:
