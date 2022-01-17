@@ -14,7 +14,6 @@ from src.old_trainer import CustomTrainer
 from functools import partial
 from datasets import set_caching_enabled, Dataset
 
-
 logger = logging.getLogger(__name__)
 
 
@@ -82,9 +81,6 @@ def train_model(cfg: DictConfig):
         The best model.
     """
 
-    device = config.get_device_from_cfg(cfg)
-    logger.info(f"Using device {device}")
-
     set_caching_enabled(not cfg.get('disable_cache', False))
 
     logger.debug("Loading Model")
@@ -121,10 +117,13 @@ def train_model(cfg: DictConfig):
         return_tensors='pt'
     )
 
+    train_args = config.get_training_args_from_cfg(cfg)
+    device= train_args.device
+    logger.info(f"Using device {device}")
     trainer = CustomTrainer(
         cfg,
         model=model,
-        args=config.get_training_args_from_cfg(cfg),
+        args=train_args,
         eval_dataset=validation_data,
         train_dataset=train_data,
         data_collator=collator,
