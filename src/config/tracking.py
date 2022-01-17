@@ -1,7 +1,8 @@
 """
 Functions for tracking.
 """
-from typing import Dict
+from copy import copy
+from typing import Dict, Union
 
 from transformers.integrations import WandbCallback
 from omegaconf import DictConfig, OmegaConf
@@ -10,6 +11,13 @@ import logging
 from src.common import flatten
 
 logger = logging.getLogger(__name__)
+
+__all__ = [
+    "TrackingCallback",
+    "get_config_for_tracking",
+    "is_tracking_enabled",
+    "setup_tracking_env_from_cfg"
+]
 
 
 class TrackingCallback(WandbCallback):
@@ -72,10 +80,14 @@ class TrackingCallback(WandbCallback):
                 )
 
 
-def get_config_for_tracking(cfg: Dict):
-    cfg.pop('training')
-    cfg.pop('tracking')
-    return flatten(cfg, sep='.')
+def get_config_for_tracking(cfg: Union[DictConfig, Dict]):
+    out_cfg = OmegaConf.to_object(cfg) if isinstance(cfg, DictConfig) else copy(cfg)
+    out_cfg.pop('training')
+    out_cfg.pop('tracking')
+    out_cfg.pop('name')
+    out_cfg.pop('group')
+    out_cfg.pop('project')
+    return flatten(out_cfg, sep='.')
 
 
 def is_tracking_enabled(cfg: DictConfig):

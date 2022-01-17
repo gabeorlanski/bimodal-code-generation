@@ -6,6 +6,3 @@ objective: lm
 
 data_args:
   seq_length: 512
-  num_sequences: 5
-  chars_per_token: 3.6
-  streaming: False

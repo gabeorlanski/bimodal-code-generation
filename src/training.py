@@ -10,6 +10,7 @@ from src import config
 from src.common import get_stats_from_list
 from src.data import langauge_modeling
 from src.trainer import Trainer
+from src.old_trainer import CustomTrainer
 from functools import partial
 from datasets import set_caching_enabled, Dataset
 
@@ -112,14 +113,31 @@ def train_model(cfg: DictConfig):
         raise ValueError("Invalid Objective")
 
     logger.debug("Initializing trainer")
-    trainer = Trainer(
-        cfg,
-        model,
-        tokenizer,
-        evaluate_fn=evaluate_fn
+    collator = DataCollatorForSeq2Seq(
+        tokenizer=tokenizer,
+        padding='longest',
+        pad_to_multiple_of=2,
+        return_tensors='pt'
     )
-    trainer(train_data, validation_data)
-    return trainer.path_to_best_model
+
+    trainer= CustomTrainer(
+        cfg,
+        model=model,
+        args=config.get_training_args_from_cfg(cfg),
+        eval_dataset=validation_data,
+        train_dataset=train_data,
+        data_collator=collator,
+
+    )
+    trainer.train()
+    # trainer = Trainer(
+    #     cfg,
+    #     model,
+    #     tokenizer,
+    #     evaluate_fn=evaluate_fn
+    # )
+    # trainer(train_data, validation_data)
+    return
 
 
 def evaluate(args, model, data_loader, device):

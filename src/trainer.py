@@ -1,20 +1,19 @@
 import math
+import shutil
 from dataclasses import dataclass, field, asdict
-from functools import partial
 from typing import Literal, Optional, Union, Dict, Callable
 import torch
-from torch import nn
 from torch.utils.data import Dataset as pt_Dataset
-from transformers import AdamW, get_scheduler, DataCollatorForSeq2Seq, PreTrainedTokenizer, \
-    AutoModelForCausalLM, AutoModelForSeq2SeqLM, Seq2SeqTrainingArguments
+from transformers import (
+    AdamW, get_scheduler, DataCollatorForSeq2Seq, PreTrainedTokenizer
+)
 from tqdm import tqdm
-from omegaconf import DictConfig
+from omegaconf import DictConfig, OmegaConf
 import logging
 from pathlib import Path
-import shutil
 from datetime import datetime, timedelta
 import os
-from accelerate import Accelerator
+import wandb
 from src import config as config_util
 
 logger = logging.getLogger(__name__)
@@ -31,7 +30,9 @@ class Trainer:
             path_to_use: str = None,
             metric_key_prefix: str = 'eval'
     ):
-        logger.info("Initializing trainer.")
+        self.local_rank = 0
+
+        self.log_message(logging.INFO, "Initializing trainer.")
         self.cfg = cfg
         self.training_args = config_util.get_training_args_from_cfg(cfg)
         self.tokenizer = tokenizer
@@ -40,6 +41,7 @@ class Trainer:
         self.model = model.to(self.device)
         self.evaluate_fn = evaluate_fn
         self.metric_key_prefix = metric_key_prefix
+        self.has_logged_before = {}
 
         self.collator = DataCollatorForSeq2Seq(
             tokenizer=self.tokenizer,
@@ -57,9 +59,52 @@ class Trainer:
         self.model_dir = Path(path_to_use) if path_to_use else Path()
         self.model_dir = self.model_dir.joinpath(self.training_args.output_dir)
         if not self.model_dir.exists():
-            logger.debug(f"Making directory at {self.model_dir}")
+            self.log_message(logging.DEBUG, f"Making directory at {self.model_dir}")
             self.model_dir.mkdir(parents=True)
-        logger.info(f"Saving checkpoints to {self.model_dir}")
+        self.log_message(logging.INFO, f"Saving checkpoints to {self.model_dir}")
+
+        self.run = self.setup_tracking_from_config(cfg)
+
+    @property
+    def is_world_process_zero(self):
+        return self.local_rank == 0
+
+    def setup_tracking_from_config(self, cfg):
+        if not self.is_world_process_zero:
+            return None
+
+        if not config_util.is_tracking_enabled(cfg):
+            self.log_message(logging.INFO, 'Tracking is disabled')
+            return None
+
+        self.log_message(logging.INFO, 'Setting up tracking')
+        run_config = config_util.get_config_for_tracking(cfg)
+        run_config.update({f"model.{k}": v for k, v in self.model.config.to_dict().items()})
+
+        training_args_as_dict = {}
+        training_args_keys_to_remove = {
+            "do_predict", "do_train", "do_eval", "evaluation_strategy", "prediction_loss_only",
+            "log_level", "log_level_replica", "log_on_each_node", "logging_dir", "logging_strategy",
+            "logging_first_step", "save_strategy", "save_on_each_node", "label_names",
+            "load_best_model_at_end", "ignore_data_skip"
+        }
+        for k, v in self.training_args.to_sanitized_dict().items():
+            if k in training_args_keys_to_remove:
+                continue
+            training_args_as_dict[f"training.{k}"] = v
+        run_config.update(training_args_as_dict)
+
+        run = wandb.init(
+            job_type='train',
+            project=cfg['project'],
+            group=cfg['group'],
+            name=cfg['name'],
+            config=run_config,
+            config_exclude_keys=['tracking', 'name', 'group', 'project']
+        )
+        run.watch(self.model, log_freq=max(100, self.training_args.logging_steps), log='all',
+                  log_graph=True)
+        return run
 
     def __call__(
             self,
@@ -67,15 +112,16 @@ class Trainer:
             eval_dataset: pt_Dataset
     ):
 
-        logger.info("Beginning training setup")
+        self.log_message(logging.INFO, "Beginning training setup")
 
         start_time = datetime.utcnow()
 
-        logger.info("Training Arguments:")
+        self.log_message(logging.INFO, "Training Arguments:")
         for arg_name in sorted(asdict(self.training_args)):
-            logger.info(f"{arg_name:>30} = {getattr(self.training_args, arg_name)}")
+            self.log_message(logging.INFO,
+                             f"{arg_name:>30} = {getattr(self.training_args, arg_name)}")
 
-        logger.info("Sorting Datasets by the 'input_ids' column")
+        self.log_message(logging.INFO, "Sorting Datasets by the 'input_ids' column")
         train_dataset = train_dataset.map(
             lambda ex, idx: {'length': len(ex['input_ids']), 'idx': idx, **ex},
             with_indices=True
@@ -88,7 +134,7 @@ class Trainer:
         ).sort("length", reverse=True)
         eval_dataset = eval_dataset.remove_columns('length')
 
-        logger.info("Setting up data loaders")
+        self.log_message(logging.INFO, "Setting up data loaders")
         train_loader, eval_loader = self._get_data_loaders(
             train_dataset=train_dataset,
             eval_dataset=eval_dataset
@@ -100,12 +146,14 @@ class Trainer:
             math.ceil(steps_per_epoch * float(self.training_args.num_train_epochs))
         )
         self.training_args.max_steps = stop_steps
-        logger.info(f"Stopping after {stop_steps} steps")
+        self.log_message(logging.INFO, f"Stopping after {stop_steps} steps")
 
-        logger.info("Setting up optimizer")
+        self.log_message(logging.INFO, "Setting up optimizer")
         optimizer = AdamW(
             self.get_grouped_params(self.model),
-            lr=self.training_args.learning_rate
+            lr=self.training_args.learning_rate,
+            betas=(self.training_args.adam_beta1, self.training_args.adam_beta2),
+            eps=self.training_args.adam_epsilon
         )
         lr_scheduler = get_scheduler(
             name='cosine',
@@ -114,9 +162,24 @@ class Trainer:
             num_training_steps=stop_steps,
         )
 
-        logger.info("Staring Training")
+        self.log_message(logging.INFO, "Doing zero-shot eval")
+        with torch.no_grad():
+            self.model.eval()
+            eval_metrics = self.evaluate_fn(
+                self.training_args,
+                self.model,
+                eval_loader,
+                self.device
+            )
+        self.log_eval_metrics(
+            epoch=0,
+            metrics=eval_metrics,
+            eval_metrics=eval_metrics
+        )
 
-        for epoch in range(1, int(self.training_args.num_train_epochs + 1)):
+        self.log_message(logging.INFO, "Staring Training")
+        for epoch in range(1, int(self.training_args.num_train_epochs) + 1):
+            self.model.train()
             epoch_start_time = datetime.utcnow()
             train_metrics, optimizer, lr_scheduler = self._train_epoch(
                 epoch=epoch,
@@ -127,18 +190,24 @@ class Trainer:
 
             elapsed = datetime.utcnow() - epoch_start_time
 
-            logger.info(
-                f"Finished training for epoch {epoch}. "
+            self.log_message(
+                logging.INFO,
+                f"Finished training for epoch {epoch}"
+            )
+            self.log_message(
+                logging.DEBUG,
                 f"{train_metrics.pop('updates')} Updates done in {str(elapsed)}"
             )
-
-            eval_metrics = self.evaluate_fn(
-                self.training_args,
-                self.model,
-                eval_loader,
-                self.device
-            ).items()
-            eval_metrics = {f"{self.metric_key_prefix}_{k}": v for k, v in eval_metrics}
+            with torch.no_grad():
+                self.model.eval()
+                eval_metrics = self.evaluate_fn(
+                    self.training_args,
+                    self.model,
+                    eval_loader,
+                    self.device
+                )
+            self.log_metrics_to_run(eval_metrics, 'eval', epoch)
+            self.log_metrics_to_run(train_metrics, 'train', epoch)
             self.log_eval_metrics(
                 epoch=epoch,
                 metrics=train_metrics,
@@ -147,18 +216,21 @@ class Trainer:
 
             self.save_model(eval_metrics)
 
-            if self.global_step >= stop_steps:
-                logger.info("Passed Max Steps, stopping.")
+            if self.global_step > stop_steps and epoch < self.training_args.num_train_epochs:
+                self.log_message(logging.INFO, "Passed Max Steps, stopping.")
                 break
 
             elapsed, estimated = self.get_estimated_remaining_time(
                 datetime.utcnow() - start_time,
                 stop_steps
             )
-            logger.info(
-                f"Finished {self.global_step}/{stop_steps} Steps in {elapsed}"
-            )
-            logger.info(f"Estimated time remaining: {estimated}")
+            self.log_message(logging.INFO,
+                             f"Finished {self.global_step}/{stop_steps} Steps in {elapsed}"
+                             )
+            self.log_message(logging.INFO, f"Estimated time remaining: {estimated}")
+        self.copy_best()
+        if self.run is not None:
+            self.run.finish()
 
     def _train_epoch(self, epoch, data_loader, optimizer, lr_scheduler):
         self.model.train()
@@ -191,9 +263,16 @@ class Trainer:
                 optimizer.step()
                 lr_scheduler.step()
                 optimizer.zero_grad()
+                self.model.zero_grad()
                 updates += 1
 
             self.global_step += 1
+            if self.global_step % self.training_args.logging_steps == 0:
+                self.log_metrics_to_run(
+                    {'batch_loss': total_loss / step, 'lr': get_lr(optimizer)},
+                    prefix='train'
+                )
+
             if self.global_step > self.training_args.max_steps:
                 break
             pbar.update()
@@ -227,17 +306,18 @@ class Trainer:
         if eval_metrics is None:
             eval_metrics = {}
 
-        logger.info(f"Metrics for Epoch {epoch}:")
-        # logger.info(create_log_metric_message('Name', 'Train', 'Eval'))
+        self.log_message(logging.INFO, f"Metrics for Epoch {epoch}:")
+        # self.log_message(logging.INFO,create_log_metric_message('Name', 'Train', 'Eval'))
 
-        all_keys = set("_".join(k.split("_")[1:]) for k in eval_metrics).union(
+        all_keys = set(eval_metrics).union(
             metrics
         )
 
         for k in all_keys:
-            eval_value = eval_metrics.get(k, eval_metrics.get(f"eval_{k}"))
+            eval_value = eval_metrics.get(k)
             train_value = metrics.get(k)
-            logger.info(f"{create_log_metric_message(k, train_value, eval_value)}")
+            self.log_message(logging.INFO,
+                             f"{create_log_metric_message(k, train_value, eval_value)}")
 
     def _get_data_loaders(
             self,
@@ -276,14 +356,15 @@ class Trainer:
         return elapsed_str, estimated_rem
 
     def save_model(self, eval_metrics: Dict):
-        logger.debug(f"Updating the best model at step {self.global_step}")
+        self.log_message(logging.DEBUG, f"Updating the best model at step {self.global_step}")
 
         model_is_better = False
         metric_value = eval_metrics[self.training_args.metric_for_best_model]
         if self.best_metric is not None:
             # A best model has been set.
-            logger.debug(f"Using {self.training_args.metric_for_best_model} to determine "
-                         f"the best model at step {self.global_step}")
+            self.log_message(logging.DEBUG,
+                             f"Using {self.training_args.metric_for_best_model} to determine "
+                             f"the best model at step {self.global_step}")
             if self.training_args.greater_is_better and metric_value > self.best_metric:
                 model_is_better = True
             elif not self.training_args.greater_is_better and metric_value < self.best_metric:
@@ -296,37 +377,52 @@ class Trainer:
             f"model_{self.global_step}.bin")
 
         if len(self.checkpoints) == self.training_args.save_total_limit:
-            logger.debug(f"{len(self.checkpoints)} checkpoints saved already, "
-                         f"removing oldest.")
+            self.log_message(logging.DEBUG, f"{len(self.checkpoints)} checkpoints saved already, "
+                                            f"removing oldest.")
 
             to_remove = 0
             if self.checkpoints[to_remove] == self.path_to_best_model:
-                logger.debug(f"Checkpoint at index {to_remove} is the best "
-                             f"model, trying the next index.")
+                self.log_message(logging.DEBUG, f"Checkpoint at index {to_remove} is the best "
+                                                f"model, trying the next index.")
                 to_remove = 1
 
             path_to_remove = self.checkpoints.pop(to_remove)
-            logger.info(f"Deleting checkpoint at {path_to_remove}")
+            self.log_message(logging.INFO, f"Deleting checkpoint at {path_to_remove}")
             os.remove(path_to_remove)
 
-        logger.info(f"Saving checkpoint to {checkpoint_path}")
+        self.log_message(logging.INFO, f"Saving checkpoint to {checkpoint_path}")
         torch.save(self.model.state_dict(), checkpoint_path)
         self.checkpoints.append(checkpoint_path)
 
         if model_is_better:
-            logger.info(f"New Best Model with {self.training_args.metric_for_best_model}"
-                        f" = {metric_value:.3f}")
+            self.log_message(logging.INFO,
+                             f"New Best Model with {self.training_args.metric_for_best_model}"
+                             f" = {metric_value:.3f}")
             self.path_to_best_model = checkpoint_path
             self.best_metric = metric_value
 
-    def _load_best(self):
-        state_dict = torch.load(self.path_to_best_model)
-        if self.cfg.get('objective') == 'seq2seq':
-            self.model = AutoModelForSeq2SeqLM.from_pretrained(self.cfg['model'],
-                                                               state_dict=state_dict)
+    def copy_best(self):
+
+        self.log_message(logging.INFO, f"Saving best model to {Path.cwd()}")
+        shutil.copy2(self.path_to_best_model, Path('best_model.bin'))
+
+    def log_message(self, level, message):
+        if self.local_rank > 0:
+            logger.log(level, f"Worker {self.local_rank}: {message}")
         else:
-            self.model = AutoModelForCausalLM.from_pretrained(self.cfg['model'],
-                                                              state_dict=state_dict)
+            logger.log(level, message)
+
+    def log_metrics_to_run(self, metrics, prefix, epoch=None):
+        self.log_message(logging.DEBUG, f"Logging metrics to run at step "
+                                        f"{self.global_step}.")
+
+        if self.run is None:
+            return
+
+        metrics_to_log = {f"{prefix}/{k}": v for k, v in metrics.items()}
+        if epoch is not None:
+            metrics_to_log['epoch'] = epoch
+        self.run.log(metrics_to_log, step=self.global_step)
 
 
 def create_log_metric_message(
@@ -347,3 +443,8 @@ def create_log_metric_message(
     if not no_eval:
         msg += f"{format_metric_msg(eval_value)}"
     return msg
+
+
+def get_lr(optimizer):
+    for param_group in optimizer.param_groups:
+        return param_group['lr']

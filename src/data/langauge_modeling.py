@@ -45,7 +45,8 @@ def group_texts(texts: List, tokenizer, seq_length):
 
     out = {
         "input_ids"     : all_input_ids,
-        "attention_mask": all_attention_mask
+        "attention_mask": all_attention_mask,
+        "labels"        : all_input_ids.copy()
     }
 
     return out

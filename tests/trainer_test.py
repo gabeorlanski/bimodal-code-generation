@@ -89,7 +89,7 @@ class TestTrainer:
                                          side_effect=mock_train_epoch)
         trainer.evaluate_fn = MagicMock(return_value={"em": 1.0})
         trainer.save_model = MagicMock()
-        trainer._load_best = MagicMock()
+        trainer.copy_best = MagicMock()
 
         trainer(["A"], ["B"])
 
@@ -105,7 +105,7 @@ class TestTrainer:
         ])
         assert trainer.evaluate_fn.call_count == 3
         assert trainer.save_model.call_count == 3
-        assert trainer._load_best.call_count == 3
+        assert trainer.copy_best.call_count == 3
 
     @pytest.mark.parametrize('higher_better', [True, False])
     def test_save_model(self, tmpdir, trainer_base_objects, simple_train_config, higher_better):

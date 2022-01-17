@@ -1,7 +1,9 @@
 import logging
+import sys
+
 import hydra
 import torch
-from omegaconf import DictConfig
+from omegaconf import DictConfig, open_dict
 from pathlib import Path
 import numpy as np
 import os
@@ -9,7 +11,7 @@ import random
 import shutil
 
 from src.training import train_model
-from src.tracking import setup_tracking_env_from_cfg
+from src.config import setup_tracking_env_from_cfg
 
 logger = logging.getLogger(__name__)
 
@@ -40,6 +42,10 @@ def run(cfg: DictConfig):
     logger.info(f"Seed={seed}")
     logger.info(f"NumPy Seed={numpy_seed}")
     logger.info(f"Torch Seed={torch_seed}")
+
+    with open_dict(cfg):
+        cfg.training.local_rank=int(os.environ.get('LOCAL_RANK',-1))
+
     random.seed(cfg["seed"])
     np.random.seed(cfg["numpy_seed"])
     torch.manual_seed(torch_seed)
@@ -47,11 +53,8 @@ def run(cfg: DictConfig):
     if torch.cuda.is_available():
         torch.cuda.manual_seed_all(torch_seed)
 
-    path_to_best = train_model(cfg)
-
-    logger.info(f"Saving best model to {Path.cwd()}")
-    shutil.copy2(path_to_best, Path('best_model.bin'))
-    logger.info("Training Finished")
+    train_model(cfg)
+    logger.info("Training Is Done")
 
 
 if __name__ == "__main__":
