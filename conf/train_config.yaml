@@ -35,8 +35,8 @@ training:
   save_total_limit: 5
   num_train_epochs: 10
   greater_is_better: False
-  evaluation_strategy: epoch
-  save_strategy: epoch
+  evaluation_strategy: steps
+  save_strategy: steps
   group_by_length: True
   logging_first_step: True
   xpu_backend: "ccl"
