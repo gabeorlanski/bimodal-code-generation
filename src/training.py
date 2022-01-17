@@ -130,13 +130,11 @@ def train_model(cfg: DictConfig):
 
     )
     trainer.train()
-    # trainer = Trainer(
-    #     cfg,
-    #     model,
-    #     tokenizer,
-    #     evaluate_fn=evaluate_fn
-    # )
-    # trainer(train_data, validation_data)
+
+    if cfg.training.local_rank <= 0:
+        logger.info(f"Saving best model to {Path().joinpath('best_model.bin')}")
+        torch.save(trainer.model.state_dict(),Path().joinpath('best_model.bin'))
+
     return
 
 
