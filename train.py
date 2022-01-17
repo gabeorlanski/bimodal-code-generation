@@ -43,8 +43,8 @@ def run(cfg: DictConfig):
     logger.info(f"Seed={seed}")
     logger.info(f"NumPy Seed={numpy_seed}")
     logger.info(f"Torch Seed={torch_seed}")
-    if "LOCAL_RANK" in os.environ:
-        dist.init_process_group(backend="nccl")
+    # if "LOCAL_RANK" in os.environ:
+    #     dist.init_process_group(backend="nccl")
 
     with open_dict(cfg):
         cfg.training.local_rank = int(os.environ.get('LOCAL_RANK', '-1'))
