@@ -24,9 +24,6 @@ def get_training_args_from_cfg(cfg: DictConfig) -> Seq2SeqTrainingArguments:
     """
 
     training_args = OmegaConf.to_object(cfg["training"])
-    logger.info("Training Arguments:")
-    for k, v in training_args.items():
-        logger.info(f"\t{k:<30} = {v}")
 
     batch_size = training_args.pop("batch_size", None)
     if batch_size:

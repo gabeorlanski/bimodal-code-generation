@@ -9,17 +9,14 @@ from tio import Task
 from src import config
 from src.common import get_stats_from_list
 from src.data import langauge_modeling
-from src.trainer import Trainer, TrainingArguments
+from src.trainer import Trainer
 from functools import partial
-from datasets import set_caching_enabled
-from accelerate import Accelerator
+from datasets import set_caching_enabled, Dataset
 
 logger = logging.getLogger(__name__)
 
 
-def setup_seq2seq(cfg, task, model):
-    tokenizer = task.tokenizer
-
+def setup_seq2seq(cfg, task):
     logger.info("Getting train data")
     train_data = task.get_split("train", num_procs=cfg.get('num_proc', 1))
     logger.info("Getting validation data")
@@ -40,30 +37,7 @@ def setup_seq2seq(cfg, task, model):
         for metric, value in get_stats_from_list(target_lens).items():
             logger.info(f"\t\t{metric} = {value:0.2f}")
 
-    collator = DataCollatorForSeq2Seq(
-        tokenizer,
-        model,
-        return_tensors="pt",
-        label_pad_token_id=tokenizer.pad_token_id,
-        pad_to_multiple_of=2
-    )
-
-    def create_dataloaders(args, ds_train, ds_val):
-        train_loader = torch.utils.data.DataLoader(
-            ds_train,
-            collate_fn=collator,
-            shuffle=False,
-            batch_size=args.train_batch_size,
-        )
-        eval_loader = torch.utils.data.DataLoader(
-            ds_val,
-            collate_fn=collator,
-            shuffle=False,
-            batch_size=args.eval_batch_size,
-        )
-        return train_loader, eval_loader
-
-    return train_data, validation_data, create_dataloaders, evaluate
+    return train_data, validation_data, evaluate
 
 
 def setup_lm(cfg, task):
@@ -75,17 +49,23 @@ def setup_lm(cfg, task):
 
     task.preprocessors.append(concat)
 
-    tokenizer = task.tokenizer
+    group_texts = partial(
+        langauge_modeling.group_texts,
+        tokenizer=task.tokenizer,
+        seq_length=cfg.data_args.seq_length
+    )
+
+    def make_split(split_name):
+        split_data = task.preprocess(split_name, num_procs=cfg.get('num_proc', 1))
+        split_data = Dataset.from_dict(group_texts(split_data['input_sequence']))
+        return split_data
 
     logger.info("Getting train data")
-    train_data = task.preprocess("train", num_procs=cfg.get('num_proc', 1))
-    logger.info("Getting validation data")
-    validation_data = task.preprocess(
-        "validation", num_procs=cfg.get('num_proc', 1)
-    )
-    dataloader_fn = partial(langauge_modeling.create_dataloaders, tokenizer=tokenizer, cfg=cfg)
+    train_data = make_split('train')
 
-    return train_data, validation_data, dataloader_fn, evaluate
+    logger.info("Getting validation data")
+    validation_data = make_split('validation')
+    return train_data, validation_data, evaluate
 
 
 # TODO(gabeorlanski): Add in parallel support
@@ -117,14 +97,13 @@ def train_model(cfg: DictConfig):
 
     if cfg.objective == 'seq2seq':
         logger.info(f"Setting Up Seq2Seq Objective")
-        train_data, validation_data, dataloader_fn, evaluate_fn = setup_seq2seq(
+        train_data, validation_data, evaluate_fn = setup_seq2seq(
             cfg,
-            task,
-            model
+            task
         )
     elif cfg.objective == "lm":
         logger.info("Setting up the LM objective")
-        train_data, validation_data, dataloader_fn, evaluate_fn = setup_lm(
+        train_data, validation_data, evaluate_fn = setup_lm(
             cfg,
             task
         )
@@ -135,11 +114,9 @@ def train_model(cfg: DictConfig):
     logger.debug("Initializing trainer")
     trainer = Trainer(
         cfg,
-        device,
         model,
         tokenizer,
-        evaluate_fn=evaluate_fn,
-        data_loading_fn=dataloader_fn
+        evaluate_fn=evaluate_fn
     )
     trainer(train_data, validation_data)
     return trainer.path_to_best_model

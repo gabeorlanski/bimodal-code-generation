@@ -78,7 +78,7 @@ class TestTrainer:
             lambda *args, **kwargs: {'test': 1.0},
             path_to_use=tmpdir
         )
-        trainer.args = trainer_args
+        trainer.training_args = trainer_args
 
         def mock_train_epoch(data_loader, epoch):
             trainer.global_step += 20
@@ -96,7 +96,7 @@ class TestTrainer:
         assert_mocked_correct(trainer.data_loading_fn, [
             {
                 'args'  : (),
-                'kwargs': {'args': trainer.args, 'train_dataset': ["A"], "eval_dataset": ["B"]}
+                'kwargs': {'args': trainer.training_args, 'train_dataset': ["A"], "eval_dataset": ["B"]}
             }
         ])
         assert_mocked_correct(trainer._train_epoch, [
@@ -120,8 +120,8 @@ class TestTrainer:
             lambda *args, **kwargs: {'test': 1.0},
             path_to_use=tmpdir
         )
-        trainer.args.checkpoints_to_save = 2
-        trainer.args.more_is_better = higher_better
+        trainer.training_args.checkpoints_to_save = 2
+        trainer.training_args.more_is_better = higher_better
         trainer.global_step = 1
         trainer.save_model({"eval_loss": 1.0})
         assert model_path.joinpath('model_1.bin').exists()
