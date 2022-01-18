@@ -21,12 +21,14 @@ from src.config import setup_tracking_env_from_cfg
 PROJECT_ROOT = Path.cwd()
 
 
-def run(name, task, override_group_name, force_overwrite_dir, cfg_overrides):
-    group_name = override_group_name or task.upper()
+def run(name, task, force_overwrite_dir, cfg_overrides):
+    group_name = task.upper()
+    for i in cfg_overrides:
+        if 'group=' in i:
+            group_name = i.split('=')[-1]
+            break
     print(f"Starting Train with group={group_name}, "
           f"name={name}, and task={task}")
-    if any(any(k in c for k in ['name', 'group', 'task']) for c in cfg_overrides):
-        raise ValueError("Do NOT specify a task, group, or name in the hydra overrides!")
 
     if not Task.is_name_registered(task):
 
@@ -35,7 +37,7 @@ def run(name, task, override_group_name, force_overwrite_dir, cfg_overrides):
             valid_tasks += f'\t{t}\n'
         raise ValueError(f"Unknown Task '{task}'. Valid tasks are:\n{valid_tasks}")
 
-    new_cwd = Path('outputs', group_name, "train", name)
+    new_cwd = Path('outputs', group_name.lower(), "train", name)
     if new_cwd.exists():
         if not force_overwrite_dir:
             raise ValueError(
@@ -50,7 +52,6 @@ def run(name, task, override_group_name, force_overwrite_dir, cfg_overrides):
         rank=int(os.environ.get('LOCAL_RANK', '-1')),
         world_size=int(os.environ.get("WORLD_SIZE", 1))
     )
-    os.chdir(new_cwd)
 
     logger = logging.getLogger('train')
     logger.info("Starting Train")
@@ -63,6 +64,7 @@ def run(name, task, override_group_name, force_overwrite_dir, cfg_overrides):
     initialize(config_path="conf", job_name="train")
     cfg = compose(config_name="train_config", overrides=cfg_overrides)
 
+    os.chdir(new_cwd)
     with open('config.yaml', 'w') as f:
         f.write(OmegaConf.to_yaml(cfg))
 
@@ -102,9 +104,6 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("name", metavar="<Name of the Run>")
     parser.add_argument("task", metavar="<Task to use>")
-    parser.add_argument("--override-group-name", "-group", default=None,
-                        help="IFF you do not want to use the task name as the"
-                             "group, pass the desired group name to this argument.")
     parser.add_argument('--force-overwrite-dir', '-force',
                         action="store_true",
                         default=False,
@@ -119,7 +118,6 @@ if __name__ == "__main__":
     run(
         argv.name,
         argv.task,
-        argv.override_group_name,
         argv.force_overwrite_dir,
         argv.hydra_overrides
     )

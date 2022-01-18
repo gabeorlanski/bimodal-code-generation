@@ -34,6 +34,9 @@ def run(model_path, split, zero_shot, seq_per_sample, task, hydra_overrides):
         )
     )
 
+    if os.environ.get("LOCAL_RANK", '-1') != '-1' or os.environ.get('WANDB_DISABLED','true') != 'true':
+        os.environ['DISABLE_FAST_TOK'] = 'TRUE'
+
     if task is not None:
         use_train_task = False
     else:
