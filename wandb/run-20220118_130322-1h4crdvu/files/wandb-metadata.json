@@ -1,0 +1,32 @@
+{
+    "os": "Linux-5.11.0-46-generic-x86_64-with-glibc2.17",
+    "python": "3.8.12",
+    "heartbeatAt": "2022-01-18T18:03:24.645975",
+    "startedAt": "2022-01-18T18:03:22.701052",
+    "docker": null,
+    "gpu": "NVIDIA GeForce RTX 3070 Ti",
+    "gpu_count": 1,
+    "cpu_count": 16,
+    "cuda": null,
+    "args": [
+        "outputs/MBPP/train/CodeParrot110M",
+        "validation",
+        "-seqs",
+        "100",
+        "-hydra",
+        "+disable_cache=True",
+        "+generation.num_return_sequences=25"
+    ],
+    "state": "running",
+    "program": "/home/gabe/Coding/springresearch/evaluate.py",
+    "codePath": "evaluate.py",
+    "git": {
+        "remote": "https://github.com/gabeorlanski/springresearch.git",
+        "commit": "603dd8aa0d3e82a4c62226df5d67848dba01d2a8"
+    },
+    "email": "gabeorlanski@gmail.com",
+    "root": "/home/gabe/Coding/springresearch",
+    "host": "gabe-MS-7A11",
+    "username": "gabe",
+    "executable": "/home/gabe/miniconda3/envs/go-research-project/bin/python"
+}

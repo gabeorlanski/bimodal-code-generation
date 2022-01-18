@@ -1,0 +1,118 @@
+wandb_version: 1
+
+_wandb:
+  desc: null
+  value:
+    cli_version: 0.12.9
+    framework: huggingface
+    huggingface_version: 4.12.5
+    is_jupyter_run: false
+    is_kaggle_kernel: false
+    python_version: 3.8.12
+    start_time: 1642529002
+    t:
+      1:
+      - 1
+      - 2
+      - 3
+      - 5
+      - 11
+      - 12
+      2:
+      - 1
+      - 2
+      - 3
+      - 5
+      - 11
+      - 12
+      3:
+      - 2
+      - 13
+      - 14
+      - 16
+      4: 3.8.12
+      5: 0.12.9
+      6: 4.12.5
+      8:
+      - 5
+data_args.seq_length:
+  desc: null
+  value: 512
+data_path:
+  desc: null
+  value: data
+debug:
+  desc: null
+  value: false
+device:
+  desc: null
+  value: 0
+disable_cache:
+  desc: null
+  value: true
+generation.do_sample:
+  desc: null
+  value: true
+generation.max_length:
+  desc: null
+  value: 512
+generation.min_length:
+  desc: null
+  value: 75
+generation.num_return_sequences:
+  desc: null
+  value: 25
+generation.temperature:
+  desc: null
+  value: 0.5
+is_checkpoint:
+  desc: null
+  value: true
+metrics:
+  desc: null
+  value:
+  - exact-match
+  - bleu
+model:
+  desc: null
+  value: lvwerra/codeparrot-small
+model_path:
+  desc: null
+  value: outputs/MBPP/train/CodeParrot110M
+numpy_seed:
+  desc: null
+  value: 2
+objective:
+  desc: null
+  value: lm
+preprocessors:
+  desc: null
+  value:
+  - add-prefix:
+      prefix: 'You are an expert Python programmer, and here is your task: '
+  - add-suffix:
+      key: input_sequence
+      suffix: '#Solution:
+
+        '
+pytorch_seed:
+  desc: null
+  value: 3
+seed:
+  desc: null
+  value: 1
+seq_per_sample:
+  desc: null
+  value: 100
+split:
+  desc: null
+  value: validation
+task.name:
+  desc: null
+  value: mbpp
+task.paths.train:
+  desc: null
+  value: MBPP/train.jsonl
+task.paths.validation:
+  desc: null
+  value: MBPP/validation.jsonl

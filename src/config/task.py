@@ -79,14 +79,21 @@ def load_task_from_cfg(
         tokenizer_kwargs = {}
     logger.info(f"Initializing task registered to name '{cfg['task']['name']}'")
     preprocessors, postprocessors = load_processors_from_cfg(cfg)
-    logger.info(f"Metrics are {cfg.get('metrics', [])}")
-    metrics = [Metric.by_name(metric) for metric in cfg.get('metrics', [])]
+    logger.info(f"Metrics are {list(cfg.get('metrics', []))}")
+    metrics = []
+    for metric in cfg.get('metrics'):
+        if isinstance(metric, dict):
+            metric_name, metric_dict = list(metric.items())
+        else:
+            metric_name = metric
+            metric_dict = {}
+        metrics.append(Metric.from_dict(metric_name, metric_dict))
 
     return Task.get_task(
         name=cfg["task"]["name"],
         tokenizer=AutoTokenizer.from_pretrained(
             cfg['model'],
-            use_fast='LOCAL_RANK' not in os.environ,
+            use_fast=os.environ.get('DISABLE_FAST_TOK', 'false') != 'true',
             **tokenizer_kwargs
         ),
         preprocessors=preprocessors,

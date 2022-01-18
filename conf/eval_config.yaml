@@ -1,29 +1,8 @@
 defaults:
   - _self_
   - task: ???
-  - objective: seq2seq
-  - base_config
 
-model_path: ???
 is_checkpoint: true
 split: ???
-data_path: ???
-project: "adversarial-code"
-
-generate_steps: 1
-
-metrics:
-  - exact-match
-  - bleu
-
-generation:
-  max_length: 512
-  do_sample: true
-  temperature: 0.5
-#  top_k: 50
-  num_return_sequences: 2
-  min_length: 75
-
-hydra:
-  run:
-    dir: outputs/${group}/${hydra.job.name}/${name}.${task.name}
+model_path: ???
+seq_per_sample: ???

@@ -13,7 +13,7 @@ import sys
 if str(Path(__file__).parents[1]) not in sys.path:
     sys.path.insert(0, str(Path(__file__).parents[1]))
 from src.common import PROJECT_ROOT
-from src.common import setup_basic_loggers
+from src.common import setup_global_logging
 from src.common.file_util import validate_files_exist
 
 
@@ -97,7 +97,7 @@ def setup_mbpp_splits(
 
 
 if __name__ == "__main__":
-    setup_basic_loggers("setup_mbpp", str(PROJECT_ROOT))
+    setup_global_logging("setup_mbpp", str(PROJECT_ROOT))
 
     parser = argparse.ArgumentParser()
     parser.add_argument(

@@ -52,7 +52,7 @@ class MBPP(Task):
 
         self._tokenizer = tokenizer
         self.dataset = None
-        self.raw = None
+        self.excluded_columns_data = {}
         self._dataset_mapping = self.load_dataset_mapping()
         self.add_def_to_prompt = add_def_to_prompt
         self.find_def = re.compile(r'\ndef ')
@@ -62,8 +62,10 @@ class MBPP(Task):
         for split, path in self.SPLIT_MAPPING.items():
             split_dict = defaultdict(list)
             for d in map(json.loads, Path(path).read_text('utf-8').splitlines(False)):
+                self.excluded_columns_data[d['task_id']] = {}
                 for k, v in d.items():
                     if k in self.EXCLUDE_KEYS:
+                        self.excluded_columns_data[d['task_id']][k] = v
                         continue
                     split_dict[k].append(v)
             out[split] = Dataset.from_dict(split_dict, split=split)
@@ -75,7 +77,7 @@ class MBPP(Task):
 
     def map_to_standard_entries(self, sample: Dict) -> Dict:
         sample["input_sequence"] = (
-                sample["text"] + "\r\n" + "\r\n".join(sample["test_list"])+'\r\n'
+                sample["text"] + "\r\n" + "\r\n".join(sample["test_list"]) + '\r\n'
         )
 
         target_code = sample['code']
@@ -88,3 +90,15 @@ class MBPP(Task):
 
         sample['target'] = target_code
         return sample
+
+    def serialize_task_features(
+            self,
+            idx: int,
+            predictions: List,
+            processed_sample: Dict
+    ) -> Dict:
+        return {
+            'tests'  : processed_sample['test_list'],
+            'task_id': processed_sample['task_id'],
+            **self.excluded_columns_data[processed_sample['task_id']]
+        }

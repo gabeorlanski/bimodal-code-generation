@@ -1,16 +1,19 @@
-from typing import List, Dict, Iterable, Union
 import os
-from os import PathLike
 import logging
+from typing import Union
+
 from .log_handlers import TQDMLoggingHandler, CompactFileHandler
-from logging import Filter
-import sys
 
-__all__ = ["setup_basic_loggers"]
+__all__ = ["setup_global_logging"]
 
 
-def setup_basic_loggers(
-    name: str, log_path: str = None, verbose: bool = False, debug: bool = False
+def setup_global_logging(
+        name: str,
+        log_path: Union[str, os.PathLike] = None,
+        verbose: bool = False,
+        debug: bool = False,
+        rank: int = 0,
+        world_size: int = 1
 ) -> None:
     """
     Setup the logger
@@ -19,13 +22,14 @@ def setup_basic_loggers(
         log_path: Path to directory where the logs will be saved
         verbose: Enable Verbose
         debug: Enable Debug
+        rank (int): The rank of this process
+        world_size (int): The size of the world.
 
-    Returns:
-        The loggers
+    Returns: None
     """
     # Load in the default paths for log_path
     log_path = (
-        os.path.join(log_path, "logs")
+        str(log_path)
         if log_path is not None
         else os.path.join(os.getcwd(), "logs")
     )
@@ -33,19 +37,32 @@ def setup_basic_loggers(
     # Validate the path and clear the existing log file
     if not os.path.isdir(log_path):
         os.mkdir(log_path)
-    normal_file = os.path.join(log_path, f"{name}.log")
-    error_file = os.path.join(log_path, f"{name}.issues.log")
+
+    if world_size <= 1:
+        rank_str = ''
+        normal_file = os.path.join(log_path, f"{name}.log")
+        error_file = os.path.join(log_path, f"{name}.issues.log")
+    else:
+        rank_str = f" RANK {rank}:"
+        normal_file = os.path.join(log_path, f"{name}_worker_{rank}.log")
+        error_file = os.path.join(log_path, f"{name}_worker_{rank}.issues.log")
+
+    # Clear the log files
     with open(normal_file, "w", encoding="utf-8") as f:
+        f.write("")
+    with open(error_file, "w", encoding="utf-8") as f:
         f.write("")
 
     # The different message formats to use
-    msg_format = logging.Formatter(fmt="[%(levelname)8s] %(message)s")
+    msg_format = logging.Formatter(
+        fmt=f"[%(levelname)8s]{rank_str} %(message)s"
+    )
     verbose_format = logging.Formatter(
-        fmt="[%(asctime)s - %(levelname)8s - %(name)12s] %(message)s",
+        fmt=f"[%(asctime)s - %(levelname)8s - %(name)12s]{rank_str} %(message)s",
         datefmt="%Y-%m-%d %H:%M:%S",
     )
     error_format = logging.Formatter(
-        fmt="[%(asctime)s - %(levelname)8s - %(name)12s - %(funcName)12s] %(message)s",
+        fmt=f"[%(asctime)s - %(levelname)8s - %(name)12s - %(funcName)12s]{rank_str} %(message)s",
         datefmt="%Y-%m-%d %H:%M:%S",
     )
 
@@ -62,14 +79,10 @@ def setup_basic_loggers(
     # Set the environment variable to the names of the logger for use in other parts of the
     # program
     # Create and register the two loggers
-    logger = logging.getLogger()
-    logger.addHandler(console_handler)
-    logger.addHandler(normal_file_handler)
-
-    logger.addHandler(error_file_handler)
-    logger.setLevel(logging.NOTSET)
-
     root_logger = logging.getLogger()
+    root_logger.addHandler(normal_file_handler)
+    root_logger.addHandler(error_file_handler)
+
+    if rank <= 0:
+        root_logger.addHandler(console_handler)
     root_logger.setLevel(logging.NOTSET)
-
-

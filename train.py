@@ -1,34 +1,71 @@
+import argparse
 import logging
 import sys
 
-import hydra
+from hydra import compose, initialize
 import torch
-from omegaconf import DictConfig, open_dict
+from omegaconf import DictConfig, open_dict, OmegaConf
 from pathlib import Path
 import numpy as np
 import os
 import random
 import shutil
 
-import torch.distributed as dist
+from tio import Task
+
+from src.common import setup_global_logging
 from src.training import train_model
 from src.config import setup_tracking_env_from_cfg
-
-logger = logging.getLogger(__name__)
 
 # Hydra Messes with the CWD, so we need to save it at the beginning.
 PROJECT_ROOT = Path.cwd()
 
 
-@hydra.main(config_path="conf", config_name="train_config")
-def run(cfg: DictConfig):
-    # For some reason it does not clear the log files. So it needs to be done
-    # manually.
-    for f in Path.cwd().glob("*.log"):
-        with f.open("w"):
-            pass
+def run(name, task, override_group_name, force_overwrite_dir, cfg_overrides):
+    group_name = override_group_name or task.upper()
+    print(f"Starting Train with group={group_name}, "
+          f"name={name}, and task={task}")
+    if any(any(k in c for k in ['name', 'group', 'task']) for c in cfg_overrides):
+        raise ValueError("Do NOT specify a task, group, or name in the hydra overrides!")
 
+    if not Task.is_name_registered(task):
+
+        valid_tasks = ''
+        for t in Task.list_available():
+            valid_tasks += f'\t{t}\n'
+        raise ValueError(f"Unknown Task '{task}'. Valid tasks are:\n{valid_tasks}")
+
+    new_cwd = Path('outputs', group_name, "train", name)
+    if new_cwd.exists():
+        if not force_overwrite_dir:
+            raise ValueError(
+                f"Cannot create directory. Dir '{new_cwd.resolve().absolute()}' already exists")
+
+        print(f"Overriding '{str(new_cwd.resolve().absolute())}'")
+        shutil.rmtree(new_cwd)
+    new_cwd.mkdir(parents=True)
+    setup_global_logging(
+        'train',
+        new_cwd.joinpath('logs'),
+        rank=int(os.environ.get('LOCAL_RANK', '-1')),
+        world_size=int(os.environ.get("WORLD_SIZE", 1))
+    )
+    os.chdir(new_cwd)
+
+    logger = logging.getLogger('train')
     logger.info("Starting Train")
+    logger.info("Loading the hydra config 'train_config.yaml'")
+
+    # We need to add the name and task (task uppercase is also the group) to the
+    # hydra configs.
+    cfg_overrides = [f"name={name}", f"task={task}", f"group={group_name}"] + cfg_overrides
+
+    initialize(config_path="conf", job_name="train")
+    cfg = compose(config_name="train_config", overrides=cfg_overrides)
+
+    with open('config.yaml', 'w') as f:
+        f.write(OmegaConf.to_yaml(cfg))
+
     os.environ["CUBLAS_WORKSPACE_CONFIG"] = ":4096:8"
     torch.use_deterministic_algorithms(True)
 
@@ -43,8 +80,9 @@ def run(cfg: DictConfig):
     logger.info(f"Seed={seed}")
     logger.info(f"NumPy Seed={numpy_seed}")
     logger.info(f"Torch Seed={torch_seed}")
-    # if "LOCAL_RANK" in os.environ:
-    #     dist.init_process_group(backend="nccl")
+
+    if os.environ.get("LOCAL_RANK", '-1') != '-1' or os.environ['WANDB_DISABLED'] != 'true':
+        os.environ['DISABLE_FAST_TOK'] = 'TRUE'
 
     with open_dict(cfg):
         cfg.training.local_rank = int(os.environ.get('LOCAL_RANK', '-1'))
@@ -61,4 +99,27 @@ def run(cfg: DictConfig):
 
 
 if __name__ == "__main__":
-    run()
+    parser = argparse.ArgumentParser()
+    parser.add_argument("name", metavar="<Name of the Run>")
+    parser.add_argument("task", metavar="<Task to use>")
+    parser.add_argument("--override-group-name", "-group", default=None,
+                        help="IFF you do not want to use the task name as the"
+                             "group, pass the desired group name to this argument.")
+    parser.add_argument('--force-overwrite-dir', '-force',
+                        action="store_true",
+                        default=False,
+                        help="Force overwriting the directory if it exists.")
+    # This lets us have virtually the same exact setup as the hydra decorator
+    # without their annoying working directory and logging.
+    parser.add_argument('--hydra-overrides', '-hydra', nargs=argparse.REMAINDER,
+                        help='Everything after this argument is passed to the '
+                             'hydra config creator as an override command.')
+
+    argv = parser.parse_args()
+    run(
+        argv.name,
+        argv.task,
+        argv.override_group_name,
+        argv.force_overwrite_dir,
+        argv.hydra_overrides
+    )

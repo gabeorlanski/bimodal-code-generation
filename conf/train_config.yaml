@@ -3,7 +3,7 @@ defaults:
   - task: ???
   - _self_
   - objective: seq2seq
-  - override hydra/job_logging: custom
+#  - override hydra/job_logging: custom
 
 # Required Arguments
 model: ???
@@ -18,6 +18,14 @@ device: cpu
 seed: 1
 numpy_seed: 2
 pytorch_seed: 3
+
+generation:
+  max_length: 512
+  do_sample: true
+  temperature: 0.5
+#  top_k: 50
+  num_return_sequences: 2
+  min_length: 75
 
 training:
   batch_size: 1
@@ -41,9 +49,9 @@ training:
   xpu_backend: "ccl"
   fp16: False
 
-hydra:
-  run:
-    dir: outputs/${group}/${hydra.job.name}/${name}.${task.name}
+#hydra:
+#  run:
+#    dir: outputs/${group}/${hydra.job.name}/${name}
 
 metrics:
   - exact-match

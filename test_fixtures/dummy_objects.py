@@ -1,7 +1,7 @@
 import pytest
 from datasets import Dataset
 from pathlib import Path
-from typing import Dict
+from typing import Dict, List
 
 from tio import Task
 
@@ -12,6 +12,9 @@ __all__ = [
 
 @Task.register('dummy')
 class DummyTask(Task):
+
+    def serialize_task_features(self, idx: int, predictions: List, processed_sample: Dict) -> Dict:
+        return {"test": idx}
 
     @staticmethod
     def map_to_standard_entries(sample: Dict) -> Dict:
