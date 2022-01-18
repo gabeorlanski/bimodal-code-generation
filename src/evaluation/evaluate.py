@@ -150,6 +150,9 @@ def evaluate_model(cfg: DictConfig, model: PreTrainedModel):
         if task.tokenizer.pad_token is None:
             task.tokenizer.pad_token = task.tokenizer.eos_token
 
+    device=get_device_from_cfg(cfg)
+    logger.info(f"Using device {device}")
+
     generation_results = generate_predictions(
         model,
         tokenized=tokenized,
@@ -158,7 +161,7 @@ def evaluate_model(cfg: DictConfig, model: PreTrainedModel):
             "batch_size",
             cfg['training'].get('per_device_eval_batch_size', cfg['training'].get('batch_size', 1))
         ),
-        device=get_device_from_cfg(cfg),
+        device=device,
         generation_kwargs=cfg.get('generation', {}),
         seq_per_sample=cfg.get('seq_per_sample')
     )
