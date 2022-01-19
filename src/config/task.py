@@ -38,7 +38,7 @@ def load_processors_from_cfg(cfg: DictConfig) -> Tuple[List[Callable], List[Call
         ]
 
     preprocessors = _create_processors(Preprocessor, cfg.get('preprocessors', []))
-    postprocessors = _create_processors(Preprocessor, cfg.get('postprocessors', []))
+    postprocessors = _create_processors(Postprocessor, cfg.get('postprocessors', []))
 
     model_type_preprocessors = cfg.get('model_type', {}).get('preprocessors', [])
     model_type_postprocessors = cfg.get('model_type', {}).get('postprocessors', [])

@@ -129,6 +129,7 @@ def generate_predictions(
     }
 
 
+
 def evaluate_model(cfg: DictConfig, model: PreTrainedModel):
     """
     Evaluate a model with a reader on a file
@@ -150,7 +151,7 @@ def evaluate_model(cfg: DictConfig, model: PreTrainedModel):
         if task.tokenizer.pad_token is None:
             task.tokenizer.pad_token = task.tokenizer.eos_token
 
-    device=get_device_from_cfg(cfg)
+    device = get_device_from_cfg(cfg)
     logger.info(f"Using device {device}")
 
     generation_results = generate_predictions(
@@ -167,17 +168,12 @@ def evaluate_model(cfg: DictConfig, model: PreTrainedModel):
     )
 
     # Unpack the returned dict from generate predictions
-    indices, predictions = [], []
     raw_data = task.preprocessed_splits[cfg['split']]
     labels = generation_results['labels']
-    for idx, preds in zip(generation_results['indices'], generation_results['predictions']):
-        input_sequence = raw_data[idx]["input_sequence"]
-        indices.append(idx)
-        if cfg.objective == "lm":
-            # Remove the prompt from the predictions
-            predictions.append(list(map(lambda p: p[len(input_sequence):], preds)))
-        else:
-            predictions.append(predictions)
+
+    predictions = generation_results['predictions']
+    indices = generation_results['indices']
+
     metrics = task.evaluate(predictions, labels)
     # Get the full metrics suite for the predictions and the labels
     logger.info("Results:")

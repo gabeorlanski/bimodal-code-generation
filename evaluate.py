@@ -34,7 +34,8 @@ def run(model_path, split, zero_shot, seq_per_sample, task, hydra_overrides):
         )
     )
 
-    if os.environ.get("LOCAL_RANK", '-1') != '-1' or os.environ.get('WANDB_DISABLED','true') != 'true':
+    if os.environ.get("LOCAL_RANK", '-1') != '-1' or os.environ.get('WANDB_DISABLED',
+                                                                    'true') != 'true':
         os.environ['DISABLE_FAST_TOK'] = 'TRUE'
 
     if task is not None:
@@ -58,7 +59,14 @@ def run(model_path, split, zero_shot, seq_per_sample, task, hydra_overrides):
     ]
     initialize(config_path="conf", job_name="evaluate")
     cfg = compose(config_name="eval_config", overrides=cfg_overrides)
-    cfg = merge_configs(cfg, train_cfg)
+    cfg = merge_configs(cfg, train_cfg, exclude_keys=['preprocessors', 'postprocessors'])
+
+    with open_dict(cfg):
+        for k in ['preprocessors', 'postprocessors']:
+            train_processors = OmegaConf.to_object(train_cfg[k]) if k in train_cfg else []
+            cfg_processors = OmegaConf.to_object(cfg[k]) if k in cfg else []
+            cfg[k] = train_processors + cfg_processors
+
     setup_tracking_env_from_cfg(cfg)
 
     # merge_configs gives priority to the first argument, so if we are not
