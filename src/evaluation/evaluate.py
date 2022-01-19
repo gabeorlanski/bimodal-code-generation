@@ -40,6 +40,7 @@ def generate_predictions(
         lambda ex: {'length': len(ex['input_ids']), **ex}
     )
     tokenized = tokenized.sort('length', reverse=True)
+    tokenized = tokenized.filter(lambda ex: ex['length'] < 800)
     tokenized = tokenized.remove_columns('length')
     data_loader = torch.utils.data.DataLoader(
         tokenized,
@@ -129,7 +130,6 @@ def generate_predictions(
     }
 
 
-
 def evaluate_model(cfg: DictConfig, model: PreTrainedModel):
     """
     Evaluate a model with a reader on a file
@@ -182,7 +182,7 @@ def evaluate_model(cfg: DictConfig, model: PreTrainedModel):
 
     out_path = cfg.get('out_path', cfg['model_path'])
     out_path = Path(out_path)
-    pred_path = out_path.joinpath('predictions.jsonl')
+    pred_path = out_path.joinpath(f'{cfg.split}_predictions.jsonl')
     logger.info(f"Saving predictions to {pred_path}")
     with pred_path.open("w", encoding="utf-8") as f:
         serialize_generator = task.serialize_predictions(cfg.split, indices, predictions)
@@ -204,7 +204,7 @@ def evaluate_model(cfg: DictConfig, model: PreTrainedModel):
             id=run_id
         )
         run.log({f"eval/{k}": v for k, v in metrics.items()}, step=1)
-        preds_artifact = wandb.Artifact(f"{cfg.group}.{cfg.name}.{cfg.task.name}",
+        preds_artifact = wandb.Artifact(f"{cfg.group}.{cfg.name}.{cfg.task.name}.{cfg.split}",
                                         type='predictions')
         preds_artifact.add_file(str(pred_path.resolve().absolute()))
         run.log_artifact(preds_artifact)

@@ -92,6 +92,7 @@ def get_samples(file_path) -> Tuple[List[Sample], Dict, Dict, Dict]:
 
 
 def evaluate_code(
+        split_name: str,
         predictions_dir: Union[str, Path, os.PathLike],
         num_workers: int,
         timeout: float = 3.0,
@@ -101,7 +102,7 @@ def evaluate_code(
     out_dir = Path(out_dir) if out_dir else predictions_dir
     logger.info(
         f"Starting Code Evaluation with predictions in {predictions_dir.resolve().absolute()}")
-    path_to_predictions = predictions_dir.joinpath('predictions.jsonl')
+    path_to_predictions = predictions_dir.joinpath(f'{split_name}_predictions.jsonl')
 
     if not path_to_predictions.exists():
         logger.error(f"{predictions_dir.resolve().absolute()} is missing 'predictions.jsonl")
@@ -124,25 +125,29 @@ def evaluate_code(
         }
         global_error_tracker['SyntaxError'] += invalid_syntax_by_idx[task_id]
 
-    with ThreadPoolExecutor(max_workers=num_workers) as executor:
-        futures = []
-        completion_id = Counter()
-        n_samples = 0
-        results = defaultdict(list)
+    to_run = sum(map(lambda s: len(s.predictions), samples))
+    logger.info(f"{to_run} predictions to check")
+    with tqdm(total=to_run, desc='Running Code') as pbar:
+        with ThreadPoolExecutor(max_workers=num_workers) as executor:
+            futures = []
+            completion_id = Counter()
+            n_samples = 0
+            results = defaultdict(list)
 
-        for sample in samples:
-            task_id = sample.idx
-            for candidate in sample.predictions:
-                test_program = candidate + "\n" + '\n'.join(sample.tests)
-                args = (test_program, timeout, task_id, completion_id[task_id])
-                future = executor.submit(check_correctness, *args)
-                futures.append(future)
-                completion_id[task_id] += 1
-                n_samples += 1
+            for sample in samples:
+                task_id = sample.idx
+                for candidate in sample.predictions:
+                    test_program = candidate + "\n" + '\n'.join(sample.tests)
+                    args = (test_program, timeout, task_id, completion_id[task_id])
+                    future = executor.submit(check_correctness, *args)
+                    futures.append(future)
+                    completion_id[task_id] += 1
+                    n_samples += 1
 
-        for future in as_completed(futures):
-            result = future.result()
-            results[result["task_id"]].append((result["completion_id"], result))
+            for future in as_completed(futures):
+                result = future.result()
+                results[result["task_id"]].append((result["completion_id"], result))
+                pbar.update(1)
 
     correct = runtime_errors = 0
     for task_id, task_results in results.items():
@@ -188,8 +193,7 @@ def evaluate_code(
     total = overview_metrics['preds_total']
     correct = int(np.sum(correct))
     overview_metrics['runtime_error_pct'] = runtime_errors / total * 100
-    overview_metrics['Correct_pct'] = correct / total * 100
-    overview_metrics['Correct'] = correct
+    global_error_tracker['Correct'] = correct
 
     # Calculate the pass @ k metrics
     all_correct, all_total = [], []
@@ -222,7 +226,7 @@ def evaluate_code(
     with out_dir.joinpath('execution_metrics.json').open('w', encoding='utf-8') as f:
         json.dump(result_metrics, f, indent=True)
 
-    return result_metrics
+    return result_metrics, list(global_error_tracker), out_dir.joinpath('execution_metrics.json')
 
 
 def estimate_pass_at_k(num_samples, num_correct, k):

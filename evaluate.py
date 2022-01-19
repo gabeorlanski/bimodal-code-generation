@@ -87,7 +87,7 @@ def run(model_path, split, zero_shot, seq_per_sample, task, hydra_overrides):
     with open_dict(cfg):
         cfg.run_id = run_id
 
-    with model_path.joinpath('eval_config.yaml').open('w') as f:
+    with model_path.joinpath(f'eval_{cfg.split}_config.yaml').open('w') as f:
         f.write(OmegaConf.to_yaml(cfg))
     logger.info("Finished Evaluation")
 

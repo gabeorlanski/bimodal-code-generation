@@ -14,13 +14,14 @@ def test_evaluate_code(tmpdir, code_preds_dir):
     tmpdir_path = Path(tmpdir)
 
     results = evaluate_code(
+        'split',
         code_preds_dir,
         2,
         3.0,
         tmpdir_path
     )
 
-    results_path = tmpdir_path.joinpath('execution_metrics.json')
+    results_path, *_ = tmpdir_path.joinpath('execution_metrics.json')
     assert results_path.exists()
     assert json.loads(results_path.read_text('utf-8')) == results
 

@@ -1,2 +1,6 @@
-models/
-.git
+**/models/
+**/.git
+*.bin
+**/*.pyc
+.pytest_cache/
+wandb

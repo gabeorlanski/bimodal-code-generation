@@ -44,7 +44,7 @@ def test_evaluate_model(tmpdir, simple_eval_config, seq_per_sample, num_return_s
     assert model.generate.call_count == (seq_per_sample // num_return_seq) * len(expected_tok)
 
     tmpdir_path = Path(tmpdir)
-    pred_path = tmpdir_path.joinpath('predictions.jsonl')
+    pred_path = tmpdir_path.joinpath(f'{cfg.split}_predictions.jsonl')
     assert pred_path.exists()
 
     actual_preds = list(map(json.loads, pred_path.read_text('utf-8').splitlines(False)))
