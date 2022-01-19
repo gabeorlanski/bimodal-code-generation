@@ -1,0 +1,63 @@
+is_checkpoint: true
+split: validation
+model_path: outputs/testing/train/testing
+seq_per_sample: 10
+task:
+  name: mbpp
+  paths:
+    train: MBPP/train.jsonl
+    validation: MBPP/validation.jsonl
+generation:
+  num_return_sequences: 5
+  max_length: 512
+  do_sample: true
+  temperature: 0.5
+  min_length: 75
+device: 0
+debug: false
+project: adversarial-code
+name: testing
+group: testing
+tracking: false
+model: lvwerra/codeparrot-small
+data_path: data
+seed: 1
+numpy_seed: 2
+pytorch_seed: 3
+training:
+  batch_size: 1
+  output_dir: models
+  learning_rate: 1.0e-05
+  logging_steps: 50
+  warmup_steps: 0.0
+  warmup_ratio: 0.0
+  weight_decay: 0.0
+  gradient_accumulation_steps: 1
+  eval_accumulation_steps: 1
+  metric_for_best_model: eval_loss
+  load_best_model_at_end: true
+  save_total_limit: 3
+  num_train_epochs: 10
+  greater_is_better: false
+  evaluation_strategy: epoch
+  save_strategy: epoch
+  group_by_length: true
+  logging_first_step: true
+  xpu_backend: ccl
+  fp16: false
+metrics:
+- exact-match
+- bleu
+preprocessors:
+- add-prefix:
+    prefix: 'You are an expert Python programmer, and here is your task: '
+- add-suffix:
+    suffix: '#Solution:
+
+      '
+    key: input_sequence
+objective: lm
+data_args:
+  seq_length: 512
+disable_cache: true
+run_id: 34ii2fge

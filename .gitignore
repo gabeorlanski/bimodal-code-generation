@@ -130,3 +130,5 @@ data/APPS/
 data/MBPP/
 
 outputs/
+
+test_fixtures/code_predictions/execution_metrics.json

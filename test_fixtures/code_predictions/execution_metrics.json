@@ -1,0 +1,13 @@
+{
+ "overview": {
+  "total_preds": 8,
+  "all_invalid": 0,
+  "tasks": 2,
+  "invalid_total": 1,
+  "invalid_mean": 0.5,
+  "valid_total": 7,
+  "valid_mean": 3.5,
+  "tests_mean": 3.0,
+  "sample_valid_pct": 87.5
+ }
+}

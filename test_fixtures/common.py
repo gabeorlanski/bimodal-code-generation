@@ -25,6 +25,12 @@ def simple_eval_config():
         yaml.Loader
     )
 
-@pytest.fixture
+
+@pytest.fixture()
 def tokenizer():
     yield AutoTokenizer.from_pretrained("patrickvonplaten/t5-tiny-random")
+
+
+@pytest.fixture()
+def code_preds_dir():
+    yield FIXTURES_ROOT.joinpath('code_predictions')

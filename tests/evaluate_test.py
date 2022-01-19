@@ -1,5 +1,5 @@
 """
-Tests for the training data.
+Tests for the eval
 """
 import json
 from pathlib import Path
@@ -9,7 +9,7 @@ import pytest
 import torch
 from omegaconf import OmegaConf, open_dict
 from src.config import load_task_from_cfg, merge_configs
-from src.evaluation.evaluate import evaluate_model, get_preds_from_result
+from src.evaluation.evaluate import evaluate_model
 from transformers import AutoModelForCausalLM
 
 
