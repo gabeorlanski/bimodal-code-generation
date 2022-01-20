@@ -40,7 +40,7 @@ def generate_predictions(
         label_pad_token_id=task.tokenizer.pad_token_id,
     )
     tokenized = tokenized.map(
-        lambda ex: {'length': len(ex['input_ids']), **ex}
+        lambda ex: {'length': sum(ex['attention_mask']), **ex}
     )
     tokenized = tokenized.sort('length', reverse=True)
     tokenized = tokenized.filter(lambda ex: ex['length'] < 800)
@@ -81,18 +81,15 @@ def generate_predictions(
         for batch in data_loader:
 
             generated_results = [None for _ in range(generate_steps_per_sample)]
+            local_inputs = batch["input_ids"].to(device)
+            local_attn = batch['attention_mask'].to(device)
             for i in range(generate_steps_per_sample):
                 generated_from_batch = model.generate(
-                    input_ids=batch["input_ids"].to(device),
-                    attention_mask=batch['attention_mask'].to(device),
+                    input_ids=local_inputs,
+                    attention_mask=local_attn,
                     **generation_kwargs
                 )
                 generated_results[i] = generated_from_batch.tolist()
-                # for i in range(b):
-                #     start = i * num_return_sequences
-                #     end = (i + 1) * num_return_sequences
-                #     pred_tensors[i].extend(generated[start:end])
-                #
                 progress_bar.update()
 
             b = batch['input_ids'].size()[0]
