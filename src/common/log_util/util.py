@@ -30,9 +30,9 @@ def setup_global_logging(
     """
     # Load in the default paths for log_path
     log_path = (
-        str(log_path)
+        Path(log_path)
         if log_path is not None
-        else os.path.join(os.getcwd(), "logs")
+        else Path("logs")
     )
 
     # Validate the path and clear the existing log file
@@ -41,12 +41,12 @@ def setup_global_logging(
 
     if world_size <= 1:
         rank_str = ''
-        normal_file = os.path.join(log_path, f"{name}.log")
-        error_file = os.path.join(log_path, f"{name}.issues.log")
+        normal_file = log_path.joinpath(f"{name}.log")
+        error_file = log_path.joinpath("{name}.issues.log")
     else:
         rank_str = f" RANK {rank}:"
-        normal_file = os.path.join(log_path, f"{name}_worker_{rank}.log")
-        error_file = os.path.join(log_path, f"{name}_worker_{rank}.issues.log")
+        normal_file = log_path.joinpath(f"{name}_worker_{rank}.log")
+        error_file = log_path.joinpath(f"{name}_worker_{rank}.issues.log")
 
     # Clear the log files
     with open(normal_file, "w", encoding="utf-8") as f:
@@ -68,8 +68,10 @@ def setup_global_logging(
     )
 
     # Create the file handler
-    normal_file_handler = CompactFileHandler(normal_file, logging.DEBUG, verbose_format)
-    error_file_handler = CompactFileHandler(error_file, logging.WARNING, error_format)
+    normal_file_handler = CompactFileHandler(str(normal_file.resolve().absolute()), logging.DEBUG,
+                                             verbose_format)
+    error_file_handler = CompactFileHandler(str(error_file.resolve().absolute()), logging.WARNING,
+                                            error_format)
 
     # Setup the console handlers for normal and errors
     console_handler = TQDMLoggingHandler(
