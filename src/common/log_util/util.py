@@ -1,5 +1,6 @@
 import os
 import logging
+from pathlib import Path
 from typing import Union
 
 from .log_handlers import TQDMLoggingHandler, CompactFileHandler
@@ -35,8 +36,8 @@ def setup_global_logging(
     )
 
     # Validate the path and clear the existing log file
-    if not os.path.isdir(log_path):
-        os.mkdir(log_path)
+    if not Path(log_path).exists():
+        Path(log_path).mkdir(parents=True)
 
     if world_size <= 1:
         rank_str = ''
