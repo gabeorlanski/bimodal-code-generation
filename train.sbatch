@@ -1,7 +1,6 @@
 #!/bin/bash
 #SBATCH --job-name=train-adv-code
 #SBATCH --output=./logs/train.out
-#SBATCH --export=ALL
 #SBATCH --time=01:00:00
 #SBATCH --gres=gpu:4
 #SBATCH --mem=64G
@@ -12,5 +11,5 @@ singularity exec --nv --overlay $SCRATCH/overlay-50G-10M.ext3:ro /scratch/work/p
 source /ext3/env.sh
 conda activate adversarial-code
 
-torchrun --nproc_per_node=4 train.py $name $task --config greene_config -force -hydra model='$model' objective='$objective' +disable_cache=True
+torchrun --nproc_per_node=4 train.py $1 $2 --config greene_config -force -hydra model='$3' objective='$4' +disable_cache=True
 "
