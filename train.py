@@ -21,7 +21,7 @@ PROJECT_ROOT = Path.cwd()
 
 
 def run(name, task, config_name, force_overwrite_dir, cfg_overrides):
-    print(Path())
+    print(Path().resolve().absolute())
     if Path('wandb_secret.txt').exists():
         os.environ["WANDB_API_KEY"] = open('wandb_secret.txt').read().strip()
     group_name = task.upper()
@@ -39,15 +39,15 @@ def run(name, task, config_name, force_overwrite_dir, cfg_overrides):
             valid_tasks += f'\t{t}\n'
         raise ValueError(f"Unknown Task '{task}'. Valid tasks are:\n{valid_tasks}")
     new_cwd = Path('outputs', group_name.lower(), "train", name)
-    if int(os.environ.get('LOCAL_RANK','-1')) <= 0:
-        if new_cwd.exists():
-            if not force_overwrite_dir:
-                raise ValueError(
-                    f"Cannot create directory. Dir '{new_cwd.resolve().absolute()}' already exists")
-
-            print(f"Overriding '{str(new_cwd.resolve().absolute())}'")
-            shutil.rmtree(new_cwd)
-        new_cwd.mkdir(parents=True)
+    # if int(os.environ.get('LOCAL_RANK','-1')) <= 0:
+    #     if new_cwd.exists():
+    #         if not force_overwrite_dir:
+    #             raise ValueError(
+    #                 f"Cannot create directory. Dir '{new_cwd.resolve().absolute()}' already exists")
+    #
+    #         print(f"Overriding '{str(new_cwd.resolve().absolute())}'")
+    #         shutil.rmtree(new_cwd)
+    #     new_cwd.mkdir(parents=True)
     setup_global_logging(
         'train',
         new_cwd.joinpath('logs'),
