@@ -85,7 +85,7 @@ def generate_predictions(
             for _ in range(generate_steps_per_sample):
                 generated_from_batch = model.generate(
                     input_ids=batch["input_ids"].to(device),
-                    labels=batch['labels'].to(device),
+                    attention_mask=batch['attention_mask'].to(device),
                     **generation_kwargs
                 )
 
@@ -161,7 +161,6 @@ def evaluate_model(cfg: DictConfig, model: PreTrainedModel):
     device = get_device_from_cfg(cfg)
     logger.info(f"Using device {device}")
 
-    logger.info("World size is a single GPU")
     generation_results = generate_predictions(
         model.to(device),
         tokenized=tokenized,
