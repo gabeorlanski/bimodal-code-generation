@@ -10,6 +10,7 @@ singularity exec --nv --overlay $SCRATCH/overlay-50G-10M.ext3:ro /scratch/work/p
 
 source /ext3/env.sh
 conda activate adversarial-code
+echo $(pwd)
 
 torchrun --nproc_per_node=4 train.py $1 $2 --config greene_config -force -hydra model='$3' objective='$4' +disable_cache=True
 "
