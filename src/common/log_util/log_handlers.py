@@ -30,7 +30,7 @@ class TQDMLoggingHandler(logging.Handler):
             if msg not in self._seen_msgs:
                 tqdm.tqdm.write(msg)
                 self.flush()
-                self._seen_msgs.add(msg)
+                # self._seen_msgs.add(msg)
         except (KeyboardInterrupt, SystemExit):
             raise
         except:

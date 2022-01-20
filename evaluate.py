@@ -1,21 +1,26 @@
+import copy
+import json
 import logging
 import argparse
+
+import wandb
 from hydra import compose, initialize
 import yaml
 import torch
 from omegaconf import DictConfig, OmegaConf, open_dict
 import os
 from pathlib import Path
+from tio import Task
 
+from src import config
 from src.config import get_device_from_cfg, load_model_from_cfg, merge_configs, \
     setup_tracking_env_from_cfg
 from src.evaluation import evaluate_model
 from src.common import setup_global_logging
 
 
-def run(model_path, split, zero_shot, seq_per_sample, task, hydra_overrides):
+def main(model_path, splits, zero_shot, seq_per_sample, task, hydra_overrides):
     model_path = Path(model_path)
-    split = split
 
     setup_global_logging(
         'evaluate',
@@ -43,7 +48,7 @@ def run(model_path, split, zero_shot, seq_per_sample, task, hydra_overrides):
     else:
         use_train_task = True
         task = train_cfg.task.name
-    logger.info(f"Using split '{split}' for task '{task}'")
+    logger.info(f"Using split '{splits}' for task '{task}'")
     logger.debug(f"Zero shot is {'enabled' if zero_shot else 'disabled'}.")
     logger.debug(f"{seq_per_sample} sequences to be generated per sample.")
     logger.debug(f"Hydra overrides are {hydra_overrides}")
@@ -51,7 +56,6 @@ def run(model_path, split, zero_shot, seq_per_sample, task, hydra_overrides):
     # Yes this is not a clean solution, but for distributed running this works.
     cfg_overrides = [
         f"task={task}",
-        f"split={split}",
         f"is_checkpoint={not zero_shot}",
         f"model_path={str(model_path)}",
         f"seq_per_sample={seq_per_sample}",
@@ -81,14 +85,59 @@ def run(model_path, split, zero_shot, seq_per_sample, task, hydra_overrides):
 
     model_cls, model = load_model_from_cfg(cfg)
     model = model.to(get_device_from_cfg(cfg))
-    evaluate_model(cfg, model=model)
+    splits_to_use = splits.split(',')
 
-    run_id = os.environ['RUN_ID']
+    pred_dir = Path(cfg.get('out_path', model_path)).joinpath('predictions')
+    if not pred_dir.exists():
+        pred_dir.mkdir()
+    all_metrics = {}
+    split_paths = []
+    for split in splits_to_use:
+        logger.info(f"Evaluating split {split}")
+        with open_dict(cfg):
+            cfg.split = split
+        metrics, predictions = evaluate_model(copy.deepcopy(cfg), model=model)
+
+        all_metrics.update({f"{split}/{k}": v for k, v in metrics.items()})
+        split_path = pred_dir.joinpath(f'{cfg.split}.jsonl')
+        split_paths.append(split_path)
+        logger.info(f"Saving predictions to '{split_path}'")
+        with split_path.open("w", encoding="utf-8") as f:
+            for serialized_dict in predictions:
+                f.write(json.dumps(serialized_dict) + '\n')
+
+    with model_path.joinpath('eval_metrics.json').open('w', encoding='utf-8') as f:
+        json.dump(all_metrics, f)
+
+    run_id = wandb.util.generate_id()
     with open_dict(cfg):
         cfg.run_id = run_id
-
-    with model_path.joinpath(f'eval_{cfg.split}_config.yaml').open('w') as f:
+        cfg.split = splits
+    with model_path.joinpath(f'eval_config.yaml').open('w') as f:
         f.write(OmegaConf.to_yaml(cfg))
+
+    os.environ['RUN_ID'] = run_id
+    if (
+            isinstance(cfg.tracking, (dict, DictConfig))
+            and int(os.environ.get("LOCAL_RANK", "-1")) <= 0
+    ):
+        run = wandb.init(
+            job_type='evaluate',
+            name=cfg.name,
+            project=os.getenv("WANDB_PROJECT", "huggingface"),
+            group=cfg.group,
+            config=config.get_config_for_tracking(cfg),
+            id=run_id
+        )
+        run.log({f"eval/{k}": v for k, v in all_metrics.items()}, step=1)
+        preds_artifact = wandb.Artifact(f"{cfg.group}.{cfg.name}.{cfg.task.name}",
+                                        type='predictions')
+
+        preds_artifact.add_dir(str(pred_dir.resolve().absolute()))
+        preds_artifact.add_file(str(model_path.joinpath(f'eval_config.yaml').resolve().absolute()))
+        run.log_artifact(preds_artifact)
+        run.finish()
+
     logger.info("Finished Evaluation")
 
 
@@ -96,7 +145,8 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('model_path', metavar="<Path To Model Directory>",
                         help="Path to the model directory created by train.py")
-    parser.add_argument('split', metavar="<Dataset Split>", help="Name of the split to use.")
+    parser.add_argument('splits', metavar="<Comma Seperated Splits>",
+                        help="Name of the splits to use.")
     parser.add_argument(
         '--zero-shot',
         action='store_true',
@@ -114,9 +164,9 @@ if __name__ == "__main__":
                              "not the one specified in the training config.")
     parser.add_argument('--hydra-overrides', '-hydra', nargs=argparse.REMAINDER)
     argv = parser.parse_args()
-    run(
+    main(
         argv.model_path,
-        argv.split,
+        argv.splits,
         argv.zero_shot,
         argv.seq_per_sample,
         argv.task,

@@ -106,3 +106,4 @@ def setup_tracking_env_from_cfg(cfg: DictConfig):
     os.environ['WANDB_WATCH'] = cfg['tracking'].get('watch')
     os.environ['WANDB_PROJECT'] = cfg['tracking'].get('project')
     os.environ['WANDB_LOG_MODEL'] = 'true' if cfg['tracking'].get('log_model') else 'false'
+    os.environ['DISABLE_FAST_TOK'] = 'true'

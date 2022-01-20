@@ -73,7 +73,7 @@ def generate_predictions(
     logger.info(f"{num_steps_needed} total steps needed")
 
     model.eval()
-    with torch.no_grad():
+    with torch.inference_mode():
         progress_bar = tqdm(total=num_steps_needed, desc='Generating')
         for batch in data_loader:
             postprocessed_preds = []
@@ -166,11 +166,7 @@ def evaluate_model(cfg: DictConfig, model: PreTrainedModel):
         generation_kwargs=cfg.get('generation', {}),
         seq_per_sample=cfg.get('seq_per_sample')
     )
-
-    # Unpack the returned dict from generate predictions
-    raw_data = task.preprocessed_splits[cfg['split']]
     labels = generation_results['labels']
-
     predictions = generation_results['predictions']
     indices = generation_results['indices']
 
@@ -180,37 +176,9 @@ def evaluate_model(cfg: DictConfig, model: PreTrainedModel):
     for k, v in metrics.items():
         logger.info(f"\t{k:>20} = {v:0.3f}")
 
-    out_path = cfg.get('out_path', cfg['model_path'])
-    out_path = Path(out_path)
-    pred_path = out_path.joinpath(f'{cfg.split}_predictions.jsonl')
-    logger.info(f"Saving predictions to {pred_path}")
-    with pred_path.open("w", encoding="utf-8") as f:
-        serialize_generator = task.serialize_predictions(cfg.split, indices, predictions)
-        for serialized_dict in tqdm(serialize_generator, total=len(indices), desc="Saving"):
-            f.write(json.dumps(serialized_dict) + '\n')
+    serialized_predictions = []
+    serialize_generator = task.serialize_predictions(cfg.split, indices, predictions)
+    for serialized_dict in tqdm(serialize_generator, total=len(indices), desc="Serializing"):
+        serialized_predictions.append(serialized_dict)
 
-    run_id = wandb.util.generate_id()
-    os.environ['RUN_ID'] = run_id
-    if (
-            isinstance(cfg.tracking, (dict, DictConfig))
-            and int(os.environ.get("LOCAL_RANK", "-1")) <= 0
-    ):
-        run = wandb.init(
-            job_type='evaluate',
-            name=cfg.name,
-            project=os.getenv("WANDB_PROJECT", "huggingface"),
-            group=cfg.group,
-            config=get_config_for_tracking(cfg),
-            id=run_id
-        )
-        run.log({f"eval/{k}": v for k, v in metrics.items()}, step=1)
-        preds_artifact = wandb.Artifact(f"{cfg.group}.{cfg.name}.{cfg.task.name}.{cfg.split}",
-                                        type='predictions')
-        preds_artifact.add_file(str(pred_path.resolve().absolute()))
-        run.log_artifact(preds_artifact)
-        run.finish()
-
-    with out_path.joinpath('eval_metrics.json').open('w', encoding='utf-8') as f:
-        json.dump(metrics, f)
-
-    return metrics
+    return metrics, serialized_predictions

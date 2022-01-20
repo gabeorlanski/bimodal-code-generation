@@ -3,7 +3,6 @@ defaults:
   - task: ???
 
 is_checkpoint: true
-split: ???
 model_path: ???
 seq_per_sample: ???
 postprocessors:

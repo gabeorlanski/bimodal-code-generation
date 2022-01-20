@@ -32,6 +32,7 @@ class MBPP(Task):
         "challenge_test_list",
         "test_setup_code"
     ]
+    EVAL_SPLITS = ['test', 'validation']
 
     def __init__(
             self,
@@ -102,3 +103,4 @@ class MBPP(Task):
             'task_id': processed_sample['task_id'],
             **self.excluded_columns_data[processed_sample['task_id']]
         }
+
