@@ -159,7 +159,7 @@ if __name__ == "__main__":
     parser.add_argument('splits', metavar="<Comma Seperated Splits>",
                         help="Name of the splits to use.")
     parser.add_argument(
-        '--word-size', default=1, type=int
+        '--workers', default=1, type=int
     )
     parser.add_argument(
         '--zero-shot',
@@ -178,7 +178,7 @@ if __name__ == "__main__":
                              "not the one specified in the training config.")
     parser.add_argument('--hydra-overrides', '-hydra', nargs=argparse.REMAINDER)
     argv = parser.parse_args()
-    os.environ['WORLD_SIZE'] = str(argv.world_size)
+    os.environ['WORLD_SIZE'] = str(argv.workers)
     main(
         argv.model_path,
         argv.splits,
