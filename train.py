@@ -84,6 +84,10 @@ def run(name, task, config_name, force_overwrite_dir, cfg_overrides):
     logger.info(f"Seed={seed}")
     logger.info(f"NumPy Seed={numpy_seed}")
     logger.info(f"Torch Seed={torch_seed}")
+    random.seed(cfg["seed"])
+    np.random.seed(cfg["numpy_seed"])
+    torch.manual_seed(torch_seed)
+
 
     if os.environ.get("LOCAL_RANK", '-1') != '-1' or os.environ['WANDB_DISABLED'] != 'true':
         os.environ['DISABLE_FAST_TOK'] = 'true'
@@ -91,9 +95,7 @@ def run(name, task, config_name, force_overwrite_dir, cfg_overrides):
     with open_dict(cfg):
         cfg.training.local_rank = int(os.environ.get('LOCAL_RANK', '-1'))
 
-    random.seed(cfg["seed"])
-    np.random.seed(cfg["numpy_seed"])
-    torch.manual_seed(torch_seed)
+
     # Seed all GPUs with the same seed if available.
     if torch.cuda.is_available():
         torch.cuda.manual_seed_all(torch_seed)

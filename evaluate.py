@@ -2,7 +2,8 @@ import copy
 import json
 import logging
 import argparse
-
+import random
+import numpy as np
 import wandb
 from hydra import compose, initialize
 import yaml
@@ -82,6 +83,16 @@ def main(
             cfg[k] = train_processors + cfg_processors
 
     setup_tracking_env_from_cfg(cfg)
+
+    seed = cfg["seed"]
+    numpy_seed = cfg["numpy_seed"]
+    torch_seed = cfg["pytorch_seed"]
+    logger.info(f"Seed={seed}")
+    logger.info(f"NumPy Seed={numpy_seed}")
+    logger.info(f"Torch Seed={torch_seed}")
+    random.seed(cfg["seed"])
+    np.random.seed(cfg["numpy_seed"])
+    torch.manual_seed(torch_seed)
 
     # merge_configs gives priority to the first argument, so if we are not
     # overriding the task, we need to copy the task params from the train
