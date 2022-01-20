@@ -1,7 +1,6 @@
 #!/bin/bash
 #SBATCH --job-name=train-adv-code
-#SBATCH --output=/logs/train.out
-#SBATCH --error=/logs/train.err
+#SBATCH -o /logs/train.out
 #SBATCH --export=ALL
 #SBATCH --time=01:00:00
 #SBATCH --gres=gpu:4
