@@ -22,6 +22,9 @@ from src.common import setup_global_logging
 def main(model_path, splits, zero_shot, seq_per_sample, task, hydra_overrides):
     model_path = Path(model_path)
 
+    if Path('wandb_secret.txt').exists():
+        os.environ["WANDB_API_KEY"] = open('wandb_secret.txt').read().strip()
+
     setup_global_logging(
         'evaluate',
         model_path.joinpath('logs'),
