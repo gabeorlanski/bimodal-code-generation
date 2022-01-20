@@ -69,7 +69,7 @@ def run(file_name, num_workers, disable_tracking):
         # times. Hence the ugly dict.
         wandb_run.log({
             'outcome_table': counts_table,
-            **{f'outcomes/{k}': v for k, v in outcome_metrics.items()},
+            **outcome_metrics,
             **{f"{'eval/' if '/' not in k else ''}{k}": v for k, v in overview_metrics.items()}
         })
         metric_artifact = wandb.Artifact(f"{cfg.group}.{cfg.name}.{cfg.task.name}.{cfg.split}",
