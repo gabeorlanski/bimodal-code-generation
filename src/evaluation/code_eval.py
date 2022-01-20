@@ -82,34 +82,91 @@ def get_samples(file_path) -> Tuple[List[Sample], Dict, Dict, Dict]:
     if failed > 0:
         logger.error(f"{failed}/{line_num} had failures.")
 
-    metrics['valid_syntax_total'] = sum(total_valid_preds)
-    metrics['valid_syntax_mean'] = np.mean(total_valid_preds)
-    metrics['valid_syntax_pct'] = metrics['valid_syntax_total'] / metrics['preds_total'] * 100
+    metrics['valid_syntax/total'] = sum(total_valid_preds)
+    metrics['valid_syntax/mean'] = np.mean(total_valid_preds)
+    metrics['valid_syntax/pct'] = metrics['valid_syntax/total'] / metrics['preds_total'] * 100
     metrics['tests_mean'] = np.mean(metrics.pop('total_tests'))
-    metrics['valid_syntax_pct_mean'] = np.mean(metrics.pop('valid_pct_list'))
+    metrics['valid_syntax/pct_mean'] = np.mean(metrics.pop('valid_pct_list'))
 
     return list(all_samples.values()), pred_count, invalid_syntax, metrics
 
 
 def evaluate_code(
-        split_name: str,
-        predictions_dir: Union[str, Path, os.PathLike],
+        predictions_file: Union[str, Path, os.PathLike],
         num_workers: int,
+        out_dir: Union[str, Path, os.PathLike],
         timeout: float = 3.0,
-        out_dir: Union[str, Path, os.PathLike] = None
 ):
-    predictions_dir = Path(predictions_dir)
-    out_dir = Path(out_dir) if out_dir else predictions_dir
+    predictions_file = Path(predictions_file)
+    out_dir = Path(out_dir)
     logger.info(
-        f"Starting Code Evaluation with predictions in {predictions_dir.resolve().absolute()}")
-    path_to_predictions = predictions_dir.joinpath(f'{split_name}_predictions.jsonl')
+        f"Starting Code Evaluation with predictions in {predictions_file.resolve().absolute()}")
 
-    if not path_to_predictions.exists():
-        logger.error(f"{predictions_dir.resolve().absolute()} is missing 'predictions.jsonl")
+    if not predictions_file.exists():
+        logger.error(f"{predictions_file.resolve().absolute()} is missing 'predictions.jsonl")
         raise FileExistsError(f"The predictions directory must have a predictions.jsonl")
 
-    samples, pred_count, invalid_syntax_by_idx, overview_metrics = get_samples(path_to_predictions)
+    samples, pred_count, invalid_syntax_by_idx, overview_metrics = get_samples(predictions_file)
 
+    results = execute_code(samples, num_workers, timeout)
+
+    results_by_task_id, global_error_tracker, outcome_counts = parse_results(
+        results,
+        pred_count,
+        invalid_syntax_by_idx
+    )
+    correct, runtime_errors = outcome_counts
+
+    total = overview_metrics['preds_total']
+    correct = int(np.sum(correct))
+    overview_metrics['runtime_error_pct'] = runtime_errors / total * 100
+    correct_pcts = list(
+        map(lambda task_dict: task_dict['correct_pct'], results_by_task_id.values())
+    )
+    overview_metrics['correct_by_sample/pct_mean'] = np.mean(correct_pcts)
+    overview_metrics['correct_by_sample/pct_median'] = np.median(correct_pcts)
+    overview_metrics['correct_by_sample/pct_std'] = np.std(correct_pcts)
+    overview_metrics['correct_by_sample/pct_var'] = np.var(correct_pcts)
+
+    # The values need to be arrays for it pass @ k to work
+    all_correct, all_total = [], []
+    for d in results_by_task_id.values():
+        all_correct.append(d['correct'])
+        all_total.append(d['total'])
+
+    # Calculate the pass @ k metric across multiple k values.
+    all_total = np.array(all_total)
+    all_correct = np.array(all_correct)
+    for k in [1, 5, 10, 25, 50, 100]:
+        if (all_total < k).all():
+            overview_metrics[f"pass@{k}"] = 0.0
+            continue
+        overview_metrics[f"pass@{k}"] = estimate_pass_at_k(all_total, all_correct, k).mean() * 100
+
+    # Calculate the % outcomes for different events.
+    global_error_tracker['Correct'] = correct
+    for error_type, count in global_error_tracker.items():
+        key = error_type.replace(" ", "_")
+        overview_metrics[key] = count
+        overview_metrics[f'{key}_pct'] = count / total * 100
+
+    logger.info("Metrics:")
+    for k in sorted(overview_metrics.keys()):
+        logger.info(f"\t{k:>24} = {overview_metrics[k]:0.3f}")
+
+    result_metrics = {
+        "overview"          : overview_metrics,
+
+        # No int keys in json files, so make them match.
+        "results_by_task_id": {str(k): v for k, v in results_by_task_id.items()}
+    }
+    with out_dir.joinpath('execution_metrics.json').open('w', encoding='utf-8') as f:
+        json.dump(result_metrics, f, indent=True)
+
+    return result_metrics, list(global_error_tracker), out_dir.joinpath('execution_metrics.json')
+
+
+def parse_results(results, pred_count, invalid_syntax_by_idx):
     global_error_tracker = Counter({k: 0 for k in BASE_ERROR_TYPES})
     results_by_task_id = {}
 
@@ -124,30 +181,6 @@ def evaluate_code(
             'runtime_error_pct': 0.0
         }
         global_error_tracker['SyntaxError'] += invalid_syntax_by_idx[task_id]
-
-    to_run = sum(map(lambda s: len(s.predictions), samples))
-    logger.info(f"{to_run} predictions to check")
-    with tqdm(total=to_run, desc='Running Code') as pbar:
-        with ThreadPoolExecutor(max_workers=num_workers) as executor:
-            futures = []
-            completion_id = Counter()
-            n_samples = 0
-            results = defaultdict(list)
-
-            for sample in samples:
-                task_id = sample.idx
-                for candidate in sample.predictions:
-                    test_program = candidate + "\n" + '\n'.join(sample.tests)
-                    args = (test_program, timeout, task_id, completion_id[task_id])
-                    future = executor.submit(check_correctness, *args)
-                    futures.append(future)
-                    completion_id[task_id] += 1
-                    n_samples += 1
-
-            for future in as_completed(futures):
-                result = future.result()
-                results[result["task_id"]].append((result["completion_id"], result))
-                pbar.update(1)
 
     correct = runtime_errors = 0
     for task_id, task_results in results.items():
@@ -190,43 +223,34 @@ def evaluate_code(
 
         results_by_task_id[task_id] = task_metrics
 
-    total = overview_metrics['preds_total']
-    correct = int(np.sum(correct))
-    overview_metrics['runtime_error_pct'] = runtime_errors / total * 100
-    global_error_tracker['Correct'] = correct
+    return results_by_task_id, global_error_tracker, (correct, runtime_errors)
 
-    # Calculate the pass @ k metrics
-    all_correct, all_total = [], []
-    for d in results_by_task_id.values():
-        all_correct.append(d['correct'])
-        all_total.append(d['total'])
 
-    all_total = np.array(all_total)
-    all_correct = np.array(all_correct)
-    for k in [1, 5, 10, 25, 50, 100]:
-        if (all_total < k).all():
-            overview_metrics[f"pass@{k}"] = 0.0
-            continue
-        overview_metrics[f"pass@{k}"] = estimate_pass_at_k(all_total, all_correct, k).mean() * 100
+def execute_code(samples, num_workers, timeout):
+    to_run = sum(map(lambda s: len(s.predictions), samples))
+    logger.info(f"{to_run} predictions to check")
+    with tqdm(total=to_run, desc='Running Code') as pbar:
+        with ThreadPoolExecutor(max_workers=num_workers) as executor:
+            futures = []
+            completion_id = Counter()
+            n_samples = 0
+            results = defaultdict(list)
 
-    for error_type, count in global_error_tracker.items():
-        key = error_type.replace(" ", "_")
-        overview_metrics[key] = count
-        overview_metrics[f'{key}_pct'] = count / total * 100
+            for sample in samples:
+                task_id = sample.idx
+                for candidate in sample.predictions:
+                    test_program = candidate + "\n" + '\n'.join(sample.tests)
+                    args = (test_program, timeout, task_id, completion_id[task_id])
+                    future = executor.submit(check_correctness, *args)
+                    futures.append(future)
+                    completion_id[task_id] += 1
+                    n_samples += 1
 
-    logger.info("Metrics:")
-    for k in sorted(overview_metrics.keys()):
-        logger.info(f"\t{k:>24} = {overview_metrics[k]:0.3f}")
-
-    result_metrics = {
-        "overview"          : overview_metrics,
-        # No int keys in json files, so make them match.
-        "results_by_task_id": {str(k): v for k, v in results_by_task_id.items()}
-    }
-    with out_dir.joinpath('execution_metrics.json').open('w', encoding='utf-8') as f:
-        json.dump(result_metrics, f, indent=True)
-
-    return result_metrics, list(global_error_tracker), out_dir.joinpath('execution_metrics.json')
+            for future in as_completed(futures):
+                result = future.result()
+                results[result["task_id"]].append((result["completion_id"], result))
+                pbar.update(1)
+    return results
 
 
 def estimate_pass_at_k(num_samples, num_correct, k):

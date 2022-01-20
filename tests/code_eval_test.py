@@ -2,6 +2,7 @@ import json
 from pathlib import Path
 from unittest.mock import patch, MagicMock
 
+import numpy as np
 import pytest
 import torch
 from omegaconf import OmegaConf, open_dict
@@ -13,28 +14,31 @@ from transformers import AutoModelForCausalLM
 def test_evaluate_code(tmpdir, code_preds_dir):
     tmpdir_path = Path(tmpdir)
 
-    results = evaluate_code(
-        'split',
-        code_preds_dir,
+    results, _, _ = evaluate_code(
+        code_preds_dir.joinpath('split_predictions.jsonl'),
         2,
+        tmpdir_path,
         3.0,
-        tmpdir_path
     )
 
-    results_path, *_ = tmpdir_path.joinpath('execution_metrics.json')
+    results_path = tmpdir_path.joinpath('execution_metrics.json')
     assert results_path.exists()
     assert json.loads(results_path.read_text('utf-8')) == results
 
     expected_overview = {
-        "all_invalid"          : 0,
-        "tests_mean"           : 3.0,
-        "preds_total"          : 8,
-        "valid_syntax_mean"    : 7 / 2,
-        "valid_syntax_total"   : 7,
-        "valid_syntax_pct_mean": 1.75 / 2 * 100,
-        "valid_syntax_pct"     : 7 / 8 * 100,
-        "runtime_error_pct"    : 3 / 8 * 100,
-        f"pass@1"              : estimate_pass_at_k([4, 4], [1, 1], 1).mean() * 100
+        "all_invalid"                 : 0,
+        "tests_mean"                  : 3.0,
+        "preds_total"                 : 8,
+        "valid_syntax/mean"           : 7 / 2,
+        "valid_syntax/total"          : 7,
+        "valid_syntax/pct_mean"       : 1.75 / 2 * 100,
+        "valid_syntax/pct"            : 7 / 8 * 100,
+        "runtime_error_pct"           : 3 / 8 * 100,
+        "correct_by_sample/pct_mean"  : 50 / 2,
+        "correct_by_sample/pct_median": 25.0,
+        "correct_by_sample/pct_std"   : np.std([25, 25]),
+        "correct_by_sample/pct_var"   : np.var([25, 25]),
+        f"pass@1"                     : estimate_pass_at_k([4, 4], [1, 1], 1).mean() * 100
     }
 
     for k in [5, 10, 25, 50, 100]:
