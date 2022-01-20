@@ -29,7 +29,7 @@ generation:
 training:
   batch_size: 1
   output_dir: models
-  learning_rate: 1e-3
+  learning_rate: 1e-5
   logging_steps: 10
   warmup_ratio: 0.05
   weight_decay: 0.1
