@@ -135,3 +135,4 @@ test_fixtures/code_predictions/execution_metrics.json
 wandb_secret.txt
 
 wandb/
+logs/
