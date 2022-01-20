@@ -133,8 +133,9 @@ def generate_predictions(
     }
 
 
-def distributed_generate(rank,world_size, generate_pred_kwargs):
+def distributed_generate(rank, world_size, generate_pred_kwargs):
     pass
+
 
 def evaluate_model(cfg: DictConfig, model: PreTrainedModel):
     """
@@ -162,7 +163,7 @@ def evaluate_model(cfg: DictConfig, model: PreTrainedModel):
 
     logger.info("World size is a single GPU")
     generation_results = generate_predictions(
-        model,
+        model.to(device),
         tokenized=tokenized,
         task=task,
         batch_size=cfg["training"].get(

@@ -1,8 +1,8 @@
 #!/bin/bash
 #SBATCH --job-name=train-adv-code
 #SBATCH --output=./logs/train.out
-#SBATCH --time=02:00:00
-#SBATCH --gres=gpu:4
+#SBATCH --time=06:00:00
+#SBATCH --gres=gpu:1
 #SBATCH --mem=64G
 #SBATCH -c 4
 
@@ -12,5 +12,5 @@ source /ext3/env.sh
 conda activate adversarial-code
 echo $(pwd)
 
-python evaluate.py outputs/testing/train/testing $1 -seqs 200 -hydra +generation.num_return_sequences=2 +training.batch_size=4 +device=0
+python evaluate.py $1 $2 -seqs 200 -hydra +generation.num_return_sequences=2 +training.batch_size=4 +device=0
 "
