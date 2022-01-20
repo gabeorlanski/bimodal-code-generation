@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH --job-name=train-adv-code
 #SBATCH --output=./logs/train.out
-#SBATCH --time=01:00:00
+#SBATCH --time=02:00:00
 #SBATCH --gres=gpu:4
 #SBATCH --mem=64G
 #SBATCH -c 4

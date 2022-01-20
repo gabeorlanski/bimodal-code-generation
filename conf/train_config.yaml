@@ -20,7 +20,7 @@ numpy_seed: 2
 pytorch_seed: 3
 
 generation:
-  max_length: 512
+  max_length: 1024
   do_sample: true
   temperature: 0.5
   num_return_sequences: 2
@@ -31,14 +31,14 @@ training:
   output_dir: models
   learning_rate: 1e-5
   logging_steps: 10
-  warmup_steps: 0.0
-  warmup_ratio: 0.0
-  weight_decay: 0.0
-  gradient_accumulation_steps: 1
+  warmup_ratio: 0.05
+  weight_decay: 0.1
+  gradient_accumulation_steps: 2
+  lr_scheduler_type: 'polynomial'
   eval_accumulation_steps: 1
   metric_for_best_model: 'eval_loss'
   load_best_model_at_end: True
-  save_total_limit: 3
+  save_total_limit: 2
   num_train_epochs: 10
   greater_is_better: False
   evaluation_strategy: epoch
@@ -46,7 +46,9 @@ training:
   group_by_length: True
   logging_first_step: True
   xpu_backend: "ccl"
-  fp16: False
+  fp16: True
+  disable_tqdm: True
+  max_grad_norm: 2.0
 
 metrics:
   - exact-match
