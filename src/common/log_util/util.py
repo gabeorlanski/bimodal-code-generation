@@ -84,10 +84,8 @@ def setup_global_logging(
     # Create and register the two loggers
     root_logger = logging.getLogger()
 
+    root_logger.addHandler(error_file_handler)
+    root_logger.addHandler(normal_file_handler)
     if rank <= 0:
-        root_logger.addHandler(error_file_handler)
-        root_logger.addHandler(normal_file_handler)
-    else:
-        console_handler.level = logging.WARNING
-    root_logger.addHandler(console_handler)
+        root_logger.addHandler(console_handler)
     root_logger.setLevel(logging.NOTSET)
