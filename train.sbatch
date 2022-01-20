@@ -1,8 +1,6 @@
 #!/bin/bash
-#SBATCH --job-name=job_wgpu
-#SBATCH --open-mode=append
-#SBATCH --output=./logs/%j_%x.out
-#SBATCH --error=./logs/%j_%x.err
+#SBATCH --job-name=train-adv-code
+#SBATCH --output=python-hello-world.out
 #SBATCH --export=ALL
 #SBATCH --time=01:00:00
 #SBATCH --gres=gpu:4
