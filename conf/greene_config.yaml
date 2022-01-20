@@ -1,0 +1,6 @@
+defaults:
+  - train_config@_global_
+  - _self_
+
+training:
+  batch_size: 32

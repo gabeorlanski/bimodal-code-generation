@@ -20,7 +20,7 @@ from src.config import setup_tracking_env_from_cfg
 PROJECT_ROOT = Path.cwd()
 
 
-def run(name, task, force_overwrite_dir, cfg_overrides):
+def run(name, task, config_name, force_overwrite_dir, cfg_overrides):
     if Path('wandb_secret.txt').exists():
         os.environ["WANDB_API_KEY"] = open('wandb_secret.txt').read().strip()
     group_name = task.upper()
@@ -63,7 +63,7 @@ def run(name, task, force_overwrite_dir, cfg_overrides):
     cfg_overrides = [f"name={name}", f"task={task}", f"group={group_name}"] + cfg_overrides
 
     initialize(config_path="conf", job_name="train")
-    cfg = compose(config_name="train_config", overrides=cfg_overrides)
+    cfg = compose(config_name=config_name, overrides=cfg_overrides)
 
     os.chdir(new_cwd)
     with open('config.yaml', 'w') as f:
@@ -105,6 +105,8 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("name", metavar="<Name of the Run>")
     parser.add_argument("task", metavar="<Task to use>")
+    parser.add_argument("--config", help="Name of the base config file to use.",
+                        default='train_config')
     parser.add_argument('--force-overwrite-dir', '-force',
                         action="store_true",
                         default=False,
@@ -119,6 +121,7 @@ if __name__ == "__main__":
     run(
         argv.name,
         argv.task,
+        argv.config,
         argv.force_overwrite_dir,
         argv.hydra_overrides
     )
