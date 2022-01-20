@@ -38,16 +38,16 @@ def run(name, task, config_name, force_overwrite_dir, cfg_overrides):
         for t in Task.list_available():
             valid_tasks += f'\t{t}\n'
         raise ValueError(f"Unknown Task '{task}'. Valid tasks are:\n{valid_tasks}")
-
     new_cwd = Path('outputs', group_name.lower(), "train", name)
-    if new_cwd.exists():
-        if not force_overwrite_dir:
-            raise ValueError(
-                f"Cannot create directory. Dir '{new_cwd.resolve().absolute()}' already exists")
+    if int(os.environ.get('LOCAL_RANK','-1')) <= 0:
+        if new_cwd.exists():
+            if not force_overwrite_dir:
+                raise ValueError(
+                    f"Cannot create directory. Dir '{new_cwd.resolve().absolute()}' already exists")
 
-        print(f"Overriding '{str(new_cwd.resolve().absolute())}'")
-        shutil.rmtree(new_cwd)
-    new_cwd.mkdir(parents=True)
+            print(f"Overriding '{str(new_cwd.resolve().absolute())}'")
+            shutil.rmtree(new_cwd)
+        new_cwd.mkdir(parents=True)
     setup_global_logging(
         'train',
         new_cwd.joinpath('logs'),
