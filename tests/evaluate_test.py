@@ -37,26 +37,19 @@ def test_evaluate_model(tmpdir, simple_eval_config, seq_per_sample, num_return_s
 
     model.generate.side_effect = side_effect
 
-    results = evaluate_model(cfg, model)
+    results, actual_preds = evaluate_model(cfg, model)
 
     assert 'em' in results
     assert 'bleu' in results
     assert model.generate.call_count == (seq_per_sample // num_return_seq) * len(expected_tok)
-
-    tmpdir_path = Path(tmpdir)
-    pred_path = tmpdir_path.joinpath(f'{cfg.split}_predictions.jsonl')
-    assert pred_path.exists()
-
-    actual_preds = list(map(json.loads, pred_path.read_text('utf-8').splitlines(False)))
     assert len(actual_preds) == len(expected_tok)
 
     for i, pred in enumerate(actual_preds):
         raw_sample = raw_expected[pred['idx']]
         assert set(pred) == {"idx", "input_sequence", "target", "prediction", 'test'}
         assert len(pred['prediction']) == seq_per_sample
-        assert all(p == raw_sample['target'] for p in pred['prediction'])
-        assert pred['input_sequence'] == raw_sample['input_sequence']
+        for j, actual in enumerate(pred['prediction']):
+            assert actual == raw_sample['input_sequence'] + raw_sample['target'], i
         assert pred['target'] == raw_sample['target']
+        assert pred['input_sequence'] == raw_sample['input_sequence']
         assert pred['test'] == pred['idx']
-
-    assert tmpdir_path.joinpath('eval_metrics.json').exists()

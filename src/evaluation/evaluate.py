@@ -79,46 +79,41 @@ def generate_predictions(
     with torch.inference_mode():
         progress_bar = tqdm(total=num_steps_needed, desc='Generating')
         for batch in data_loader:
-            postprocessed_preds = []
-            postprocessed_targets = []
 
-            for _ in range(generate_steps_per_sample):
+            generated_results = [None for _ in range(generate_steps_per_sample)]
+            for i in range(generate_steps_per_sample):
                 generated_from_batch = model.generate(
                     input_ids=batch["input_ids"].to(device),
                     attention_mask=batch['attention_mask'].to(device),
                     **generation_kwargs
                 )
-
-                # We need to check how many sequences we return for each sample so
-                # we can adequately collect them.
-                b = batch['input_ids'].size()[0]
-
-                generated = generated_from_batch.reshape(
-                    (b, num_return_sequences, -1)).detach().cpu()
-                targets = batch["labels"].detach().cpu()
-
-                b_preds, b_targets = task.postprocess(
-                    generated.numpy(),
-                    targets.numpy()
-                )
-
-                if not postprocessed_targets:
-                    postprocessed_preds = b_preds
-                    postprocessed_targets = b_targets
-                else:
-                    for i, pred in enumerate(b_preds):
-                        postprocessed_preds[i].extend(pred)
+                generated_results[i] = generated_from_batch.tolist()
+                # for i in range(b):
+                #     start = i * num_return_sequences
+                #     end = (i + 1) * num_return_sequences
+                #     pred_tensors[i].extend(generated[start:end])
+                #
                 progress_bar.update()
 
+            b = batch['input_ids'].size()[0]
+            pred_tensors = [None for _ in range(seq_per_sample * b)]
+            for i, gen in enumerate(generated_results):
+                for j, pred in enumerate(gen):
+                    seq_idx, offset = divmod(j, num_return_sequences)
+                    idx = (i * num_return_sequences) + seq_idx * seq_per_sample + offset
+                    pred_tensors[idx] = pred
+
+            preds = np.vstack(pred_tensors)
+            preds[preds == 0] = task.tokenizer.pad_token_id
+            postprocessed_preds, postprocessed_targets = task.postprocess(
+                preds,
+                batch["labels"].numpy()
+            )
             for i in range(batch['input_ids'].shape[0]):
-                preds = postprocessed_preds[i]
+                preds = postprocessed_preds[i * seq_per_sample:(i + 1) * seq_per_sample]
                 gold = postprocessed_targets[i]
-
-                if len(preds) != seq_per_sample:
-                    raise Exception("??")
-                assert len(preds) == seq_per_sample, f"{len(preds)} != {seq_per_sample}"
-                assert isinstance(gold, str)
-
+                # assert len(preds) == seq_per_sample, f"{len(preds)} != {seq_per_sample}"
+                # assert isinstance(gold, str)
                 predictions.append(preds)
                 labels.append(gold)
                 indices.append(batch['idx'][i].detach().item())
