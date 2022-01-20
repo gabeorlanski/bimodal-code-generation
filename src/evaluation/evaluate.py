@@ -87,18 +87,20 @@ def generate_predictions(
                 generated_from_batch = model.generate(
                     input_ids=local_inputs,
                     attention_mask=local_attn,
+                    top_k=0,
                     **generation_kwargs
                 )
                 generated_results[i] = generated_from_batch.tolist()
-                progress_bar.update()
+                progress_bar.update(1)
 
             b = batch['input_ids'].size()[0]
             pred_tensors = [None for _ in range(seq_per_sample * b)]
+            max_len = max(map(len,generated_results))
             for i, gen in enumerate(generated_results):
                 for j, pred in enumerate(gen):
                     seq_idx, offset = divmod(j, num_return_sequences)
                     idx = (i * num_return_sequences) + seq_idx * seq_per_sample + offset
-                    pred_tensors[idx] = pred
+                    pred_tensors[idx] = pred+[task.tokenizer.pad_token_id]*(max_len-len(pred))
 
             preds = np.vstack(pred_tensors)
             preds[preds == 0] = task.tokenizer.pad_token_id
