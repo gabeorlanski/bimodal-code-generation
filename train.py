@@ -21,6 +21,7 @@ PROJECT_ROOT = Path.cwd()
 
 
 def run(name, task, config_name, force_overwrite_dir, cfg_overrides):
+    print(Path())
     if Path('wandb_secret.txt').exists():
         os.environ["WANDB_API_KEY"] = open('wandb_secret.txt').read().strip()
     group_name = task.upper()
