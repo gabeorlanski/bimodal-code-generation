@@ -85,7 +85,7 @@ def run(name, task, config_name, force_overwrite_dir, cfg_overrides):
     logger.info(f"Torch Seed={torch_seed}")
 
     if os.environ.get("LOCAL_RANK", '-1') != '-1' or os.environ['WANDB_DISABLED'] != 'true':
-        os.environ['DISABLE_FAST_TOK'] = 'TRUE'
+        os.environ['DISABLE_FAST_TOK'] = 'true'
 
     with open_dict(cfg):
         cfg.training.local_rank = int(os.environ.get('LOCAL_RANK', '-1'))

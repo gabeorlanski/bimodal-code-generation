@@ -3,4 +3,8 @@ defaults:
   - _self_
 
 training:
-  batch_size: 32
+  batch_size: 2
+  learning_rate: 5e-4
+generation:
+  num_return_sequences: 25
+device: 0

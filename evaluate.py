@@ -19,7 +19,14 @@ from src.evaluation import evaluate_model
 from src.common import setup_global_logging
 
 
-def main(model_path, splits, zero_shot, seq_per_sample, task, hydra_overrides):
+def main(
+        model_path,
+        splits,
+        zero_shot,
+        seq_per_sample,
+        task,
+        hydra_overrides
+):
     model_path = Path(model_path)
 
     if Path('wandb_secret.txt').exists():
@@ -42,9 +49,9 @@ def main(model_path, splits, zero_shot, seq_per_sample, task, hydra_overrides):
         )
     )
 
-    if os.environ.get("LOCAL_RANK", '-1') != '-1' or os.environ.get('WANDB_DISABLED',
-                                                                    'true') != 'true':
-        os.environ['DISABLE_FAST_TOK'] = 'TRUE'
+    if os.environ.get("WORLD_SIZE", '1') != '1' or os.environ.get('WANDB_DISABLED',
+                                                                  'true') != 'true':
+        os.environ['DISABLE_FAST_TOK'] = 'true'
 
     if task is not None:
         use_train_task = False
@@ -87,7 +94,7 @@ def main(model_path, splits, zero_shot, seq_per_sample, task, hydra_overrides):
             cfg.task = train_cfg.task
 
     model_cls, model = load_model_from_cfg(cfg)
-    model = model.to(get_device_from_cfg(cfg))
+
     splits_to_use = splits.split(',')
 
     pred_dir = Path(cfg.get('out_path', model_path)).joinpath('predictions')
@@ -137,7 +144,8 @@ def main(model_path, splits, zero_shot, seq_per_sample, task, hydra_overrides):
                                         type='predictions')
 
         preds_artifact.add_dir(str(pred_dir.resolve().absolute()))
-        preds_artifact.add_file(str(model_path.joinpath(f'eval_config.yaml').resolve().absolute()))
+        preds_artifact.add_file(
+            str(model_path.joinpath(f'eval_config.yaml').resolve().absolute()))
         run.log_artifact(preds_artifact)
         run.finish()
 
@@ -150,6 +158,9 @@ if __name__ == "__main__":
                         help="Path to the model directory created by train.py")
     parser.add_argument('splits', metavar="<Comma Seperated Splits>",
                         help="Name of the splits to use.")
+    parser.add_argument(
+        '--word-size', default=1, type=int
+    )
     parser.add_argument(
         '--zero-shot',
         action='store_true',
@@ -167,6 +178,7 @@ if __name__ == "__main__":
                              "not the one specified in the training config.")
     parser.add_argument('--hydra-overrides', '-hydra', nargs=argparse.REMAINDER)
     argv = parser.parse_args()
+    os.environ['WORLD_SIZE'] = str(argv.world_size)
     main(
         argv.model_path,
         argv.splits,

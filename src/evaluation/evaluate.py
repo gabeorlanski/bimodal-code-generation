@@ -11,6 +11,9 @@ from transformers import PreTrainedModel, DataCollatorForSeq2Seq
 import torch
 import logging
 from tqdm import tqdm
+from torch.nn.parallel import DistributedDataParallel as DDP
+import torch.distributed as dist
+import torch.multiprocessing as mp
 from pathlib import Path
 
 from src.config import get_device_from_cfg, merge_configs, load_task_from_cfg
@@ -130,6 +133,9 @@ def generate_predictions(
     }
 
 
+def distributed_generate(rank,world_size, generate_pred_kwargs):
+    pass
+
 def evaluate_model(cfg: DictConfig, model: PreTrainedModel):
     """
     Evaluate a model with a reader on a file
@@ -154,18 +160,21 @@ def evaluate_model(cfg: DictConfig, model: PreTrainedModel):
     device = get_device_from_cfg(cfg)
     logger.info(f"Using device {device}")
 
+    logger.info("World size is a single GPU")
     generation_results = generate_predictions(
         model,
         tokenized=tokenized,
         task=task,
         batch_size=cfg["training"].get(
             "batch_size",
-            cfg['training'].get('per_device_eval_batch_size', cfg['training'].get('batch_size', 1))
+            cfg['training'].get('per_device_eval_batch_size',
+                                cfg['training'].get('batch_size', 1))
         ),
         device=device,
         generation_kwargs=cfg.get('generation', {}),
         seq_per_sample=cfg.get('seq_per_sample')
     )
+
     labels = generation_results['labels']
     predictions = generation_results['predictions']
     indices = generation_results['indices']
