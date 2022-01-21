@@ -94,6 +94,7 @@ def generate_predictions(
                 progress_bar.update(1)
 
             b = batch['input_ids'].size()[0]
+            # TODO: Combine this logic with the for loop below
             postprocessed_preds = [None for _ in range(seq_per_sample * b)]
             for i, gen in enumerate(map(task.postprocess, generated_results)):
                 for j, pred in enumerate(gen):
@@ -122,9 +123,6 @@ def generate_predictions(
         "predictions": predictions
     }
 
-
-def distributed_generate(rank, world_size, generate_pred_kwargs):
-    pass
 
 
 def evaluate_model(cfg: DictConfig, model: PreTrainedModel):
