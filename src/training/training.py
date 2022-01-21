@@ -119,7 +119,13 @@ def train_model(cfg: DictConfig):
             cfg.training.predict_with_generate = True
 
         for k, v in cfg.generation.items():
-            setattr(model.config, k, v)
+            if k == 'num_return_sequences':
+                v_use = 1
+            elif k == 'max_length':
+                v_use = 512
+            else:
+                v_use = v
+            setattr(model.config, k, v_use)
     elif cfg.objective == "lm":
         logger.info("Setting up the LM objective")
 
