@@ -61,9 +61,9 @@ def get_samples(file_path) -> Tuple[List[Sample], Dict, Dict, Dict]:
                 ast.parse(pred)
             except SyntaxError:
                 continue
-            except MemoryError:
+            except Exception as e:
                 logger.error(f"Could not parse prediction {i} on line "
-                             f"{line_num} due to a memory error.")
+                             f"{line_num} due to {type(e).__name__}:{str(e)}")
                 continue
             valid_predictions.append(pred)
         metrics['valid_pct_list'].append(
@@ -87,6 +87,11 @@ def get_samples(file_path) -> Tuple[List[Sample], Dict, Dict, Dict]:
     metrics['valid_syntax/pct'] = metrics['valid_syntax/total'] / metrics['preds_total'] * 100
     metrics['tests_mean'] = np.mean(metrics.pop('total_tests'))
     metrics['valid_syntax/pct_mean'] = np.mean(metrics.pop('valid_pct_list'))
+
+    # Adding the / to some metrics to better separate them
+    metrics['info/preds_total'] = metrics.pop('preds_total')
+    metrics['info/tests_mean'] = metrics.pop('tests_mean')
+    metrics['info/all_invalid'] = metrics.pop('all_invalid')
 
     return list(all_samples.values()), pred_count, invalid_syntax, metrics
 
@@ -117,7 +122,7 @@ def evaluate_code(
     )
     correct, runtime_errors = outcome_counts
 
-    total = overview_metrics['preds_total']
+    total = overview_metrics['info/preds_total']
     correct = int(np.sum(correct))
     overview_metrics['runtime_error_pct'] = runtime_errors / total * 100
     correct_pcts = list(
@@ -137,7 +142,7 @@ def evaluate_code(
     # Calculate the pass @ k metric across multiple k values.
     all_total = np.array(all_total)
     all_correct = np.array(all_correct)
-    for k in [1, 5, 10, 25, 50, 100]:
+    for k in [1, 5, 10, 25, 50]:
         if (all_total < k).all():
             overview_metrics[f"pass@{k}"] = 0.0
             continue

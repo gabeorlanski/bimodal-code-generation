@@ -136,3 +136,5 @@ wandb_secret.txt
 
 wandb/
 logs/
+scratch
+scratch_artifacts

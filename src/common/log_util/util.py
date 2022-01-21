@@ -42,7 +42,7 @@ def setup_global_logging(
     if world_size <= 1:
         rank_str = ''
         normal_file = log_path.joinpath(f"{name}.log")
-        error_file = log_path.joinpath("{name}.issues.log")
+        error_file = log_path.joinpath(f"{name}.issues.log")
     else:
         rank_str = f" RANK {rank}:"
         normal_file = log_path.joinpath(f"{name}_worker_{rank}.log")

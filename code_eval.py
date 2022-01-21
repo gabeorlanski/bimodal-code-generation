@@ -10,7 +10,7 @@ from src.evaluation.code_eval import evaluate_code, BASE_ERROR_TYPES
 from src.config import setup_tracking_env_from_cfg, get_config_for_tracking
 
 
-def run(file_name, num_workers, disable_tracking):
+def run(file_name, num_workers, disable_tracking, input_artifact_name):
     # I just needed a way to get the parent directory.
     path_to_file = Path(file_name)
     path_to_dir = path_to_file.parent
@@ -25,8 +25,14 @@ def run(file_name, num_workers, disable_tracking):
     logger = logging.getLogger('code_eval')
     logger.info("Starting...")
     logger.info(f"Loading eval config from {path_to_dir}")
+
+    # In the case this script is not called from an artifact.
+    if path_to_dir.stem == 'predictions':
+        path_to_cfg = path_to_dir.parent.joinpath('eval_config.yaml')
+    else:
+        path_to_cfg = path_to_dir.joinpath('eval_config.yaml')
     cfg = yaml.load(
-        path_to_dir.joinpath(f'eval_config.yaml').open('r', encoding='utf-8'),
+        path_to_cfg.open('r', encoding='utf-8'),
         yaml.Loader
     )
     cfg = OmegaConf.create(
@@ -40,6 +46,10 @@ def run(file_name, num_workers, disable_tracking):
         num_workers,
         out_dir=Path(), timeout=3.0,
     )
+
+    #####################################################################
+    # TRACKING CODE TO REMOVE ON RELEASE                                #
+    #####################################################################
     with open_dict(cfg):
         cfg.split = path_to_file.stem
     if not disable_tracking:
@@ -48,7 +58,7 @@ def run(file_name, num_workers, disable_tracking):
             job_type='code_eval',
             name=f"{cfg.name}[{path_to_file.stem}]",
             project=cfg.project,
-            group=cfg.group,
+            group=f"{cfg.group}[execution]",
             config=get_config_for_tracking(cfg),
             entity='gabeorlanski'
             # id=run_id
@@ -76,6 +86,9 @@ def run(file_name, num_workers, disable_tracking):
                                          type='execution_metrics')
         metric_artifact.add_file(str(metric_path.resolve().absolute()))
         wandb_run.log_artifact(metric_artifact)
+        if input_artifact_name:
+            wandb_run.use_artifact(f"{input_artifact_name}:latest")
+
         wandb_run.finish()
 
     logger.info("Finished Code Eval")
@@ -90,9 +103,11 @@ if __name__ == "__main__":
                         action="store_true",
                         default=False,
                         help="Disable Tracking")
+    parser.add_argument('--artifact-name', default=None, help='Input artifact name for linking')
     argv, _ = parser.parse_known_args()
     run(
         argv.file_name,
         argv.workers,
-        argv.disable_tracking
+        argv.disable_tracking,
+        argv.artifact_name
     )

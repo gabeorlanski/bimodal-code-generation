@@ -24,6 +24,7 @@ def run(name, task, config_name, force_overwrite_dir, cfg_overrides):
     print(Path().resolve().absolute())
     if Path('wandb_secret.txt').exists():
         os.environ["WANDB_API_KEY"] = open('wandb_secret.txt').read().strip()
+
     group_name = task.upper()
     for i in cfg_overrides:
         if 'group=' in i:
@@ -33,21 +34,21 @@ def run(name, task, config_name, force_overwrite_dir, cfg_overrides):
           f"name={name}, and task={task}")
 
     if not Task.is_name_registered(task):
-
         valid_tasks = ''
         for t in Task.list_available():
             valid_tasks += f'\t{t}\n'
         raise ValueError(f"Unknown Task '{task}'. Valid tasks are:\n{valid_tasks}")
-    new_cwd = Path('outputs', group_name.lower(), "train", name)
-    # if int(os.environ.get('LOCAL_RANK','-1')) <= 0:
-    #     if new_cwd.exists():
-    #         if not force_overwrite_dir:
-    #             raise ValueError(
-    #                 f"Cannot create directory. Dir '{new_cwd.resolve().absolute()}' already exists")
-    #
-    #         print(f"Overriding '{str(new_cwd.resolve().absolute())}'")
-    #         shutil.rmtree(new_cwd)
-    #     new_cwd.mkdir(parents=True)
+
+    new_cwd = Path('outputs', group_name.lower(), name)
+    if not new_cwd.exists():
+        new_cwd.mkdir(parents=True)
+    else:
+        if not force_overwrite_dir:
+            raise ValueError(f"{new_cwd} already exists")
+        else:
+            shutil.rmtree(new_cwd)
+            new_cwd.mkdir(parents=True)
+
     setup_global_logging(
         'train',
         new_cwd.joinpath('logs'),
@@ -88,13 +89,11 @@ def run(name, task, config_name, force_overwrite_dir, cfg_overrides):
     np.random.seed(cfg["numpy_seed"])
     torch.manual_seed(torch_seed)
 
-
     if os.environ.get("LOCAL_RANK", '-1') != '-1' or os.environ['WANDB_DISABLED'] != 'true':
         os.environ['DISABLE_FAST_TOK'] = 'true'
 
     with open_dict(cfg):
         cfg.training.local_rank = int(os.environ.get('LOCAL_RANK', '-1'))
-
 
     # Seed all GPUs with the same seed if available.
     if torch.cuda.is_available():

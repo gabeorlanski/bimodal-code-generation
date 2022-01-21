@@ -11,7 +11,7 @@ import torch
 from omegaconf import DictConfig, OmegaConf, open_dict
 import os
 from pathlib import Path
-from tio import Task
+from datetime import datetime
 
 from src import config
 from src.evaluation import evaluate_model
@@ -104,8 +104,9 @@ def main(
 
     model_cls, model = config.load_model_from_cfg(cfg)
 
+    logger.debug(f"Starting eval loop")
+    start_time = datetime.utcnow()
     splits_to_use = splits.split(',')
-
     pred_dir = Path(cfg.get('out_path', model_path)).joinpath('predictions')
     if not pred_dir.exists():
         pred_dir.mkdir()
@@ -125,6 +126,10 @@ def main(
             for serialized_dict in predictions:
                 f.write(json.dumps(serialized_dict) + '\n')
 
+    end_time = datetime.utcnow() - start_time
+    logger.info(f"Total time spent on evaluation: {end_time}")
+    all_metrics['runtime'] = str(end_time)
+
     with model_path.joinpath('eval_metrics.json').open('w', encoding='utf-8') as f:
         json.dump(all_metrics, f)
 
@@ -134,6 +139,10 @@ def main(
         cfg.split = splits
     with model_path.joinpath(f'eval_config.yaml').open('w') as f:
         f.write(OmegaConf.to_yaml(cfg))
+
+    #####################################################################
+    # TRACKING CODE TO REMOVE ON RELEASE                                #
+    #####################################################################
 
     os.environ['RUN_ID'] = run_id
     if (

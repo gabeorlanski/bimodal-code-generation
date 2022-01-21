@@ -26,9 +26,9 @@ def test_evaluate_code(tmpdir, code_preds_dir):
     assert json.loads(results_path.read_text('utf-8')) == results
 
     expected_overview = {
-        "all_invalid"                 : 0,
-        "tests_mean"                  : 3.0,
-        "preds_total"                 : 8,
+        "info/all_invalid"            : 0,
+        "info/tests_mean"             : 3.0,
+        "info/preds_total"            : 8,
         "valid_syntax/mean"           : 7 / 2,
         "valid_syntax/total"          : 7,
         "valid_syntax/pct_mean"       : 1.75 / 2 * 100,
@@ -41,7 +41,7 @@ def test_evaluate_code(tmpdir, code_preds_dir):
         f"pass@1"                     : estimate_pass_at_k([4, 4], [1, 1], 1).mean() * 100
     }
 
-    for k in [5, 10, 25, 50, 100]:
+    for k in [5, 10, 25, 50]:
         expected_overview[f"pass@{k}"] = 0.0
 
     expected_outcomes = {

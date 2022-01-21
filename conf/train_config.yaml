@@ -34,7 +34,7 @@ training:
   warmup_ratio: 0.05
   weight_decay: 0.1
   gradient_accumulation_steps: 2
-  lr_scheduler_type: 'linear'
+  lr_scheduler_type: 'cosine'
   eval_accumulation_steps: 1
   metric_for_best_model: 'eval_loss'
   load_best_model_at_end: True

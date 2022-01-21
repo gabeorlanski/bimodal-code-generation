@@ -1,19 +1,29 @@
+import math
 from pathlib import Path
 
 import logging
-from omegaconf import OmegaConf, DictConfig
-from transformers import DataCollatorForSeq2Seq
-from transformers import AdamW, get_scheduler
+from omegaconf import OmegaConf, DictConfig, open_dict
+from transformers import (
+    DataCollatorForSeq2Seq, EvalPrediction, AdamW, get_polynomial_decay_schedule_with_warmup
+)
+from functools import partial
+from datasets import set_caching_enabled, Dataset
 import torch
 from tio import Task
 from src import config
 from src.common import get_stats_from_list
 from src.data import langauge_modeling
-from src.trainer import CustomTrainer
-from functools import partial
-from datasets import set_caching_enabled, Dataset
+from src.training.trainer import CustomTrainer
 
 logger = logging.getLogger(__name__)
+
+
+def evaluate_seq2seq(eval_predictions: EvalPrediction, task: Task):
+    preds, targets = eval_predictions
+    return task.evaluate(
+        [[p] for p in task.postprocess(preds)],
+        task.postprocess(targets)
+    )
 
 
 def setup_seq2seq(cfg, task):
@@ -37,7 +47,7 @@ def setup_seq2seq(cfg, task):
         for metric, value in get_stats_from_list(target_lens).items():
             logger.info(f"\t\t{metric} = {value:0.2f}")
 
-    return train_data, validation_data, evaluate
+    return train_data, validation_data, partial(evaluate_seq2seq, task=task)
 
 
 def setup_lm(cfg, task):
@@ -66,10 +76,9 @@ def setup_lm(cfg, task):
 
     logger.info("Getting validation data")
     validation_data = make_split('validation')
-    return train_data, validation_data, evaluate
+    return train_data, validation_data, None
 
 
-# TODO(gabeorlanski): Add in parallel support
 def train_model(cfg: DictConfig):
     """
     Train a model with a given task.
@@ -103,8 +112,14 @@ def train_model(cfg: DictConfig):
             tokenizer=tokenizer,
             padding='longest',
             pad_to_multiple_of=2,
-            return_tensors='pt'
+            return_tensors='pt',
+            label_pad_token_id=tokenizer.pad_token_id
         )
+        with open_dict(cfg):
+            cfg.training.predict_with_generate = True
+
+        for k, v in cfg.generation.items():
+            setattr(model.config, k, v)
     elif cfg.objective == "lm":
         logger.info("Setting up the LM objective")
 
@@ -147,8 +162,10 @@ def train_model(cfg: DictConfig):
         model=model,
         args=train_args,
         eval_dataset=validation_data,
+        tokenizer=tokenizer,
         train_dataset=train_data,
         data_collator=collator,
+        compute_metrics=evaluate_fn,
 
     )
     trainer.train()
@@ -160,7 +177,22 @@ def train_model(cfg: DictConfig):
     return
 
 
-def evaluate(args, model, data_loader, device):
+def get_grouped_params(model, args, no_decay=None):
+    if no_decay is None:
+        no_decay = ["bias", "LayerNorm.weight"]
+    params_with_wd, params_without_wd = [], []
+    for n, p in model.named_parameters():
+        if any(nd in n for nd in no_decay):
+            params_without_wd.append(p)
+        else:
+            params_with_wd.append(p)
+    return [{
+        "params": params_with_wd, "weight_decay": args.weight_decay
+    },
+        {"params": params_without_wd, "weight_decay": 0.0}]
+
+
+def evaluate_lm(args, model, data_loader, device):
     model.eval()
     losses = []
     for step, batch in enumerate(data_loader):

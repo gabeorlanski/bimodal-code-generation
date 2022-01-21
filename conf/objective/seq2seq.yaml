@@ -3,3 +3,10 @@ defaults:
   - _self_
 
 objective: seq2seq
+generation:
+  max_length: 512
+training:
+  predict_with_generate: True
+  learning_rate: 1e-5
+  metric_for_best_model: 'eval_bleu'
+  gradient_accumulation_steps: 1
