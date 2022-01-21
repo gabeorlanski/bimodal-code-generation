@@ -14,8 +14,6 @@ from pathlib import Path
 from tio import Task
 
 from src import config
-from src.config import get_device_from_cfg, load_model_from_cfg, merge_configs, \
-    setup_tracking_env_from_cfg
 from src.evaluation import evaluate_model
 from src.common import setup_global_logging
 
@@ -74,7 +72,7 @@ def main(
     ]
     initialize(config_path="conf", job_name="evaluate")
     cfg = compose(config_name="eval_config", overrides=cfg_overrides)
-    cfg = merge_configs(cfg, train_cfg, exclude_keys=['preprocessors', 'postprocessors'])
+    cfg = config.merge_configs(cfg, train_cfg, exclude_keys=['preprocessors', 'postprocessors'])
 
     with open_dict(cfg):
         for k in ['preprocessors', 'postprocessors']:
@@ -82,7 +80,7 @@ def main(
             cfg_processors = OmegaConf.to_object(cfg[k]) if k in cfg else []
             cfg[k] = train_processors + cfg_processors
 
-    setup_tracking_env_from_cfg(cfg)
+    config.setup_tracking_env_from_cfg(cfg)
 
     seed = cfg["seed"]
     numpy_seed = cfg["numpy_seed"]
@@ -104,7 +102,7 @@ def main(
         with open_dict(cfg):
             cfg.task = train_cfg.task
 
-    model_cls, model = load_model_from_cfg(cfg)
+    model_cls, model = config.load_model_from_cfg(cfg)
 
     splits_to_use = splits.split(',')
 
@@ -145,12 +143,13 @@ def main(
         run = wandb.init(
             job_type='evaluate',
             name=cfg.name,
-            project=os.getenv("WANDB_PROJECT", "huggingface"),
+            project=cfg.project,
             group=cfg.group,
             config=config.get_config_for_tracking(cfg),
             id=run_id
         )
-        run.config = config.get_config_for_tracking(cfg)
+
+        run.config.update(config.get_config_for_tracking(cfg))
         run.log({f"eval/{k}": v for k, v in all_metrics.items()}, step=1)
         preds_artifact = wandb.Artifact(f"{cfg.group}.{cfg.name}.{cfg.task.name}",
                                         type='predictions')
