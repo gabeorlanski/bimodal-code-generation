@@ -94,18 +94,14 @@ def generate_predictions(
                 progress_bar.update(1)
 
             b = batch['input_ids'].size()[0]
-            pred_tensors = [None for _ in range(seq_per_sample * b)]
-            max_len = max(map(len,generated_results))
-            for i, gen in enumerate(generated_results):
+            postprocessed_preds = [None for _ in range(seq_per_sample * b)]
+            for i, gen in enumerate(map(task.postprocess, generated_results)):
                 for j, pred in enumerate(gen):
                     seq_idx, offset = divmod(j, num_return_sequences)
                     idx = (i * num_return_sequences) + seq_idx * seq_per_sample + offset
-                    pred_tensors[idx] = pred+[task.tokenizer.pad_token_id]*(max_len-len(pred))
+                    postprocessed_preds[idx] = pred
 
-            preds = np.vstack(pred_tensors)
-            preds[preds == 0] = task.tokenizer.pad_token_id
-            postprocessed_preds, postprocessed_targets = task.postprocess(
-                preds,
+            postprocessed_targets = task.postprocess(
                 batch["labels"].numpy()
             )
             for i in range(batch['input_ids'].shape[0]):
