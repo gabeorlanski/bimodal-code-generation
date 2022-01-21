@@ -1,5 +1,4 @@
 #!/bin/bash
-#SBATCH --job-name=train-adv-code
 #SBATCH --output=./logs/%x_eval.out
 #SBATCH --time=05:00:00
 #SBATCH --gres=gpu:1
