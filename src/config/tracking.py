@@ -82,7 +82,6 @@ class TrackingCallback(WandbCallback):
 
 def get_config_for_tracking(cfg: Union[DictConfig, Dict]):
     out_cfg = OmegaConf.to_object(cfg) if isinstance(cfg, DictConfig) else copy(cfg)
-    out_cfg.pop('training')
     out_cfg.pop('tracking')
     out_cfg.pop('name')
     out_cfg.pop('group')

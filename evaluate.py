@@ -150,6 +150,7 @@ def main(
             config=config.get_config_for_tracking(cfg),
             id=run_id
         )
+        run.config = config.get_config_for_tracking(cfg)
         run.log({f"eval/{k}": v for k, v in all_metrics.items()}, step=1)
         preds_artifact = wandb.Artifact(f"{cfg.group}.{cfg.name}.{cfg.task.name}",
                                         type='predictions')
