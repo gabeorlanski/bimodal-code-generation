@@ -39,15 +39,15 @@ def run(name, task, config_name, force_overwrite_dir, cfg_overrides):
             valid_tasks += f'\t{t}\n'
         raise ValueError(f"Unknown Task '{task}'. Valid tasks are:\n{valid_tasks}")
     new_cwd = Path('outputs', group_name.lower(), name)
-    if int(os.environ.get("LOCAL_RANK", '-1')) <= 0:
-        if not new_cwd.exists():
-            new_cwd.mkdir(parents=True)
-        else:
-            if not force_overwrite_dir:
-                raise ValueError(f"{new_cwd} already exists")
-            else:
-                shutil.rmtree(new_cwd)
-                new_cwd.mkdir(parents=True)
+    # if int(os.environ.get("LOCAL_RANK", '-1')) <= 0:
+    #     if not new_cwd.exists():
+    #         new_cwd.mkdir(parents=True)
+    #     else:
+    #         if not force_overwrite_dir:
+    #             raise ValueError(f"{new_cwd} already exists")
+    #         else:
+    #             shutil.rmtree(new_cwd)
+    #             new_cwd.mkdir(parents=True)
 
     setup_global_logging(
         'train',
