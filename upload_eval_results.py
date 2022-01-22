@@ -40,7 +40,7 @@ def main(
     )
     run.config.update(config.get_config_for_tracking(cfg))
     run.log({f"eval/{k}": v for k, v in metrics.items()}, step=1)
-    preds_artifact = wandb.Artifact(f"{cfg.group}.{cfg.name}.{cfg.task.name}",
+    preds_artifact = wandb.Artifact(f"{cfg.group}.{cfg.name}",
                                     type='predictions')
 
     preds_artifact.add_dir(str(path_to_dir.joinpath('predictions').resolve().absolute()))

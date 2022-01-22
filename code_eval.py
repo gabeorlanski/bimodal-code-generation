@@ -1,4 +1,5 @@
 import argparse
+import json
 import logging
 from omegaconf import OmegaConf, open_dict
 from pathlib import Path
@@ -8,12 +9,12 @@ import wandb
 from src.common import setup_global_logging
 from src.evaluation.code_eval import evaluate_code, BASE_ERROR_TYPES
 from src.config import setup_tracking_env_from_cfg, get_config_for_tracking
+from src.common.util import flatten
 
 
-def run(file_name, num_workers, disable_tracking, input_artifact_name):
+def run(pred_dir, num_workers, disable_tracking, input_artifact_name, timeout):
     # I just needed a way to get the parent directory.
-    path_to_file = Path(file_name)
-    path_to_dir = path_to_file.parent
+    path_to_dir = Path(pred_dir)
     if not path_to_dir.exists():
         raise FileExistsError(f"{path_to_dir.resolve().absolute()} does not exist.")
     setup_global_logging(
@@ -40,51 +41,60 @@ def run(file_name, num_workers, disable_tracking, input_artifact_name):
     )
     setup_tracking_env_from_cfg(cfg)
 
-    logger.info(f"Executing code from {path_to_file}")
-    results, outcome_keys, metric_path = evaluate_code(
-        str(path_to_file),
-        num_workers,
-        out_dir=Path(), timeout=3.0,
-    )
+    all_results = {}
+
+    for split_file in path_to_dir.glob('*.jsonl'):
+        split = split_file.stem
+        logger.info(f"Executing code from {split_file}")
+        results = evaluate_code(
+            str(split_file),
+            samples_per_problem=cfg.seq_per_sample,
+            num_workers=num_workers,
+            timeout=timeout
+        )
+        all_results[split] = results
+
+    save_path = path_to_dir.joinpath(f'execution_metrics.json')
+    logger.info(f"Saving {save_path}")
+    with save_path.open('w', encoding='utf-8') as f:
+        json.dump(all_results, f, indent=True)
 
     #####################################################################
     # TRACKING CODE TO REMOVE ON RELEASE                                #
     #####################################################################
-    with open_dict(cfg):
-        cfg.split = path_to_file.stem
     if not disable_tracking:
         os.environ["WANDB_API_KEY"] = open('wandb_secret.txt').read().strip()
         wandb_run = wandb.init(
             job_type='code_eval',
-            name=f"{cfg.name}[{path_to_file.stem}]",
+            name=f"{cfg.name}",
             project=cfg.project,
             group=f"{cfg.group}[execution]",
             config=get_config_for_tracking(cfg),
             entity='gabeorlanski'
             # id=run_id
         )
-        overview_metrics = results['overview']
-        outcome_metrics = {}
-        counts_table = []
-        for k in sorted(outcome_keys):
-            key = k.replace(" ", "_")
-            raw_val = overview_metrics.pop(key)
-            raw_pct = overview_metrics.pop(f"{key}_pct")
-            outcome_metrics[f"outcomes/{key}"] = raw_val
-            outcome_metrics[f"outcomes_pct/{key}"] = raw_pct
-            counts_table.append([key, raw_val, raw_pct])
-        counts_table = wandb.Table(data=counts_table, columns=['Outcome', 'Count', 'Percent'])
+        metrics_to_log_dict = {}
+        for split, split_dict in all_results.items():
+            split_metrics = split_dict['overview']
+            split_metrics['outcome_counts'] = split_dict['outcome_counts']
+            split_metrics['outcome_pcts'] = split_dict['outcome_pcts']
+            outcome_table = []
+
+            for k, counts_values in split_dict['outcome_counts'].items():
+                outcome_table.append([k, counts_values, split_dict['outcome_pcts'][k]])
+
+            split_metrics['tables/outcome_table'] = wandb.Table(
+                data=outcome_table,
+                columns=['Outcome', 'Count', 'Percent']
+            )
+            metrics_to_log_dict[split] = split_metrics
 
         # WandB does not like logging things from the same step at different
         # times. Hence the ugly dict.
-        wandb_run.log({
-            'outcome_table': counts_table,
-            **outcome_metrics,
-            **{f"{'eval/' if '/' not in k else ''}{k}": v for k, v in overview_metrics.items()}
-        })
-        metric_artifact = wandb.Artifact(f"{cfg.group}.{cfg.name}.{cfg.task.name}.{cfg.split}",
+        wandb_run.log(flatten(metrics_to_log_dict, sep='/'), step=1)
+        metric_artifact = wandb.Artifact(f"{cfg.group}.{cfg.name}.execution",
                                          type='execution_metrics')
-        metric_artifact.add_file(str(metric_path.resolve().absolute()))
+        metric_artifact.add_file(str(save_path.resolve().absolute()))
         wandb_run.log_artifact(metric_artifact)
         if input_artifact_name:
             wandb_run.use_artifact(f"{input_artifact_name}:latest")
@@ -104,10 +114,12 @@ if __name__ == "__main__":
                         default=False,
                         help="Disable Tracking")
     parser.add_argument('--artifact-name', default=None, help='Input artifact name for linking')
+    parser.add_argument('--timeout', default=3.0, type=float, help='Timeout for executing code')
     argv, _ = parser.parse_known_args()
     run(
         argv.file_name,
         argv.workers,
         argv.disable_tracking,
-        argv.artifact_name
+        argv.artifact_name,
+        argv.timeout
     )

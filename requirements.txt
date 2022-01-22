@@ -5,3 +5,4 @@ overrides==6.1.0
 sacrebleu==2.0.0
 wandb==0.12.9
 torch==1.10.1+cu113
+sentencepiece==0.1.96
