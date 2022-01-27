@@ -42,7 +42,8 @@ def main(
     else:
         use_train_task = True
         task = train_cfg.task.name
-    working_dir = PROJECT_ROOT.joinpath('outputs', 'evaluation', task.upper(), train_cfg.name)
+    working_dir = PROJECT_ROOT.joinpath('eval_results', task.upper(),
+                                        f"{train_cfg.group}.{train_cfg.name}")
     if not working_dir.exists():
         working_dir.mkdir(parents=True)
 

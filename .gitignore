@@ -140,3 +140,5 @@ scratch
 scratch_artifacts
 
 best_models/
+
+eval_results/
