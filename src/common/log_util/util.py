@@ -35,11 +35,11 @@ def setup_global_logging(
         else Path("logs")
     )
 
-    # Validate the path and clear the existing log file
-    if not Path(log_path).exists():
-        Path(log_path).mkdir(parents=True)
-
     if world_size <= 1:
+        # Validate the path and clear the existing log file
+        if not Path(log_path).exists():
+            Path(log_path).mkdir(parents=True)
+
         rank_str = ''
         normal_file = log_path.joinpath(f"{name}.log")
         error_file = log_path.joinpath(f"{name}.issues.log")
