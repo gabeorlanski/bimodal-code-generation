@@ -1,18 +1,12 @@
-import copy
 import json
-import logging
 import argparse
-import random
-import numpy as np
 import wandb
 from hydra import compose, initialize
-import yaml
-import torch
 from omegaconf import DictConfig, OmegaConf, open_dict
 import os
-from pathlib import Path
 
 from src import config
+from src.common import PROJECT_ROOT
 
 
 def main(
@@ -20,7 +14,7 @@ def main(
         hydra_overrides
 ):
     os.environ["WANDB_API_KEY"] = open('wandb_secret.txt').read().strip()
-    path_to_dir = Path(path_to_dir)
+    path_to_dir = PROJECT_ROOT.joinpath(path_to_dir)
     metrics = json.loads(path_to_dir.joinpath('eval_metrics.json').read_text('utf-8'))
 
     initialize(config_path=str(path_to_dir), job_name="evaluate")

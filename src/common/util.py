@@ -1,12 +1,13 @@
 import collections
 from typing import Dict, List
 import numpy as np
+import os
 
 __all__ = [
     "flatten",
-    "get_stats_from_list"
+    "get_stats_from_list",
+    "is_currently_distributed"
 ]
-
 
 def flatten(d: Dict, parent_key: str = '', sep: str = '_') -> Dict:
     """
@@ -37,3 +38,8 @@ def get_stats_from_list(values: List[int]):
         "median": np.median(values),
         "max"   : np.max(values)
     }
+
+
+def is_currently_distributed() -> bool:
+    return int(os.environ.get('WORLD_SIZE', "-1")) > 1
+

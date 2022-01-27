@@ -1,9 +1,11 @@
-from typing import Dict, Optional, Union
+import math
+from pathlib import Path
+from typing import Dict, Optional, Union, Tuple
 import logging
-from omegaconf import DictConfig
-from transformers import Seq2SeqTrainer, ProgressCallback, TrainerCallback
+from omegaconf import DictConfig, OmegaConf
+from transformers import TrainerCallback
+from transformers.trainer_seq2seq import Seq2SeqTrainer
 from transformers.integrations import WandbCallback
-from overrides import overrides
 from tqdm import tqdm
 import collections
 from datetime import datetime, timedelta
@@ -75,7 +77,6 @@ class BetterProgress(TrainerCallback):
         pass
 
 
-
 class CustomTrainer(Seq2SeqTrainer):
     def __init__(self, cfg: DictConfig, *args, **kwargs):
         # Initialize the variables to supress warnings
@@ -92,6 +93,13 @@ class CustomTrainer(Seq2SeqTrainer):
             self.callback_handler.add_callback(TrackingCallback('training', cfg))
 
         self.train_stats = None
+        self.cfg = cfg
+
+    def save_model(self, output_dir: Optional[str] = None):
+        super(CustomTrainer, self).save_model(output_dir)
+        cfg_path = Path(output_dir).joinpath('config.yaml')
+        with cfg_path.open('w', encoding='utf-8') as f:
+            f.write(OmegaConf.to_yaml(self.cfg, resolve=True))
 
 
 def create_log_metric_message(

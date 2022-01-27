@@ -4,16 +4,17 @@ from pathlib import Path
 import logging
 from omegaconf import OmegaConf, DictConfig, open_dict
 from transformers import (
-    DataCollatorForSeq2Seq, EvalPrediction, AdamW, get_polynomial_decay_schedule_with_warmup
+    DataCollatorForSeq2Seq, EvalPrediction, AdamW
 )
 from functools import partial
 from datasets import set_caching_enabled, Dataset
 import torch
 from tio import Task
 from src import config
-from src.common import get_stats_from_list
+from src.common import get_stats_from_list, PROJECT_ROOT
 from src.data import langauge_modeling
 from src.training.trainer import CustomTrainer
+from src.config import get_steps_from_training_args, get_lr_scheduler_from_cfg
 
 logger = logging.getLogger(__name__)
 
@@ -24,6 +25,26 @@ def evaluate_seq2seq(eval_predictions: EvalPrediction, task: Task):
         [[p] for p in task.postprocess(preds)],
         task.postprocess(targets)
     )
+
+
+def evaluate_lm(args, model, data_loader, device):
+    model.eval()
+    losses = []
+    for step, batch in enumerate(data_loader):
+        local_batch = {k: v.to(device) for k, v in batch.items()}
+        with torch.no_grad():
+            outputs = model(
+                local_batch['input_ids'],
+                labels=local_batch.get('labels', local_batch['input_ids'])
+            )
+        loss = outputs.loss.repeat(args.eval_batch_size)
+        losses.append(loss)
+    loss = torch.mean(torch.cat(losses))
+    try:
+        perplexity = torch.exp(loss)
+    except OverflowError:
+        perplexity = float("inf")
+    return {'loss': loss.item(), 'perplexity': perplexity.item()}
 
 
 def setup_seq2seq(cfg, task):
@@ -161,6 +182,21 @@ def train_model(cfg: DictConfig):
                 f"{arg_name:>30} = {getattr(train_args, arg_name)}"
             )
 
+    logger.info(f"Setting up the optimizer")
+    optimizer = AdamW(
+        get_grouped_params(model, train_args),
+        lr=train_args.learning_rate,
+        betas=(train_args.adam_beta1, train_args.adam_beta2),
+        eps=train_args.adam_epsilon,
+        weight_decay=train_args.weight_decay
+    )
+
+    total_steps, warmup_steps = get_steps_from_training_args(train_args, train_data)
+
+    logger.info(f"{total_steps} total training steps and {warmup_steps} warmup")
+
+    lr_scheduler = get_lr_scheduler_from_cfg(train_args, optimizer, total_steps, warmup_steps)
+
     device = train_args.device
     logger.info(f"Using device {device}")
     trainer = CustomTrainer(
@@ -172,15 +208,12 @@ def train_model(cfg: DictConfig):
         train_dataset=train_data,
         data_collator=collator,
         compute_metrics=evaluate_fn,
+        optimizers=(optimizer, lr_scheduler)
 
     )
     trainer.train()
 
-    if cfg.training.local_rank <= 0:
-        logger.info(f"Saving best model to {Path().joinpath('best_model').absolute().resolve()}")
-        trainer.model.save_pretrained(Path().joinpath('best_model'))
-
-    return
+    return trainer.model
 
 
 def get_grouped_params(model, args, no_decay=None):
@@ -196,23 +229,3 @@ def get_grouped_params(model, args, no_decay=None):
         "params": params_with_wd, "weight_decay": args.weight_decay
     },
         {"params": params_without_wd, "weight_decay": 0.0}]
-
-
-def evaluate_lm(args, model, data_loader, device):
-    model.eval()
-    losses = []
-    for step, batch in enumerate(data_loader):
-        local_batch = {k: v.to(device) for k, v in batch.items()}
-        with torch.no_grad():
-            outputs = model(
-                local_batch['input_ids'],
-                labels=local_batch.get('labels', local_batch['input_ids'])
-            )
-        loss = outputs.loss.repeat(args.eval_batch_size)
-        losses.append(loss)
-    loss = torch.mean(torch.cat(losses))
-    try:
-        perplexity = torch.exp(loss)
-    except OverflowError:
-        perplexity = float("inf")
-    return {'loss': loss.item(), 'perplexity': perplexity.item()}

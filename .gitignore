@@ -138,3 +138,5 @@ wandb/
 logs/
 scratch
 scratch_artifacts
+
+best_models/

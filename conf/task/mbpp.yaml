@@ -1,5 +1,7 @@
-name: mbpp
+# @package _global_
+defaults:
+  - _self_
 
-paths:
-  train: "MBPP/train.jsonl"
-  validation: "MBPP/validation.jsonl"
+task:
+  name: mbpp
+

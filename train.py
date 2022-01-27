@@ -12,15 +12,15 @@ import shutil
 
 from tio import Task
 
-from src.common import setup_global_logging
+from src.common import setup_global_logging, is_currently_distributed
 from src.training import train_model
-from src.config import setup_tracking_env_from_cfg
+from src.config import setup_tracking_env_from_cfg, get_run_base_name_from_cfg
 
 # Hydra Messes with the CWD, so we need to save it at the beginning.
 PROJECT_ROOT = Path.cwd()
 
 
-def run(name, task, config_name, force_overwrite_dir, cfg_overrides):
+def run(name, task, config_name, force_overwrite_dir, cfg_overrides, debug):
     print(Path().resolve().absolute())
     if Path('wandb_secret.txt').exists():
         os.environ["WANDB_API_KEY"] = open('wandb_secret.txt').read().strip()
@@ -39,19 +39,20 @@ def run(name, task, config_name, force_overwrite_dir, cfg_overrides):
             valid_tasks += f'\t{t}\n'
         raise ValueError(f"Unknown Task '{task}'. Valid tasks are:\n{valid_tasks}")
     new_cwd = Path('outputs', group_name.lower(), name)
-    # if int(os.environ.get("LOCAL_RANK", '-1')) <= 0:
-    #     if not new_cwd.exists():
-    #         new_cwd.mkdir(parents=True)
-    #     else:
-    #         if not force_overwrite_dir:
-    #             raise ValueError(f"{new_cwd} already exists")
-    #         else:
-    #             shutil.rmtree(new_cwd)
-    #             new_cwd.mkdir(parents=True)
+    if not is_currently_distributed():
+        if not new_cwd.exists():
+            new_cwd.mkdir(parents=True)
+        else:
+            if not force_overwrite_dir:
+                raise ValueError(f"{new_cwd} already exists")
+            else:
+                shutil.rmtree(new_cwd)
+                new_cwd.mkdir(parents=True)
 
     setup_global_logging(
         'train',
         new_cwd.joinpath('logs'),
+        debug=debug,
         rank=int(os.environ.get('LOCAL_RANK', '-1')),
         world_size=int(os.environ.get("WORLD_SIZE", 1))
     )
@@ -63,6 +64,8 @@ def run(name, task, config_name, force_overwrite_dir, cfg_overrides):
     # We need to add the name and task (task uppercase is also the group) to the
     # hydra configs.
     cfg_overrides = [f"name={name}", f"task={task}", f"group={group_name}"] + cfg_overrides
+    if debug:
+        cfg_overrides += ['debug=True']
 
     initialize(config_path="conf", job_name="train")
     cfg = compose(config_name=config_name, overrides=cfg_overrides)
@@ -99,7 +102,26 @@ def run(name, task, config_name, force_overwrite_dir, cfg_overrides):
     if torch.cuda.is_available():
         torch.cuda.manual_seed_all(torch_seed)
 
-    train_model(cfg)
+    model = train_model(cfg)
+
+    if cfg.training.local_rank <= 0:
+        best_models_path = PROJECT_ROOT.joinpath('best_models', get_run_base_name_from_cfg(cfg))
+        save_model = True
+        if best_models_path.exists():
+            if force_overwrite_dir:
+                logger.info(f"Overwriting {best_models_path}")
+                shutil.rmtree(best_models_path)
+            else:
+                save_model = False
+        if save_model:
+            logger.info(
+                f"Saving best model to {best_models_path.absolute().resolve()}")
+            model.save_pretrained(best_models_path)
+            with best_models_path.joinpath('config.yaml').open('w', encoding='utf-8') as f:
+                f.write(OmegaConf.to_yaml(cfg, resolve=True))
+        else:
+            logger.error(f"Could not save best model, {best_models_path} exists"
+                         f" and force is not enabled.")
     logger.info("Training Is Done")
 
 
@@ -113,6 +135,11 @@ if __name__ == "__main__":
                         action="store_true",
                         default=False,
                         help="Force overwriting the directory if it exists.")
+
+    parser.add_argument('-debug',
+                        action="store_true",
+                        default=False,
+                        help="Debug Mode")
     # This lets us have virtually the same exact setup as the hydra decorator
     # without their annoying working directory and logging.
     parser.add_argument('--hydra-overrides', '-hydra', nargs=argparse.REMAINDER,
@@ -125,5 +152,6 @@ if __name__ == "__main__":
         argv.task,
         argv.config,
         argv.force_overwrite_dir,
-        argv.hydra_overrides
+        argv.hydra_overrides,
+        argv.debug
     )
