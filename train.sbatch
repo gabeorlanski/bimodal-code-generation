@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH --output=./logs/%x_train.out
 #SBATCH --time=02:00:00
-#SBATCH --gres=gpu:4
+#SBATCH --gres=gpu:{rtx8000}:4
 #SBATCH --mem=64G
 #SBATCH -c 4
 
@@ -10,5 +10,10 @@ singularity exec --nv --overlay $SCRATCH/overlay-50G-10M.ext3:ro /scratch/work/p
 source /ext3/env.sh
 conda activate adversarial-code
 echo $(pwd)
-torchrun --nproc_per_node=4 train.py $1 $2 --config greene_config -force -hydra model='$3' objective='$4' +disable_cache=True ${@:5}
+python scripts/prepare_train_environment.py $1 $2 --config greene_config -force \
+  -hydra model='$3' objective='$4' +disable_cache=True \
+  ${@:5}
+torchrun --nproc_per_node=4 train.py $1 $2 --config greene_config -force \
+  -hydra model='$3' objective='$4' +disable_cache=True \
+  ${@:5}
 "
