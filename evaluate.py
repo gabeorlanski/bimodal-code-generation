@@ -37,8 +37,12 @@ def main(
             yaml.Loader
         )
     )
-
-    working_dir = PROJECT_ROOT.joinpath('outputs', train_cfg.group, train_cfg.name)
+    if task is not None:
+        use_train_task = False
+    else:
+        use_train_task = True
+        task = train_cfg.task.name
+    working_dir = PROJECT_ROOT.joinpath('outputs', 'evaluation', task.upper(), train_cfg.name)
     if not working_dir.exists():
         working_dir.mkdir(parents=True)
 
@@ -59,11 +63,6 @@ def main(
                                                                   'true') != 'true':
         os.environ['DISABLE_FAST_TOK'] = 'true'
 
-    if task is not None:
-        use_train_task = False
-    else:
-        use_train_task = True
-        task = train_cfg.task.name
     logger.info(f"Using split '{splits}' for task '{task}'")
     logger.debug(f"Zero shot is {'enabled' if zero_shot else 'disabled'}.")
     logger.debug(f"{seq_per_sample} sequences to be generated per sample.")
@@ -159,8 +158,9 @@ def main(
         run = wandb.init(
             job_type='evaluate',
             name=cfg.name,
-            project=cfg.project,
+            project=os.getenv('WANDB_PROJECT'),
             group=cfg.group,
+            entity=os.getenv('WANDB_ENTITY'),
             config=config.get_config_for_tracking(cfg),
             id=run_id
         )

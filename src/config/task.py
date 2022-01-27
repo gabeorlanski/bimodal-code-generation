@@ -37,24 +37,33 @@ def load_processors_from_cfg(cfg: DictConfig) -> Tuple[List[Callable], List[Call
             for name, func_kwargs in map(lambda d: next(iter(d.items())), processor_list)
         ]
 
-    preprocessors = _create_processors(Preprocessor, cfg.get('preprocessors', []))
-    postprocessors = _create_processors(Postprocessor, cfg.get('postprocessors', []))
+    preprocessor_list = cfg.get('preprocessors', [])
+    postprocessor_list = cfg.get('postprocessors', [])
+
+    task_preprocessors = cfg.task.get('preprocessors', [])
+    task_postprocessors = cfg.task.get('postprocessors', [])
+    logger.info(f"{len(task_preprocessors)} task preprocessors")
+    logger.info(f"{len(task_postprocessors)} task postprocessors")
 
     model_type_preprocessors = cfg.get('model_type', {}).get('preprocessors', [])
     model_type_postprocessors = cfg.get('model_type', {}).get('postprocessors', [])
-    if model_type_preprocessors:
-        logger.info(
-            f"Found {len(model_type_preprocessors)} preprocessors specific to the model type"
-        )
-    if model_type_postprocessors:
-        logger.info(
-            f"Found {len(model_type_postprocessors)} postprocessors specific to the model type"
-        )
+    logger.info(
+        f"Found {len(model_type_preprocessors)} preprocessors specific to the model type"
+    )
+    logger.info(
+        f"Found {len(model_type_postprocessors)} postprocessors specific to the model type"
+    )
+    if cfg.task.get('override_processors', False):
+        logger.warning("Overriding processors with task processors.")
+        preprocessor_list = task_preprocessors
+        postprocessor_list = task_postprocessors
+    else:
+        logger.info('Using all processors')
+        preprocessor_list = preprocessor_list + task_preprocessors + model_type_preprocessors
+        postprocessor_list = postprocessor_list + task_postprocessors + model_type_postprocessors
 
-    preprocessors.extend(_create_processors(Preprocessor, model_type_preprocessors or []))
-    postprocessors = _create_processors(
-        Postprocessor,
-        model_type_postprocessors or []) + postprocessors
+    preprocessors = _create_processors(Preprocessor, preprocessor_list)
+    postprocessors = _create_processors(Postprocessor, postprocessor_list)
 
     logger.info(f"{len(preprocessors)} total preprocessors")
     logger.info(f"{len(postprocessors)} total postprocessors")

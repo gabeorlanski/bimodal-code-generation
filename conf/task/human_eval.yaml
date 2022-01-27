@@ -1,0 +1,8 @@
+
+defaults:
+  - _self_
+
+name: human_eval
+postprocessors: [ ]
+preprocessors: [ ]
+override_processors: True

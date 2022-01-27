@@ -5,4 +5,4 @@ defaults:
 objective: lm
 
 data_args:
-  seq_length: 512
+  seq_length: 1024
