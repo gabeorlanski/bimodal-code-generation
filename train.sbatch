@@ -1,7 +1,8 @@
 #!/bin/bash
 #SBATCH --output=./logs/%x_train.out
 #SBATCH --time=02:00:00
-#SBATCH --gres=gpu:{rtx8000}:4
+#SBATCH --gres=gpu:4
+#SBATCH --partition=rtx8000
 #SBATCH --mem=64G
 #SBATCH -c 4
 
