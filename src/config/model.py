@@ -1,6 +1,7 @@
 """
 Config related util functions.
 """
+from pathlib import Path
 from typing import Callable, Tuple
 
 import torch
@@ -44,16 +45,21 @@ def get_device_from_cfg(cfg: DictConfig) -> torch.device:
         return torch.device(f'cuda{":" + device_str if device_str != "cuda" else ""}')
 
 
-def load_model_from_cfg(cfg: DictConfig) -> Tuple[Callable, PreTrainedModel]:
+def load_model_from_cfg(
+        cfg: DictConfig,
+        model_path: Path = None
+) -> Tuple[Callable, PreTrainedModel]:
     logger.info(f"Loading model '{cfg['model']}' of type "
                 f"'{cfg['objective']}'")
     model_cls = MODEL_TYPE_TO_CLS[cfg['objective']]
 
     logger.info(f"Loading '{cfg['model']}' from HuggingFace'")
     if cfg['is_checkpoint']:
-        logger.info(f"Loading checkpoint 'best_model` from '{cfg['model_path']}'")
-        model_path = PROJECT_ROOT.joinpath(cfg["model_path"],'best_model')
-        model = model_cls.from_pretrained(model_path)
+        if model_path is None:
+            model_path = PROJECT_ROOT.joinpath(cfg["model_path"], 'best_model')
+
+        logger.info(f"Loading checkpoint from {model_path}")
+        model = model_cls.from_pretrained(str(model_path.resolve().absolute()))
     else:
         model = model_cls.from_pretrained(cfg['model'])
     return model_cls, model

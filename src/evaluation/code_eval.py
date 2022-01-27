@@ -97,6 +97,7 @@ def get_samples(file_path, samples_per_problem) -> Tuple[List[Sample], List, Dic
             np.array(total_valid_preds) / samples_per_problem * 100
         )
     )
+    logger.info(f"{len(all_samples)} unique tasks")
 
     # Adding the / to some metrics to better separate them
     metrics['info/preds_total'] = metrics.pop('preds_total')
@@ -158,7 +159,7 @@ def evaluate_code(
 
     logger.info("Metrics:")
     for k in sorted(overview_metrics.keys()):
-        logger.info(f"\t{k:>24} = {overview_metrics[k]:0.3f}")
+        logger.info(f"\t{k:>32} = {overview_metrics[k]:0.3f}")
 
     result_metrics = {
         "overview"          : overview_metrics,
@@ -235,16 +236,10 @@ def parse_results(results, pred_count, invalid_syntax_by_idx, all_invalid, sampl
     correct = np.array(correct)
     runtime_errors = np.array(runtime_errors)
 
-    metrics = {
-        **get_metrics_from_list(
-            'correct_pct',
-            correct / samples_per_problem * 100
-        ),
-        **get_metrics_from_list(
-            'runtime_error_pct',
-            runtime_errors / samples_per_problem * 100
-        )
-    }
+    metrics = get_metrics_from_list(
+        'runtime_error_pct',
+        runtime_errors / samples_per_problem * 100
+    )
 
     return results_by_task_id, global_error_tracker, metrics, (correct, runtime_errors)
 

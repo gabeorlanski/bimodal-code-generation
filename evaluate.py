@@ -15,7 +15,7 @@ from datetime import datetime
 
 from src import config
 from src.evaluation import evaluate_model
-from src.common import setup_global_logging
+from src.common import setup_global_logging, PROJECT_ROOT
 
 
 def main(
@@ -26,14 +26,27 @@ def main(
         task,
         hydra_overrides
 ):
-    model_path = Path(model_path)
+    model_path = Path(model_path).resolve().absolute()
 
     if Path('wandb_secret.txt').exists():
         os.environ["WANDB_API_KEY"] = open('wandb_secret.txt').read().strip()
 
+    train_cfg = OmegaConf.create(
+        yaml.load(
+            model_path.joinpath('config.yaml').open('r', encoding='utf-8'),
+            yaml.Loader
+        )
+    )
+
+    working_dir = PROJECT_ROOT.joinpath('outputs', train_cfg.group, train_cfg.name)
+    if not working_dir.exists():
+        working_dir.mkdir(parents=True)
+
+    os.chdir(working_dir.resolve().absolute())
+
     setup_global_logging(
         'evaluate',
-        model_path.joinpath('logs'),
+        working_dir.joinpath('logs'),
         rank=int(os.environ.get('LOCAL_RANK', '-1')),
         world_size=int(os.environ.get("WORLD_SIZE", 1))
     )
@@ -41,12 +54,6 @@ def main(
     logger.info("Starting Evaluate")
     logger.info(f"Using model located at '{model_path.resolve().absolute()}'")
     logger.info(f"Loading config from '{model_path.joinpath('config.yaml')}'")
-    train_cfg = OmegaConf.create(
-        yaml.load(
-            model_path.joinpath('config.yaml').open('r', encoding='utf-8'),
-            yaml.Loader
-        )
-    )
 
     if os.environ.get("WORLD_SIZE", '1') != '1' or os.environ.get('WANDB_DISABLED',
                                                                   'true') != 'true':
@@ -102,12 +109,12 @@ def main(
         with open_dict(cfg):
             cfg.task = train_cfg.task
 
-    model_cls, model = config.load_model_from_cfg(cfg)
+    model_cls, model = config.load_model_from_cfg(cfg, model_path)
 
     logger.debug(f"Starting eval loop")
     start_time = datetime.utcnow()
     splits_to_use = splits.split(',')
-    pred_dir = Path(cfg.get('out_path', model_path)).joinpath('predictions')
+    pred_dir = Path(cfg.get('out_path', working_dir)).joinpath('predictions')
     if not pred_dir.exists():
         pred_dir.mkdir()
     all_metrics = {}
@@ -137,7 +144,7 @@ def main(
     with open_dict(cfg):
         cfg.run_id = run_id
         cfg.split = splits
-    with model_path.joinpath(f'eval_config.yaml').open('w') as f:
+    with working_dir.joinpath(f'eval_config.yaml').open('w') as f:
         f.write(OmegaConf.to_yaml(cfg))
 
     #####################################################################
@@ -165,7 +172,7 @@ def main(
 
         preds_artifact.add_dir(str(pred_dir.resolve().absolute()))
         preds_artifact.add_file(
-            str(model_path.joinpath(f'eval_config.yaml').resolve().absolute()))
+            str(working_dir.joinpath(f'eval_config.yaml').resolve().absolute()))
         run.log_artifact(preds_artifact)
         run.finish()
 

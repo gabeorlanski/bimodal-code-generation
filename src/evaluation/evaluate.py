@@ -87,7 +87,6 @@ def generate_predictions(
                 generated_from_batch = model.generate(
                     input_ids=local_inputs,
                     attention_mask=local_attn,
-                    top_k=0,
                     **generation_kwargs
                 )
                 generated_results[i] = generated_from_batch.tolist()
