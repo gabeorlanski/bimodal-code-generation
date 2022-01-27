@@ -24,6 +24,8 @@ generation:
   temperature: 0.5
   num_return_sequences: 2
   min_length: 75
+  top_p: 0.95
+  top_k: 50
 
 training:
   batch_size: 1
