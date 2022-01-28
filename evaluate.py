@@ -137,7 +137,7 @@ def main(
     logger.info(f"Total time spent on evaluation: {end_time}")
     all_metrics['runtime'] = str(end_time)
 
-    with model_path.joinpath('eval_metrics.json').open('w', encoding='utf-8') as f:
+    with working_dir.joinpath('eval_metrics.json').open('w', encoding='utf-8') as f:
         json.dump(all_metrics, f)
 
     run_id = wandb.util.generate_id()
@@ -158,7 +158,7 @@ def main(
     ):
         run = wandb.init(
             job_type='evaluate',
-            name=cfg.name,
+            name=os.getenv('WANDB_RUN_NAME'),
             project=os.getenv('WANDB_PROJECT'),
             group=cfg.group,
             entity=os.getenv('WANDB_ENTITY'),
@@ -168,7 +168,7 @@ def main(
 
         run.config.update(config.get_config_for_tracking(cfg))
         run.log({f"eval/{k}": v for k, v in all_metrics.items()}, step=1)
-        preds_artifact = wandb.Artifact(f"",
+        preds_artifact = wandb.Artifact(config.get_run_base_name_from_cfg(cfg),
                                         type='predictions')
 
         preds_artifact.add_dir(str(pred_dir.resolve().absolute()))

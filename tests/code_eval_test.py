@@ -28,7 +28,6 @@ def test_evaluate_code(code_preds_dir):
     correct_pcts = [25, 25, 0]
     runtime_error_pcts = [25, 50, 0.0]
     valid_syntax = [75, 100, 0]
-    expected_overview.update(get_metrics_from_list('correct_pct', correct_pcts))
     expected_overview.update(get_metrics_from_list('runtime_error_pct', runtime_error_pcts))
     expected_overview.update(get_metrics_from_list('valid_syntax_pct', valid_syntax))
 

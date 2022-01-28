@@ -70,7 +70,7 @@ def run(pred_dir, num_workers, disable_tracking, input_artifact_name, timeout):
             project=cfg.project,
             group=f"{cfg.group}[execution]",
             config=get_config_for_tracking(cfg),
-            entity='gabeorlanski'
+            entity=cfg.tracking.entity
             # id=run_id
         )
         metrics_to_log_dict = {}

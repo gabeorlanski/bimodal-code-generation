@@ -142,3 +142,7 @@ scratch_artifacts
 best_models/
 
 eval_results/
+
+data/SEDumps/
+data/stack_exchange/
+artifacts/

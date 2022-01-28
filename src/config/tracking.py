@@ -204,6 +204,10 @@ def setup_tracking_env_from_cfg(cfg: DictConfig):
     os.environ['WANDB_WATCH'] = cfg['tracking'].get('watch')
     project = cfg['tracking'].get('project')
     run_name = cfg["name"]
+
+    if cfg.group != cfg.task.name.upper():
+        run_name = f"{cfg.task.name.upper()}.{run_name}"
+
     if cfg.debug:
         project = f"debug-{project}"
         run_name = f"debug-{run_name}"

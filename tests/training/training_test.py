@@ -5,10 +5,10 @@ from pathlib import Path
 import pytest
 from unittest.mock import patch
 import torch
-from transformers import Seq2SeqTrainingArguments
+
 from omegaconf import OmegaConf
 from src.config import get_device_from_cfg, get_training_args_from_cfg
-from src.training import train_model
+from src.config.training import TrainingArguments
 
 
 @pytest.fixture()
@@ -30,6 +30,6 @@ def test_get_training_args_from_config(training_args, batch_size):
         training_args["per_device_eval_batch_size"] = batch_size
 
     cfg = OmegaConf.create({"training": training_args})
-    expected = Seq2SeqTrainingArguments(**training_args)
+    expected = TrainingArguments(**training_args)
     assert get_training_args_from_cfg(cfg) == expected
 

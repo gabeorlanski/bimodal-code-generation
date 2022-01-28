@@ -53,13 +53,17 @@ def load_processors_from_cfg(cfg: DictConfig) -> Tuple[List[Callable], List[Call
     logger.info(
         f"Found {len(model_type_postprocessors)} postprocessors specific to the model type"
     )
-    if cfg.task.get('override_processors', False):
-        logger.warning("Overriding processors with task processors.")
+    if cfg.task.get('override_preprocessors', False):
+        logger.warning("Overriding preprocessors with task processors.")
         preprocessor_list = task_preprocessors
+    else:
+        logger.info('Using all preprocessors')
+        preprocessor_list = preprocessor_list + task_preprocessors + model_type_preprocessors
+
+    if cfg.task.get('override_postprocessors', False):
+        logger.warning("Overriding postprocessors with task postprocessors.")
         postprocessor_list = task_postprocessors
     else:
-        logger.info('Using all processors')
-        preprocessor_list = preprocessor_list + task_preprocessors + model_type_preprocessors
         postprocessor_list = postprocessor_list + task_postprocessors + model_type_postprocessors
 
     preprocessors = _create_processors(Preprocessor, preprocessor_list)
