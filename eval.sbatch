@@ -1,6 +1,6 @@
 #!/bin/bash
 #SBATCH --output=./logs/%x_eval.out
-#SBATCH --time=12:00:00
+#SBATCH --time=24:00:00
 #SBATCH --gres=gpu:1
 #SBATCH --mem=64G
 #SBATCH -c 4
@@ -11,5 +11,5 @@ source /ext3/env.sh
 conda activate adversarial-code
 echo $(pwd)
 
-python evaluate.py $1 $2 -seqs 50 -hydra +generation.num_return_sequences=$3 +training.batch_size=1 +device=0 +generation.max_length=512
+python evaluate.py $1 $2 -seqs 100 -hydra +generation.num_return_sequences=$3 +training.batch_size=1 +device=0 +generation.max_length=512
 "
