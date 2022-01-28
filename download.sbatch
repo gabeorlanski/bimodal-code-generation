@@ -4,4 +4,5 @@
 #SBATCH --mem=64G
 #SBATCH -c 1
 
+cd data/SEDumps
 wget https://archive.org/download/stackexchange/stackoverflow.com-Posts.7z
