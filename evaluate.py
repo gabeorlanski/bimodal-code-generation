@@ -47,7 +47,7 @@ def main(
     if not working_dir.exists():
         working_dir.mkdir(parents=True)
 
-    os.chdir(working_dir.resolve().absolute())
+
 
     setup_global_logging(
         'evaluate',
@@ -80,7 +80,7 @@ def main(
     initialize(config_path="conf", job_name="evaluate")
     cfg = compose(config_name="eval_config", overrides=cfg_overrides)
     cfg = config.merge_configs(cfg, train_cfg, exclude_keys=['preprocessors', 'postprocessors'])
-
+    os.chdir(working_dir.resolve().absolute())
     with open_dict(cfg):
         for k in ['preprocessors', 'postprocessors']:
             train_processors = OmegaConf.to_object(train_cfg[k]) if k in train_cfg else []
