@@ -169,7 +169,7 @@ def process_file(logger, posts_path, num_workers, tag_filters, debug):
     logger.debug(f"Reading lines from {posts_path}")
     log_thread = None
     line_num = 0
-    with posts_path.open('r', encoding='utf-8') as posts_file:
+    with posts_path.open('r', encoding='utf-8', errors='replace') as posts_file:
         for line in posts_file:
             task_queue.put({'line_num': line_num, 'line': line})
             if line_num > num_workers and log_thread is None:
