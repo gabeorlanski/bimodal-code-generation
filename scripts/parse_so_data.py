@@ -135,7 +135,10 @@ def log_process(log_queue, worker_count):
     logger = logging.getLogger('parse_so.log_thread')
     finished = 0
     while True:
-        message = log_queue.get()
+        try:
+            message = log_queue.get(timeout=5.0)
+        except Exception:
+            continue
         if message is None:
             finished += 1
             logger.debug(f'Finished is at {finished}')
