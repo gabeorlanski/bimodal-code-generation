@@ -153,15 +153,17 @@ def process_file(logger, posts_path, num_workers, tag_filters, debug):
     log_queue = mp.Queue()
     task_queue = mp.JoinableQueue()
     result_queue = mp.JoinableQueue()
-    logger.info(f"Starting {num_workers} workers")
+    logger.info(f"Initializing {num_workers} workers")
     workers = [
         PostParser(i, task_queue, result_queue, log_queue, tag_filters)
         for i in range(num_workers)
     ]
 
+    logger.info(f"Starting {num_workers} workers")
     for w in workers:
         w.start()
 
+    logger.info(f"Starting the logging thread")
     log_thread = threading.Thread(target=log_process, args=(log_queue, num_workers))
     log_thread.start()
 
