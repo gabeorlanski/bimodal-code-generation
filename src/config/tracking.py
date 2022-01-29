@@ -166,6 +166,7 @@ class TrackingCallback(TrainerCallback):
                     if f.is_file():
                         with artifact.new_file(f.name, mode="wb") as fa:
                             fa.write(f.read_bytes())
+                artifact.add_file(str(Path(temp_dir, 'config.yaml').resolve().absolute()))
 
                 self._wandb.run.log_artifact(artifact)
 

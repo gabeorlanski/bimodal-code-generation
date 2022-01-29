@@ -12,7 +12,7 @@ __all__ = [
     "get_training_args_from_cfg",
     "TrainingArguments",
     "get_steps_from_training_args",
-    "get_lr_scheduler_from_cfg"
+    "get_lr_scheduler"
 ]
 
 logger = logging.getLogger(__name__)
@@ -69,8 +69,8 @@ def get_steps_from_training_args(
     return int(total_steps), int(warmup_steps)
 
 
-def get_lr_scheduler_from_cfg(train_args: TrainingArguments, optimizer,
-                              total_steps, warmup_steps):
+def get_lr_scheduler(train_args: TrainingArguments, optimizer,
+                     total_steps, warmup_steps):
     scheduler_name = train_args.lr_scheduler_type.name.lower()
     logger.debug(f"Looking for scheduler {scheduler_name}")
     scheduler = TYPE_TO_SCHEDULER_FUNCTION[train_args.lr_scheduler_type]
@@ -105,3 +105,4 @@ def get_lr_scheduler_from_cfg(train_args: TrainingArguments, optimizer,
         num_warmup_steps=warmup_steps,
         num_training_steps=total_steps,
     )
+

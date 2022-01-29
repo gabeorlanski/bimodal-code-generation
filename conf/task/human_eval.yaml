@@ -3,10 +3,7 @@ defaults:
   - _self_
 
 name: human_eval
-preprocessors: [ ]
-postprocessors:
-  - split:
-      split_phrase: ', and here is your task: '
-  - strip: { }
+preprocessors: []
+postprocessors: []
 override_preprocessors: False
 override_postprocessors: True

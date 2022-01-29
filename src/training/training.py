@@ -14,7 +14,7 @@ from src import config
 from src.common import get_stats_from_list, PROJECT_ROOT
 from src.data import langauge_modeling
 from src.training.trainer import CustomTrainer
-from src.config import get_steps_from_training_args, get_lr_scheduler_from_cfg
+from src.config import get_steps_from_training_args, get_lr_scheduler
 
 logger = logging.getLogger(__name__)
 
@@ -195,7 +195,7 @@ def train_model(cfg: DictConfig):
 
     logger.info(f"{total_steps} total training steps and {warmup_steps} warmup")
 
-    lr_scheduler = get_lr_scheduler_from_cfg(train_args, optimizer, total_steps, warmup_steps)
+    lr_scheduler = get_lr_scheduler(train_args, optimizer, total_steps, warmup_steps)
 
     device = train_args.device
     logger.info(f"Using device {device}")

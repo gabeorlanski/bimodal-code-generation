@@ -97,7 +97,7 @@ class CustomTrainer(Seq2SeqTrainer):
 
     def save_model(self, output_dir: Optional[str] = None):
         super(CustomTrainer, self).save_model(output_dir)
-        if self.args.should_save and self.args.local_rank <= 0:
+        if self.args.should_save:
             cfg_path = Path(output_dir).joinpath('config.yaml')
             with cfg_path.open('w', encoding='utf-8') as f:
                 f.write(OmegaConf.to_yaml(self.cfg, resolve=True))

@@ -6,6 +6,7 @@ import random
 import numpy as np
 import wandb
 from hydra import compose, initialize
+from hydra.core.global_hydra import GlobalHydra
 import yaml
 import torch
 from omegaconf import DictConfig, OmegaConf, open_dict
@@ -21,22 +22,36 @@ from src.common import setup_global_logging, PROJECT_ROOT
 def main(
         model_path,
         splits,
-        zero_shot,
         seq_per_sample,
         task,
+        train_config_path,
+        name,
         hydra_overrides
 ):
-    model_path = Path(model_path).resolve().absolute()
-
     if Path('wandb_secret.txt').exists():
         os.environ["WANDB_API_KEY"] = open('wandb_secret.txt').read().strip()
-
-    train_cfg = OmegaConf.create(
-        yaml.load(
-            model_path.joinpath('config.yaml').open('r', encoding='utf-8'),
+    model_path = Path(model_path).resolve().absolute()
+    if not train_config_path:
+        zero_shot = False
+        train_config_path = model_path.joinpath('config.yaml')
+        train_config = yaml.load(
+            train_config_path.open('r', encoding='utf-8'),
             yaml.Loader
         )
+    else:
+        zero_shot = True
+        train_config_path = Path(train_config_path).resolve().absolute()
+        train_config = yaml.load(
+            train_config_path.open('r', encoding='utf-8'),
+            yaml.Loader
+        )
+        train_config['name'] = name
+        train_config["group"] = task.upper()
+
+    train_cfg = OmegaConf.create(
+        train_config
     )
+
     if task is not None:
         use_train_task = False
     else:
@@ -46,8 +61,6 @@ def main(
                                         f"{train_cfg.group}.{train_cfg.name}")
     if not working_dir.exists():
         working_dir.mkdir(parents=True)
-
-
 
     setup_global_logging(
         'evaluate',
@@ -65,7 +78,6 @@ def main(
         os.environ['DISABLE_FAST_TOK'] = 'true'
 
     logger.info(f"Using split '{splits}' for task '{task}'")
-    logger.debug(f"Zero shot is {'enabled' if zero_shot else 'disabled'}.")
     logger.debug(f"{seq_per_sample} sequences to be generated per sample.")
     logger.debug(f"Hydra overrides are {hydra_overrides}")
 
@@ -190,28 +202,25 @@ if __name__ == "__main__":
         '--workers', default=1, type=int
     )
     parser.add_argument(
-        '--zero-shot',
-        action='store_true',
-        default=False,
-        help='Do not load the model from the checkpoint, instead'
-             ' load the model from HF and evaluate in a '
-             'zero-shot setting.'
-    )
-    parser.add_argument(
         '--seq-per-sample', '-seqs', type=int, default=1,
         help="Number of sequences per sample to generate"
     )
     parser.add_argument('--task', default=None,
                         help="The task to use that is "
                              "not the one specified in the training config.")
+    parser.add_argument('--zero-shot-config', default=None,
+                        help="Pass a train config to use instead of trying to find one.")
+    parser.add_argument('--name', default=None,
+                        help="If specifying a train config, set the name with this.")
     parser.add_argument('--hydra-overrides', '-hydra', nargs=argparse.REMAINDER)
     argv = parser.parse_args()
     os.environ['WORLD_SIZE'] = str(argv.workers)
     main(
         argv.model_path,
         argv.splits,
-        argv.zero_shot,
         argv.seq_per_sample,
         argv.task,
+        argv.zero_shot_config,
+        argv.name,
         argv.hydra_overrides
     )
