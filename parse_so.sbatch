@@ -1,7 +1,6 @@
 #!/bin/bash
 #SBATCH --output=./logs/parse_so_data.out
 #SBATCH --time=24:00:00
-#SBATCH --partition=rtx8000
 #SBATCH --mem=64G
 #SBATCH -c 48
 
@@ -11,5 +10,5 @@ source /ext3/env.sh
 conda activate adversarial-code
 echo $(pwd)
 
-python scripts/parse_so_data.py data/SEDumps/stackoverflow.com 48 data/so_data_filter.txt
+python scripts/parse_so_data.py $1 48 data/so_data_filter.txt
 "
