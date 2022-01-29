@@ -168,25 +168,27 @@ def process_file(logger, posts_path, num_workers, tag_filters, debug):
 
     logger.debug(f"Reading lines from {posts_path}")
     log_thread = None
-    total_lines = 0
-    for line_num, line in enumerate(posts_path.open('r', encoding='utf-8').readlines()):
-        task_queue.put({'line_num': line_num, 'line': line})
-        if total_lines > num_workers and log_thread is None:
-            logger.info(f"Starting the logging thread")
-            log_thread = threading.Thread(target=log_process, args=(log_queue, num_workers))
-            log_thread.start()
+    line_num = 0
+    with posts_path.open('r', encoding='utf-8') as posts_file:
+        for line in posts_file:
+            task_queue.put({'line_num': line_num, 'line': line})
+            if line_num > num_workers and log_thread is None:
+                logger.info(f"Starting the logging thread")
+                log_thread = threading.Thread(target=log_process, args=(log_queue, num_workers))
+                log_thread.start()
 
-        if (line_num + 1) % 1000 == 0:
-            logger.info(f"Read {line_num + 1} lines")
-        total_lines += 1
-        if total_lines >= 2500 and debug:
-            break
+            if (line_num + 1) % 1000 == 0:
+                logger.info(f"Read {line_num + 1} lines")
+            line_num += 1
+
+            if line_num >= 2500 and debug:
+                break
 
     if log_thread is None:
         logger.info(f"Starting the logging thread")
         log_thread = threading.Thread(target=log_process, args=(log_queue, num_workers))
         log_thread.start()
-    logger.info(f"{total_lines} total lines")
+    logger.info(f"{line_num} total lines")
 
     logger.debug("Putting in poison pills")
     for _ in workers:
@@ -197,7 +199,7 @@ def process_file(logger, posts_path, num_workers, tag_filters, debug):
     questions = {}
     failures = defaultdict(list)
     failure_count = 0
-    pbar = tqdm(total=total_lines, desc='Processing')
+    pbar = tqdm(total=line_num, desc='Processing')
     while True:
         if all([not worker.is_alive() for worker in workers]):
             break
