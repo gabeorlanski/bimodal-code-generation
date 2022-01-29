@@ -56,7 +56,7 @@ class PostParser(mp.Process):
             self.results.put(parse_line(next_task['line_num'], next_task['line'], self.tag_filter))
             self.tasks.task_done()
             completed += 1
-            if completed % 100 == 0:
+            if completed % 5000 == 0:
                 self._log(logging.INFO, f"Finished {completed}")
 
 
@@ -177,7 +177,7 @@ def process_file(logger, posts_path, num_workers, tag_filters, debug):
                 log_thread = threading.Thread(target=log_process, args=(log_queue, num_workers))
                 log_thread.start()
 
-            if (line_num + 1) % 1000 == 0:
+            if (line_num + 1) % 25000 == 0:
                 logger.info(f"Read {line_num + 1} lines")
             line_num += 1
 
