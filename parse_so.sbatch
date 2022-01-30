@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --output=./logs/parse_so_data.out
+#SBATCH --output=./logs/parsing/parse_so_data.out
 #SBATCH --time=24:00:00
 #SBATCH --mem=180G
 #SBATCH -c 48

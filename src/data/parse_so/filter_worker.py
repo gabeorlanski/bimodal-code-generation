@@ -40,7 +40,7 @@ class FilterWorker(mp.Process):
             self.results.put(parse_line(next_task['line_num'], next_task['line'], self.tag_filter))
             self.tasks.task_done()
             completed += 1
-            if completed % 5000 == 0:
+            if completed % 10000 == 0:
                 self._log(logging.INFO, f"Finished {completed}")
 
 

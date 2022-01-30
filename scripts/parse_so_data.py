@@ -173,7 +173,7 @@ def process_file(
         for line in posts_file:
             task_queue.put({'line_num': line_num, 'line': line})
 
-            if (line_num + 1) % 25000 == 0:
+            if (line_num + 1) % 100000 == 0:
                 logger.info(f"Read {line_num + 1} lines")
             line_num += 1
 
