@@ -1,5 +1,7 @@
+import collections
 import logging
 import math
+import sys
 from typing import Tuple
 
 from omegaconf import OmegaConf, DictConfig
@@ -55,22 +57,18 @@ def get_training_args_from_cfg(cfg: DictConfig) -> TrainingArguments:
 def get_steps_from_training_args(
         train_args: TrainingArguments, train_data
 ) -> Tuple[int, int]:
-    if train_args.max_steps > 0:
-        total_steps = train_args.max_steps
+    train_dataset_is_sized = isinstance(train_data.train_dataset, collections.abc.Sized)
+    effective_batch_size = (
+            train_args.train_batch_size
+            * train_args.gradient_accumulation_steps
+            * train_args.world_size
+    )
+    if train_dataset_is_sized and train_args.max_steps < 0:
+        num_update_steps_per_epoch = len(train_data) // effective_batch_size
+        num_update_steps_per_epoch = max(num_update_steps_per_epoch, 1)
+        total_steps = int(num_update_steps_per_epoch * train_args.num_train_epochs)
     else:
-        # Have to account for when distributed, batch size is n_gpu*batch size.
-        effective_batch_size = train_args.per_device_train_batch_size
-        if get_world_size() > 0:
-            effective_batch_size *= get_world_size()
-        logger.info(f"{effective_batch_size=}")
-        logger.info(f"{len(train_data)=}")
-        steps_per_epoch = (
-                len(train_data)
-                / (train_args.gradient_accumulation_steps * effective_batch_size)
-        )
-        logger.info(f"{steps_per_epoch=}")
-        total_steps = int(steps_per_epoch * train_args.num_train_epochs)
-        logger.info(f"{total_steps=}")
+        total_steps = train_args.max_steps
 
     if train_args.warmup_steps > 0:
         warmup_steps = train_args.warmup_steps
