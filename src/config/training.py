@@ -63,12 +63,12 @@ def get_steps_from_training_args(
         if get_world_size() > 0:
             effective_batch_size *= get_world_size()
 
-        steps_per_epoch = math.ceil(
-            len(train_data) / effective_batch_size
+        steps_per_epoch = (
+                len(train_data)
+                / (train_args.gradient_accumulation_steps * effective_batch_size)
         )
-        steps_per_epoch = math.ceil(steps_per_epoch / train_args.gradient_accumulation_steps)
         total_steps = int(steps_per_epoch * train_args.num_train_epochs)
-
+        logger.info(f"{total_steps=}")
 
     if train_args.warmup_steps > 0:
         warmup_steps = train_args.warmup_steps
