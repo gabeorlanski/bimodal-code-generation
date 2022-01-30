@@ -22,11 +22,11 @@ __all__ = [
 logger = logging.getLogger(__name__)
 
 
-@dataclass
+@dataclass()
 class TrainingArguments(Seq2SeqTrainingArguments):
-    lr_power = 2.0
-    end_lr = 1e-16
-    num_cycles = 1
+    lr_power:float = 2.0
+    end_lr:float = 1e-16
+    num_cycles:int = 1
 
 
 def get_training_args_from_cfg(cfg: DictConfig) -> TrainingArguments:
