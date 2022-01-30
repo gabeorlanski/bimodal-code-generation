@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH --output=./logs/train/%x_train.out
-#SBATCH --time=02:00:00
-#SBATCH --gres=gpu:4
+#SBATCH --time=24:00:00
+#SBATCH --gres=gpu:1
 #SBATCH --partition=rtx8000
 #SBATCH --mem=64G
 #SBATCH -c 4
@@ -14,7 +14,7 @@ echo $(pwd)
 python scripts/prepare_train_environment.py $1 $2 --config greene_config -force \
   -hydra model='$3' objective='$4' +disable_cache=True \
   ${@:5}
-torchrun --nproc_per_node=4 train.py $1 $2 --config greene_config -force \
+python train.py $1 $2 --config greene_config -force \
   -hydra model='$3' objective='$4' +disable_cache=True \
   ${@:5}
 "
