@@ -57,7 +57,7 @@ def get_training_args_from_cfg(cfg: DictConfig) -> TrainingArguments:
 def get_steps_from_training_args(
         train_args: TrainingArguments, train_data
 ) -> Tuple[int, int]:
-    train_dataset_is_sized = isinstance(train_data.train_dataset, collections.abc.Sized)
+    train_dataset_is_sized = isinstance(train_data, collections.abc.Sized)
     effective_batch_size = (
             train_args.train_batch_size
             * train_args.gradient_accumulation_steps
