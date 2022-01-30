@@ -62,11 +62,13 @@ def get_steps_from_training_args(
         effective_batch_size = train_args.per_device_train_batch_size
         if get_world_size() > 0:
             effective_batch_size *= get_world_size()
-
+        logger.info(f"{effective_batch_size=}")
+        logger.info(f"{len(train_data)=}")
         steps_per_epoch = (
                 len(train_data)
                 / (train_args.gradient_accumulation_steps * effective_batch_size)
         )
+        logger.info(f"{steps_per_epoch=}")
         total_steps = int(steps_per_epoch * train_args.num_train_epochs)
         logger.info(f"{total_steps=}")
 
