@@ -8,6 +8,8 @@ from dataclasses import dataclass
 from transformers.training_args_seq2seq import Seq2SeqTrainingArguments
 from transformers.optimization import TYPE_TO_SCHEDULER_FUNCTION
 
+from src.common.util import get_world_size
+
 __all__ = [
     "get_training_args_from_cfg",
     "TrainingArguments",
@@ -52,20 +54,27 @@ def get_training_args_from_cfg(cfg: DictConfig) -> TrainingArguments:
 
 def get_steps_from_training_args(
         train_args: TrainingArguments, train_data
-) -> Tuple[
-    int, int]:
+) -> Tuple[int, int]:
     if train_args.max_steps > 0:
         total_steps = train_args.max_steps
     else:
+        # Have to account for when distributed, batch size is n_gpu*batch size.
+        effective_batch_size = train_args.per_device_train_batch_size
+        if get_world_size() > 0:
+            effective_batch_size *= get_world_size()
+
         steps_per_epoch = math.ceil(
-            len(train_data) / train_args.per_device_train_batch_size
+            len(train_data) / effective_batch_size
         )
         steps_per_epoch = math.ceil(steps_per_epoch / train_args.gradient_accumulation_steps)
         total_steps = int(steps_per_epoch * train_args.num_train_epochs)
+
+
     if train_args.warmup_steps > 0:
         warmup_steps = train_args.warmup_steps
     else:
         warmup_steps = max(train_args.warmup_ratio, 0) * total_steps
+
     return int(total_steps), int(warmup_steps)
 
 
@@ -105,4 +114,3 @@ def get_lr_scheduler(train_args: TrainingArguments, optimizer,
         num_warmup_steps=warmup_steps,
         num_training_steps=total_steps,
     )
-

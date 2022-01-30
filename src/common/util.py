@@ -6,8 +6,10 @@ import os
 __all__ = [
     "flatten",
     "get_stats_from_list",
-    "is_currently_distributed"
+    "is_currently_distributed",
+    "get_world_size"
 ]
+
 
 def flatten(d: Dict, parent_key: str = '', sep: str = '_') -> Dict:
     """
@@ -43,3 +45,6 @@ def get_stats_from_list(values: List[int]):
 def is_currently_distributed() -> bool:
     return int(os.environ.get('WORLD_SIZE', "-1")) > 1
 
+
+def get_world_size():
+    return int(os.getenv('WORLD_SIZE', '-1'))

@@ -31,6 +31,7 @@ def prep_env(name, task, config, force_overwrite_dir, cfg_overrides):
             shutil.rmtree(new_cwd)
             new_cwd.mkdir(parents=True)
     new_cwd.joinpath('logs').mkdir()
+    print("Train environment is prepared.")
 
 
 if __name__ == '__main__':
