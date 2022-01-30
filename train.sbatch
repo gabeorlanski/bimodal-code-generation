@@ -1,6 +1,6 @@
 #!/bin/bash
 #SBATCH --output=./logs/train/%x_train.out
-#SBATCH --time=02:00:00
+#SBATCH --time=24:00:00
 #SBATCH --gres=gpu:4
 #SBATCH --partition=rtx8000
 #SBATCH --mem=64G

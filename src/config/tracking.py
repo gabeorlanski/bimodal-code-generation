@@ -137,9 +137,9 @@ class TrackingCallback(TrainerCallback):
             return
         if self._log_model and self._initialized and state.is_world_process_zero:
             logger.info("Saving Model")
-            from transformers.trainer import Trainer
+            from src.training.trainer import CustomTrainer
 
-            fake_trainer = Trainer(args=args, model=model, tokenizer=tokenizer)
+            fake_trainer = CustomTrainer(cfg=self.cfg, args=args, model=model, tokenizer=tokenizer)
             with tempfile.TemporaryDirectory() as temp_dir:
                 # Do not want to save the model if it is in debug mode.
                 if not self.cfg.debug:
