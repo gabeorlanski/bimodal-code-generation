@@ -3,7 +3,7 @@ import argparse
 import logging
 import shutil
 import threading
-from collections import defaultdict
+from collections import defaultdict, Counter
 from pathlib import Path
 import multiprocessing as mp
 import sys
@@ -18,128 +18,18 @@ if str(Path(__file__).parents[1]) not in sys.path:
 from src import config
 from src.common import PROJECT_ROOT, setup_global_logging
 from src.common.file_util import validate_files_exist
+from src.data.parse_so import FilterWorker
 
 
-class PostParser(mp.Process):
-    def __init__(
-            self,
-            worker_id,
-            task_queue,
-            result_queue,
-            log_queue,
-            tag_filter
-    ):
-        super().__init__()
-        self.worker_id = worker_id
-        self.tasks = task_queue
-        self.results = result_queue
-        self.logs = log_queue
-        self.tag_filter = tag_filter
-
-    def _log(self, level, message):
-        self.logs.put((level, f"WORKER {self.worker_id}: {message}"))
-
-    def run(self):
-
-        completed = 0
-        self._log(logging.INFO, "Started")
-        while True:
-            next_task = self.tasks.get()
-
-            # Poison pill means shutdown.
-            if next_task is None:
-                self._log(logging.INFO, "Finished")
-                self.logs.put(None)
-                self.tasks.task_done()
-                return
-
-            self.results.put(parse_line(next_task['line_num'], next_task['line'], self.tag_filter))
-            self.tasks.task_done()
-            completed += 1
-            if completed % 5000 == 0:
-                self._log(logging.INFO, f"Finished {completed}")
-
-
-def parse_line(line_number, line, tag_filter):
-    result = {
-        "line"  : line_number,
-        "body"  : None,
-        "reason": "PASS"
-    }
-
-    # Each line is its own post. If it cannot parse than it is
-    # worthless to us.
-    try:
-        post_dict = etree.XML(line).attrib
-    except Exception as e:
-        result["reason"] = "PARSE_FAIL"
-        return result
-
-    try:
-        post_type = int(post_dict['PostTypeId'])
-    except ValueError:
-        result["reason"] = "PARSE_FAIL"
-        return result
-
-    # If the post is neither a question nor an answer, skip
-    if post_type not in [1, 2]:
-        result['reason'] = "NOT_QA"
-        return result
-
-    # Deleted questions do not have a body, so skip them
-    if not post_dict['Body']:
-        result['reason'] = "NO_BODY"
-        return result
-
-    result.update(
-        {
-            "body"         : unidecode(post_dict['Body']),
-            "type"         : post_type,
-            "id"           : post_dict['Id'],
-            "date"         : post_dict['CreationDate'],
-            "score"        : int(post_dict['Score']),
-            "comment_count": int(post_dict.get('CommentCount', 0))
-        }
-    )
-    if post_type == 1:
-        post_tags = [
-            t.replace('<', '').strip()
-            for t in post_dict['Tags'].split(">")
-            if t.strip()
-        ]
-
-        has_a_valid_tag = any(valid_t in t for t in post_tags for valid_t in tag_filter)
-
-        if not has_a_valid_tag and tag_filter:
-            result['reason'] = "NO_VALID_TAG"
-            return result
-        result.update({
-            'tags'           : post_tags,
-            'title'          : unidecode(post_dict.get('Title')),
-            'answer_count'   : int(post_dict.get('AnswerCount', 0)),
-            'views'          : int(post_dict.get('ViewCount', 0)),
-            'accepted_answer': post_dict.get('AcceptedAnswerId'),
-
-        })
-
-    else:
-        result.update(
-            {
-                "parent_id": post_dict.get("ParentId")
-            }
-        )
-    return result
-
-
-def log_process(log_queue, worker_count):
+def log_process(log_queue, worker_count, stop_func):
     logger = logging.getLogger('parse_so.log_thread')
     finished = 0
     while True:
         try:
-            message = log_queue.get(timeout=5.0)
+            message = log_queue.get(timeout=2.0)
         except Exception:
             continue
-        if message is None:
+        if message is None or stop_func():
             finished += 1
             logger.debug(f'Finished is at {finished}')
             if finished >= worker_count:
@@ -151,54 +41,30 @@ def log_process(log_queue, worker_count):
         logger.log(level, message)
 
 
-def process_file(logger, posts_path, num_workers, tag_filters, debug):
-    logger.info(f"{len(tag_filters)} total tag filters")
-    log_queue = mp.Queue()
-    task_queue = mp.JoinableQueue()
-    result_queue = mp.JoinableQueue()
-    logger.info(f"Initializing {num_workers} workers")
-    workers = [
-        PostParser(i, task_queue, result_queue, log_queue, tag_filters)
-        for i in range(num_workers)
-    ]
+def main_process(
+        logger,
+        out_dir,
+        line_num,
+        result_queue,
+        workers
+):
+    post_type_to_str = {
+        1: "questions",
+        2: "answers",
+        4: "wiki_excerpts",
+        5: "wiki"
+    }
+    post_type_to_file = {}
+    for k, v in post_type_to_str.items():
+        post_type_to_file[k] = out_dir.joinpath(
+            f"{v}.jsonl"
+        ).open('w', encoding='utf-8')
 
-    logger.info(f"Starting {num_workers} workers")
-    for w in workers:
-        w.start()
-
-    logger.debug(f"Reading lines from {posts_path}")
-    log_thread = None
-    line_num = 0
-    with posts_path.open('r', encoding='utf-8', errors='replace') as posts_file:
-        for line in posts_file:
-            task_queue.put({'line_num': line_num, 'line': line})
-            if line_num > num_workers and log_thread is None:
-                logger.info(f"Starting the logging thread")
-                log_thread = threading.Thread(target=log_process, args=(log_queue, num_workers))
-                log_thread.start()
-
-            if (line_num + 1) % 25000 == 0:
-                logger.info(f"Read {line_num + 1} lines")
-            line_num += 1
-
-            if line_num >= 2500 and debug:
-                break
-
-    if log_thread is None:
-        logger.info(f"Starting the logging thread")
-        log_thread = threading.Thread(target=log_process, args=(log_queue, num_workers))
-        log_thread.start()
-    logger.info(f"{line_num} total lines")
-
-    logger.debug("Putting in poison pills")
-    for _ in workers:
-        task_queue.put(None)
-
-    logger.debug("Starting result processing loop")
-    answers = defaultdict(dict)
-    questions = {}
-    failures = defaultdict(list)
-    failure_count = 0
+    answers = defaultdict(list)
+    valid_questions = {}
+    failures = Counter()
+    post_type_counts = {k: 0 for k in post_type_to_str}
+    tag_counts = Counter()
     pbar = tqdm(total=line_num, desc='Processing')
     while True:
         if all([not worker.is_alive() for worker in workers]):
@@ -209,45 +75,143 @@ def process_file(logger, posts_path, num_workers, tag_filters, debug):
 
         pbar.update()
         if post_dict['reason'] != "PASS":
-            failures[post_dict['reason']].append(post_dict['line'])
-            failure_count += 1
+            failures[post_dict['reason']] += 1
             if post_dict['reason'] == "PARSE_FAIL":
                 logger.error(f"Line {post_dict['line']} failed to parse")
 
             continue
         post_dict.pop('reason')
-        post_type = post_dict.pop('type')
-        post_id = post_dict['id']
+        post_type = post_dict['type']
         if post_type == 1:
-            questions[post_id] = post_dict
+            post_type_counts[post_type] += 1
+            post_type_to_file[post_type].write(json.dumps(post_dict) + '\n')
+            valid_questions[post_dict['id']] = True
+            q_answers = answers.pop(post_dict['id'], [])
+            for t in post_dict['tags']:
+                tag_counts[t] += 1
+            for answer in q_answers:
+                post_type_counts['answers'] += 1
+                post_type_to_file[2].write(json.dumps(answer) + '\n')
+        elif post_type == 2:
+            if post_dict['parent_id'] not in valid_questions:
+                answers[post_dict['parent_id']].append(post_dict)
+            else:
+                post_type_counts[post_type] += 1
+                post_type_to_file[post_type].write(json.dumps(post_dict) + '\n')
+
         else:
-            answers[post_dict['parent_id']][post_id] = post_dict
+            post_type_counts[post_type] += 1
+            post_type_to_file[post_type].write(json.dumps(post_dict) + '\n')
 
     pbar.close()
+
+    for k in post_type_to_file:
+        post_type_to_file[k].close()
+
+    logger.info(f"Saving list of valid question IDs to {out_dir.joinpath('valid_questions.txt')}")
+    with out_dir.joinpath('valid_questions.txt').open('w') as f:
+        f.write('\n'.join(map(str, valid_questions)))
+
+    post_type_counts = {post_type_to_str[k]: v for k, v in post_type_counts.items()}
+    orphaned_answers = sum(map(len, answers.values()))
+    logger.info(f"{len(valid_questions)} total questions found")
+    logger.info(f"{orphaned_answers} answers left orphaned.")
+    logger.info(f"{sum(failures.values())} were skipped or failed")
+
+    logger.info("Filtered Counts")
+    for post_type, c in post_type_counts.items():
+        logger.info(f"\t{post_type:>16} = {c}")
+
+    logger.info("Failure Counts")
+    for fail, c in failures.items():
+        logger.info(f"\t{fail:>16} = {c}")
+    dump_stats = {
+        'orphaned_answers': orphaned_answers,
+        'failures'        : failures,
+        'tags'            : tag_counts,
+        'post_types'      : post_type_counts
+    }
+
+    logger.info(f"Saving dump stats to {out_dir.joinpath('stats.json')}")
+    with out_dir.joinpath('stats.json').open('w') as f:
+        json.dump(dump_stats, f, indent=True)
+    return dump_stats
+
+
+def process_file(
+        logger,
+        posts_path: Path,
+        num_workers,
+        out_dir: Path,
+        tag_filters,
+        debug
+):
+    logger.info(f"{len(tag_filters)} total tag filters")
+    log_queue = mp.Queue()
+    task_queue = mp.JoinableQueue()
+    result_queue = mp.JoinableQueue()
+    logger.info(f"Initializing {num_workers} workers")
+    workers = [
+        FilterWorker(i, task_queue, result_queue, log_queue, tag_filters)
+        for i in range(num_workers)
+    ]
+
+    logger.info(f"Starting {num_workers} workers")
+    for w in workers:
+        w.start()
+
+    logger.debug(f"Reading lines from {posts_path}")
+    line_num = 0
+    logger.info(f"Starting the logging thread")
+    stop_thread = False
+    log_thread = threading.Thread(
+        target=log_process,
+        args=(log_queue, num_workers, lambda: stop_thread)
+    )
+    log_thread.start()
+    with posts_path.open('r', encoding='utf-8', errors='replace') as posts_file:
+        for line in posts_file:
+            task_queue.put({'line_num': line_num, 'line': line})
+
+            if (line_num + 1) % 25000 == 0:
+                logger.info(f"Read {line_num + 1} lines")
+            line_num += 1
+
+            if line_num >= 2500 and debug:
+                break
+
+    logger.info(f"{line_num} total lines")
+
+    logger.debug("Putting in poison pills")
+    for _ in workers:
+        task_queue.put(None)
+
+    logger.debug("Starting result processing loop")
+    try:
+        dump_stats = main_process(
+            logger,
+            out_dir,
+            line_num,
+            result_queue,
+            workers
+        )
+    except Exception as e:
+        logger.error("SOMETHING WENT REALLY WRONG")
+        logger.error('Killing workers')
+        for worker in workers:
+            worker.terminate()
+        # Something failed so kill all of the workers then exit
+        logger.error("Poisoning the log thread")
+        log_queue.put(None)
+        stop_thread = True
+        # log_thread.join()
+        raise e
+
     log_thread.join()
     for worker in workers:
         worker.terminate()
 
-    logger.info("Joining Answers with Questions")
-    for qid in tqdm(questions):
-        try:
-            questions[qid]['answers'] = answers.pop(qid)
-        except KeyError:
-            logger.debug(f"Question {qid} had no answers")
-            questions[qid]['answers'] = {}
-
-        # Debug may cutoff answers b/c of the total line cutoff
-        if not debug:
-            assert len(questions[qid]['answers']) == questions[qid]['answer_count']
-            assert len(answers[qid]) == 0
-    logger.info(f"{len(questions)} total questions found")
-    logger.info(f"{sum(map(len, answers.values()))} answers left orphaned.")
-    logger.info(f"{failure_count} were skipped or failed")
-    logger.info("Failure Counts")
-    for fail, c in failures.items():
-        logger.info(f"\t{fail:>16} = {len(c)}")
-
-    return questions, failures
+    return dump_stats
 
 
 def main(
@@ -273,17 +237,24 @@ def main(
 
     logger.info(f"Reading tags filters from {tag_filter_file}")
     tag_filters = PROJECT_ROOT.joinpath(tag_filter_file).read_text('utf-8').splitlines(False)
-    questions, failures = process_file(logger, posts_path, num_workers, tag_filters, debug)
-
     dump_name = path_to_dump.stem.split(".")[0]
-    logger.info(f"Saving '{dump_name}' to {output_path}")
+    output_path = output_path.joinpath(dump_name)
+    if not output_path.exists():
+        output_path.mkdir(parents=True)
+    failures = process_file(
+        logger,
+        posts_path,
+        num_workers,
+        output_path,
+        tag_filters,
+        debug
+    )
+
+    logger.info(f"Saving stats for '{dump_name}' to {output_path}")
     if not output_path.exists():
         output_path.mkdir(parents=True)
     with output_path.joinpath(f'{dump_name}_failures.json').open('w', encoding='utf-8') as f:
         json.dump(failures, f, indent=True)
-    with output_path.joinpath(f'{dump_name}.jsonl').open('w', encoding='utf-8') as f:
-        for question in questions.values():
-            f.write(json.dumps(question) + '\n')
 
 
 if __name__ == "__main__":

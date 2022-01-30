@@ -1,0 +1,1 @@
+from src.data.parse_so.filter_worker import FilterWorker
