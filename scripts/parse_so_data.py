@@ -50,7 +50,7 @@ def main_process(
 ):
     post_type_to_str = {
         1: "questions",
-        2: "answers",
+        2: "answer",
         4: "wiki_excerpts",
         5: "wiki"
     }
@@ -90,7 +90,8 @@ def main_process(
             for t in post_dict['tags']:
                 tag_counts[t] += 1
             for answer in q_answers:
-                post_type_counts['answers'] += 1
+                # Add 1 to answers counts.
+                post_type_counts[2] += 1
                 post_type_to_file[2].write(json.dumps(answer) + '\n')
         elif post_type == 2:
             if post_dict['parent_id'] not in valid_questions:
