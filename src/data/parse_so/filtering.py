@@ -154,6 +154,10 @@ def main_process(
     failures = Counter()
     post_type_counts = Counter()
     tag_counts = Counter()
+    all_answer_scores_file = out_dir.joinpath('all_answer_scores.txt').open('w')
+    all_question_scores_file = out_dir.joinpath('all_question_scores.txt').open('w')
+    valid_answer_scores_file = out_dir.joinpath('valid_answer_scores.txt').open('w')
+    valid_question_scores_file = out_dir.joinpath('valid_question_scores.txt').open('w')
     pbar = tqdm(total=line_num, desc='Processing')
     while True:
         if all([not worker.is_alive() for worker in workers]):
@@ -171,13 +175,18 @@ def main_process(
 
             if post_type is not None and post_type == 1:
                 is_valid_question[post_dict['id']] = False
+                all_question_scores_file.write(str(post_dict['score']) + '\n')
 
             continue
         post_dict.pop('reason')
         if post_type == 1:
             valid_questions[post_dict['id']] = post_dict
 
+            all_question_scores_file.write(str(post_dict['score']) + '\n')
+            valid_question_scores_file.write(str(post_dict['score']) + '\n')
+
         elif post_type == 2:
+            all_answer_scores_file.write(str(post_dict['score']) + '\n')
             if not is_valid_question[post_dict['parent_id']]:
                 orphaned_count += 1
             else:
@@ -194,15 +203,23 @@ def main_process(
         post_type_counts[1] += 1
         for tag in post_dict['tags']:
             tag_counts[tag] += 1
-        post_dict['answers'] = {
-            answer_dict['id']: answer_dict
-            for answer_dict in answers.pop(post_id, [])
-        }
+
+        post_answers = {}
+        for answer_dict in answers.pop(post_id, []):
+            valid_answer_scores_file.write(str(answer_dict['score']) + '\n')
+            post_answers[answer_dict['id']] = answer_dict
+        post_dict['answers'] = post_answers
         post_type_counts[2] += len(post_dict['answers'])
         post_type_to_file[1].write(json.dumps(post_dict) + '\n')
 
+    logger.info("Closing files")
     for k in post_type_to_file:
         post_type_to_file[k].close()
+
+    all_answer_scores_file.close()
+    all_question_scores_file.close()
+    valid_answer_scores_file.close()
+    valid_question_scores_file.close()
 
     logger.info(f"Saving list of valid question IDs to {out_dir.joinpath('valid_questions.txt')}")
     with out_dir.joinpath('valid_questions.txt').open('w') as f:
