@@ -9,6 +9,6 @@ singularity exec --nv --overlay $SCRATCH/overlay-50G-10M.ext3:ro /scratch/work/p
 source /ext3/env.sh
 conda activate adversarial-code
 echo $(pwd)
-
+pip install -r requirements.txt
 python scripts/parse_so_data.py $1 48 data/so_data_filter.txt
 "
