@@ -22,7 +22,7 @@ import click
               help='The path to save the results.')
 @click.pass_context
 def main(ctx, debug, output_path):
-    setup_global_logging(f"{ctx.command.name}_so", str(PROJECT_ROOT.joinpath('logs')), debug=debug)
+    setup_global_logging(f"{ctx.invoked_subcommand}_so", str(PROJECT_ROOT.joinpath('logs')), debug=debug)
     ctx.ensure_object(dict)
     ctx.obj['DEBUG'] = debug
     ctx.obj['OUT_PATH'] = output_path
