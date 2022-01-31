@@ -10,5 +10,5 @@ source /ext3/env.sh
 conda activate adversarial-code
 echo $(pwd)
 pip install -r requirements.txt
-python scripts/parse_so_data.py $1 48 data/so_data_filter.txt
+python scripts/parse_so_data.py filter  $1 48 data/so_data_filter.txt
 "
