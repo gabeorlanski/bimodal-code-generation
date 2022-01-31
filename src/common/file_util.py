@@ -1,15 +1,19 @@
+import os
 from pathlib import Path
 import logging
 from typing import List, Union
 
 logger = logging.getLogger(__name__)
 
-__all__ = ["validate_files_exist", "ENV_VARS_TRUE_VALUES"]
-
+__all__ = ["validate_files_exist", "ENV_VARS_TRUE_VALUES", "PathType"]
 
 ENV_VARS_TRUE_VALUES = {"1", "ON", "YES", "TRUE"}
+
+PathType = Union[os.PathLike, str, Path]
+
+
 def validate_files_exist(
-    target_dir: Union[Path, str], required_files: List[str]
+        target_dir: Union[Path, str], required_files: List[str]
 ) -> List[Path]:
     """
     Check if a list of files exist in a given directory

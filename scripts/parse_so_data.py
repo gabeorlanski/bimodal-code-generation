@@ -1,231 +1,96 @@
 import json
 import argparse
 import logging
-import shutil
-import threading
-from collections import defaultdict, Counter
 from pathlib import Path
-import multiprocessing as mp
 import sys
-from lxml import etree
-from tqdm import tqdm
-from unidecode import unidecode
+from dataclasses import asdict
 
 # If this file is called by itself (for creating the splits) then it will
 # have import issues.
 if str(Path(__file__).parents[1]) not in sys.path:
     sys.path.insert(0, str(Path(__file__).parents[1]))
-from src import config
 from src.common import PROJECT_ROOT, setup_global_logging
 from src.common.file_util import validate_files_exist
-from src.data.parse_so import FilterWorker
+from src.data.parse_so import filter_so_dump, filter_and_parse_so_posts, QuestionFilter
+import click
 
 
-def log_process(log_queue, worker_count, stop_func):
-    logger = logging.getLogger('parse_so.log_thread')
-    finished = 0
-    while True:
-        try:
-            message = log_queue.get(timeout=2.0)
-        except Exception:
-            continue
-        if message is None or stop_func():
-            finished += 1
-            logger.debug(f'Finished is at {finished}')
-            if finished >= worker_count:
-                logger.info("Log Thread is done.")
-                return
-            continue
-
-        level, message = message
-        logger.log(level, message)
+# Here just to allow the grouping.
+@click.group()
+@click.option('--debug', is_flag=True, default=False, help='Enable Debug Mode')
+@click.option('--output-path', '-out', 'output_path', default='data/stack_exchange',
+              help='The path to save the results.')
+@click.pass_context
+def main(ctx, debug, output_path):
+    setup_global_logging(f"{ctx.command.name}_so", str(PROJECT_ROOT.joinpath('logs')), debug=debug)
+    ctx.ensure_object(dict)
+    ctx.obj['DEBUG'] = debug
+    ctx.obj['OUT_PATH'] = output_path
 
 
-def main_process(
-        logger,
-        out_dir,
-        line_num,
-        result_queue,
-        workers
-):
-    post_type_to_str = {
-        1: "questions",
-        2: "answer",
-        4: "wiki_excerpts",
-        5: "wiki"
-    }
-    post_type_to_file = {}
-    for k, v in post_type_to_str.items():
-        post_type_to_file[k] = out_dir.joinpath(
-            f"{v}.jsonl"
-        ).open('w', encoding='utf-8')
-
-    answers = defaultdict(list)
-    valid_questions = {}
-    failures = Counter()
-    post_type_counts = {k: 0 for k in post_type_to_str}
-    tag_counts = Counter()
-    pbar = tqdm(total=line_num, desc='Processing')
-    while True:
-        if all([not worker.is_alive() for worker in workers]):
-            break
-        if result_queue.qsize() == 0 or result_queue.empty():
-            continue
-        post_dict = result_queue.get(timeout=5.0)
-
-        pbar.update()
-        if post_dict['reason'] != "PASS":
-            failures[post_dict['reason']] += 1
-            if post_dict['reason'] == "PARSE_FAIL":
-                logger.error(f"Line {post_dict['line']} failed to parse")
-
-            continue
-        post_dict.pop('reason')
-        post_type = post_dict['type']
-        if post_type == 1:
-            post_type_counts[post_type] += 1
-            post_type_to_file[post_type].write(json.dumps(post_dict) + '\n')
-            valid_questions[post_dict['id']] = True
-            q_answers = answers.pop(post_dict['id'], [])
-            for t in post_dict['tags']:
-                tag_counts[t] += 1
-            for answer in q_answers:
-                # Add 1 to answers counts.
-                post_type_counts[2] += 1
-                post_type_to_file[2].write(json.dumps(answer) + '\n')
-        elif post_type == 2:
-            if post_dict['parent_id'] not in valid_questions:
-                answers[post_dict['parent_id']].append(post_dict)
-            else:
-                post_type_counts[post_type] += 1
-                post_type_to_file[post_type].write(json.dumps(post_dict) + '\n')
-
-        else:
-            post_type_counts[post_type] += 1
-            post_type_to_file[post_type].write(json.dumps(post_dict) + '\n')
-
-    pbar.close()
-
-    for k in post_type_to_file:
-        post_type_to_file[k].close()
-
-    logger.info(f"Saving list of valid question IDs to {out_dir.joinpath('valid_questions.txt')}")
-    with out_dir.joinpath('valid_questions.txt').open('w') as f:
-        f.write('\n'.join(map(str, valid_questions)))
-
-    post_type_counts = {post_type_to_str[k]: v for k, v in post_type_counts.items()}
-    orphaned_answers = sum(map(len, answers.values()))
-    logger.info(f"{len(valid_questions)} total questions found")
-    logger.info(f"{orphaned_answers} answers left orphaned.")
-    logger.info(f"{sum(failures.values())} were skipped or failed")
-
-    logger.info("Filtered Counts")
-    for post_type, c in post_type_counts.items():
-        logger.info(f"\t{post_type:>16} = {c}")
-
-    logger.info("Failure Counts")
-    for fail, c in failures.items():
-        logger.info(f"\t{fail:>16} = {c}")
-    dump_stats = {
-        'orphaned_answers': orphaned_answers,
-        'failures'        : failures,
-        'tags'            : tag_counts,
-        'post_types'      : post_type_counts
-    }
-
-    logger.info(f"Saving dump stats to {out_dir.joinpath('stats.json')}")
-    with out_dir.joinpath('stats.json').open('w') as f:
-        json.dump(dump_stats, f, indent=True)
-    return dump_stats
-
-
-def process_file(
-        logger,
-        posts_path: Path,
+@main.command('parse')
+@click.argument('dump_path', metavar='<Data Path>')
+@click.argument('num_workers', type=int, metavar='<Number Of Workers>')
+@click.option('--cleaner', 'clean_fn', default='BASE',
+              type=click.Choice(['BASE'], case_sensitive=False),
+              help='Cleaning function to use.')
+@click.option('--minscore', '-min', 'min_score_allowed', default=float('-inf'),
+              type=float, help='Minimum score for either a question or an answer that is allowed.')
+@click.option('--maxscore', '-max', 'max_score_allowed', default=float('inf'), type=float,
+              help='Maximum score for either a question or an answer that is allowed.')
+@click.option('--body-contains', '-contains', 'words_body_must_have', default="",
+              help='Comma separated list of words that the question body must contain.',
+              callback=lambda ctx, params, l: l.split(','))
+@click.pass_context
+def parse_so(
+        ctx,
+        dump_path,
         num_workers,
-        out_dir: Path,
-        tag_filters,
-        debug
+        clean_fn,
+        min_score_allowed,
+        max_score_allowed,
+        words_body_must_have
 ):
-    logger.info(f"{len(tag_filters)} total tag filters")
-    log_queue = mp.Queue()
-    task_queue = mp.JoinableQueue()
-    result_queue = mp.JoinableQueue()
-    logger.info(f"Initializing {num_workers} workers")
-    workers = [
-        FilterWorker(i, task_queue, result_queue, log_queue, tag_filters)
-        for i in range(num_workers)
-    ]
+    logger = logging.getLogger('parse_so')
+    logger.info("Starting Parse")
 
-    logger.info(f"Starting {num_workers} workers")
-    for w in workers:
-        w.start()
-
-    logger.debug(f"Reading lines from {posts_path}")
-    line_num = 0
-    logger.info(f"Starting the logging thread")
-    stop_thread = False
-    log_thread = threading.Thread(
-        target=log_process,
-        args=(log_queue, num_workers, lambda: stop_thread)
+    output_path = PROJECT_ROOT.joinpath(ctx.obj['OUT_PATH'])
+    dump_path = PROJECT_ROOT.joinpath(dump_path)
+    logger.info("Initializing the filter.")
+    post_filter = QuestionFilter(
+        minimum_score=min_score_allowed,
+        maximum_score=max_score_allowed,
+        word_whitelist=words_body_must_have
     )
-    log_thread.start()
-    with posts_path.open('r', encoding='utf-8', errors='replace') as posts_file:
-        for line in posts_file:
-            task_queue.put({'line_num': line_num, 'line': line})
 
-            if (line_num + 1) % 100000 == 0:
-                logger.info(f"Read {line_num + 1} lines")
-            line_num += 1
+    logger.info("Filtering Arguments:")
+    for k, v in asdict(post_filter).items():
+        logger.info(f"\t{k:<24} = {v}")
 
-            if line_num >= 2500 and debug:
-                break
-
-    logger.info(f"{line_num} total lines")
-
-    logger.debug("Putting in poison pills")
-    for _ in workers:
-        task_queue.put(None)
-
-    logger.debug("Starting result processing loop")
-    try:
-        dump_stats = main_process(
-            logger,
-            out_dir,
-            line_num,
-            result_queue,
-            workers
-        )
-    except Exception as e:
-        logger.error("SOMETHING WENT REALLY WRONG")
-        logger.error('Killing workers')
-        for worker in workers:
-            worker.terminate()
-        # Something failed so kill all of the workers then exit
-        logger.error("Poisoning the log thread")
-        log_queue.put(None)
-        stop_thread = True
-        # log_thread.join()
-        raise e
-
-    log_thread.join()
-    for worker in workers:
-        worker.terminate()
-
-    return dump_stats
+    filter_and_parse_so_posts(
+        dump_path,
+        output_path,
+        num_workers,
+        clean_fn,
+        post_filter
+    )
 
 
-def main(
-        path_to_dump,
+@main.command('filter')
+@click.argument('dump_path', metavar='<Data Path>')
+@click.argument('num_workers', type=int, metavar='<Number Of Workers>')
+@click.argument('tag_filter_file')
+@click.pass_context
+def filter_so(
+        ctx,
+        dump_path,
         num_workers,
         tag_filter_file,
-        output_path,
-        debug
 ):
-    setup_global_logging("parse_so", str(PROJECT_ROOT.joinpath('logs')), debug=debug)
-    logger = logging.getLogger('parse_so')
-    output_path = PROJECT_ROOT.joinpath(output_path)
-    path_to_dump = PROJECT_ROOT.joinpath(path_to_dump)
+    debug = ctx.obj['DEBUG']
+    logger = logging.getLogger('filter_so')
+    output_path = PROJECT_ROOT.joinpath(ctx.obj['OUT_PATH'])
+    path_to_dump = PROJECT_ROOT.joinpath(dump_path)
     logger.info(f"Starting parse_so with inputs {path_to_dump} "
                 f"and outputting to {output_path}")
     try:
@@ -242,8 +107,7 @@ def main(
     output_path = output_path.joinpath(dump_name)
     if not output_path.exists():
         output_path.mkdir(parents=True)
-    failures = process_file(
-        logger,
+    failures = filter_so_dump(
         posts_path,
         num_workers,
         output_path,
@@ -259,22 +123,4 @@ def main(
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument('path_to_dump', metavar="<Path to the SO Dump>",
-                        help="Path to the dump with the XML files. Must have "
-                             "the Post.xml file.")
-    parser.add_argument('workers', metavar="<Number of workers>", type=int)
-    parser.add_argument('tag_filter_file', metavar="<Text file with filter strings>")
-    parser.add_argument('--output-path', '-out', default='data/stack_exchange',
-                        help='Path where the outputs will be saved. '
-                             'Defaults to /data/stack_exchange')
-    parser.add_argument('-debug', action='store_true', default=False,
-                        help='Debug mode.')
-    argv = parser.parse_args()
-    main(
-        argv.path_to_dump,
-        argv.workers,
-        argv.tag_filter_file,
-        argv.output_path,
-        argv.debug
-    )
+    main()

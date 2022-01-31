@@ -6,16 +6,14 @@ import shutil
 from unittest.mock import patch
 
 from src.common import FIXTURES_ROOT
-from scripts.parse_so_data import process_file
+from src.data.parse_so import filter_so_dump
 
 
 def test_parse_so(tmpdir):
     tag_filters = ['terminology']
     out_path = Path(tmpdir).joinpath('so_dumps')
     out_path.mkdir(parents=True)
-    logger = logging.getLogger()
-    actual_dump_stats = process_file(
-        logger,
+    actual_dump_stats = filter_so_dump(
         FIXTURES_ROOT.joinpath('so_dumps', 'Posts.xml'),
         2,
         out_path,
@@ -39,6 +37,18 @@ def test_parse_so(tmpdir):
                 'views'          : 625,
                 'accepted_answer': '3',
                 'type'           : 1,
+                'answers'        : {
+                    '3': {
+                        'line'         : 4,
+                        'body'         : 'Body3',
+                        'id'           : '3',
+                        'date'         : '2016-08-02T15:40:24.820',
+                        'score'        : 15,
+                        'comment_count': 0,
+                        'parent_id'    : '1',
+                        'type'         : 2,
+                    }
+                }
             },
             '10': {
                 'line'           : 8,
@@ -53,19 +63,9 @@ def test_parse_so(tmpdir):
                 'views'          : 2302,
                 'accepted_answer': '32',
                 'type'           : 1,
+                'answers'        : {
+                }
             },
-        },
-        'answers.jsonl'      : {
-            '3': {
-                'line'         : 4,
-                'body'         : 'Body3',
-                'id'           : '3',
-                'date'         : '2016-08-02T15:40:24.820',
-                'score'        : 15,
-                'comment_count': 0,
-                'parent_id'    : '1',
-                'type'         : 2,
-            }
         },
         'wiki.jsonl'         : {},
         'wiki_excerpts.jsonl': {},
@@ -86,9 +86,7 @@ def test_parse_so(tmpdir):
     assert file_dump_stats == {
         "post_types"      : {
             "questions"    : 2,
-            "answers"      : 1,
-            "wiki_excerpts": 0,
-            "wiki"         : 0,
+            "answers"      : 1
         },
         "failures"        : {
             "PARSE_FAIL"  : 3,
