@@ -275,10 +275,9 @@ def filter_so_dump(
     logger.debug(f"Reading lines from {posts_path}")
     line_num = 0
     logger.info(f"Starting the logging thread")
-    stop_thread = False
     log_thread = threading.Thread(
         target=log_process,
-        args=(log_queue, num_workers, lambda: stop_thread)
+        args=(log_queue, num_workers)
     )
     log_thread.start()
     with posts_path.open('r', encoding='utf-8', errors='replace') as posts_file:

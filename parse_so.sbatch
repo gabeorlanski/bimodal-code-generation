@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --output=./logs/parse_so_data.out
+#SBATCH --output=./logs/job_parse_so.out
 #SBATCH --time=24:00:00
 #SBATCH --mem=180G
 #SBATCH -c 48
@@ -9,5 +9,7 @@ singularity exec --nv --overlay $SCRATCH/overlay-50G-10M.ext3:ro /scratch/work/p
 source /ext3/env.sh
 conda activate adversarial-code
 echo $(pwd)
-python scripts/parse_so_data.py filter  $1 48 data/so_data_filter.txt
+python scripts/parse_so_data.py -out data/parsed_so parse data/stack_exchange/stack_exchange 48 negative -max '-1'
+python scripts/parse_so_data.py -out data/parsed_so parse data/stack_exchange/stack_exchange 48 exceptions -contains exception,error,trace
+
 "

@@ -23,23 +23,21 @@ NAME_TO_POST_TYPE = {
 }
 
 
-def log_process(log_queue, worker_count, stop_func):
+def log_process(log_queue, worker_count):
     finished = 0
     while True:
         try:
             message = log_queue.get(timeout=2.0)
         except Exception:
             continue
-        if message is None or stop_func() or message == "KILL":
+        if message is not None and message != "KILL":
+
+            level, message = message
+            logger.log(level, message)
+        else:
             finished += 1
             logger.debug(f'Finished is at {finished}')
-            log_queue.task_done()
-            logger.debug(f"{stop_func()=}")
             if finished >= worker_count or message == "KILL":
                 logger.info("Log Thread is done.")
                 return
             continue
-        else:
-            level, message = message
-            logger.log(level, message)
-            log_queue.task_done()

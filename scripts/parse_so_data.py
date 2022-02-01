@@ -22,8 +22,11 @@ import click
               help='The path to save the results.')
 @click.pass_context
 def main(ctx, debug, output_path):
-    setup_global_logging(f"{ctx.invoked_subcommand}_so", str(PROJECT_ROOT.joinpath('logs')), debug=debug)
+    setup_global_logging(f"{ctx.invoked_subcommand}_so", str(PROJECT_ROOT.joinpath('logs')),
+                         debug=debug)
     ctx.ensure_object(dict)
+    if not PROJECT_ROOT.joinpath(output_path).exists():
+        PROJECT_ROOT.joinpath(output_path).mkdir(parents=True)
     ctx.obj['DEBUG'] = debug
     ctx.obj['OUT_PATH'] = output_path
 
@@ -31,36 +34,56 @@ def main(ctx, debug, output_path):
 @main.command('parse')
 @click.argument('dump_path', metavar='<Data Path>')
 @click.argument('num_workers', type=int, metavar='<Number Of Workers>')
-@click.option('--cleaner', 'clean_fn', default='BASE',
+@click.argument('output_file_name', type=str, metavar='<Stem of the output file>')
+@click.option('--cleaner', 'clean_fn_name', default='BASE',
               type=click.Choice(['BASE'], case_sensitive=False),
               help='Cleaning function to use.')
-@click.option('--minscore', '-min', 'min_score_allowed', default=float('-inf'),
+@click.option('--min-score', '-min', 'min_score_allowed', default=float('-inf'),
               type=float, help='Minimum score for either a question or an answer that is allowed.')
-@click.option('--maxscore', '-max', 'max_score_allowed', default=float('inf'), type=float,
+@click.option('--max-score', '-max', 'max_score_allowed', default=float('inf'), type=float,
               help='Maximum score for either a question or an answer that is allowed.')
 @click.option('--body-contains', '-contains', 'words_body_must_have', default="",
               help='Comma separated list of words that the question body must contain.',
-              callback=lambda ctx, params, l: l.split(','))
+              callback=lambda ctx, params, l: [w for w in l.split(',') if w])
+@click.option('--must-have-answers', is_flag=True, default=False,
+              help='Questions must have answers.')
+@click.option(
+    '--question-score', is_flag=True, default=False,
+    help='Only look at question score for filtering. If false, a '
+         'post will pass the filter if ANY answer score (question or answer):'
+         ' min score <= score <= max score.'
+)
+@click.option(
+    '--only-question-body', is_flag=True, default=False,
+    help='Only look at question body for filtering based on words'
+)
 @click.pass_context
 def parse_so(
         ctx,
         dump_path,
         num_workers,
-        clean_fn,
+        output_file_name,
+        clean_fn_name,
         min_score_allowed,
         max_score_allowed,
-        words_body_must_have
+        words_body_must_have,
+        must_have_answers,
+        question_score,
+        only_question_body
 ):
     logger = logging.getLogger('parse_so')
     logger.info("Starting Parse")
 
-    output_path = PROJECT_ROOT.joinpath(ctx.obj['OUT_PATH'])
+    output_path = PROJECT_ROOT.joinpath(ctx.obj['OUT_PATH'], f"{output_file_name}.jsonl")
     dump_path = PROJECT_ROOT.joinpath(dump_path)
     logger.info("Initializing the filter.")
     post_filter = QuestionFilter(
         minimum_score=min_score_allowed,
         maximum_score=max_score_allowed,
-        word_whitelist=words_body_must_have
+        must_have_answer=must_have_answers,
+        use_question_score=question_score,
+        word_whitelist=words_body_must_have,
+        only_question_body=only_question_body
     )
 
     logger.info("Filtering Arguments:")
@@ -71,7 +94,7 @@ def parse_so(
         dump_path,
         output_path,
         num_workers,
-        clean_fn,
+        clean_fn_name,
         post_filter
     )
 
