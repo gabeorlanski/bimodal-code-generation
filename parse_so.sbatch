@@ -10,10 +10,10 @@ source /ext3/env.sh
 conda activate adversarial-code
 echo $(pwd)
 python scripts/parse_so_data.py -out data/parsed_so parse \
-	data/stack_exchange/stack_exchange/stackoverflow \
+	data/stack_exchange/stackoverflow \
 	48 negative -max '-1'
 python scripts/parse_so_data.py -out data/parsed_so parse \
-	data/stack_exchange/stack_exchange/stackoverflow \
+	data/stack_exchange/stackoverflow \
 	48 exceptions -contains exception,error,trace
 
 "
