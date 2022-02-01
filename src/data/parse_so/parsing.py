@@ -1,16 +1,15 @@
 import json
-from datetime import datetime
 import logging
+import random
 import threading
 from dataclasses import dataclass, field
 from functools import partial
 from pathlib import Path
 from typing import List, Dict, Callable
 import multiprocessing as mp
-import enum
 from tqdm import tqdm
 from bs4 import BeautifulSoup
-from src.data.parse_so.util import POST_TYPE_TO_STR, NAME_TO_POST_TYPE, log_process
+from src.data.parse_so.util import POST_TYPE_TO_STR, log_process
 
 logger = logging.getLogger(__name__)
 __all__ = [
@@ -128,7 +127,7 @@ class CleaningProcessor(mp.Process):
 
             self.tasks.task_done()
             completed += 1
-            if completed % 1000 == 0:
+            if completed % 5000 == 0:
                 self._log(logging.INFO, f"Finished {completed}")
 
 
@@ -148,12 +147,62 @@ CLEANING_NAME_TO_FN = {
 }
 
 
+def main_process(questions_path, workers, task_queue, result_queue):
+    line_num = 0
+    with questions_path.open('r', encoding='utf-8', errors='replace') as questions_file:
+        for line in questions_file:
+            task_queue.put((line_num, json.loads(line.strip())))
+
+            if (line_num + 1) % 25000 == 0:
+                logger.info(f"Read {line_num + 1} lines")
+            line_num += 1
+
+    for _ in workers:
+        task_queue.put(None)
+    logger.debug(f"{result_queue.qsize()=}")
+    logger.info(f"Processing {line_num} lines")
+
+    results_processed = 0
+    questions_filtered_out = []
+    questions_saved = 0
+
+    to_save = []
+    pbar = tqdm(total=line_num, desc='Processing')
+    while True:
+        if all([not worker.is_alive() for worker in workers]):
+            break
+        if result_queue.qsize() == 0 or result_queue.empty():
+            continue
+        passed_filter, result_dict = result_queue.get(timeout=5.0)
+
+        if not passed_filter:
+            questions_filtered_out.append(result_dict['id'])
+        else:
+            to_save.append(result_dict)
+            questions_saved += 1
+        results_processed += 1
+        if results_processed % 25000 == 0:
+            logger.info(
+                f"Processed {results_processed}. "
+                f"{questions_saved} Saved and "
+                f"{len(questions_filtered_out)} filtered out."
+            )
+        pbar.update()
+    pbar.close()
+
+    logger.info(f"Saved {questions_saved} questions")
+    logger.info(f"Filtered out {len(questions_filtered_out)} questions")
+    return to_save
+
+
 def filter_and_parse_so_posts(
         path_to_posts: Path,
         out_file: Path,
+        validation_path: Path,
         num_workers: int,
         clean_fn_name: str,
         question_filter: QuestionFilter,
+        validation_size: int
 ):
     questions_path = Path(path_to_posts).joinpath('questions.jsonl')
     logger.info(f"Parsing posts from {path_to_posts}")
@@ -184,49 +233,14 @@ def filter_and_parse_so_posts(
     for w in workers:
         w.start()
     try:
-        line_num = 0
-        with questions_path.open('r', encoding='utf-8', errors='replace') as questions_file:
-            for line in questions_file:
-                task_queue.put((line_num, json.loads(line.strip())))
-
-                if (line_num + 1) % 1000 == 0:
-                    logger.info(f"Read {line_num + 1} lines")
-                line_num += 1
-
-        for _ in workers:
-            task_queue.put(None)
-        logger.debug(f"{result_queue.qsize()=}")
-        logger.info(f"Processing {line_num} lines")
-
-        results_processed = 0
-        questions_filtered_out = []
-        questions_saved = 0
-
-        output_fd = out_file.open('w', encoding='utf-8')
-        pbar = tqdm(total=line_num, desc='Processing')
-        while True:
-            if all([not worker.is_alive() for worker in workers]):
-                break
-            if result_queue.qsize() == 0 or result_queue.empty():
-                continue
-            passed_filter, result_dict = result_queue.get(timeout=5.0)
-
-            if not passed_filter:
-                questions_filtered_out.append(result_dict['id'])
-            else:
-                output_fd.write(json.dumps(result_dict) + "\n")
-                questions_saved += 1
-            results_processed += 1
-            if results_processed % 1000 == 0:
-                logger.info(
-                    f"Processed {results_processed}. "
-                    f"{questions_saved} Saved and "
-                    f"{len(questions_filtered_out)} filtered out."
-                )
-            pbar.update()
-        pbar.close()
-        output_fd.close()
+        to_save = main_process(
+            questions_path,
+            workers,
+            task_queue,
+            result_queue
+        )
     except Exception as e:
+        # Making sure we cleanup
         for w in workers:
             w.terminate()
         log_queue.put('KILL')
@@ -238,5 +252,17 @@ def filter_and_parse_so_posts(
     for w in workers:
         w.terminate()
 
-    logger.info(f"Saved {questions_saved} questions")
-    logger.info(f"Filtered out {len(questions_filtered_out)} questions")
+    validation_size = min(validation_size, int(.1 * len(to_save)))
+    logger.info(f"Saving {validation_size} to {validation_path}")
+    logger.info(f"Saving {len(to_save) - validation_size} to {out_file}")
+    validation_indices = random.sample(range(len(to_save)), validation_size)
+
+    output_fd = out_file.open('w', encoding='utf-8')
+    val_fd = validation_path.open('w', encoding='utf-8')
+    for i, v in enumerate(to_save):
+        if i in validation_indices:
+            val_fd.write(json.dumps(v) + '\n')
+        else:
+            output_fd.write(json.dumps(v) + '\n')
+    output_fd.close()
+    val_fd.close()

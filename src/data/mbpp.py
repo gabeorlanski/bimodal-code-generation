@@ -40,7 +40,7 @@ class MBPP(Task):
             preprocessors: List[Callable],
             postprocessors: List[Callable],
             metric_fns: List[Callable],
-            additional_splits: Dict[str, PathType] = None,
+            split_mapping: Dict[str, PathType] = None,
             add_def_to_prompt: bool = False
     ):
         super(MBPP, self).__init__(
@@ -48,7 +48,7 @@ class MBPP(Task):
             tokenizer=tokenizer,
             postprocessors=postprocessors,
             metric_fns=metric_fns,
-            additional_splits=additional_splits
+            split_mapping=split_mapping
         )
 
         self._tokenizer = tokenizer

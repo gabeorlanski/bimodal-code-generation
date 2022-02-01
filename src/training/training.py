@@ -94,6 +94,7 @@ def setup_lm(cfg, task):
 
     logger.info("Getting train data")
     train_data = make_split('train')
+    logger.info(f"{len(train_data)} total training samples")
 
     logger.info("Getting validation data")
     validation_data = make_split('validation')

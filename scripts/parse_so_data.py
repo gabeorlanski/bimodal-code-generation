@@ -1,6 +1,7 @@
 import json
 import argparse
 import logging
+import random
 from pathlib import Path
 import sys
 from dataclasses import asdict
@@ -57,6 +58,12 @@ def main(ctx, debug, output_path):
     '--only-question-body', is_flag=True, default=False,
     help='Only look at question body for filtering based on words'
 )
+@click.option(
+    '--val-size', '-val', 'validation_size',
+    type=int,
+    default=100,
+    help="Number of questions to put into the validation set."
+)
 @click.pass_context
 def parse_so(
         ctx,
@@ -69,12 +76,14 @@ def parse_so(
         words_body_must_have,
         must_have_answers,
         question_score,
-        only_question_body
+        only_question_body,
+        validation_size
 ):
     logger = logging.getLogger('parse_so')
     logger.info("Starting Parse")
 
     output_path = PROJECT_ROOT.joinpath(ctx.obj['OUT_PATH'], f"{output_file_name}.jsonl")
+    val_path = PROJECT_ROOT.joinpath(ctx.obj['OUT_PATH'], f"{output_file_name}_val.jsonl")
     dump_path = PROJECT_ROOT.joinpath(dump_path)
     logger.info("Initializing the filter.")
     post_filter = QuestionFilter(
@@ -90,12 +99,16 @@ def parse_so(
     for k, v in asdict(post_filter).items():
         logger.info(f"\t{k:<24} = {v}")
 
+    random.seed(1)
+
     filter_and_parse_so_posts(
         dump_path,
         output_path,
+        val_path,
         num_workers,
         clean_fn_name,
-        post_filter
+        post_filter,
+        validation_size
     )
 
 

@@ -112,5 +112,6 @@ def load_task_from_cfg(
         preprocessors=preprocessors,
         postprocessors=postprocessors,
         metric_fns=metrics,
-        additional_kwargs=cfg.get('task_kwargs', {}),
+        split_mapping=cfg.task.get('split_mapping', {}),
+        additional_kwargs=cfg.task.get('kwargs', {})
     )

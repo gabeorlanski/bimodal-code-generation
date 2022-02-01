@@ -1,0 +1,20 @@
+defaults:
+  - train_config@_global_
+  - _self_
+
+training:
+  batch_size: 1
+  learning_rate: 5e-4
+  fp16: true
+  num_train_epochs: 1
+  max_steps: 500
+  save_strategy: steps
+  evaluation_strategy: steps
+  save_steps: 100
+  eval_steps: 100
+generation:
+  num_return_sequences: 25
+device: 0
+tracking:
+  log_model: true
+  entity: nyu-code-research
