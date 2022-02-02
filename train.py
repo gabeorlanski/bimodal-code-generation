@@ -62,7 +62,7 @@ def run(name, task, config_name, force_overwrite_dir, override_str, cfg_override
     # We need to add the name and task (task uppercase is also the group) to the
     # hydra configs.
     cfg_overrides = [f"name={name}", f"task={task}", f"group={group_name}"] + cfg_overrides
-    cfg_overrides += override_str.split('||')
+    cfg_overrides += override_str.split(' ')
     if debug:
         cfg_overrides += ['debug=True']
 
@@ -141,7 +141,7 @@ if __name__ == "__main__":
 
     parser.add_argument('--override-str',
                         help='Bash does not like lists of variable args. so '
-                             'pass as seperated list of overrides, seperated by ||.',
+                             'pass as seperated list of overrides, seperated by ' '.',
                         default=''
                         )
     # This lets us have virtually the same exact setup as the hydra decorator

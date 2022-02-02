@@ -14,7 +14,7 @@ from src.common import PROJECT_ROOT
 
 def prep_env(name, task, config, force_overwrite_dir, override_str, cfg_overrides):
     group_name = task.upper()
-    for i in cfg_overrides + override_str.split("||"):
+    for i in cfg_overrides + override_str.split(" "):
         if 'group=' in i:
             group_name = i.split('=')[-1]
             break
@@ -46,7 +46,7 @@ if __name__ == '__main__':
                         help="Force overwriting the directory if it exists.")
     parser.add_argument('--override-str',
                         help='Bash does not like lists of variable args. so '
-                             'pass as seperated list of overrides, seperated by ||.',
+                             'pass as seperated list of overrides, seperated by ;.',
                         default=''
                         )
     # This lets us have virtually the same exact setup as the hydra decorator
