@@ -1,10 +1,10 @@
 #!/bin/bash
 # Queue Slurm Jobs
 
-parse_jid=$(sbatch --parsable parse_so.sbatch)
-pre_jid=$(sbatch --parsable --dependency=afterok:$parse_jid --job-name=negcodeparrot \
+pre_jid=$(sbatch --parsable --dependency=afterok:$1 --job-name=negcodeparrot \
   train.sbatch NegativeSOCodeParrot so lvwerra/codeparrot lm pretrain_config \
-  training.max_steps=10000 training.log_steps=50 training.save_steps=250 training.eval_steps=250)
+  training.max_steps=10000 training.log_steps=50 training.save_steps=250 training.eval_steps=250 \
+  training.num_train_epochs=1 task.dump_name='negative')
 echo "Submitted PreTrain (id=$pretrain_jid)"
 train_jid=$(sbatch --parsable --dependency=afterok:$pre_jid --job-name=negcodeparrot1 \
   train.sbatch NegativeSOCodeParrot mbpp lvwerra/codeparrot lm \
