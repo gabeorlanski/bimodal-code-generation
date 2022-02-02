@@ -17,6 +17,8 @@ training:
 generation:
   num_return_sequences: 25
 device: 0
+preprocessors: { }
+postprocessors: { }
 tracking:
   log_model: true
   entity: nyu-code-research
