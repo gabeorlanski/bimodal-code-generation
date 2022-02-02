@@ -7,6 +7,6 @@ train_jid=$(sbatch --parsable --dependency=afterok:$pre_jid --job-name=negcodepa
   train.sbatch NegativeSOCodeParrot mbpp greene_config lvwerra/codeparrot lm \
   "is_checkpoint=True +model_path=best_models/SO.NegativeSOCodeParrot")
 echo "Submitted Train (id=$train_jid)"
-eval_jid=$(sbatch --parsable --job-name=negcodeparrot2 --dependency=afterok:$train_jid eval.sbatch best_models/MBPP.NegativeSOCodeParrot/ validation,test 25)
+eval_jid=$(sbatch --parsable --job-name=negcodeparroteval --dependency=afterok:$train_jid eval.sbatch best_models/MBPP.NegativeSOCodeParrot/ validation,test 25)
 echo "Submitted Eval $eval_jid to run after $1(id=$train_jid)"
 
