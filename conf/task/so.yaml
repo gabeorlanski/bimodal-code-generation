@@ -9,5 +9,8 @@ split_mapping:
   validation: ${..data_path}/${..dump_name}_val.jsonl
 kwargs:
   dump_name: ${..dump_name}
-
+preprocessors: [ ]
+postprocessors: [ ]
+override_preprocessors: True
+override_postprocessors: True
 
