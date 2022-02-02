@@ -10,15 +10,15 @@ source /ext3/env.sh
 conda activate adversarial-code
 echo $(pwd)
 
-name=${1}
-task=${2}
-model=${3}
-objective=${4}
-config=${5}
-override_str=${6:-''}
-echo $config
+name="${1}"
+task="${2}"
+model="${3}"
+objective="${4}"
+config="${5}"
+override_str="${6:-''}"
+echo "$config"
 
-python scripts/prepare_train_environment.py $name $task --config $config -force --override-str $override_str \
+python scripts/prepare_train_environment.py $name $task --config $(config) -force --override-str $override_str \
   -hydra model='$model' objective='$objective' +disable_cache=True $hydra_args
 
 torchrun --nproc_per_node=1 train.py $name $task --config $config -force \
