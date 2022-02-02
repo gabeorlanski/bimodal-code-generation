@@ -11,9 +11,5 @@ conda activate adversarial-code
 echo $(pwd)
 python scripts/parse_so_data.py -out data/parsed_so parse \
 	data/stack_exchange/stackoverflow \
-	48 negative -max '-1'
-python scripts/parse_so_data.py -out data/parsed_so parse \
-	data/stack_exchange/stackoverflow \
-	48 exceptions -contains exception,error,trace
-
+	48 negative -max '-1' -val 0.01
 "
