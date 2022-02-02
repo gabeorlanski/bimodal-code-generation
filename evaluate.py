@@ -90,7 +90,8 @@ def main(
         f"seq_per_sample={seq_per_sample}",
         *hydra_overrides
     ]
-    cfg_overrides+= override_str.split(" ")
+    cfg_overrides += override_str.split(" ")
+    logger.info(cfg_overrides)
     initialize(config_path="conf", job_name="evaluate")
     cfg = compose(config_name="eval_config", overrides=cfg_overrides)
     cfg = config.merge_configs(cfg, train_cfg, exclude_keys=['preprocessors', 'postprocessors'])
