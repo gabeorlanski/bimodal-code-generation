@@ -15,7 +15,5 @@ python scripts/prepare_train_environment.py $1 $2 --config "${5:-greene_config}"
   -hydra model='$3' objective='$4' +disable_cache=True \
   ${@:6}
 
-torchrun --nproc_per_node=1 train.py $1 $2 --config "${5:-greene_config}" -force \
-  -hydra model='$3' objective='$4' +disable_cache=True \
-  ${@:6}
+torchrun --nproc_per_node=1 train.py $1 $2 --config "${5:-greene_config}" -force -hydra model='$3' objective='$4' +disable_cache=True ${@:6}
 "
