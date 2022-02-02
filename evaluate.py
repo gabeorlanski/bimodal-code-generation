@@ -90,8 +90,9 @@ def main(
         f"seq_per_sample={seq_per_sample}",
         *hydra_overrides
     ]
-    if len(override_str.split(" ")) > 0:
-        cfg_overrides +=  override_str.split(" ")
+    if override_str:
+        logger.info("Override string was passed")
+        cfg_overrides += override_str.split(" ")
     logger.info(cfg_overrides)
     initialize(config_path="conf", job_name="evaluate")
     cfg = compose(config_name="eval_config", overrides=cfg_overrides)
@@ -219,7 +220,7 @@ if __name__ == "__main__":
     parser.add_argument('--override-str',
                         help='Bash does not like lists of variable args. so '
                              'pass as seperated list of overrides, seperated by ' '.',
-                        default=''
+                        default=None
                         )
     parser.add_argument('--hydra-overrides', '-hydra', nargs=argparse.REMAINDER)
     argv = parser.parse_args()

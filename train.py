@@ -63,7 +63,7 @@ def run(name, task, config_name, force_overwrite_dir, override_str, cfg_override
     # hydra configs.
     cfg_overrides = [f"name={name}", f"task={task}", f"group={group_name}"] + cfg_overrides
 
-    if len(override_str.split(" ")) > 0:
+    if override_str:
         cfg_overrides += override_str.split(" ")
     if debug:
         cfg_overrides += ['debug=True']
