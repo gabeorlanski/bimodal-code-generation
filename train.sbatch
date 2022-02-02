@@ -18,8 +18,8 @@ config=${5}
 hydra_args=${@:6}
 
 python scripts/prepare_train_environment.py $name $task --config $config -force \
-  -hydra model='$model' objective='$objective' +disable_cache=True ${@:6}
+  -hydra model='$model' objective='$objective' +disable_cache=True $hydra_args
 
 torchrun --nproc_per_node=1 train.py $name $task --config $config -force \
-  -hydra model='$model' objective='$objective' +disable_cache=True ${@:6}
+  -hydra model='$model' objective='$objective' +disable_cache=True $hydra_args
 "
