@@ -148,6 +148,7 @@ if __name__ == "__main__":
                              'hydra config creator as an override command.')
 
     argv = parser.parse_args()
+    print(argv.config)
     run(
         argv.name,
         argv.task,
