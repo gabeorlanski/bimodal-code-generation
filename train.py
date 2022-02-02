@@ -61,8 +61,7 @@ def run(name, task, config_name, force_overwrite_dir, cfg_overrides, debug):
 
     # We need to add the name and task (task uppercase is also the group) to the
     # hydra configs.
-    cfg_overrides = [f"name={name}", f"task={task}", f"group={group_name}"]
-    cfg_overrides += [f"++{override}" for override in cfg_overrides]
+    cfg_overrides = [f"name={name}", f"task={task}", f"group={group_name}"] + cfg_overrides
     if debug:
         cfg_overrides += ['debug=True']
 
