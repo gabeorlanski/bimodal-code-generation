@@ -2,9 +2,6 @@ defaults:
   - train_config@_global_
   - _self_
 
-task:
-  dump_name: 'negative'
-
 training:
   batch_size: 1
   learning_rate: 5e-4
