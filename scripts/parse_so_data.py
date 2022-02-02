@@ -59,7 +59,7 @@ def main(ctx, debug, output_path):
     help='Only look at question body for filtering based on words'
 )
 @click.option(
-    '--val-size', '-val', 'validation_size',
+    '--val-size', '-val', 'validation_pct',
     type=float,
     default=0.05,
     help="Number of questions to put into the validation set."
