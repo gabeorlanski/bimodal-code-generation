@@ -202,7 +202,7 @@ def filter_and_parse_so_posts(
         num_workers: int,
         clean_fn_name: str,
         question_filter: QuestionFilter,
-        validation_size: int
+        validation_pct: int
 ):
     questions_path = Path(path_to_posts).joinpath('questions.jsonl')
     logger.info(f"Parsing posts from {path_to_posts}")
@@ -252,7 +252,7 @@ def filter_and_parse_so_posts(
     for w in workers:
         w.terminate()
 
-    validation_size = min(validation_size, int(.1 * len(to_save)))
+    validation_size = int(validation_pct*len(to_save))
     logger.info(f"Saving {validation_size} to {validation_path}")
     logger.info(f"Saving {len(to_save) - validation_size} to {out_file}")
     validation_indices = random.sample(range(len(to_save)), validation_size)

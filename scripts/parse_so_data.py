@@ -60,8 +60,8 @@ def main(ctx, debug, output_path):
 )
 @click.option(
     '--val-size', '-val', 'validation_size',
-    type=int,
-    default=100,
+    type=float,
+    default=0.05,
     help="Number of questions to put into the validation set."
 )
 @click.pass_context
@@ -77,7 +77,7 @@ def parse_so(
         must_have_answers,
         question_score,
         only_question_body,
-        validation_size
+        validation_pct
 ):
     logger = logging.getLogger('parse_so')
     logger.info("Starting Parse")
@@ -108,7 +108,7 @@ def parse_so(
         num_workers,
         clean_fn_name,
         post_filter,
-        validation_size
+        validation_pct
     )
 
 
