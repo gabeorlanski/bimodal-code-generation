@@ -21,6 +21,7 @@ PROJECT_ROOT = Path.cwd()
 
 
 def run(name, task, config_name, force_overwrite_dir, cfg_overrides, debug):
+    print(config_name)
     print(Path().resolve().absolute())
     if Path('wandb_secret.txt').exists():
         os.environ["WANDB_API_KEY"] = open('wandb_secret.txt').read().strip()

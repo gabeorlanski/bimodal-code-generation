@@ -8,3 +8,4 @@ train_jid=$(sbatch --parsable --dependency=afterok:$pre_jid --job-name=negcodepa
 echo "Submitted Train (id=$train_jid)"
 eval_jid=$(sbatch --parsable --job-name=negcodeparrot2 --dependency=afterok:$train_jid eval.sbatch best_models/MBPP.NegativeSOCodeParrot/ validation,test 25)
 echo "Submitted Eval $eval_jid to run after $1(id=$train_jid)"
+
