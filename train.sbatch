@@ -10,9 +10,16 @@ source /ext3/env.sh
 conda activate adversarial-code
 echo $(pwd)
 
+name=${1}
+task=${2}
+model=${3}
+objective=${4}
+config=${5}
+hydra_args=${@:6}
 
-python scripts/prepare_train_environment.py ${1} ${2} --config ${5} -force \
-  -hydra model='${3}' objective='${4}' +disable_cache=True ${@:6}
+python scripts/prepare_train_environment.py $name $task --config $config -force \
+  -hydra model='$model' objective='$objective' +disable_cache=True ${@:6}
 
-torchrun --nproc_per_node=1 train.py ${1} ${2} --config ${5} -force -hydra model='${3}' objective='${4}' +disable_cache=True ${@:6}
+torchrun --nproc_per_node=1 train.py $name $task --config $config -force \
+  -hydra model='$model' objective='$objective' +disable_cache=True ${@:6}
 "
