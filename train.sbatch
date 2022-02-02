@@ -9,10 +9,10 @@ singularity exec --nv --overlay $SCRATCH/overlay-50G-10M.ext3:ro /scratch/work/p
 source /ext3/env.sh
 conda activate adversarial-code
 echo $(pwd)
-python scripts/prepare_train_environment.py $1 $2 --config $3 -force --override-str $6 \
+python scripts/prepare_train_environment.py $1 $2 --config $3 -force \
   -hydra model='$4' objective='$5' +disable_cache=True \
   ${@:7}
-torchrun --nproc_per_node=4 train.py $1 $2 --config $3 -force --override-str $6 \
+torchrun --nproc_per_node=4 train.py $1 $2 --config $3 -force \
   -hydra model='$4' objective='$5' +disable_cache=True \
   ${@:7}
 "

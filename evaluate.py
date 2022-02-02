@@ -230,5 +230,5 @@ if __name__ == "__main__":
         argv.zero_shot_config,
         argv.name,
         argv.override_str,
-        argv.hydra_overrides
+        argv.hydra_overrides or []
     )

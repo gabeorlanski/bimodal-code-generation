@@ -148,7 +148,7 @@ if __name__ == "__main__":
     # without their annoying working directory and logging.
     parser.add_argument('--hydra-overrides', '-hydra', nargs=argparse.REMAINDER,
                         help='Everything after this argument is passed to the '
-                             'hydra config creator as an override command.')
+                             'hydra config creator as an override command.', default=[])
 
     argv = parser.parse_args()
     print(argv.config)
@@ -158,6 +158,6 @@ if __name__ == "__main__":
         argv.config,
         argv.force_overwrite_dir,
         argv.override_str,
-        argv.hydra_overrides,
+        argv.hydra_overrides or [],
         argv.debug
     )
