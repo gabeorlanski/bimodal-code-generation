@@ -57,7 +57,7 @@ def run(name, task, config_name, force_overwrite_dir, cfg_overrides, debug):
 
     logger = logging.getLogger('train')
     logger.info("Starting Train")
-    logger.info("Loading the hydra config 'train_config.yaml'")
+    logger.info(f"Loading the hydra config '{config_name}.yaml'")
 
     # We need to add the name and task (task uppercase is also the group) to the
     # hydra configs.
