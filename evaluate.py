@@ -26,6 +26,7 @@ def main(
         task,
         train_config_path,
         name,
+        override_str,
         hydra_overrides
 ):
     if Path('wandb_secret.txt').exists():
@@ -89,6 +90,7 @@ def main(
         f"seq_per_sample={seq_per_sample}",
         *hydra_overrides
     ]
+    cfg_overrides+= override_str.split("||")
     initialize(config_path="conf", job_name="evaluate")
     cfg = compose(config_name="eval_config", overrides=cfg_overrides)
     cfg = config.merge_configs(cfg, train_cfg, exclude_keys=['preprocessors', 'postprocessors'])
@@ -212,6 +214,11 @@ if __name__ == "__main__":
                         help="Pass a train config to use instead of trying to find one.")
     parser.add_argument('--name', default=None,
                         help="If specifying a train config, set the name with this.")
+    parser.add_argument('--override-str',
+                        help='Bash does not like lists of variable args. so '
+                             'pass as seperated list of overrides, seperated by ||.',
+                        default=''
+                        )
     parser.add_argument('--hydra-overrides', '-hydra', nargs=argparse.REMAINDER)
     argv = parser.parse_args()
     os.environ['WORLD_SIZE'] = str(argv.workers)
@@ -222,5 +229,6 @@ if __name__ == "__main__":
         argv.task,
         argv.zero_shot_config,
         argv.name,
+        argv.override_str,
         argv.hydra_overrides
     )

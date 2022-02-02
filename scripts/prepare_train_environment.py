@@ -12,9 +12,9 @@ if str(Path(__file__).parents[1]) not in sys.path:
 from src.common import PROJECT_ROOT
 
 
-def prep_env(name, task, config, force_overwrite_dir, cfg_overrides):
+def prep_env(name, task, config, force_overwrite_dir, override_str, cfg_overrides):
     group_name = task.upper()
-    for i in cfg_overrides:
+    for i in cfg_overrides + override_str.split("||"):
         if 'group=' in i:
             group_name = i.split('=')[-1]
             break
@@ -44,6 +44,11 @@ if __name__ == '__main__':
                         action="store_true",
                         default=False,
                         help="Force overwriting the directory if it exists.")
+    parser.add_argument('--override-str',
+                        help='Bash does not like lists of variable args. so '
+                             'pass as seperated list of overrides, seperated by ||.',
+                        default=''
+                        )
     # This lets us have virtually the same exact setup as the hydra decorator
     # without their annoying working directory and logging.
     parser.add_argument('--hydra-overrides', '-hydra', nargs=argparse.REMAINDER,
@@ -56,5 +61,6 @@ if __name__ == '__main__':
         argv.task,
         argv.config,
         argv.force_overwrite_dir,
+        argv.override_str,
         argv.hydra_overrides or []
     )

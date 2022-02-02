@@ -20,7 +20,7 @@ from src.config import setup_tracking_env_from_cfg, get_run_base_name_from_cfg
 PROJECT_ROOT = Path.cwd()
 
 
-def run(name, task, config_name, force_overwrite_dir, cfg_overrides, debug):
+def run(name, task, config_name, force_overwrite_dir, override_str, cfg_overrides, debug):
     print(config_name)
     print(Path().resolve().absolute())
     if Path('wandb_secret.txt').exists():
@@ -62,6 +62,7 @@ def run(name, task, config_name, force_overwrite_dir, cfg_overrides, debug):
     # We need to add the name and task (task uppercase is also the group) to the
     # hydra configs.
     cfg_overrides = [f"name={name}", f"task={task}", f"group={group_name}"] + cfg_overrides
+    cfg_overrides += override_str.split('||')
     if debug:
         cfg_overrides += ['debug=True']
 
@@ -133,11 +134,16 @@ if __name__ == "__main__":
                         action="store_true",
                         default=False,
                         help="Force overwriting the directory if it exists.")
-
     parser.add_argument('-debug',
                         action="store_true",
                         default=False,
                         help="Debug Mode")
+
+    parser.add_argument('--override-str',
+                        help='Bash does not like lists of variable args. so '
+                             'pass as seperated list of overrides, seperated by ||.',
+                        default=''
+                        )
     # This lets us have virtually the same exact setup as the hydra decorator
     # without their annoying working directory and logging.
     parser.add_argument('--hydra-overrides', '-hydra', nargs=argparse.REMAINDER,
@@ -151,6 +157,7 @@ if __name__ == "__main__":
         argv.task,
         argv.config,
         argv.force_overwrite_dir,
+        argv.override_str,
         argv.hydra_overrides,
         argv.debug
     )

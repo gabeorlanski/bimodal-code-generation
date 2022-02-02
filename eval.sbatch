@@ -11,5 +11,5 @@ source /ext3/env.sh
 conda activate adversarial-code
 echo $(pwd)
 
-python evaluate.py $1 $2 -seqs 100 -hydra +generation.num_return_sequences=$3 +training.batch_size=1 +device=0 +generation.max_length=512
+python evaluate.py $1 $2 -seqs 100 --override-str ${4:-''} -hydra +generation.num_return_sequences=$3 +training.batch_size=1 +device=0 +generation.max_length=512
 "
