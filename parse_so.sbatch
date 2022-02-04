@@ -11,5 +11,9 @@ conda activate adversarial-code
 echo $(pwd)
 python scripts/parse_so_data.py -out data/parsed_so parse \
 	data/stack_exchange/stackoverflow \
-	48 negative -max '-1' -val 0.01
+	48 high_qual -min '30' -val 0.01
+
+python scripts/parse_so_data.py -out data/parsed_so parse \
+	data/stack_exchange/stackoverflow \
+	48 general -val 0.01
 "
