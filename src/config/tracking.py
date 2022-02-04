@@ -13,6 +13,7 @@ from omegaconf import DictConfig, OmegaConf, open_dict
 import os
 import logging
 from src.common import flatten, ENV_VARS_TRUE_VALUES
+from src.data.stackoverflow import StackOverflowTask
 
 logger = logging.getLogger(__name__)
 
@@ -177,6 +178,11 @@ class TrackingCallback(TrainerCallback):
             self.setup(args, state, model)
         if state.is_world_process_zero:
             logs = rewrite_logs(logs)
+
+            if isinstance(kwargs['train_dataloader'].dataset, StackOverflowTask):
+                train_ds = kwargs['train_dataloader'].dataset
+                logs['ds_epoch'] = train_ds.epoch
+                logs['samples_seen'] = train_ds.samples_seen
             self._wandb.log(logs, step=state.global_step)
 
 
@@ -214,7 +220,7 @@ def setup_tracking_env_from_cfg(cfg: DictConfig):
         run_name = f"debug-{run_name}"
 
     entity = cfg['tracking'].get('entity')
-    if entity:
+    if entity and not cfg.debug:
         os.environ['WANDB_ENTITY'] = entity
     os.environ['WANDB_PROJECT'] = project
     os.environ['WANDB_RUN_NAME'] = run_name
