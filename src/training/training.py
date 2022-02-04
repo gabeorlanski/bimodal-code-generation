@@ -15,6 +15,7 @@ from src.common import get_stats_from_list, PROJECT_ROOT
 from src.data import langauge_modeling
 from src.training.trainer import CustomTrainer
 from src.config import get_steps_from_training_args, get_lr_scheduler
+from src.data.stackoverflow import StackOverflowTask
 
 logger = logging.getLogger(__name__)
 
@@ -101,6 +102,12 @@ def setup_lm(cfg, task):
     return train_data, validation_data, None
 
 
+def setup_pretrain(cfg, task):
+    train_dataset = task(data_path=cfg.task.split_mapping['train'], infinite=True)
+    eval_dataset = task(data_path=cfg.task.split_mapping['validation'], infinite=False)
+    return train_dataset, eval_dataset, None
+
+
 def train_model(cfg: DictConfig):
     """
     Train a model with a given task.
@@ -117,8 +124,19 @@ def train_model(cfg: DictConfig):
     logger.debug("Loading Model")
     model_cls, model = config.load_model_from_cfg(cfg)
 
-    task: Task = config.load_task_from_cfg(cfg)
-    tokenizer = task.tokenizer
+    if cfg.task.name == "so":
+        is_pretrain = True
+        tokenizer = config.load_tokenizer_from_cfg(cfg)
+        task = partial(
+            StackOverflowTask,
+            dump_name='so',
+            tokenizer=tokenizer,
+            sequence_length=cfg.data_args.seq_length
+        )
+    else:
+        is_pretrain = False
+        task: Task = config.load_task_from_cfg(cfg)
+        tokenizer = task.tokenizer
 
     if tokenizer.pad_token is None:
         tokenizer.pad_token = tokenizer.eos_token
@@ -148,26 +166,34 @@ def train_model(cfg: DictConfig):
             else:
                 v_use = v
             setattr(model.config, k, v_use)
-    elif cfg.objective == "lm":
-        logger.info("Setting up the LM objective")
+    elif cfg.objective == 'lm':
+        if not is_pretrain:
+            logger.info("Setting up the LM objective")
 
-        if task.tokenizer.pad_token is None:
-            task.tokenizer.pad_token = task.tokenizer.eos_token
+            if task.tokenizer.pad_token is None:
+                task.tokenizer.pad_token = task.tokenizer.eos_token
 
-        train_data, validation_data, evaluate_fn = setup_lm(
-            cfg,
-            task
-        )
-        model.config.eos_token_id = task.tokenizer.eos_token_id
-        model.config.pad_token_id = task.tokenizer.pad_token_id
-        model.config.bos_token_id = task.tokenizer.bos_token_id or task.tokenizer.eos_token
+            train_data, validation_data, evaluate_fn = setup_lm(
+                cfg,
+                task
+            )
+        else:
+            logger.info(f"Setting up the pretrain objective")
+            train_data, validation_data, evaluate_fn = setup_pretrain(
+                cfg,
+                task
+            )
 
+        model.config.eos_token_id = tokenizer.eos_token_id
+        model.config.pad_token_id = tokenizer.pad_token_id
+        model.config.bos_token_id = tokenizer.bos_token_id or tokenizer.eos_token
         collator = DataCollatorForSeq2Seq(
             tokenizer=tokenizer,
             padding='longest',
             pad_to_multiple_of=1,
             return_tensors='pt'
         )
+
     else:
         logger.error(f"{cfg.objective} is not a valid objective")
         raise ValueError("Invalid Objective")

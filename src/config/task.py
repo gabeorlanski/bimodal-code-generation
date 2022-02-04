@@ -13,7 +13,8 @@ from tio import Task, Metric, Preprocessor, Postprocessor
 logger = logging.getLogger(__name__)
 __all__ = [
     "load_processors_from_cfg",
-    "load_task_from_cfg"
+    "load_task_from_cfg",
+    "load_tokenizer_from_cfg"
 ]
 
 
@@ -88,8 +89,6 @@ def load_task_from_cfg(
     Returns:
         Task: The created task object.
     """
-    if tokenizer_kwargs is None:
-        tokenizer_kwargs = {}
     logger.info(f"Initializing task registered to name '{cfg['task']['name']}'")
     preprocessors, postprocessors = load_processors_from_cfg(cfg)
     logger.info(f"Metrics are {list(cfg.get('metrics', []))}")
@@ -104,14 +103,20 @@ def load_task_from_cfg(
 
     return Task.get_task(
         name=cfg["task"]["name"],
-        tokenizer=AutoTokenizer.from_pretrained(
-            cfg['model'],
-            use_fast=os.environ.get('DISABLE_FAST_TOK', 'false') != 'true',
-            **tokenizer_kwargs
-        ),
+        tokenizer=load_tokenizer_from_cfg(cfg, tokenizer_kwargs),
         preprocessors=preprocessors,
         postprocessors=postprocessors,
         metric_fns=metrics,
         split_mapping=cfg.task.get('split_mapping', {}),
         additional_kwargs=cfg.task.get('kwargs', {})
+    )
+
+
+def load_tokenizer_from_cfg(cfg, tokenizer_kwargs=None):
+    if tokenizer_kwargs is None:
+        tokenizer_kwargs = {}
+    return AutoTokenizer.from_pretrained(
+        cfg['model'],
+        use_fast=os.environ.get('DISABLE_FAST_TOK', 'false') != 'true',
+        **tokenizer_kwargs
     )

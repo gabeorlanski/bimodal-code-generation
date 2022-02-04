@@ -1,6 +1,7 @@
 defaults:
   - base_config
   - task: ???
+  - objective: ???
   - _self_
   - objective: seq2seq
 
@@ -51,6 +52,7 @@ training:
   disable_tqdm: True
   max_grad_norm: 1.0
   ddp_find_unused_parameters: False
+#  deepspeed: ds_config.json
 
 metrics:
   - exact-match

@@ -9,9 +9,9 @@ import logging
 from transformers import PreTrainedTokenizer
 from typing import Callable, List, Dict
 from datasets import Dataset, DatasetDict
-from src.common import PROJECT_ROOT
+from src.common import PROJECT_ROOT, PathType
 from overrides import overrides
-from tio.task import Task, PathType
+from tio import Task
 import re
 
 logger = logging.getLogger(__name__)
@@ -72,7 +72,7 @@ class MBPP(Task):
             out[split] = Dataset.from_dict(split_dict, split=split)
         return DatasetDict(out)
 
-    def dataset_load_fn(self, split) -> Dataset:
+    def _load_samples(self, split) -> Dataset:
         # Load the data into a dict where the key is the task_id
         return self._dataset_mapping[split]
 
@@ -103,4 +103,3 @@ class MBPP(Task):
             'task_id': processed_sample['task_id'],
             **self.excluded_columns_data[processed_sample['task_id']]
         }
-

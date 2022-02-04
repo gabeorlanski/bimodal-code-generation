@@ -30,7 +30,7 @@ def test_mbpp_task(mbpp_task, split):
         "test_setup_code"
     ])
 
-    result = mbpp_task.dataset_load_fn(split)
+    result = mbpp_task._load_samples(split)
     assert result[:10] == expected[:10]
 
 

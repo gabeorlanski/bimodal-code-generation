@@ -1,6 +1,7 @@
 import argparse
 import logging
 
+import yaml
 from hydra import compose, initialize
 import torch
 from omegaconf import DictConfig, open_dict, OmegaConf
@@ -9,7 +10,7 @@ import numpy as np
 import os
 import random
 import shutil
-
+import click
 from tio import Task
 
 from src.common import setup_global_logging, is_currently_distributed
@@ -20,21 +21,16 @@ from src.config import setup_tracking_env_from_cfg, get_run_base_name_from_cfg
 PROJECT_ROOT = Path.cwd()
 
 
-def run(name, task, config_name, force_overwrite_dir, override_str, cfg_overrides, debug):
-    print(config_name)
-    print(Path().resolve().absolute())
+def train_from_cfg(cfg):
+    task = cfg.task.name
+    name = cfg.name
+    group_name = cfg.group
+    if cfg.local_rank is not None:
+        os.environ['LOCAL_RANK'] = str(cfg.local_rank)
     if Path('wandb_secret.txt').exists():
         os.environ["WANDB_API_KEY"] = open('wandb_secret.txt').read().strip()
 
-    group_name = task.upper()
-    for i in cfg_overrides:
-        if 'group=' in i:
-            group_name = i.split('=')[-1]
-            break
-    print(f"Starting Train with group={group_name}, "
-          f"name={name}, and task={task}")
-
-    if not Task.is_name_registered(task):
+    if not Task.is_name_registered(task) and task not in ['so']:
         valid_tasks = ''
         for t in Task.list_available():
             valid_tasks += f'\t{t}\n'
@@ -50,26 +46,13 @@ def run(name, task, config_name, force_overwrite_dir, override_str, cfg_override
     setup_global_logging(
         'train',
         new_cwd.joinpath('logs'),
-        debug=debug,
+        debug=cfg.debug,
         rank=int(os.environ.get('LOCAL_RANK', '-1')),
         world_size=int(os.environ.get("WORLD_SIZE", 1))
     )
 
     logger = logging.getLogger('train')
     logger.info("Starting Train")
-    logger.info(f"Loading the hydra config '{config_name}.yaml'")
-
-    # We need to add the name and task (task uppercase is also the group) to the
-    # hydra configs.
-    cfg_overrides = [f"name={name}", f"task={task}", f"group={group_name}"] + cfg_overrides
-
-    if override_str:
-        cfg_overrides += override_str.split(" ")
-    if debug:
-        cfg_overrides += ['debug=True']
-
-    initialize(config_path="conf", job_name="train")
-    cfg = compose(config_name=config_name, overrides=cfg_overrides)
 
     os.chdir(new_cwd)
     with open('config.yaml', 'w') as f:
@@ -109,11 +92,8 @@ def run(name, task, config_name, force_overwrite_dir, override_str, cfg_override
         best_models_path = PROJECT_ROOT.joinpath('best_models', get_run_base_name_from_cfg(cfg))
         save_model = True
         if best_models_path.exists():
-            if force_overwrite_dir:
-                logger.info(f"Overwriting {best_models_path}")
-                shutil.rmtree(best_models_path)
-            else:
-                save_model = False
+            logger.info(f"Overwriting {best_models_path}")
+            shutil.rmtree(best_models_path)
         if save_model:
             logger.info(
                 f"Saving best model to {best_models_path.absolute().resolve()}")
@@ -126,40 +106,85 @@ def run(name, task, config_name, force_overwrite_dir, override_str, cfg_override
     logger.info("Training Is Done")
 
 
+@click.group()
+@click.option(
+    '--debug',
+    is_flag=True,
+    default=False,
+    help="Debug Mode"
+)
+@click.option('--local_rank', default=-1, type=int)
+@click.pass_context
+def cli(ctx, debug, local_rank):
+    ctx.obj = {"DEBUG": debug, "local_rank": local_rank}
+
+
+@cli.command("from_config")
+@click.argument("config", metavar="<Config To Use>")
+@click.pass_context
+def train_from_config_file(ctx, config):
+    local_rank = ctx.obj['local_rank']
+    debug = ctx.obj['DEBUG']
+    if local_rank <= 0:
+        print(f"Loading config from {config}")
+
+    cfg = OmegaConf.create(yaml.load(
+        PROJECT_ROOT.joinpath(config).open('r', encoding='utf-8'),
+        yaml.Loader
+    ))
+
+    with open_dict(cfg):
+        cfg.local_rank = local_rank
+        cfg.debug = debug
+
+    train_from_cfg(cfg)
+
+
+@cli.command()
+@click.argument("name", metavar="<Name of the Run>")
+@click.argument("task", metavar="<Task to use>")
+@click.option("--config", "config_name", help="Name of the base config file to use.",
+              default='train_config')
+@click.option('--override-str',
+              help='Bash does not like lists of variable args. so '
+                   'pass as seperated list of overrides, seperated by ' '.',
+              default=''
+              )
+# This lets us have virtually the same exact setup as the hydra decorator
+# without their annoying working directory and logging.
+@click.argument(
+    'cfg_overrides', nargs=-1,
+    type=click.UNPROCESSED
+)
+@click.pass_context
+def train(ctx, name, task, config_name, override_str, cfg_overrides):
+    local_rank = ctx.obj['local_rank']
+    debug = ctx.obj['DEBUG']
+
+    group_name = task.upper()
+    for i in cfg_overrides:
+        if 'group=' in i:
+            group_name = i.split('=')[-1]
+            break
+
+    # We need to add the name and task (task uppercase is also the group) to the
+    # hydra configs.
+    cfg_overrides = [f"name={name}", f"task={task}", f"group={group_name}"] + list(cfg_overrides)
+
+    if override_str:
+        cfg_overrides += override_str.split(" ")
+    if debug:
+        cfg_overrides += ['debug=True']
+
+    initialize(config_path="conf", job_name="train")
+    cfg = compose(config_name=config_name, overrides=cfg_overrides)
+
+    with open_dict(cfg):
+        cfg.local_rank = local_rank
+        cfg.debug = debug
+
+    train_from_cfg(cfg)
+
+
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument("name", metavar="<Name of the Run>")
-    parser.add_argument("task", metavar="<Task to use>")
-    parser.add_argument("--config", help="Name of the base config file to use.",
-                        default='train_config')
-    parser.add_argument('--force-overwrite-dir', '-force',
-                        action="store_true",
-                        default=False,
-                        help="Force overwriting the directory if it exists.")
-    parser.add_argument('-debug',
-                        action="store_true",
-                        default=False,
-                        help="Debug Mode")
-
-    parser.add_argument('--override-str',
-                        help='Bash does not like lists of variable args. so '
-                             'pass as seperated list of overrides, seperated by ' '.',
-                        default=''
-                        )
-    # This lets us have virtually the same exact setup as the hydra decorator
-    # without their annoying working directory and logging.
-    parser.add_argument('--hydra-overrides', '-hydra', nargs=argparse.REMAINDER,
-                        help='Everything after this argument is passed to the '
-                             'hydra config creator as an override command.', default=[])
-
-    argv = parser.parse_args()
-    print(argv.config)
-    run(
-        argv.name,
-        argv.task,
-        argv.config,
-        argv.force_overwrite_dir,
-        argv.override_str,
-        argv.hydra_overrides or [],
-        argv.debug
-    )
+    cli()

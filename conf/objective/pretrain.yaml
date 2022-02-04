@@ -1,0 +1,8 @@
+# @package _global_
+defaults:
+  - _self_
+
+objective: lm
+
+data_args:
+  seq_length: 512

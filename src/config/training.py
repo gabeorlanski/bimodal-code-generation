@@ -1,4 +1,5 @@
 import collections
+import json
 import logging
 import math
 import sys
@@ -10,6 +11,7 @@ from dataclasses import dataclass
 from transformers.training_args_seq2seq import Seq2SeqTrainingArguments
 from transformers.optimization import TYPE_TO_SCHEDULER_FUNCTION
 
+from src.common import PROJECT_ROOT
 from src.common.util import get_world_size
 
 __all__ = [
@@ -24,9 +26,9 @@ logger = logging.getLogger(__name__)
 
 @dataclass()
 class TrainingArguments(Seq2SeqTrainingArguments):
-    lr_power:float = 2.0
-    end_lr:float = 1e-16
-    num_cycles:int = 1
+    lr_power: float = 2.0
+    end_lr: float = 1e-16
+    num_cycles: int = 1
 
 
 def get_training_args_from_cfg(cfg: DictConfig) -> TrainingArguments:
@@ -46,6 +48,10 @@ def get_training_args_from_cfg(cfg: DictConfig) -> TrainingArguments:
     """
 
     training_args = OmegaConf.to_object(cfg["training"])
+
+    if 'deepspeed' in training_args:
+        training_args['deepspeed'] = json.loads(
+            PROJECT_ROOT.joinpath(training_args['deepspeed']).read_text())
 
     batch_size = training_args.pop("batch_size", None)
     if batch_size:

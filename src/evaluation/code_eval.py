@@ -34,7 +34,7 @@ def get_metrics_from_list(name, list_of_values):
         "std"       : metrics['std']
     }
     # Cast so it is not a numpy type
-    return {f"{name}/{k}": float(v) for k, v in metrics_dict.items()}
+    return {f"{name + '/' if name else ''}{k}": float(v) for k, v in metrics_dict.items()}
 
 
 def get_samples(file_path, samples_per_problem) -> Tuple[List[Sample], List, Dict, Dict, Dict]:

@@ -9,9 +9,9 @@ import logging
 from transformers import PreTrainedTokenizer
 from typing import Callable, List, Dict
 from datasets import Dataset, DatasetDict, load_dataset
-from src.common import PROJECT_ROOT
+from src.common import PROJECT_ROOT, PathType
 from overrides import overrides
-from tio.task import Task, PathType
+from tio import Task
 import re
 
 logger = logging.getLogger(__name__)
@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 @Task.register("human_eval")
 class HumanEval(Task):
     """
-    Task for the Mostly Basic Programming Problems Dataset.
+    Task for the Human Eval dataset
     """
     SPLIT_MAPPING = {
         "test": str(PROJECT_ROOT.joinpath('data', 'MBPP', 'test.jsonl')),
@@ -35,17 +35,17 @@ class HumanEval(Task):
             preprocessors: List[Callable],
             postprocessors: List[Callable],
             metric_fns: List[Callable],
-            additional_splits: Dict[str, PathType] = None
+            split_mapping: Dict[str, PathType] = None
     ):
         super(HumanEval, self).__init__(
             tokenizer=tokenizer,
             preprocessors=preprocessors,
             postprocessors=postprocessors, metric_fns=metric_fns,
-            additional_splits=additional_splits
+            split_mapping=split_mapping
         )
         self._dataset = load_dataset('openai_humaneval')
 
-    def dataset_load_fn(self, split) -> Dataset:
+    def _load_samples(self, split) -> Dataset:
         # Load the data into a dict where the key is the task_id
         if split not in self.SPLIT_MAPPING:
             raise KeyError("HumanEval only supports a test split.")

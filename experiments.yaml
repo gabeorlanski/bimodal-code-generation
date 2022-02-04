@@ -1,0 +1,17 @@
+experiments:
+  testing:
+    base: train_config
+    overrides:
+      model: 'EleutherAI/gpt-neo-125M'
+      objective: 'lm'
+      device: 0
+      +disable_cache: True
+      tracking: False
+      task: mbpp
+    experiments:
+      FineTuneSOData:
+        overrides:
+          is_checkpoint: True
+          model_path: best_models/SO.TestSOData
+      FineTuneGPTNeo:
+        overrides: { }
