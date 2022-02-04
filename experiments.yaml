@@ -1,17 +1,11 @@
 experiments:
-  testing:
-    base: train_config
+  ErrorSOCodeParrot:
+    base: pretrain_config
+    group: SO
     overrides:
-      model: 'EleutherAI/gpt-neo-125M'
+      model: 'lvwerra/codeparrot'
       objective: 'lm'
       device: 0
       +disable_cache: True
       tracking: False
       task: mbpp
-    experiments:
-      FineTuneSOData:
-        overrides:
-          is_checkpoint: True
-          model_path: best_models/SO.TestSOData
-      FineTuneGPTNeo:
-        overrides: { }
