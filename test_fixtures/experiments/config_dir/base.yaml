@@ -1,0 +1,6 @@
+defaults:
+  - _self_
+
+task: 'A'
+objective: 'seq2seq'
+model: "FAIL"

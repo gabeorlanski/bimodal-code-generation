@@ -1,0 +1,16 @@
+experiments:
+  ExceptionQuestions:
+    base: base
+    group: SO
+    overrides:
+      objective: 'lm'
+      ++device: 0
+      +disable_cache: True
+      task: so
+    experiments:
+      CodeParrotSmall:
+        overrides:
+          model: 'lvwerra/codeparrot-small'
+      CodeParrot:
+        overrides:
+          model: 'lvwerra/codeparrot'

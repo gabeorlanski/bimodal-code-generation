@@ -14,24 +14,15 @@ import click
 if str(Path(__file__).parents[1]) not in sys.path:
     sys.path.insert(0, str(Path(__file__).parents[1]))
 from src.common import PROJECT_ROOT, setup_global_logging, flatten
-from src.config.experiments import load_experiment_cards_from_file
+from src.config.experiments import load_experiment_cards_from_file, save_experiment_cards
 
 
-@click.command()
-@click.argument('experiment_card_path', metavar='<Path To Experiment Card>')
-@click.argument('config_directory', metavar='<Path To Config Directory>')
-@click.option('--debug', is_flag=True, default=False, help='Enable Debug Mode')
-@click.option('--output-path', '-out', 'output_path', default='experiments',
-              help='The path to save the experiments')
-@click.option('--overwrite-out-dir', '-overwrite', 'overwrite_output_dir',
-              is_flag=True, default=False, help='Force overwriting the output directory.')
-@click.pass_context
-def cli(ctx, experiment_card_path, config_directory, debug, output_path, overwrite_output_dir):
-    setup_global_logging(
-        f"create_experiments",
-        str(PROJECT_ROOT.joinpath('logs')),
-        debug=debug
-    )
+def create_experiments(
+        experiment_card_path,
+        config_directory,
+        debug,
+        output_path,
+        overwrite_output_dir):
     logger = logging.getLogger('create_experiments')
     experiment_card_path = PROJECT_ROOT.joinpath(experiment_card_path)
     logger.info(f"Creating Experiment configs from "
@@ -57,31 +48,42 @@ def cli(ctx, experiment_card_path, config_directory, debug, output_path, overwri
         logger.info("Directory does not exist, creating it.")
         output_path.mkdir(parents=True)
 
-    logger.info(f"Creating experiments from the base hydra configs.")
-    for experiment in experiment_cards:
-        logger.debug(f"Loading hydra config {experiment.base}")
+    save_experiment_cards(
+        experiment_cards,
+        output_path,
+        config_directory
+    )
 
-        overrides_dict = flatten(experiment.overrides, sep='.')
-        overrides_list = []
-        for k, v in overrides_dict.items():
-            override_key = k
-            if "++" in k:
-                override_key = f"++{k.replace('++', '')}"
-            elif "+" in k:
-                override_key = f"+{k.replace('+', '')}"
-            overrides_list.append(f"{override_key}={v}")
-        logger.info(f"{len(overrides_list)} overrides to use for {experiment.name}")
-        logger.debug(f"Overrides for {experiment.name=}: {', '.join(overrides_list)}")
-        save_path = output_path.joinpath(f"{experiment.save_name}.yaml")
-        with initialize_config_dir(config_dir=str(config_directory.absolute()),
-                                   job_name="create_configs"):
-            cfg = compose(config_name=experiment.base, overrides=overrides_list)
-            logger.info(f"Loaded config, now saving to {save_path}")
-            with save_path.open('w', encoding='utf-8') as f:
-                with open_dict(cfg):
-                    cfg['name'] = experiment.name
-                    cfg['group'] = experiment.group
-                f.write(OmegaConf.to_yaml(cfg, resolve=True))
+
+@click.command()
+@click.argument('experiment_card_path', metavar='<Path To Experiment Card>')
+@click.argument('config_directory', metavar='<Path To Config Directory>')
+@click.option('--debug', is_flag=True, default=False, help='Enable Debug Mode')
+@click.option('--output-path', '-out', 'output_path', default='experiments',
+              help='The path to save the experiments')
+@click.option('--overwrite-out-dir', '-overwrite', 'overwrite_output_dir',
+              is_flag=True, default=False, help='Force overwriting the output directory.')
+def cli(
+        experiment_card_path,
+        config_directory,
+        debug,
+        output_path,
+        overwrite_output_dir
+):
+    setup_global_logging(
+        f"create_experiments",
+        str(PROJECT_ROOT.joinpath('logs')),
+        debug=debug
+    )
+    # Split them up like this so I can actually test the function, click makes
+    # that impossible.
+    create_experiments(
+        experiment_card_path=experiment_card_path,
+        config_directory=config_directory,
+        debug=debug,
+        output_path=output_path,
+        overwrite_output_dir=overwrite_output_dir
+    )
 
 
 if __name__ == '__main__':

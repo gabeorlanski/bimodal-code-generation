@@ -1,8 +1,13 @@
 import logging
 from dataclasses import asdict, dataclass, field
 from functools import partial
+from pathlib import Path
 from typing import List, Dict, Generator
 import yaml
+from copy import deepcopy
+
+from hydra import compose, initialize_config_dir
+from omegaconf import OmegaConf, open_dict
 from collections import Counter
 
 from src.common import flatten
@@ -32,10 +37,23 @@ class ExperimentCard:
 
 def get_experiment_cards(
         name,
-        experiment_card_dict,
+        experiment_card_dict: Dict,
         parent_defaults: Dict = None,
         chain: str = ""
 ) -> Generator[ExperimentCard, None, None]:
+    """
+    Recursively get the experiment cards.
+
+    Args:
+        name (str): The name of the current card/group.
+        experiment_card_dict (Dict): the dict of the experiment card.
+        parent_defaults (Dict): The dict of defaults from the parent.
+        chain (str): The string representing the recursive chain. For debugging.
+
+    Yields:
+        Generator[ExperimentCard, None, None]: The parsed experiment card.
+
+    """
     if parent_defaults is None:
         parent_defaults = {}
     logger.info(f"Parsing Experiment Card dict named {name}")
@@ -47,7 +65,7 @@ def get_experiment_cards(
 
     # Put parent's values before the children's in the overrides so that the
     # children get priority.
-    experiment_overrides = parent_defaults.get('overrides', {})
+    experiment_overrides = deepcopy(parent_defaults.get('overrides', {}))
     experiment_overrides.update(experiment_card_dict.get('overrides', {}))
 
     if not experiment_children:
@@ -71,18 +89,31 @@ def get_experiment_cards(
         experiment_partial = partial(
             get_experiment_cards,
             parent_defaults={
-                "group"    : name,  # Use the parent's name as the group for any children.
+                "group"    : experiment_card_dict.get('group', name),
+                # Use the parent's name as the group for any children.
                 "base"     : base_config,
                 "overrides": experiment_overrides
             },
             chain=chain
         )
         for child_name, child_dict in experiment_children.items():
-            for experiment in experiment_partial(child_name, child_dict):
+            child_name_to_use = child_name
+            if experiment_group != name:
+                child_name_to_use = f"{name}.{child_name}"
+            for experiment in experiment_partial(child_name_to_use, child_dict):
                 yield experiment
 
 
-def load_experiment_cards_from_file(experiment_card_path) -> List[ExperimentCard]:
+def load_experiment_cards_from_file(experiment_card_path: Path) -> List[ExperimentCard]:
+    """
+    Load the experiment cards from a given file.
+    Args:
+        experiment_card_path (Path): The path to the .yaml file with the
+            experiment cards.
+
+    Returns:
+        List[ExperimentCard]: The list of experiment cards.
+    """
     logger.debug("Loading Experiment card")
     if not experiment_card_path.exists():
         raise FileExistsError(f"Could not find experiment card at {experiment_card_path}")
@@ -112,7 +143,9 @@ def load_experiment_cards_from_file(experiment_card_path) -> List[ExperimentCard
     # Check for duplicate group+name combos
     unique_names = Counter(f"{e.group}.{e.name}" for e in experiment_cards)
     if len(unique_names) != len(experiment_cards):
+        # Duplicate names are strictly NOT allowed.
         logger.error("Duplicate experiment card names.")
+
         # Get the list of duplicates.
         logger.error(
             f"Duplicated names: {', '.join([n for n, v in unique_names.items() if v > 1])}"
@@ -120,3 +153,56 @@ def load_experiment_cards_from_file(experiment_card_path) -> List[ExperimentCard
         raise ValueError("Duplicate Experiment names.")
 
     return experiment_cards
+
+
+def save_experiment_cards(
+        experiment_cards: List[ExperimentCard],
+        output_path: Path,
+        config_directory: Path
+):
+    """
+    Save the experiment cards to their configs
+    Args:
+        experiment_cards (List[ExperimentCard]): The list of experiment cards
+            to save.
+        output_path (Path): Path for saving the experiments.
+        config_directory (Path): Path where the base hydra configs are.
+
+    Returns: None
+
+    """
+    logger.info(f"Creating experiments from the base hydra configs.")
+    for experiment in experiment_cards:
+        logger.debug(f"Loading hydra config {experiment.base}")
+
+        overrides_dict = flatten(experiment.overrides, sep='.')
+        overrides_list = []
+        for k, v in overrides_dict.items():
+
+            # Easier way to handle Hydra's override grammar as users may want
+            # to put the override marker at different points.
+            override_key = k
+            if "++" in k:
+                override_key = f"++{k.replace('++', '')}"
+            elif "+" in k:
+                override_key = f"+{k.replace('+', '')}"
+            overrides_list.append(f"{override_key}={v}")
+
+        logger.info(f"{len(overrides_list)} overrides to use for {experiment.name}")
+        logger.debug(f"Overrides for {experiment.name=}: {', '.join(overrides_list)}")
+        save_path = output_path.joinpath(f"{experiment.save_name}.yaml")
+
+        # Load the original configs from hydra with the overrides.
+        with initialize_config_dir(config_dir=str(config_directory.absolute()),
+                                   job_name="create_configs"):
+            cfg = compose(config_name=experiment.base, overrides=overrides_list)
+
+            logger.info(f"Loaded config, now saving to {save_path}")
+            with save_path.open('w', encoding='utf-8') as f:
+                # Add both the group and the name of the run to the configs
+                # before saving them. Do not use overrides for these because
+                # this is easier and it will ALWAYS occur.
+                with open_dict(cfg):
+                    cfg['name'] = experiment.name
+                    cfg['group'] = experiment.group
+                f.write(OmegaConf.to_yaml(cfg, resolve=True))
