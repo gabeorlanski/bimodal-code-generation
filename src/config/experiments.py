@@ -206,12 +206,15 @@ def get_experiment_card_cfg_from_dict(
             has_steps = False
             experiment_steps = [{"name": name, "group": experiment_group, "base": base_config}]
 
+        command_str = experiment_card_dict.get('commands')
+        if command_str is not None:
+            command_str = '\n'.join(command_str)
         for ablation_name, ablation_overrides in ablations.items():
             previous_step = {}
             composed_experiments = ComposedExperiments(
                 name=ablation_name if has_ablations else name,
                 step_cards={},
-                command_template='\n'.join(experiment_card_dict.get('commands'))
+                command_template=command_str
             )
             for step_num, step_dict in enumerate(experiment_steps):
 
