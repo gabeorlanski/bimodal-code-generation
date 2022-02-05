@@ -126,7 +126,7 @@ class ComposedExperiments:
         }
         for step, experiment in self.step_cards.items():
             template_dict[step] = {
-                'path'     : output_path.joinpath(f"{experiment.save_name}"),
+                'path'     : output_path.joinpath(f"{experiment.save_name}.yaml"),
                 'save_name': experiment.save_name
             }
 
