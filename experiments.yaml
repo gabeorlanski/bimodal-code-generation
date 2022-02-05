@@ -1,11 +1,13 @@
 experiments:
-  ErrorSOCodeParrot:
+  ErrorCodeParrotSmall:
     base: pretrain_config
-    group: SO
+    group: SmallScaleSO
     overrides:
-      model: 'lvwerra/codeparrot'
+      model: 'lvwerra/codeparrot-small'
       objective: 'lm'
       device: 0
       +disable_cache: True
-      tracking: False
-      task: mbpp
+      task: so
+      task.dump_name: exceptions
+      tracking:
+        log_model: false

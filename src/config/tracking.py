@@ -181,8 +181,8 @@ class TrackingCallback(TrainerCallback):
 
             if isinstance(kwargs['train_dataloader'].dataset, StackOverflowTask):
                 train_ds = kwargs['train_dataloader'].dataset
-                logs['ds_epoch'] = train_ds.epoch
-                logs['samples_seen'] = train_ds.samples_seen
+                logs['train/ds_epoch'] = train_ds.epoch
+                logs['train/samples_seen'] = train_ds.samples_seen
             self._wandb.log(logs, step=state.global_step)
 
 
