@@ -2,7 +2,7 @@
 #SBATCH --output=./logs/eval/%x_eval.out
 #SBATCH --time=24:00:00
 #SBATCH --account=cds
-#SBATCH --gres=gpu:1
+#SBATCH --gres=gpu:rtx8000:4
 #SBATCH --mem=64G
 #SBATCH -c 4
 
