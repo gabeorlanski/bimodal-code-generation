@@ -147,6 +147,6 @@ data/SEDumps/
 data/stack_exchange/
 artifacts/
 parsed_so/
-experiments/
+generated_experiments/
 
 !test_fixtures/experiments/

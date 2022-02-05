@@ -1,0 +1,7 @@
+name: Simple
+group: SO
+task: so
+objective: 'lm'
+model: "FAIL"
+device: 0
+disable_cache: True

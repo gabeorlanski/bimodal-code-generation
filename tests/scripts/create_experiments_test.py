@@ -26,19 +26,6 @@ def test_create_experiments(
     with tmpdir_path.joinpath('test.txt').open('w'):
         pass
 
-    # Setup the expected files to find, and what keys will be different from
-    # the base.
-    expected_files = {
-        "SO.ExceptionQuestions.CodeParrot.yaml"     : {
-            "model": "lvwerra/codeparrot",
-            "name" : "ExceptionQuestions.CodeParrot",
-        },
-        "SO.ExceptionQuestions.CodeParrotSmall.yaml": {
-            "model": "lvwerra/codeparrot-small",
-            "name" : "ExceptionQuestions.CodeParrotSmall"
-        },
-    }
-
     create_experiments(
         experiment_card_path=experiment_cards_path,
         config_directory=experiments_dir.joinpath('config_dir'),
@@ -52,19 +39,22 @@ def test_create_experiments(
     else:
         assert tmpdir_path.joinpath('test.txt').exists()
 
-    for file, changed_keys in expected_files.items():
+    for file_name in experiment_result_files_path.glob('*.yaml'):
         # Load each time so that it can be modified.
         expected_config = yaml.load(
-            experiment_result_files_path.joinpath('simple.yaml').open('r'),
+            file_name.open('r'),
             yaml.Loader
         )
-        expected_config.update(changed_keys)
-
-        actual_file_path = tmpdir_path.joinpath(file)
-        assert actual_file_path.exists(), file
+        actual_file_path = tmpdir_path.joinpath(f"{file_name.stem}.yaml")
+        assert actual_file_path.exists(), file_name.stem
 
         actual_config = yaml.load(
             actual_file_path.open('r'),
             yaml.Loader
         )
-        assert actual_config == expected_config, file
+        assert actual_config == expected_config, file_name.stem
+
+    assert tmpdir_path.joinpath('experiments.sh').exists()
+    actual_command = tmpdir_path.joinpath('experiments.sh').read_text()
+    expected_command = experiment_result_files_path.joinpath('experiments.sh').read_text()
+    assert actual_command == expected_command

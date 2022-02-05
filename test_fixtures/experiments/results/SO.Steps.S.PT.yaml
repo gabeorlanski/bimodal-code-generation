@@ -1,7 +1,7 @@
 device: 0
 disable_cache: True
 group: SO
-model: lvwerra/codeparrot
-name: ExceptionQuestions.CodeParrot
+model: lvwerra/codeparrot-small
+name: Steps.S.PT
 objective: lm
 task: so

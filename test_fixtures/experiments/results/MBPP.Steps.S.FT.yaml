@@ -1,0 +1,10 @@
+device: 0
+disable_cache: True
+group: MBPP
+model: lvwerra/codeparrot-small
+name: Steps.S.FT
+objective: lm
+task: mbpp
+is_finetune: True
+is_checkpoint: True
+model_path: best_models/SO.Steps.S.PT

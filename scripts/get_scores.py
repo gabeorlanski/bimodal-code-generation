@@ -8,7 +8,7 @@ import sys
 if str(Path(__file__).parents[1]) not in sys.path:
     sys.path.insert(0, str(Path(__file__).parents[1]))
 from src.common import PROJECT_ROOT, setup_global_logging, flatten
-from src.config.experiments import load_experiment_cards_from_file
+from src.config.experiments import load_ablation_cards_from_file
 from src.evaluation.code_eval import get_metrics_from_list
 
 

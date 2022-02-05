@@ -14,7 +14,7 @@ import click
 if str(Path(__file__).parents[1]) not in sys.path:
     sys.path.insert(0, str(Path(__file__).parents[1]))
 from src.common import PROJECT_ROOT, setup_global_logging, flatten
-from src.config.experiments import load_experiment_cards_from_file, save_experiment_cards
+from src.config.experiments import load_ablation_cards_from_file, save_experiment_cards
 
 
 def create_experiments(
@@ -33,7 +33,7 @@ def create_experiments(
 
     output_path = PROJECT_ROOT.joinpath(output_path)
     logger.info(f"Experiment configs will be written to '{output_path.resolve().absolute()}'")
-    experiment_cards = load_experiment_cards_from_file(experiment_card_path)
+    ablation_cards = load_ablation_cards_from_file(experiment_card_path)
 
     logger.debug("Looking for output dir")
     if output_path.exists():
@@ -49,7 +49,7 @@ def create_experiments(
         output_path.mkdir(parents=True)
 
     save_experiment_cards(
-        experiment_cards,
+        ablation_cards,
         output_path,
         config_directory
     )
@@ -59,7 +59,7 @@ def create_experiments(
 @click.argument('experiment_card_path', metavar='<Path To Experiment Card>')
 @click.argument('config_directory', metavar='<Path To Config Directory>')
 @click.option('--debug', is_flag=True, default=False, help='Enable Debug Mode')
-@click.option('--output-path', '-out', 'output_path', default='experiments',
+@click.option('--output-path', '-out', 'output_path', default='generated_experiments',
               help='The path to save the experiments')
 @click.option('--overwrite-out-dir', '-overwrite', 'overwrite_output_dir',
               is_flag=True, default=False, help='Force overwriting the output directory.')

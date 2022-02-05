@@ -1,0 +1,7 @@
+device: 0
+disable_cache: True
+group: SO
+model: lvwerra/codeparrot
+name: Steps.N.PT
+objective: lm
+task: so

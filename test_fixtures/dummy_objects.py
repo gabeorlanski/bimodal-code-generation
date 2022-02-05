@@ -22,7 +22,7 @@ class DummyTask(Task):
         sample['target'] = sample['output']
         return sample
 
-    def dataset_load_fn(self, split: str) -> Dataset:
+    def _load_samples(self, split: str) -> Dataset:
         return Dataset.from_dict({
             "idx"   : [0, 1, 2, 3],
             "input" : ["The comment section is ", "The butcher of ", "Get ", "I hate"],
