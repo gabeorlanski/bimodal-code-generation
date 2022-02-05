@@ -24,7 +24,7 @@ experiments:
           +model_path: best_models/${..previous_step.save_name}
     commands:
       - '{%- set pretrain_jid= "pretrain_jid"+ idx|string -%}'
-      - '{{ pretrain_jid }}=$(sbatch --parsable --job-name={{ name }}_pretrain train.sbatch {{ PT.save_name }})'
+      - '{{ pretrain_jid }}=$(sbatch --parsable  --job-name={{ name }}_pretrain train.sbatch {{ PT.save_name }})'
       - 'echo "Submitted PreTrain (id=${{ pretrain_jid }})"'
 
   Simple:

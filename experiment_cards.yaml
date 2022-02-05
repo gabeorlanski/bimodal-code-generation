@@ -31,11 +31,12 @@ experiments:
           ++model_path: best_models/${..previous_step.save_name}
     commands:
       - '{%- set pretrain_jid= "pretrain_jid"+ idx|string -%}'
-      - '{{ pretrain_jid }}=$(sbatch --parsable --job-name={{ name }}_pretrain train.sbatch {{ PreTrain.path }})'
+      - '{{ pretrain_jid }}=$(sbatch --parsable --account=cds --job-name={{ name }}_pretrain 
+      train.sbatch {{ PreTrain.path }})'
       - 'echo "Submitted PreTrain (id=${{ pretrain_jid }})"'
       - 'train_jid{{ idx}}=$(sbatch --parsable --dependency=afterok:${{pretrain_jid}}
-      --job-name={{ name }}_train train.sbatch {{ FineTune.path}})'
+      --account=cds --job-name={{ name }}_train train.sbatch {{ FineTune.path}})'
       - 'echo "Submitted Train (id=$train_jid{{ idx}})"'
-      - 'eval_jid{{idx}}=$(sbatch --parsable --job-name={{ name }}_eval
+      - 'eval_jid{{idx}}=$(sbatch --parsable --job-name={{ name }}_eval --account=cds
       --dependency=afterok:$train_jid{{ idx}} eval.sbatch best_models/{{ FineTune.save_name }} validation,test 25)'
       - 'echo "Submitted Eval $eval_jid{{idx}} to run after $1(id=$train_jid{{ idx}})"'
