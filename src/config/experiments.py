@@ -211,7 +211,7 @@ def get_experiment_card_cfg_from_dict(
             composed_experiments = ComposedExperiments(
                 name=ablation_name if has_ablations else name,
                 step_cards={},
-                command_template=experiment_card_dict.get('command')
+                command_template='\n'.join(experiment_card_dict.get('commands'))
             )
             for step_num, step_dict in enumerate(experiment_steps):
 

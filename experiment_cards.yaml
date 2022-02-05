@@ -1,19 +1,37 @@
 experiments:
-  ExceptionQuestions:
-    base: pretrain_config
-    group: SO
+  Steps:
     overrides:
       objective: 'lm'
       device: 0
       +disable_cache: True
-      task: so
-      task.dump_name: exceptions
       tracking:
         log_model: false
-    experiments:
+    ablations:
       CodeParrotSmall:
-        overrides:
-          model: 'lvwerra/codeparrot-small'
+        model: 'lvwerra/codeparrot-small'
       CodeParrot:
+        model: 'lvwerra/codeparrot'
+    steps:
+      - name: PreTrain
+        base: pretrain_config
+        group: SO
         overrides:
-          model: 'lvwerra/codeparrot'
+          task: so
+          task.dump_name: exceptions
+      - name: FineTune
+        base: greene_config
+        group: MBPP
+        overrides:
+          task: mbpp
+          ++is_checkpoint: True
+          ++model_path: best_models/${..previous_step.save_name}
+    commands:
+      - '{%- set pretrain_jid= "pretrain_jid"+ idx|string -%}'
+      - '{{ pretrain_jid }}=$(sbatch --parsable --job-name={{ name }}_pretrain train.sbatch {{ PreTrain.path }})'
+      - 'echo "Submitted PreTrain (id=${{ pretrain_jid }})"'
+      - 'train_jid{{ idx}}=$(sbatch --parsable --dependency=afterok:${{pretrain_jid}} 
+      --job-name={{ name }}_train {{ FineTune.path}})'
+      - 'echo "Submitted Train (id=$train_jid{{ idx}})"'
+      - 'eval_jid{{idx}}=$(sbatch --parsable --job-name={{ name }}_eval 
+      --dependency=afterok:$train_jid{{ idx}}) eval.sbatch best_models/{{ FineTune.save_name }} validation,test 25)'
+      - 'echo "Submitted Eval $eval_jid{{idx}} to run after $1(id=$train_jid{{ idx}})"'
