@@ -1,6 +1,7 @@
 #!/bin/bash
 #SBATCH --output=./logs/eval/%x_eval.out
 #SBATCH --time=24:00:00
+#SBATCH --account=cds
 #SBATCH --gres=gpu:1
 #SBATCH --mem=64G
 #SBATCH -c 4
