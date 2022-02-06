@@ -1,12 +1,6 @@
 #!/bin/bash
 # Queue Slurm Jobs
 
-pre_jid=$(sbatch --parsable --job-name=negcodeparrot_pre train.sbatch NegativeSOCodeParrot so pretrain_config lvwerra/codeparrot lm  "")
-echo "Submitted PreTrain (id=$pretrain_jid)"
-train_jid=$(sbatch --parsable --dependency=afterok:$pre_jid --job-name=negcodeparrot1 \
-  train.sbatch NegativeSOCodeParrot mbpp greene_config lvwerra/codeparrot lm \
-  "is_checkpoint=True +model_path=best_models/SO.NegativeSOCodeParrot")
-echo "Submitted Train (id=$train_jid)"
-eval_jid=$(sbatch --parsable --job-name=negcodeparroteval --dependency=afterok:$train_jid eval.sbatch best_models/MBPP.NegativeSOCodeParrot/ validation,test 25)
-echo "Submitted Eval $eval_jid to run after $1(id=$train_jid)"
-
+sbatch -a cds make_splits.sbatch "python scripts/parse_so_data.py -out data/parsed_so parse data/stack_exchange/stackoverflow 32 high_qual -min '30' -val 0.01"
+sbatch -a cds make_splits.sbatch "python scripts/parse_so_data.py -out data/parsed_so parse data/stack_exchange/stackoverflow 32 general -val 0.01"
+sbatch -a cds make_splits.sbatch "python scripts/parse_so_data.py -out data/parsed_so parse data/stack_exchange/stackoverflow 32 exceptions -contains exception,error,trace"
