@@ -1,5 +1,6 @@
 #!/bin/bash
 #SBATCH --output=./logs/%x_parse.out
+#SBATCH --account=cds
 #SBATCH --time=24:00:00
 #SBATCH -c 32
 #SBATCH -p cs
