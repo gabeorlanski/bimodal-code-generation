@@ -27,14 +27,15 @@ class StackOverflowTask(IterableDataset):
             tokenizer: PreTrainedTokenizerBase,
             infinite=False,
             sequence_length: int = 512,
-            max_samples: int = None
+            max_samples: int = None,
+            buffer_size: int = 50
     ):
         super(StackOverflowTask, self).__init__()
         self.tokenizer = tokenizer
         self.data_path = PROJECT_ROOT.joinpath(data_path)
         self.dump_name = dump_name
         self.infinite = infinite
-        self.buffer_size = 50
+        self.buffer_size = buffer_size
         self.concat_token_id = self.tokenizer.eos_token_id
         self.sequence_length = sequence_length
         self.epoch = 0
@@ -59,9 +60,7 @@ class StackOverflowTask(IterableDataset):
         samples_seen_in_epoch = 0
         while more_examples and samples_seen_in_epoch < self.max_samples:
             buffer = []
-            while True:
-                if len(buffer) >= self.buffer_size:
-                    break
+            while len(buffer) < self.buffer_size:
                 try:
                     buffer.append(self._get_content_from_sample(next(sample_stream)))
                     self.samples_seen += 1

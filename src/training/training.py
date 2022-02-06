@@ -132,7 +132,8 @@ def train_model(cfg: DictConfig):
             StackOverflowTask,
             dump_name='so',
             tokenizer=tokenizer,
-            sequence_length=cfg.data_args.seq_length
+            sequence_length=cfg.data_args.seq_length,
+            buffer_size=cfg.get('buffer_size',50)
         )
     else:
         is_pretrain = False
