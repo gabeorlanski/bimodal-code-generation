@@ -4,7 +4,7 @@ echo "Submitting Jobs for {{ name }}"
 	{{ train_sbatch }}.sbatch {{ PreTrain.path }})
 echo "Submitted PreTrain (id=${{ pretrain_jid }})"
 train_jid{{ idx}}=$(sbatch --parsable --dependency=afterok:${{pretrain_jid}} \
-	--job-name={{ name }}_train {{ train_sbatch }}.sbatch { FineTune.path}})
+	--job-name={{ name }}_train {{ train_sbatch }}.sbatch {{ FineTune.path}})
 echo "Submitted Train (id=$train_jid{{ idx}})"
 eval_jid{{idx}}=$(sbatch --parsable --job-name={{ name }}_eval \
 	--dependency=afterok:$train_jid{{ idx}} eval.sbatch \
