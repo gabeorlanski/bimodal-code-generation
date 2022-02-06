@@ -23,8 +23,7 @@ import click
               help='The path to save the results.')
 @click.pass_context
 def main(ctx, debug, output_path):
-    setup_global_logging(f"{ctx.invoked_subcommand}_so", str(PROJECT_ROOT.joinpath('logs')),
-                         debug=debug)
+
     ctx.ensure_object(dict)
     if not PROJECT_ROOT.joinpath(output_path).exists():
         PROJECT_ROOT.joinpath(output_path).mkdir(parents=True)
@@ -79,6 +78,9 @@ def parse_so(
         only_question_body,
         validation_pct
 ):
+
+    setup_global_logging(f"{output_file_name}_so", str(PROJECT_ROOT.joinpath('logs')),
+                         debug=ctx.obj['DEBUG'])
     logger = logging.getLogger('parse_so')
     logger.info("Starting Parse")
 
@@ -124,6 +126,9 @@ def filter_so(
         tag_filter_file,
 ):
     debug = ctx.obj['DEBUG']
+
+    setup_global_logging(f"filter_so", str(PROJECT_ROOT.joinpath('logs')),
+                         debug=debug)
     logger = logging.getLogger('filter_so')
     output_path = PROJECT_ROOT.joinpath(ctx.obj['OUT_PATH'])
     path_to_dump = PROJECT_ROOT.joinpath(dump_path)
