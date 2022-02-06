@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --output=./logs/job_parse_so.log
+#SBATCH --output=./logs/%x_parse.out
 #SBATCH --time=24:00:00
 #SBATCH -c 32
 #SBATCH -p cs
