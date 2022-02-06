@@ -121,21 +121,18 @@ def cli(ctx, debug, local_rank):
 
 @cli.command("from_config")
 @click.argument("config", metavar="<Config To Use>")
-@click.option('--override-str',
-              help='Bash does not like lists of variable args. so '
-                   'pass as seperated list of overrides, seperated by ' '.',
-              default=''
-              )
 @click.pass_context
-def train_from_config_file(ctx, config, override_str):
+def train_from_config_file(ctx, config):
     local_rank = ctx.obj['local_rank']
     debug = ctx.obj['DEBUG']
     if local_rank <= 0:
         print(f"Loading config from {config}")
 
     path_to_config = PROJECT_ROOT.joinpath(config)
-    with initialize(str(path_to_config.parent.relative_to(PROJECT_ROOT)), job_name="train"):
-        cfg = compose(config_name=path_to_config.stem, overrides=override_str.split(' '))
+    cfg = OmegaConf.create(yaml.load(
+        path_to_config.open('r'),
+        yaml.Loader
+    ))
 
     with open_dict(cfg):
         cfg.local_rank = local_rank
