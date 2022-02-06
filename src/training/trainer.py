@@ -1,6 +1,6 @@
 import math
 from pathlib import Path
-from typing import Dict, Optional, Union, Tuple
+from typing import Dict, Optional, Union, Tuple, List, Any
 import logging
 from omegaconf import DictConfig, OmegaConf
 from transformers import TrainerCallback
@@ -92,8 +92,10 @@ class CustomTrainer(Seq2SeqTrainer):
             self.callback_handler.pop_callback(WandbCallback)
             self.callback_handler.add_callback(TrackingCallback('training', cfg))
 
-        self.train_stats = None
         self.cfg = cfg
+        self.start_time = None
+        self.time_last_log = None
+        self.last_runtime_step = 0
 
     def save_model(self, output_dir: Optional[str] = None):
         super(CustomTrainer, self).save_model(output_dir)
@@ -101,6 +103,66 @@ class CustomTrainer(Seq2SeqTrainer):
             cfg_path = Path(output_dir).joinpath('config.yaml')
             with cfg_path.open('w', encoding='utf-8') as f:
                 f.write(OmegaConf.to_yaml(self.cfg, resolve=True))
+
+    def _maybe_log_save_evaluate(self, tr_loss, model, trial, epoch, ignore_keys_for_eval):
+        if self.control.should_log:
+            logs: Dict[str, float] = {}
+
+            # all_gather + mean() to get average loss over all processes
+            tr_loss_scalar = self._nested_gather(tr_loss).mean().item()
+
+            # reset tr_loss to zero
+            tr_loss -= tr_loss
+
+            logs["loss"] = round(
+                tr_loss_scalar / (self.state.global_step - self._globalstep_last_logged), 4)
+            logs["learning_rate"] = self._get_learning_rate()
+
+            self._total_loss_scalar += tr_loss_scalar
+            self._globalstep_last_logged = self.state.global_step
+            self.store_flos()
+            current = datetime.utcnow()
+            elapsed_start = (current - self.start_time).total_seconds()
+            elapsed_last_log = (current - self.time_last_log).total_seconds()
+
+            logs['train_runtime_last_log'] = round(elapsed_last_log, 4)
+            logs['train_runtime_total'] = round(elapsed_start, 4)
+
+            elapsed_steps = self.state.global_step - self.last_runtime_step
+            logs['train_steps_per_second_last_log'] = round(
+                elapsed_steps / elapsed_last_log, 3
+            )
+            logs['train_steps_per_second_total'] = round(
+                self.state.global_step / elapsed_last_log, 3
+            )
+
+            self.last_runtime_step = self.state.global_step
+
+            self.log(logs)
+
+        metrics = None
+        if self.control.should_evaluate:
+            metrics = self.evaluate(ignore_keys=ignore_keys_for_eval)
+            self._report_to_hp_search(trial, epoch, metrics)
+
+        if self.control.should_save:
+            self._save_checkpoint(model, trial, metrics=metrics)
+            self.control = self.callback_handler.on_save(self.args, self.state, self.control)
+
+    def train(
+            self,
+            resume_from_checkpoint=None,
+            trial=None,
+            ignore_keys_for_eval=None,
+            **kwargs,
+    ):
+        self.time_last_log = self.start_time = datetime.utcnow()
+        super(CustomTrainer, self).train(
+            resume_from_checkpoint,
+            trial,
+            ignore_keys_for_eval,
+            **kwargs
+        )
 
 
 def create_log_metric_message(

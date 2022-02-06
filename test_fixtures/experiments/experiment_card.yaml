@@ -25,6 +25,8 @@ experiments:
           +model_path: best_models/${..previous_step.save_name}
     command:
       file: test_fixtures/experiments/command.txt
+      kwargs:
+        batch: testing
 
   Simple:
     group: SO

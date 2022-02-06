@@ -1,3 +1,3 @@
 {%- set pretrain_jid= "pretrain_jid"+ idx|string -%}
-{{ pretrain_jid }}=$(sbatch --parsable --job-name={{ name }}_pretrain train.sbatch {{ PT.save_name }})
+{{ pretrain_jid }}=$(sbatch --parsable --job-name={{ name }}_pretrain {{ batch }}.sbatch {{ PT.save_name }})
 echo "Submitted PreTrain (id=${{ pretrain_jid }})"
