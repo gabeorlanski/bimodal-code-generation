@@ -105,7 +105,7 @@ def setup_lm(cfg, task):
 def setup_pretrain(cfg, task):
     train_dataset = task(data_path=cfg.task.split_mapping['train'], infinite=True)
     eval_dataset = task(data_path=cfg.task.split_mapping['validation'], infinite=False,
-                        max_samples=500)
+                        max_samples=cfg.get('max_val_size', 500))
     return train_dataset, eval_dataset, None
 
 

@@ -56,7 +56,8 @@ class StackOverflowTask(IterableDataset):
     def __iter__(self) -> Iterator[T_co]:
         sample_stream = self._load_sample()
         more_examples = True
-        while more_examples and self.samples_seen < self.max_samples:
+        samples_seen_in_epoch = 0
+        while more_examples and samples_seen_in_epoch < self.max_samples:
             buffer = []
             while True:
                 if len(buffer) >= self.buffer_size:
@@ -64,6 +65,7 @@ class StackOverflowTask(IterableDataset):
                 try:
                     buffer.append(self._get_content_from_sample(next(sample_stream)))
                     self.samples_seen += 1
+                    samples_seen_in_epoch += 1
                 except StopIteration:
                     if self.infinite:
                         sample_stream = self._load_sample()

@@ -181,7 +181,7 @@ def main_process(questions_path, workers, task_queue, result_queue):
             to_save.append(result_dict)
             questions_saved += 1
         results_processed += 1
-        if results_processed % 25000 == 0:
+        if results_processed % 5000 == 0:
             logger.info(
                 f"Processed {results_processed}. "
                 f"{questions_saved} Saved and "

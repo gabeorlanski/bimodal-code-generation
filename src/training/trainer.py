@@ -105,9 +105,9 @@ class CustomTrainer(Seq2SeqTrainer):
                 f.write(OmegaConf.to_yaml(self.cfg, resolve=True))
 
     def _maybe_log_save_evaluate(self, tr_loss, model, trial, epoch, ignore_keys_for_eval):
+        print_dict = {}
         if self.control.should_log:
             logs: Dict[str, float] = {}
-
             # all_gather + mean() to get average loss over all processes
             tr_loss_scalar = self._nested_gather(tr_loss).mean().item()
 
@@ -138,19 +138,20 @@ class CustomTrainer(Seq2SeqTrainer):
 
             self.last_runtime_step = self.state.global_step
             self.time_last_log = datetime.utcnow()
+            print_dict.update(logs)
 
-            logger.info(f"Step {self.state.global_step}:")
-            for k, v in logs.items():
-                logger.info(f"\t{k:>32}={v:0.3f}")
             self.log(logs)
 
         metrics = None
         if self.control.should_evaluate:
             metrics = self.evaluate(ignore_keys=ignore_keys_for_eval)
-            logger.info(f"Eval @ Step {self.state.global_step}:")
-            for k, v in metrics.items():
-                logger.info(f"\t{k:>24}={v:0.3f}")
             self._report_to_hp_search(trial, epoch, metrics)
+            print_dict.update(metrics)
+
+        if print_dict:
+            logger.info(f"Step {self.state.global_step}:")
+            for k, v in print_dict.items():
+                logger.info(f"\t{k:>32}={v:0.3f}")
 
         if self.control.should_save:
             self._save_checkpoint(model, trial, metrics=metrics)
