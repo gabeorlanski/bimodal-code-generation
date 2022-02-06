@@ -141,7 +141,7 @@ class CustomTrainer(Seq2SeqTrainer):
 
             logger.info(f"Step {self.state.global_step}:")
             for k, v in logs.items():
-                logger.info(f"\t{k:>32}={v}")
+                logger.info(f"\t{k:>32}={v:0.3f}")
             self.log(logs)
 
         metrics = None
@@ -149,7 +149,7 @@ class CustomTrainer(Seq2SeqTrainer):
             metrics = self.evaluate(ignore_keys=ignore_keys_for_eval)
             logger.info(f"Eval @ Step {self.state.global_step}:")
             for k, v in metrics.items():
-                logger.info(f"\t{k:>24}={v}")
+                logger.info(f"\t{k:>24}={v:0.3f}")
             self._report_to_hp_search(trial, epoch, metrics)
 
         if self.control.should_save:
