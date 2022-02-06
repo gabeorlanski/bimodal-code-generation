@@ -253,7 +253,7 @@ def get_experiment_card_cfg_from_dict(
         for ablation_name, ablation_overrides in ablations:
             previous_step = {}
             composed_experiments = ComposedExperiments(
-                name=f"{name}.{ablation_name}" if has_ablations else name,
+                name=f"{name}_{ablation_name}" if has_ablations else name,
                 step_cards={},
                 command_template=command_str,
                 command_kwargs=command_kwargs
