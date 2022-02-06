@@ -134,7 +134,7 @@ def train_from_config_file(ctx, config, override_str):
         print(f"Loading config from {config}")
 
     path_to_config = PROJECT_ROOT.joinpath(config)
-    with initialize(str(path_to_config.parent), job_name="train"):
+    with initialize(str(path_to_config.parent.relative_to(PROJECT_ROOT)), job_name="train"):
         cfg = compose(config_name=path_to_config.stem, overrides=override_str.split(' '))
 
     with open_dict(cfg):
