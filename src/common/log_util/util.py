@@ -14,7 +14,8 @@ def setup_global_logging(
         verbose: bool = False,
         debug: bool = False,
         rank: int = 0,
-        world_size: int = 1
+        world_size: int = 1,
+        disable_issues_file: bool = False
 ) -> None:
     """
     Setup the logger
@@ -70,8 +71,6 @@ def setup_global_logging(
     # Create the file handler
     normal_file_handler = CompactFileHandler(str(normal_file.resolve().absolute()), logging.DEBUG,
                                              verbose_format)
-    error_file_handler = CompactFileHandler(str(error_file.resolve().absolute()), logging.WARNING,
-                                            error_format)
 
     # Setup the console handlers for normal and errors
     console_handler = TQDMLoggingHandler(
@@ -84,7 +83,12 @@ def setup_global_logging(
     # Create and register the two loggers
     root_logger = logging.getLogger()
 
-    root_logger.addHandler(error_file_handler)
+    if not disable_issues_file:
+        error_file_handler = CompactFileHandler(str(error_file.resolve().absolute()),
+                                                logging.WARNING,
+                                                error_format)
+        root_logger.addHandler(error_file_handler)
+
     root_logger.addHandler(normal_file_handler)
     if rank <= 0:
         root_logger.addHandler(console_handler)

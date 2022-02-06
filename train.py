@@ -48,7 +48,8 @@ def train_from_cfg(cfg):
         new_cwd.joinpath('logs'),
         debug=cfg.debug,
         rank=int(os.environ.get('LOCAL_RANK', '-1')),
-        world_size=int(os.environ.get("WORLD_SIZE", 1))
+        world_size=int(os.environ.get("WORLD_SIZE", 1)),
+        disable_issues_file=True
     )
 
     logger = logging.getLogger('train')
