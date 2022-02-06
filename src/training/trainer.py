@@ -3,7 +3,7 @@ from pathlib import Path
 from typing import Dict, Optional, Union, Tuple, List, Any
 import logging
 from omegaconf import DictConfig, OmegaConf
-from transformers import TrainerCallback
+from transformers import TrainerCallback, ProgressCallback
 from transformers.trainer_seq2seq import Seq2SeqTrainer
 from transformers.integrations import WandbCallback
 from tqdm import tqdm
@@ -85,7 +85,7 @@ class CustomTrainer(Seq2SeqTrainer):
         self.control = None
 
         super(CustomTrainer, self).__init__(*args, **kwargs)
-        # self.callback_handler.pop_callback(ProgressCallback)
+        self.callback_handler.pop_callback(ProgressCallback)
         # self.callback_handler.add_callback(BetterProgress)
 
         if is_tracking_enabled(cfg):
@@ -133,16 +133,23 @@ class CustomTrainer(Seq2SeqTrainer):
                 elapsed_steps / elapsed_last_log, 3
             )
             logs['train_steps_per_second_total'] = round(
-                self.state.global_step / elapsed_last_log, 3
+                self.state.global_step / elapsed_start, 3
             )
 
             self.last_runtime_step = self.state.global_step
+            self.time_last_log = datetime.utcnow()
 
+            logger.info(f"Step {self.state.global_step}:")
+            for k, v in logs.items():
+                logger.info(f"\t{k:>32}={v}")
             self.log(logs)
 
         metrics = None
         if self.control.should_evaluate:
             metrics = self.evaluate(ignore_keys=ignore_keys_for_eval)
+            logger.info(f"Eval @ Step {self.state.global_step}:")
+            for k, v in metrics.items():
+                logger.info(f"\t{k:>24}={v}")
             self._report_to_hp_search(trial, epoch, metrics)
 
         if self.control.should_save:

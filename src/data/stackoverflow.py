@@ -33,7 +33,7 @@ class StackOverflowTask(IterableDataset):
         self.data_path = PROJECT_ROOT.joinpath(data_path)
         self.dump_name = dump_name
         self.infinite = infinite
-        self.buffer_size = 16
+        self.buffer_size = 50
         self.concat_token_id = self.tokenizer.eos_token_id
         self.sequence_length = sequence_length
         self.epoch = 0
