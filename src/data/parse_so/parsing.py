@@ -252,7 +252,7 @@ def filter_and_parse_so_posts(
     for w in workers:
         w.terminate()
 
-    validation_size = min(int(validation_pct * len(to_save)), 1000)
+    validation_size = min(int(validation_pct * len(to_save)), 500)
     logger.info(f"Saving {validation_size} to {validation_path}")
     logger.info(f"Saving {len(to_save) - validation_size} to {out_file}")
     validation_indices = random.sample(range(len(to_save)), validation_size)
