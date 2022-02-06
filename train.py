@@ -116,7 +116,7 @@ def train_from_cfg(cfg):
 @click.option('--local_rank', default=-1, type=int)
 @click.pass_context
 def cli(ctx, debug, local_rank):
-    ctx.obj = {"DEBUG": debug, "local_rank": local_rank}
+    ctx.obj = {"DEBUG": debug, "local_rank": int(os.environ.get('LOCAL_RANK', '-1'))}
 
 
 @cli.command("from_config")
@@ -125,9 +125,6 @@ def cli(ctx, debug, local_rank):
 def train_from_config_file(ctx, config):
     local_rank = ctx.obj['local_rank']
     debug = ctx.obj['DEBUG']
-    if local_rank <= 0:
-        print(f"Loading config from {config}")
-
     path_to_config = PROJECT_ROOT.joinpath(config)
     cfg = OmegaConf.create(yaml.load(
         path_to_config.open('r'),

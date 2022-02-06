@@ -1,3 +1,4 @@
+import itertools
 import logging
 from dataclasses import asdict, dataclass, field
 from functools import partial
@@ -9,9 +10,9 @@ from copy import deepcopy
 from hydra import compose, initialize_config_dir
 from omegaconf import OmegaConf, open_dict
 from collections import Counter
-from jinja2 import BaseLoader, Environment
+from jinja2 import BaseLoader, Environment, StrictUndefined
 
-from src.common import flatten
+from src.common import flatten, PROJECT_ROOT
 
 logger = logging.getLogger(__name__)
 
@@ -19,6 +20,7 @@ JINJA_ENV = Environment(loader=BaseLoader)  # type:ignore
 
 # Allow the python function zip()
 JINJA_ENV.globals.update(zip=zip)
+JINJA_ENV.undefined = StrictUndefined
 
 
 @dataclass()
@@ -56,6 +58,10 @@ class ComposedExperiments:
 
     command_template: Optional[str] = field(default=None, metadata={
         "help": "Bash command templates for this group."
+    })
+
+    command_kwargs: Optional[Dict] = field(default_factory=dict, metadata={
+        "help": "Dictionary of arguments to pass to the jinja render."
     })
 
     def __post_init__(self):
@@ -122,7 +128,8 @@ class ComposedExperiments:
 
         template_dict = {
             "idx" : idx,
-            "name": self.name
+            "name": self.name,
+            **self.command_kwargs
         }
         for step, experiment in self.step_cards.items():
             template_dict[step] = {
@@ -131,6 +138,31 @@ class ComposedExperiments:
             }
 
         return self.command_template.render(**template_dict)  # type:ignore
+
+
+def get_all_ablation_combinations(ablation_list: List[Dict]):
+    logger.info(f"Making ablation combinations for {len(ablation_list)} items.")
+    all_keys = []
+    ablation_names = []
+    for ablation in ablation_list:
+        name = list(ablation)[0]
+        ablations = list(ablation[name])
+        logger.info(f"Ablation '{name}' has {len(ablations)} values")
+        ablation_names.append(name)
+        all_keys.append(ablations)
+    logger.debug(f"{all_keys=}")
+
+    out = []
+    for ablation_combo in itertools.product(*all_keys):
+        # Copy so we do not mess up the mutable dicts
+        combo_dict = {}
+        for i, ablation in enumerate(ablation_combo):
+            ablation_override_dict = ablation_list[i][ablation_names[i]][ablation]
+            combo_dict.update(deepcopy(ablation_override_dict))
+        out.append(('.'.join(ablation_combo), combo_dict))
+
+    logger.info(f"{len(out)} total ablation combos")
+    return out
 
 
 def get_experiment_card_cfg_from_dict(
@@ -153,7 +185,7 @@ def get_experiment_card_cfg_from_dict(
     if global_defaults is None:
         global_defaults = {}
     logger.info(f"Parsing Experiment Card dict named {name}")
-    ablations = experiment_card_dict.get('ablations', {})
+    ablations = experiment_card_dict.get('ablations')
     experiment_group = experiment_card_dict.get('group')
     base_config = experiment_card_dict.get('base')
     experiment_steps = experiment_card_dict.get('steps', [])
@@ -166,7 +198,6 @@ def get_experiment_card_cfg_from_dict(
     logger.info(f"Experiment {name} has group {experiment_group}")
     logger.info(f"Experiment {name} has base config {base_config}")
     logger.info(f"Experiment {name} has {len(experiment_overrides)} total overrides")
-    logger.info(f"Experiment {name} has {len(ablations)} total ablations")
     logger.debug(f"Experiment {name} overrides = {experiment_overrides}")
 
     if not ablations and not experiment_steps:
@@ -188,14 +219,14 @@ def get_experiment_card_cfg_from_dict(
         )
     else:
         # We are at a complex card, so we need to do more.
-        logger.info(f"Found {len(ablations)} ablations for {name}")
-        logger.info(f"Found {len(experiment_steps)} steps for {name}")
-
         has_ablations = True
         if not ablations:
             logger.debug(f"{name} has no ablations")
             has_ablations = False
-            ablations = {"DEFAULT_VALUE_IGNORE": {}}
+            ablations = ("NONE", {})
+        else:
+            ablations = get_all_ablation_combinations(ablations)
+
         has_steps = True
         if not experiment_steps:
             if experiment_group is None:
@@ -206,15 +237,26 @@ def get_experiment_card_cfg_from_dict(
             has_steps = False
             experiment_steps = [{"name": name, "group": experiment_group, "base": base_config}]
 
-        command_str = experiment_card_dict.get('commands')
-        if command_str is not None:
-            command_str = '\n'.join(command_str)
-        for ablation_name, ablation_overrides in ablations.items():
+        logger.info(f"Found {len(ablations)} ablations for {name}")
+        logger.info(f"Found {len(experiment_steps)} steps for {name}")
+
+        # Load the command template information for the given card.
+        command_dict = experiment_card_dict.get('command')
+        if command_dict is not None:
+
+            command_str = PROJECT_ROOT.joinpath(command_dict['file']).read_text()
+            command_kwargs = command_dict.get('kwargs', {})
+        else:
+            command_str = None
+            command_kwargs = {}
+
+        for ablation_name, ablation_overrides in ablations:
             previous_step = {}
             composed_experiments = ComposedExperiments(
                 name=ablation_name if has_ablations else name,
                 step_cards={},
-                command_template=command_str
+                command_template=command_str,
+                command_kwargs=command_kwargs
             )
             for step_num, step_dict in enumerate(experiment_steps):
 
@@ -229,15 +271,15 @@ def get_experiment_card_cfg_from_dict(
                     raise ValueError(f"Step {step_num} in {name} does not have correct keys")
 
                 step_overrides = step_dict.get("overrides", {})
-
-                card_name = name
+                add_group_name = experiment_card_dict.get('add_name', True)
+                card_name = name if add_group_name else ''
                 if has_ablations:
-                    card_name += f".{ablation_name}"
+                    card_name += f"{'.' if add_group_name else ''}{ablation_name}"
 
                 # If there are not steps, would just repeat its own name so
                 # this bool stops that.
                 if has_steps:
-                    card_name += f".{step_name}"
+                    card_name += f"{'.' if add_group_name or has_ablations else ''}{step_name}"
 
                 # Deepcopy here so we do not change any of the underlying
                 # mutable objects on each iteration.
@@ -273,7 +315,7 @@ def get_experiment_card_cfg_from_dict(
             yield composed_experiments
 
 
-def load_ablation_cards_from_file(experiment_card_path: Path) -> List[ComposedExperiments]:
+def load_composed_experiments_from_file(experiment_card_path: Path) -> List[ComposedExperiments]:
     """
     Load the experiment cards from a given file.
     Args:
@@ -326,14 +368,6 @@ def load_ablation_cards_from_file(experiment_card_path: Path) -> List[ComposedEx
         raise ValueError("Duplicate Experiment names.")
 
     return composed_experiments
-
-
-def create_experiment_bash_string(experiment_card, save_path, current_job_ids):
-    current_job_ids += 1
-    pre_jid = f"pre_jid{current_job_ids}"
-    out = f"{pre_jid}=$(sbatch --parsable " \
-          f"--job-name={experiment_card.name}_pre train.sbatch " \
-          f"{save_path})\necho \"Submitted PreTrain (id=${pre_jid})\""
 
 
 def save_experiment_cards(

@@ -14,7 +14,7 @@ import click
 if str(Path(__file__).parents[1]) not in sys.path:
     sys.path.insert(0, str(Path(__file__).parents[1]))
 from src.common import PROJECT_ROOT, setup_global_logging, flatten
-from src.config.experiments import load_ablation_cards_from_file, save_experiment_cards
+from src.config.experiments import load_composed_experiments_from_file, save_experiment_cards
 
 
 def create_experiments(
@@ -33,7 +33,7 @@ def create_experiments(
 
     output_path = PROJECT_ROOT.joinpath(output_path)
     logger.info(f"Experiment configs will be written to '{output_path.resolve().absolute()}'")
-    ablation_cards = load_ablation_cards_from_file(experiment_card_path)
+    ablation_cards = load_composed_experiments_from_file(experiment_card_path)
 
     logger.debug("Looking for output dir")
     if output_path.exists():
