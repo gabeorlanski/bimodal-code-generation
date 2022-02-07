@@ -1,4 +1,5 @@
 import json
+from typing import Dict
 
 import pandas as pd
 import click
@@ -30,14 +31,18 @@ def main(dump_path):
         scores = list(map(int, path_to_file.read_text().splitlines(False)))
 
         scores_series = pd.Series(scores)
-        stats = scores_series.describe(percentiles=[.1, .25, .4, .5, .6, .75, .9]).to_dict()
+        stats: Dict = scores_series.describe(  # type:ignore
+            percentiles=[i / 100 for i in range(5, 100, 5)]).to_dict()
 
-        score_bins = scores_series.groupby(pd.cut(scores_series, 10)).agg(['count'])
-        for interval, value in enumerate(score_bins['count'].values):
-            if interval == 0:
-                stats["0%-10%"] = int(value)
-            else:
-                stats[f"{interval}1-{interval + 1}0%"] = int(value)
+        bins = [stats['min']]
+
+        for i in range(5, 100, 5):
+            if stats[f"{i}%"] not in bins:
+                bins.append(stats[f"{i}%"])
+        bins.append(stats['max'])
+        score_bins = scores_series.groupby(pd.cut(scores_series, bins)).agg(['count'])
+        for interval, value in score_bins['count'].iteritems():
+            stats[str(interval)] = int(value)
         print(f"Stats for {f}:")
         for k, v in stats.items():
             print(f"\t{k:>16} = {v:0.3f}")
