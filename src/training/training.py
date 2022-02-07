@@ -133,7 +133,8 @@ def train_model(cfg: DictConfig):
             dump_name='so',
             tokenizer=tokenizer,
             sequence_length=cfg.data_args.seq_length,
-            buffer_size=cfg.get('buffer_size', 50)
+            buffer_size=cfg.get('buffer_size', 50),
+            max_steps=10000
         )
     else:
         is_pretrain = False

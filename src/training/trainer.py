@@ -2,7 +2,10 @@ import math
 from pathlib import Path
 from typing import Dict, Optional, Union, Tuple, List, Any
 import logging
+
+from datasets import Dataset
 from omegaconf import DictConfig, OmegaConf
+from torch.utils.data import DataLoader
 from transformers import TrainerCallback, ProgressCallback
 from transformers.trainer_seq2seq import Seq2SeqTrainer
 from transformers.integrations import WandbCallback
@@ -189,6 +192,17 @@ class CustomTrainer(Seq2SeqTrainer):
             ignore_keys,
             metric_key_prefix
         )
+
+    def get_eval_dataloader(self, eval_dataset: Optional[Dataset] = None) -> DataLoader:
+
+        if eval_dataset is None:
+            logger.debug(f"{type(eval_dataset)=}")
+            logger.debug(f"{isinstance(eval_dataset, collections.abc.Sized)=}")
+        else:
+            logger.debug(f"{type(self.eval_dataset)=}")
+            logger.debug(f"{isinstance(self.eval_dataset, collections.abc.Sized)=}")
+
+        return super(CustomTrainer, self).get_eval_dataloader(eval_dataset)
 
 
 def create_log_metric_message(

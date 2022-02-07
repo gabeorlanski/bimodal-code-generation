@@ -28,7 +28,8 @@ class StackOverflowTask(IterableDataset):
             infinite=False,
             sequence_length: int = 512,
             max_samples: int = None,
-            buffer_size: int = 50
+            buffer_size: int = 50,
+            max_steps: int = 10000
     ):
         super(StackOverflowTask, self).__init__()
         self.tokenizer = tokenizer
@@ -41,6 +42,13 @@ class StackOverflowTask(IterableDataset):
         self.epoch = 0
         self.samples_seen = 0
         self.max_samples = max_samples or float('inf')
+        self.max_steps = max_steps
+        self._length = self.max_steps
+        if not self.infinite:
+            self._length = self._initialize_lengths()
+
+    def _initialize_lengths(self):
+        return sum(1 for _ in self)
 
     def _load_sample(self):
         with self.data_path.open('r', encoding='utf-8') as data_file:
@@ -87,3 +95,6 @@ class StackOverflowTask(IterableDataset):
                         'attention_mask': torch.tensor(attention_mask),
                         'labels'        : torch.tensor(input_ids)
                     }
+
+    def __len__(self):
+        return self._length
