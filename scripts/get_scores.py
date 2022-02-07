@@ -25,10 +25,15 @@ def main(dump_path):
     for f in files:
         path_to_file = dump_path.joinpath(f"{f}.txt")
         print(f"Reading {path_to_file}")
+        scores = list(map(int, path_to_file.read_text().splitlines(False)))
         stats = get_metrics_from_list(
             '',
-            list(map(int, path_to_file.read_text().splitlines(False)))
+            scores
         )
+
+        scores_series = pd.Series(scores)
+        stats.update(scores_series.describe(percentiles=[.1, .25, .4, .5, .6, .75, .9]).to_dict())
+
         print(f"Stats for {f}:")
         for k, v in stats.items():
             print(f"\t{k:>16} = {v:0.3f}")

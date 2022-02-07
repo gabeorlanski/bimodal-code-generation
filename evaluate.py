@@ -177,7 +177,7 @@ def main(
             job_type='evaluate',
             name=os.getenv('WANDB_RUN_NAME'),
             project=os.getenv('WANDB_PROJECT'),
-            group=cfg.group,
+            group=f"{cfg.group}[eval]",
             entity=os.getenv('WANDB_ENTITY'),
             config=config.get_config_for_tracking(cfg),
             id=run_id
