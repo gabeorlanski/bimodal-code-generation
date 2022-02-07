@@ -10,7 +10,10 @@ experiments:
       model: 'lvwerra/codeparrot-small'
       training:
         batch_size: 4
-      ++task.dump_name: negative
+    ablations:
+      - DumpName:
+          Negative:
+            ++task.dump_name: negative
     steps:
       - name: PreTrain
         base: pretrain_config
