@@ -172,6 +172,24 @@ class CustomTrainer(Seq2SeqTrainer):
             **kwargs
         )
 
+    def evaluation_loop(
+            self,
+            dataloader,
+            description,
+            prediction_loss_only: Optional[bool] = None,
+            ignore_keys: Optional[List[str]] = None,
+            metric_key_prefix: str = "eval",
+    ):
+        logger.debug(f"{type(dataloader.dataset)=}")
+        logger.debug(f"{isinstance(dataloader.dataset, collections.abc.Sized)=}")
+        return super(CustomTrainer, self).evaluation_loop(
+            dataloader,
+            description,
+            prediction_loss_only,
+            ignore_keys,
+            metric_key_prefix
+        )
+
 
 def create_log_metric_message(
         metric_name: str,
