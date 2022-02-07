@@ -33,7 +33,7 @@ def create_experiments(
 
     output_path = PROJECT_ROOT.joinpath(output_path)
     logger.info(f"Experiment configs will be written to '{output_path.resolve().absolute()}'")
-    ablation_cards = load_composed_experiments_from_file(experiment_card_path)
+    ablation_cards, starting_commands = load_composed_experiments_from_file(experiment_card_path)
 
     logger.debug("Looking for output dir")
     if output_path.exists():
@@ -51,7 +51,8 @@ def create_experiments(
     save_experiment_cards(
         ablation_cards,
         output_path,
-        config_directory
+        config_directory,
+        starting_commands
     )
 
 

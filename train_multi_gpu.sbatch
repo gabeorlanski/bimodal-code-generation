@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --output=./logs/%x_train.out
+#SBATCH --output=./sbatch_logs/%x_train.out
 #SBATCH --account=cds
 #SBATCH --time=48:00:00
 #SBATCH --gres=gpu:rtx8000:4

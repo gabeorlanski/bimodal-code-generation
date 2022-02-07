@@ -1,21 +1,16 @@
+starting_commands: command_templates/sbatch_experiment.txt
 experiments:
-  CodeParrot:
+  CodeParrotSmall:
     overrides:
       objective: 'lm'
       device: 0
       +disable_cache: True
       tracking:
         log_model: false
-      model: 'lvwerra/codeparrot'
-    ablations:
-      - DumpName:
-          Exceptions:
-            ++task.dump_name: exceptions
-          General:
-            ++task.dump_name: general
-          HighQual:
-            ++task.dump_name: high_qual
-
+      model: 'lvwerra/codeparrot-small'
+      training:
+        batch_size: 4
+      ++task.dump_name: negative
     steps:
       - name: PreTrain
         base: pretrain_config
@@ -32,4 +27,4 @@ experiments:
     command:
       file: command_templates/pretrain_then_finetune.txt
       kwargs:
-        train_sbatch: train_multi_gpu
+        train_sbatch: train_single_gpu

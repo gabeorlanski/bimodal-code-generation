@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --output=./logs/job_filter_so.out
+#SBATCH --output=./sbatch_logs/job_filter_so.out
 #SBATCH --time=24:00:00
 #SBATCH --mem=180G
 #SBATCH -c 48

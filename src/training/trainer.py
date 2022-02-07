@@ -195,7 +195,7 @@ class CustomTrainer(Seq2SeqTrainer):
 
     def get_eval_dataloader(self, eval_dataset: Optional[Dataset] = None) -> DataLoader:
 
-        if eval_dataset is None:
+        if eval_dataset is not None:
             logger.debug(f"{type(eval_dataset)=}")
             logger.debug(f"{isinstance(eval_dataset, collections.abc.Sized)=}")
         else:
