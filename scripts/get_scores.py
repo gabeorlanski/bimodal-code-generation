@@ -25,6 +25,7 @@ def main(dump_path):
         'all_answer_scores',
         'all_question_scores'
     ]
+    all_stats = {}
     for f in files:
         path_to_file = dump_path.joinpath(f"{f}.txt")
         print(f"Reading {path_to_file}")
@@ -46,9 +47,10 @@ def main(dump_path):
         print(f"Stats for {f}:")
         for k, v in stats.items():
             print(f"\t{k:>16} = {v:0.3f}")
+        all_stats[f] = stats
 
-        with dump_path.joinpath('stats.json').open('w') as f:
-            json.dump(stats, f, indent=True)
+    with dump_path.joinpath('stats.json').open('w') as f:
+        json.dump(all_stats, f, indent=True)
 
 
 if __name__ == '__main__':
