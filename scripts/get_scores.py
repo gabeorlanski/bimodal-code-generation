@@ -1,3 +1,5 @@
+import json
+
 import pandas as pd
 import click
 from pathlib import Path
@@ -26,17 +28,22 @@ def main(dump_path):
         path_to_file = dump_path.joinpath(f"{f}.txt")
         print(f"Reading {path_to_file}")
         scores = list(map(int, path_to_file.read_text().splitlines(False)))
-        stats = get_metrics_from_list(
-            '',
-            scores
-        )
 
         scores_series = pd.Series(scores)
-        stats.update(scores_series.describe(percentiles=[.1, .25, .4, .5, .6, .75, .9]).to_dict())
+        stats = scores_series.describe(percentiles=[.1, .25, .4, .5, .6, .75, .9]).to_dict()
 
+        score_bins = scores_series.groupby(pd.cut(scores_series, 10)).agg(['count'])
+        for interval, value in enumerate(score_bins['count'].values):
+            if interval == 0:
+                stats["0%-10%"] = int(value)
+            else:
+                stats[f"{interval}1-{interval + 1}0%"] = int(value)
         print(f"Stats for {f}:")
         for k, v in stats.items():
             print(f"\t{k:>16} = {v:0.3f}")
+
+        with dump_path.joinpath('stats.json').open('w') as f:
+            json.dump(stats, f, indent=True)
 
 
 if __name__ == '__main__':
