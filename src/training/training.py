@@ -128,12 +128,12 @@ def train_model(cfg: DictConfig):
     if cfg.task.name == "so":
         is_pretrain = True
         tokenizer = config.load_tokenizer_from_cfg(cfg)
-        task = partial(
+        task = partial(  # type: ignore
             StackOverflowTask,
             dump_name='so',
             tokenizer=tokenizer,
             sequence_length=cfg.data_args.seq_length,
-            buffer_size=cfg.get('buffer_size',50)
+            buffer_size=cfg.get('buffer_size', 50)
         )
     else:
         is_pretrain = False

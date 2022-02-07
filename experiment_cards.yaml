@@ -33,39 +33,3 @@ experiments:
       file: command_templates/pretrain_then_finetune.txt
       kwargs:
         train_sbatch: train_multi_gpu
-  CodeParrotSmall:
-    overrides:
-      objective: 'lm'
-      device: 0
-      +disable_cache: True
-      tracking:
-        log_model: false
-      model: 'lvwerra/codeparrot-small'
-      training:
-        batch_size: 4
-    ablations:
-      - DumpName:
-          Exceptions:
-            ++task.dump_name: exceptions
-          General:
-            ++task.dump_name: general
-          HighQual:
-            ++task.dump_name: high_qual
-
-    steps:
-      - name: PreTrain
-        base: pretrain_config
-        group: SO
-        overrides:
-          task: so
-      - name: FineTune
-        base: greene_config
-        group: MBPP
-        overrides:
-          task: mbpp
-          ++is_checkpoint: True
-          ++model_path: best_models/${..previous_step.save_name}
-    command:
-      file: command_templates/pretrain_then_finetune.txt
-      kwargs:
-        train_sbatch: train_single_gpu
