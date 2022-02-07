@@ -2,7 +2,7 @@
 #SBATCH --output=./logs/eval/%x_eval.out
 #SBATCH --time=24:00:00
 #SBATCH --account=cds
-#SBATCH --gres=gpu:rtx8000:4
+#SBATCH --gres=gpu:rtx8000:1
 #SBATCH --mem=64G
 #SBATCH -c 4
 
@@ -11,6 +11,5 @@ singularity exec --nv --overlay $SCRATCH/overlay-50G-10M.ext3:ro /scratch/work/p
 source /ext3/env.sh
 conda activate adversarial-code
 echo $(pwd)
-
 python evaluate.py $1 $2 -seqs 100 --override-str ${4:-''} -hydra +generation.num_return_sequences=$3 +training.batch_size=1 +device=0 +generation.max_length=512
 "

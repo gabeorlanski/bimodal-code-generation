@@ -1,6 +1,12 @@
 #!/bin/bash
 # Queue Slurm Jobs
+sbatch --parsable --job-name=CodeParrotSmall_Exceptions_eval \
+	--dependency=afterok:$train_jid3 eval.sbatch \
+	best_models/MBPP.CodeParrotSmall.Exceptions.FineTune validation,test 25
 
-sbatch -J 'high_qual' make_splits.sbatch "python scripts/parse_so_data.py -out data/parsed_so parse data/stack_exchange/stackoverflow 32 high_qual -min '30' -val 0.01"
-sbatch -J 'general_parsing' make_splits.sbatch "python scripts/parse_so_data.py -out data/parsed_so parse data/stack_exchange/stackoverflow 32 general -val 0.01"
-sbatch -J 'exception' make_splits.sbatch "python scripts/parse_so_data.py -out data/parsed_so parse data/stack_exchange/stackoverflow 32 exceptions -contains exception,error,trace"
+sbatch --parsable --job-name=CodeParrotSmall_General_eval \
+	--dependency=afterok:$train_jid4 eval.sbatch \
+	best_models/MBPP.CodeParrotSmall.General.FineTune validation,test 25
+sbatch --parsable --job-name=CodeParrotSmall_HighQual_eval \
+	--dependency=afterok:$train_jid5 eval.sbatch \
+	best_models/MBPP.CodeParrotSmall.HighQual.FineTune validation,test 25
