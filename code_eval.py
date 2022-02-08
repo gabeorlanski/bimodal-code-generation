@@ -83,13 +83,16 @@ def run(pred_dir, num_workers, disable_tracking, input_artifact_name, timeout):
         # WandB does not like logging things from the same step at different
         # times. Hence the ugly dict.
         wandb_run.log(flatten(metrics_to_log_dict, sep='/'), step=1)
-        metric_artifact = wandb.Artifact(f"{cfg.group}.{cfg.name}.execution",
+        metric_artifact = wandb.Artifact(f"{cfg.group}.execution.{os.getenv('WANDB_RUN_NAME')}",
                                          type='execution_metrics')
         metric_artifact.add_file(str(save_path.resolve().absolute()))
         wandb_run.log_artifact(metric_artifact)
         if input_artifact_name:
             wandb_run.use_artifact(
                 f"{input_artifact_name}{':latest' if ':' not in input_artifact_name else ''}")
+
+        elif cfg.get('eval_run_name'):
+            wandb_run.use_artifact(f"{cfg.eval_run_name}:latest")
 
         wandb_run.finish()
 

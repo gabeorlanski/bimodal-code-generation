@@ -231,5 +231,5 @@ def setup_tracking_env_from_cfg(cfg: DictConfig):
     os.environ['DISABLE_FAST_TOK'] = 'true'
 
 
-def get_run_base_name_from_cfg(cfg: DictConfig) -> str:
-    return f"{cfg.group}.{cfg.name}"
+def get_run_base_name_from_cfg(cfg: DictConfig, suffix=None) -> str:
+    return f"{cfg.group}.{cfg.name}{'-' + suffix if suffix else ''}"

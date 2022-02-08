@@ -161,8 +161,7 @@ def main(
     with open_dict(cfg):
         cfg.run_id = run_id
         cfg.split = splits
-    with working_dir.joinpath(f'eval_config.yaml').open('w') as f:
-        f.write(OmegaConf.to_yaml(cfg))
+        cfg.eval_run_name = os.getenv('WANDB_RUN_NAME')
 
     #####################################################################
     # TRACKING CODE TO REMOVE ON RELEASE                                #
@@ -184,7 +183,7 @@ def main(
 
         run.config.update(config.get_config_for_tracking(cfg))
         run.log({f"eval/{k}": v for k, v in all_metrics.items()}, step=1)
-        preds_artifact = wandb.Artifact(config.get_run_base_name_from_cfg(cfg),
+        preds_artifact = wandb.Artifact(config.get_run_base_name_from_cfg(cfg, "preds"),
                                         type='predictions')
 
         preds_artifact.add_dir(str(pred_dir.resolve().absolute()))
@@ -192,7 +191,8 @@ def main(
             str(working_dir.joinpath(f'eval_config.yaml').resolve().absolute()))
         run.log_artifact(preds_artifact)
         run.finish()
-
+    with working_dir.joinpath(f'eval_config.yaml').open('w') as f:
+        f.write(OmegaConf.to_yaml(cfg))
     logger.info("Finished Evaluation")
 
 
