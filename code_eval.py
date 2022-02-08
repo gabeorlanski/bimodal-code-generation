@@ -76,17 +76,7 @@ def run(pred_dir, num_workers, disable_tracking, input_artifact_name, timeout):
         metrics_to_log_dict = {}
         for split, split_dict in all_results.items():
             split_metrics = split_dict['overview']
-            split_metrics['outcome_counts'] = split_dict['outcome_counts']
             split_metrics['outcome_pcts'] = split_dict['outcome_pcts']
-            outcome_table = []
-
-            for k, counts_values in split_dict['outcome_counts'].items():
-                outcome_table.append([k, counts_values, split_dict['outcome_pcts'][k]])
-
-            split_metrics['tables/outcome_table'] = wandb.Table(
-                data=outcome_table,
-                columns=['Outcome', 'Count', 'Percent']
-            )
             metrics_to_log_dict[split] = split_metrics
 
         # WandB does not like logging things from the same step at different
@@ -97,7 +87,8 @@ def run(pred_dir, num_workers, disable_tracking, input_artifact_name, timeout):
         metric_artifact.add_file(str(save_path.resolve().absolute()))
         wandb_run.log_artifact(metric_artifact)
         if input_artifact_name:
-            wandb_run.use_artifact(f"{input_artifact_name}:latest")
+            wandb_run.use_artifact(
+                f"{input_artifact_name}{':latest' if ':' not in input_artifact_name else ''}")
 
         wandb_run.finish()
 

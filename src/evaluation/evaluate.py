@@ -30,7 +30,8 @@ def generate_predictions(
         batch_size,
         device,
         generation_kwargs,
-        seq_per_sample
+        seq_per_sample,
+        remove_input_ids_from_output
 ):
     collator = DataCollatorForSeq2Seq(
         tokenizer=task.tokenizer,
@@ -83,13 +84,24 @@ def generate_predictions(
             generated_results = [None for _ in range(generate_steps_per_sample)]
             local_inputs = batch["input_ids"].to(device)
             local_attn = batch['attention_mask'].to(device)
+            input_ids_len = list(map(sum, batch['attention_mask'].tolist()))
             for i in range(generate_steps_per_sample):
                 generated_from_batch = model.generate(
                     input_ids=local_inputs,
                     attention_mask=local_attn,
                     **generation_kwargs
                 )
-                generated_results[i] = generated_from_batch.tolist()
+                if not remove_input_ids_from_output:
+                    generated_results[i] = generated_from_batch.tolist()
+                else:
+                    generated_results[i] = [
+                        None for _ in range(generated_from_batch.size()[0])
+                    ]
+
+                    for j, seq in enumerate(generated_from_batch.tolist()):
+                        seq_chopped = seq[input_ids_len[j // num_return_sequences]:]
+                        generated_results[i][j] = seq_chopped
+
                 progress_bar.update(1)
 
             b = batch['input_ids'].size()[0]
@@ -121,7 +133,6 @@ def generate_predictions(
         "labels"     : labels,
         "predictions": predictions
     }
-
 
 
 def evaluate_model(cfg: DictConfig, model: PreTrainedModel):
@@ -159,7 +170,8 @@ def evaluate_model(cfg: DictConfig, model: PreTrainedModel):
         ),
         device=device,
         generation_kwargs=cfg.get('generation', {}),
-        seq_per_sample=cfg.get('seq_per_sample')
+        seq_per_sample=cfg.get('seq_per_sample'),
+        remove_input_ids_from_output=cfg.get("remove_input_ids", False)
     )
 
     labels = generation_results['labels']

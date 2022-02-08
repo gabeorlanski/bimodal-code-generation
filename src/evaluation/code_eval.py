@@ -91,18 +91,15 @@ def get_samples(file_path, samples_per_problem) -> Tuple[List[Sample], List, Dic
     if failed > 0:
         logger.error(f"{failed}/{line_num} had failures.")
 
-    metrics.update(
-        get_metrics_from_list(
-            'valid_syntax_pct',
-            np.array(total_valid_preds) / samples_per_problem * 100
-        )
+    metrics["valid_syntax_pct_mean"] = np.mean(
+        np.array(total_valid_preds) / samples_per_problem * 100
     )
     logger.info(f"{len(all_samples)} unique tasks")
 
     # Adding the / to some metrics to better separate them
-    metrics['info/preds_total'] = metrics.pop('preds_total')
-    metrics['info/all_invalid'] = len(all_invalid)
-    metrics['info/all_valid'] = sum(map(lambda l: l == samples_per_problem, total_valid_preds))
+    metrics['preds_total'] = metrics.pop('preds_total')
+    metrics['all_invalid'] = len(all_invalid)
+    metrics['all_valid'] = sum(map(lambda l: l == samples_per_problem, total_valid_preds))
 
     return list(all_samples.values()), all_invalid, pred_count, invalid_syntax, metrics
 
@@ -158,6 +155,15 @@ def evaluate_code(
         outcome_pcts[key] = count / total * 100
 
     logger.info("Metrics:")
+    overview_metrics['problems_correct_pct'] = (all_correct > 0).sum() / all_correct.shape[0] * 100
+    overview_metrics['runtime_error_pct_ovr'] = sum(
+        v for k, v in outcome_counts.items()
+        if k not in ["Correct", "Failed_Tests", "SyntaxError"]
+    ) / total * 100
+
+    overview_metrics['correct_pct_ovr'] = outcome_pcts['Correct']
+    overview_metrics['failed_tests_pct_ovr'] = outcome_pcts['Failed_Tests']
+    overview_metrics['syntax_error_pct_ovr'] = outcome_pcts['SyntaxError']
     for k in sorted(overview_metrics.keys()):
         logger.info(f"\t{k:>32} = {overview_metrics[k]:0.3f}")
 
@@ -166,7 +172,6 @@ def evaluate_code(
 
         # No int keys in json files, so make them match.
         "results_by_task_id": {str(k): v for k, v in results_by_task_id.items()},
-        "outcome_counts"    : outcome_counts,
         "outcome_pcts"      : outcome_pcts
     }
 
@@ -236,10 +241,7 @@ def parse_results(results, pred_count, invalid_syntax_by_idx, all_invalid, sampl
     correct = np.array(correct)
     runtime_errors = np.array(runtime_errors)
 
-    metrics = get_metrics_from_list(
-        'runtime_error_pct',
-        runtime_errors / samples_per_problem * 100
-    )
+    metrics = {'runtime_error_pct_mean': np.mean(runtime_errors / samples_per_problem * 100)}
 
     return results_by_task_id, global_error_tracker, metrics, (correct, runtime_errors)
 

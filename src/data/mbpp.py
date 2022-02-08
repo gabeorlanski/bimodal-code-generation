@@ -77,8 +77,17 @@ class MBPP(Task):
         return self._dataset_mapping[split]
 
     def map_to_standard_entries(self, sample: Dict) -> Dict:
+
+        tests_to_use = []
+        len_tests_to_use = 0
+        for t in sample['test_list']:
+            if len_tests_to_use + len(t) > 850:
+                logger.warning(f"{sample['task_id']} does not have full tests due to length")
+                break
+            tests_to_use.append(t)
+
         sample["input_sequence"] = (
-                sample["text"] + "\r\n" + "\r\n".join(sample["test_list"]) + '\r\n'
+                sample["text"] + "\r\n" + "\r\n".join(tests_to_use) + '\r\n'
         )
 
         target_code = sample['code']

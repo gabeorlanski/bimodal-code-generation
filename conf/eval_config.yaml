@@ -5,7 +5,6 @@ defaults:
 is_checkpoint: true
 model_path: ???
 seq_per_sample: ???
+remove_input_ids: False
 postprocessors:
-  - split:
-      split_phrase: '#Solution:'
   - strip: { }
