@@ -33,6 +33,7 @@ def generate_predictions(
         seq_per_sample,
         remove_input_ids_from_output
 ):
+    logger.info(f"{remove_input_ids_from_output=}")
     collator = DataCollatorForSeq2Seq(
         tokenizer=task.tokenizer,
         pad_to_multiple_of=1,
