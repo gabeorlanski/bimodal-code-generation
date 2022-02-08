@@ -157,7 +157,7 @@ def main(
     with working_dir.joinpath('eval_metrics.json').open('w', encoding='utf-8') as f:
         json.dump(all_metrics, f)
 
-    run_id = wandb.util.generate_id()
+    run_id = os.getenv('WANDB_RUN_ID')
     with open_dict(cfg):
         cfg.run_id = run_id
         cfg.split = splits
@@ -168,7 +168,6 @@ def main(
     # TRACKING CODE TO REMOVE ON RELEASE                                #
     #####################################################################
 
-    os.environ['RUN_ID'] = run_id
     if (
             isinstance(cfg.tracking, (dict, DictConfig))
             and int(os.environ.get("LOCAL_RANK", "-1")) <= 0

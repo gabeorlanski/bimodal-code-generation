@@ -9,7 +9,7 @@ def download_artifact(project, name, out):
     print(f"Downloading {name} to {out}")
     os.environ["WANDB_API_KEY"] = open('wandb_secret.txt').read().strip()
     api = wandb.Api()
-    artifact = api.artifact(f'{project}/{name}:latest')
+    artifact = api.artifact(f'{project}/{name}{":latest" if ":" not in name else ""}')
     out_path = Path(out)
     artifact.download(str(out_path.resolve().absolute()))
 

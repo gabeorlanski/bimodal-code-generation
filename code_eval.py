@@ -66,7 +66,8 @@ def run(pred_dir, num_workers, disable_tracking, input_artifact_name, timeout):
         os.environ["WANDB_API_KEY"] = open('wandb_secret.txt').read().strip()
         wandb_run = wandb.init(
             job_type='code_eval',
-            name=f"{cfg.name}",
+            name=os.getenv('WANDB_RUN_NAME'),
+            id=os.getenv('WANDB_RUN_ID'),
             project=cfg.project,
             group=f"{cfg.group}[execution]",
             config=get_config_for_tracking(cfg),

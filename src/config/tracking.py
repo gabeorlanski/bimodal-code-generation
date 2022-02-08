@@ -8,6 +8,7 @@ from copy import copy
 from pathlib import Path
 from typing import Dict, Union
 
+import wandb.util
 from transformers.integrations import TrainerCallback
 from omegaconf import DictConfig, OmegaConf, open_dict
 import os
@@ -113,6 +114,7 @@ class TrackingCallback(TrainerCallback):
                     name=os.getenv('WANDB_RUN_NAME'),
                     entity=os.getenv('WANDB_ENTITY'),
                     config=combined_dict,
+                    id=os.getenv('WANDB_RUN_NAME'),
                     **init_args,
                 )
 
@@ -223,7 +225,8 @@ def setup_tracking_env_from_cfg(cfg: DictConfig):
     if entity and not cfg.debug:
         os.environ['WANDB_ENTITY'] = entity
     os.environ['WANDB_PROJECT'] = project
-    os.environ['WANDB_RUN_NAME'] = run_name
+    os.environ["WANDB_RUN_ID"] = wandb.util.generate_id()
+    os.environ['WANDB_RUN_NAME'] = f"{run_name}-{os.environ['WANDB_RUN_ID']}"
     os.environ['WANDB_LOG_MODEL'] = 'true' if cfg['tracking'].get('log_model') else 'false'
     os.environ['DISABLE_FAST_TOK'] = 'true'
 
