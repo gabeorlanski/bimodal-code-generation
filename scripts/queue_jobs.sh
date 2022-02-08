@@ -1,6 +1,7 @@
 #!/bin/bash
 # Queue Slurm Jobs
 rm -rf sbatch_logs
+mkdir "sbatch_logs"
 eval_jid1=$(sbatch --parsable --job-name=codeparrot_exceptions_eval eval.sbatch \
 	best_models/MBPP.CodeParrotSmall.Exceptions.FineTune validation,test 100 "remove_input_ids=True")
 echo "Submitted Eval $eval_jid1"
