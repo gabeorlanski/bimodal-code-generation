@@ -17,7 +17,7 @@ experiments:
       - DumpName:
           Negative:
             ++task.dump_name: negative
-            ++model_path: best_models/SO.Uniform.Negative.Exceptions.PreTrain
+            ++model_path: best_models/SO.Uniform.ParrotSmall.Negative.PreTrain
           Exceptions:
             ++task.dump_name: exceptions
             ++model_path: best_models/SO.Uniform.ParrotSmall.Exceptions.PreTrain

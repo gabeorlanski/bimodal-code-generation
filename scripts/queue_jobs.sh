@@ -1,15 +1,10 @@
 #!/bin/bash
 # Queue Slurm Jobs
-rm -rf sbatch_logs
-mkdir "sbatch_logs"
-eval_jid1=$(sbatch --parsable --job-name=codeparrotsmall_eval  eval.sbatch \
-	best_models/MBPP.CodeParrotSmall validation,test 100 "remove_input_ids=True")
-echo "Submitted Eval $eval_jid1 to run"
-sbatch --job-name='codeparrotsmall_execute' --dependency=afterok:$eval_jid1 eval_code.sbatch eval_results/MBPP MBPP.CodeParrotSmall
-echo ""
-
-eval_jid2=$(sbatch --parsable --job-name=codeparrot_eval  eval.sbatch best_models/MBPP.CodeParrot validation,test 25 "remove_input_ids=True")
-echo "Submitted Eval $eval_jid2 to run "
-sbatch --job-name='codeparrotsmall_execute' --dependency=afterok:$eval_jid2 eval_code.sbatch eval_results/MBPP MBPP.CodeParrot
-
+train_jid0=$(sbatch --parsable --job-name=Uniform32Epoch.ParrotSmall_Negative_finetune train_single_gpu.sbatch /home/gabe/Coding/springresearch/generated_experiments/MBPP.Uniform32Epoch.ParrotSmall.Negative.FineTune.yaml)
+echo "Submitted Train (id=$train_jid0)"
+eval_jid0=$(sbatch --parsable --job-name=Uniform32Epoch.ParrotSmall_Negative_eval \
+	--dependency=afterok:$train_jid0 eval.sbatch \
+	best_models/MBPP.Uniform32Epoch.ParrotSmall.Negative.FineTune validation,test 100 "remove_input_ids=True")
+echo "Submitted Eval $eval_jid0 to run after $1(id=$train_jid0)"
+sbatch --job-name='Uniform32Epoch.ParrotSmall_Negative_execute' --dependency=afterok:$eval_jid0 eval_code.sbatch eval_results/MBPP MBPP.Uniform32Epoch.ParrotSmall.Negative.FineTune
 echo ""
