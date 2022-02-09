@@ -7,20 +7,20 @@ experiments:
       tracking:
         log_model: false
       model: 'lvwerra/codeparrot-small'
-      ++num_proc: 4
+      ++num_proc: 1
       training:
         batch_size: 32
         gradient_accumulation_steps: 1
         num_train_epochs: 1
     ablations:
       - DumpName:
-          Negative:
-            ++task.dump_name: negative
-            ++task.answer_sorting: ascending
-            training:
-              save_steps: 1000
-              eval_steps: 1000
-              logging_steps: 100
+#          Negative:
+#            ++task.dump_name: negative
+#            ++task.answer_sorting: ascending
+#            training:
+#              save_steps: 1000
+#              eval_steps: 1000
+#              logging_steps: 100
           Exceptions:
             ++task.dump_name: exceptions
             training:
@@ -33,13 +33,13 @@ experiments:
               save_steps: 2000
               eval_steps: 2000
               logging_steps: 250
-          HighQual:
-            ++task.dump_name: high_qual
-            ++task.answer_sorting: descending
-            training:
-              save_steps: 200
-              eval_steps: 200
-              logging_steps: 50
+#          HighQual:
+#            ++task.dump_name: high_qual
+#            ++task.answer_sorting: descending
+#            training:
+#              save_steps: 200
+#              eval_steps: 200
+#              logging_steps: 50
     steps:
       - name: PreTrain
         base: pretrain_config
