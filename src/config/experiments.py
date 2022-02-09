@@ -165,6 +165,22 @@ def get_all_ablation_combinations(ablation_list: List[Dict]):
     return out
 
 
+def merge(a, b, path=None):
+    "merges b into a"
+    if path is None: path = []
+    for key in b:
+        if key in a:
+            if isinstance(a[key], dict) and isinstance(b[key], dict):
+                merge(a[key], b[key], path + [str(key)])
+            elif a[key] == b[key]:
+                pass  # same leaf value
+            else:
+                a[key] = b[key]
+        else:
+            a[key] = b[key]
+    return a
+
+
 def get_experiment_card_cfg_from_dict(
         name,
         experiment_card_dict: Dict,
@@ -286,10 +302,10 @@ def get_experiment_card_cfg_from_dict(
                 card_overrides = deepcopy(experiment_overrides)
 
                 # Ablation gets priority over experiment
-                card_overrides.update(deepcopy(ablation_overrides))
+                card_overrides = merge(card_overrides, ablation_overrides)
 
                 # Step gets priority over ablation.
-                card_overrides.update(step_overrides)
+                card_overrides = merge(card_overrides, step_overrides)
 
                 # Make it into a dict config so we can use interpolation.
                 cfg = OmegaConf.create({
