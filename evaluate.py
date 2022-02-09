@@ -28,7 +28,7 @@ def main(
         name,
         override_str,
         hydra_overrides,
-        dry_run:bool
+        dry_run: bool
 ):
     if Path('wandb_secret.txt').exists():
         os.environ["WANDB_API_KEY"] = open('wandb_secret.txt').read().strip()
@@ -187,7 +187,7 @@ def main(
 
         run.config.update(config.get_config_for_tracking(cfg))
 
-        if dry_run and working_dir.joinpath('eval_metrics.json').read_text('utf-8'):
+        if dry_run and working_dir.joinpath('eval_metrics.json').exists():
             all_metrics = json.loads(working_dir.joinpath('eval_metrics.json').read_text('utf-8'))
         run.log({f"eval/{k}": v for k, v in all_metrics.items()}, step=1)
         preds_artifact = wandb.Artifact(config.get_run_base_name_from_cfg(cfg, "preds"),
