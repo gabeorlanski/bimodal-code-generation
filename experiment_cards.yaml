@@ -5,7 +5,7 @@ experiments:
       objective: 'lm'
       device: 0
       tracking:
-        log_model: false
+        log_model: true
       model: 'lvwerra/codeparrot-small'
       ++num_proc: 1
       training:
