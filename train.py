@@ -83,7 +83,7 @@ def train_from_cfg(cfg):
     with open_dict(cfg):
         cfg.training.local_rank = int(os.environ.get('LOCAL_RANK', '-1'))
         if "meta" not in cfg:
-            cfg['meta'] = {'base_name':get_run_base_name_from_cfg(cfg)}
+            cfg['meta'] = {'base_name': get_run_base_name_from_cfg(cfg)}
         else:
             cfg['meta']['base_name'] = get_run_base_name_from_cfg(cfg)
 
@@ -118,10 +118,19 @@ def train_from_cfg(cfg):
     default=False,
     help="Debug Mode"
 )
+@click.option(
+    '--notrack', 'no_track',
+    is_flag=True,
+    default=False,
+    help="Disable Tracking"
+)
 @click.option('--local_rank', default=-1, type=int)
 @click.pass_context
-def cli(ctx, debug, local_rank):
-    ctx.obj = {"DEBUG": debug, "local_rank": int(os.environ.get('LOCAL_RANK', '-1'))}
+def cli(ctx, debug, no_track, local_rank):
+    ctx.obj = {
+        "DEBUG"   : debug, "local_rank": int(os.environ.get('LOCAL_RANK', '-1')),
+        'no_track': no_track
+    }
 
 
 @cli.command("from_config")
@@ -139,6 +148,8 @@ def train_from_config_file(ctx, config):
     with open_dict(cfg):
         cfg.local_rank = local_rank
         cfg.debug = debug
+        if ctx.get('no_track', False):
+            cfg.tracking = False
 
     train_from_cfg(cfg)
 
@@ -186,6 +197,8 @@ def train(ctx, name, task, config_name, override_str, cfg_overrides):
         cfg.local_rank = local_rank
         cfg.debug = debug
 
+        if ctx.get('no_track', False):
+            cfg.tracking = False
     train_from_cfg(cfg)
 
 

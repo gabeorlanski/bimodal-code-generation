@@ -8,51 +8,64 @@ experiments:
       tracking:
         log_model: false
       model: 'lvwerra/codeparrot-small'
-      ++num_proc: 4
+      ++num_proc: 16
       training:
         batch_size: 32
         gradient_accumulation_steps: 1
-        num_train_epochs: 32
+        num_train_epochs: 1
     ablations:
       - DumpName:
           Negative:
             ++task.dump_name: negative
-            ++model_path: best_models/SO.Uniform.ParrotSmall.Negative.PreTrain
+            ++task.answer_sorting: ascending
+            training:
+              save_steps: 2500
+              eval_steps: 2500
+              logging_steps: 250
           Exceptions:
             ++task.dump_name: exceptions
-            ++model_path: best_models/SO.Uniform.ParrotSmall.Exceptions.PreTrain
+            training:
+              save_steps: 2500
+              eval_steps: 2500
+              logging_steps: 250
           General:
             ++task.dump_name: general
-            ++model_path: best_models/SO.Uniform.ParrotSmall.General.PreTrain
+            training:
+              save_steps: 2500
+              eval_steps: 2500
+              logging_steps: 250
           HighQual:
             ++task.dump_name: high_qual
-            ++model_path: best_models/SO.Uniform.ParrotSmall.HighQual.PreTrain
+            ++task.answer_sorting: descending
+            training:
+              save_steps: 200
+              eval_steps: 200
+              logging_steps: 50
     steps:
-#      - name: PreTrain
-#        base: pretrain_config
-#        group: SO
-#        overrides:
-#          training:
-#            save_steps: 200
-#            eval_steps: 200
-#            logging_steps: 50
-#            learning_rate: 1e-3
-#            max_steps: -1
-#          task: so
-#          ++task.max_samples: 27000
-#          ++task.max_val_samples: 250
-#          ++task.answers_per_sample: 1
-      - name: FineTune
-        base: greene_config
-        group: MBPP
+      - name: PreTrain
+        base: pretrain_config
+        group: SO
         overrides:
-          task: mbpp
-          ++is_checkpoint: True
-
           training:
-            learning_rate: 5e-5
+            save_steps: 200
+            eval_steps: 200
+            logging_steps: 250
+            learning_rate: 1e-3
+            max_steps: -1
+          task: so
+          ++task.max_val_samples: 250
+          ++task.answers_per_sample: 1
+#      - name: FineTune
+#        base: greene_config
+#        group: MBPP
+#        overrides:
+#          task: mbpp
+#          ++is_checkpoint: True
+#
+#          training:
+#            learning_rate: 5e-5
     command:
-      file: command_templates/finetune.txt
+      file: command_templates/pretrain.txt
       kwargs:
         train_sbatch: train_single_gpu
         num_return_sequences: 100
