@@ -148,7 +148,7 @@ def train_from_config_file(ctx, config):
     with open_dict(cfg):
         cfg.local_rank = local_rank
         cfg.debug = debug
-        if ctx.get('no_track', False):
+        if ctx.obj.get('no_track', False):
             cfg.tracking = False
 
     train_from_cfg(cfg)
@@ -197,7 +197,7 @@ def train(ctx, name, task, config_name, override_str, cfg_overrides):
         cfg.local_rank = local_rank
         cfg.debug = debug
 
-        if ctx.get('no_track', False):
+        if ctx.obj.get('no_track', False):
             cfg.tracking = False
     train_from_cfg(cfg)
 

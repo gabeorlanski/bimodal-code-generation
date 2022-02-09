@@ -3,7 +3,6 @@ experiments:
     overrides:
       objective: 'lm'
       ++device: 0
-      +disable_cache: True
 
     ablations:
       - Model:
