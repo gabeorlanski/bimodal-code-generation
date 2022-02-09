@@ -5,13 +5,13 @@ experiments:
       objective: 'lm'
       device: 0
       tracking:
-        log_model: true
+        log_model: false
       model: 'lvwerra/codeparrot-small'
       ++num_proc: 1
       training:
         batch_size: 32
         gradient_accumulation_steps: 1
-        num_train_epochs: 1
+#        num_train_epochs: 1
     ablations:
       - DumpName:
           Negative:
