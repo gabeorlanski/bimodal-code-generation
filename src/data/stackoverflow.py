@@ -51,11 +51,6 @@ class StackOverflowTask(Task):
         self.max_val_samples = max_val_samples
         self.rng = np.random.default_rng(seed)
 
-    def _load_sample(self):
-        with self.data_path.open('r', encoding='utf-8') as data_file:
-            for line in data_file:
-                yield json.loads(line)
-
     def get_samples_mask(self, total, num_to_select):
         # Just made this function to mock
         sample_mask = np.zeros((total,), dtype=bool)
@@ -96,6 +91,7 @@ class StackOverflowTask(Task):
                 else:
                     split_dict[k].append(v)
             line_number += 1
+        logger.info("Converting to a HF dataset")
         return Dataset.from_dict(split_dict)
 
     def map_to_standard_entries(self, sample: Dict) -> Dict:

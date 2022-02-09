@@ -4,7 +4,6 @@ experiments:
     overrides:
       objective: 'lm'
       device: 0
-      +disable_cache: True
       tracking:
         log_model: false
       model: 'lvwerra/codeparrot-small'
@@ -53,6 +52,7 @@ experiments:
             learning_rate: 1e-3
             max_steps: -1
           task: so
+          ++task.max_samples: 500000
           ++task.max_val_samples: 250
           ++task.answers_per_sample: 1
 #      - name: FineTune
