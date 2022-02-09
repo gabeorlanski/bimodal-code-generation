@@ -1,6 +1,6 @@
 starting_commands: command_templates/sbatch_experiment.txt
 experiments:
-  CodeParrotSmall:
+  Uniform.ParrotSmall:
     overrides:
       objective: 'lm'
       device: 0

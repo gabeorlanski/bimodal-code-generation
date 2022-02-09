@@ -86,7 +86,7 @@ class StackOverflowTask(Task):
 
         split_dict = defaultdict(list)
         line_number = 0
-        for d in tqdm(map(json.loads, path_to_split.read_text('utf-8').splitlines())):
+        for d in tqdm(map(json.loads, path_to_split.read_text('utf-8').splitlines()),total=total_samples):
             if not sample_mask[line_number]:
                 line_number += 1
                 continue

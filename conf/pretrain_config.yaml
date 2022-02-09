@@ -5,6 +5,7 @@ defaults:
 training:
   batch_size: 1
   learning_rate: 1e-4
+  fp16: true
   num_train_epochs: 1
   max_steps: 10000
   save_strategy: steps
@@ -13,6 +14,7 @@ training:
   eval_steps: 500
   logging_steps: 100
   warmup_ratio: 0.01
+  dataloader_num_workers: 4
 generation:
   num_return_sequences: 25
 device: 0
