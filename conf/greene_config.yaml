@@ -6,7 +6,7 @@ training:
   batch_size: 1
   learning_rate: 5e-5
   fp16: true
-  num_train_epochs: 32
+  num_train_epochs: 16
 
 generation:
   num_return_sequences: 25
