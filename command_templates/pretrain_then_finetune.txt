@@ -8,7 +8,7 @@ train_jid{{ idx}}=$(sbatch --parsable --dependency=afterok:${{pretrain_jid}} \
 echo "Submitted Train (id=$train_jid{{ idx}})"
 eval_jid{{idx}}=$(sbatch --parsable --job-name={{ name }}_eval \
 	--dependency=afterok:$train_jid{{ idx}} eval.sbatch \
-	best_models/{{ FineTune.save_name }} validation,test 25)
+	best_models/{{ FineTune.save_name }} validation,test {{ num_return_sequences }} "remove_input_ids=True")
 echo "Submitted Eval $eval_jid{{idx}} to run after $1(id=$train_jid{{ idx}})"
-sbatch --job-name='{{ name }}_execute' --dependency=afterok:$eval_jid{{idx}} eval_code.sbatch eval_results/MBPP {{ FineTune.save_name }} {{ num_return_sequences }}
+sbatch --job-name='{{ name }}_execute' --dependency=afterok:$eval_jid{{idx}} eval_code.sbatch eval_results/MBPP {{ FineTune.save_name }}
 echo ""
