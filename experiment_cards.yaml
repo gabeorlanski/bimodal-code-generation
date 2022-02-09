@@ -8,6 +8,7 @@ experiments:
       tracking:
         log_model: false
       model: 'lvwerra/codeparrot-small'
+      num_proc: 4
       training:
         batch_size: 32
         gradient_accumulation_steps: 1

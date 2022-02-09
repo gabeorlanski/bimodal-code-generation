@@ -7,15 +7,12 @@ from pathlib import Path
 import logging
 
 import numpy as np
-import torch
-from torch.utils.data import IterableDataset
-from torch.utils.data.dataset import T_co
-from transformers import PreTrainedTokenizerBase
 from typing import Callable, List, Dict, Iterator
 from datasets import Dataset, DatasetDict, load_dataset
 from src.common import PROJECT_ROOT, PathType
 from tio import Task
 import re
+from tqdm import tqdm
 
 logger = logging.getLogger(__name__)
 
@@ -89,7 +86,7 @@ class StackOverflowTask(Task):
 
         split_dict = defaultdict(list)
         line_number = 0
-        for d in map(json.loads, path_to_split.read_text('utf-8').splitlines()):
+        for d in tqdm(map(json.loads, path_to_split.read_text('utf-8').splitlines())):
             if not sample_mask[line_number]:
                 line_number += 1
                 continue
