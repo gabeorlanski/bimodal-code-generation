@@ -9,17 +9,31 @@ experiments:
         log_model: false
       model: 'lvwerra/codeparrot-small'
       training:
-        batch_size: 4
+        batch_size: 32
+        gradient_accumulation_steps: 1
+        learning_rate: 5e-4
+        ++max_steps: -1
     ablations:
       - DumpName:
           Negative:
             ++task.dump_name: negative
+            ++task.answer_sorting: ascending
+          Exceptions:
+            ++task.dump_name: exceptions
+          General:
+            ++task.dump_name: general
+          HighQual:
+            ++task.dump_name: high_qual
+            ++task.answer_sorting: descending
     steps:
       - name: PreTrain
         base: pretrain_config
         group: SO
         overrides:
           task: so
+          ++task.max_samples: 27000
+          ++task.max_val_samples: 250
+          ++task.answers_per_sample: 1
       - name: FineTune
         base: greene_config
         group: MBPP
@@ -31,3 +45,4 @@ experiments:
       file: command_templates/pretrain_then_finetune.txt
       kwargs:
         train_sbatch: train_single_gpu
+        num_return_sequences: 100

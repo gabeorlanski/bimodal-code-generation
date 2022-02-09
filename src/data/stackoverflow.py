@@ -5,6 +5,8 @@ import json
 from collections import defaultdict
 from pathlib import Path
 import logging
+
+import numpy as np
 import torch
 from torch.utils.data import IterableDataset
 from torch.utils.data.dataset import T_co
@@ -18,83 +20,118 @@ import re
 logger = logging.getLogger(__name__)
 
 
-class StackOverflowTask(IterableDataset):
+@Task.register("so")
+class StackOverflowTask(Task):
 
     def __init__(
             self,
             dump_name: str,
-            data_path: str,
-            tokenizer: PreTrainedTokenizerBase,
-            infinite=False,
-            sequence_length: int = 512,
+            tokenizer,
+            preprocessors: List[Callable],
+            postprocessors: List[Callable],
+            metric_fns: List[Callable],
+            split_mapping: Dict,
             max_samples: int = None,
-            buffer_size: int = 50,
-            max_steps: int = 10000
+            answer_sorting: str = 'accepted',
+            answers_per_sample: int = -1,
+            max_val_samples: int = 250,
+            seed=1
     ):
-        super(StackOverflowTask, self).__init__()
-        self.tokenizer = tokenizer
-        self.data_path = PROJECT_ROOT.joinpath(data_path)
+        super(StackOverflowTask, self).__init__(
+            preprocessors=preprocessors,
+            tokenizer=tokenizer,
+            postprocessors=postprocessors,
+            metric_fns=metric_fns,
+            split_mapping=split_mapping
+        )
         self.dump_name = dump_name
-        self.infinite = infinite
-        self.buffer_size = buffer_size
-        self.concat_token_id = self.tokenizer.eos_token_id
-        self.sequence_length = sequence_length
-        self.epoch = 0
-        self.samples_seen = 0
-        self.max_samples = max_samples or float('inf')
-        self.max_steps = max_steps
-        self._length = self.max_steps
-        if not self.infinite:
-            self._length = self._initialize_lengths()
+        self.max_samples = max_samples
+        if answer_sorting not in ['ascending', 'descending', 'accepted']:
+            raise ValueError(f"Unknown answer sorting method: {answer_sorting}")
 
-    def _initialize_lengths(self):
-        return sum(1 for _ in self)
+        self.answer_sorting = answer_sorting
+        self.answers_per_sample = answers_per_sample
+        self.max_val_samples = max_val_samples
+        self.rng = np.random.default_rng(seed)
 
     def _load_sample(self):
         with self.data_path.open('r', encoding='utf-8') as data_file:
             for line in data_file:
                 yield json.loads(line)
 
-    def _get_content_from_sample(self, sample_dict: Dict) -> str:
-        out = f"{sample_dict['title']}\n{sample_dict['body']}"
-        answer_string = '\n'.join(v['body'] for v in sample_dict['answers'].values())
-        if answer_string:
-            out += "\n" + answer_string
-        return out
+    def get_samples_mask(self, total, num_to_select):
+        # Just made this function to mock
+        sample_mask = np.zeros((total,), dtype=bool)
+        sample_mask[self.rng.choice(total, (num_to_select,),replace=False)] = True
+        return sample_mask
 
-    def __iter__(self) -> Iterator[T_co]:
-        sample_stream = self._load_sample()
-        more_examples = True
-        samples_seen_in_epoch = 0
-        while more_examples and samples_seen_in_epoch < self.max_samples:
-            buffer = []
-            while len(buffer) < self.buffer_size:
-                try:
-                    buffer.append(self._get_content_from_sample(next(sample_stream)))
-                    self.samples_seen += 1
-                    samples_seen_in_epoch += 1
-                except StopIteration:
-                    if self.infinite:
-                        sample_stream = self._load_sample()
-                        self.epoch += 1
-                        logger.info(f"Dataset epoch: {self.epoch}")
-                    else:
-                        more_examples = False
-                        break
-            tokenized_inputs = self.tokenizer(buffer, truncation=False)["input_ids"]
-            all_token_ids = []
-            for tokenized_input in tokenized_inputs:
-                all_token_ids.extend(tokenized_input + [self.concat_token_id])
-            for i in range(0, len(all_token_ids), self.sequence_length):
-                input_ids = all_token_ids[i: i + self.sequence_length]
-                input_len = len(input_ids)
-                attention_mask = [1] * input_len
-                if len(input_ids) == self.sequence_length:
-                    yield {
-                        'input_ids'     : torch.tensor(input_ids),
-                        'attention_mask': torch.tensor(attention_mask),
-                        'labels'        : torch.tensor(input_ids)
-                    }
+    def _load_samples(self, split: str) -> Dataset:
+        path_to_split = PROJECT_ROOT.joinpath(self.SPLIT_MAPPING[split])
+        total_samples = sum(1 for _ in path_to_split.open('r').readlines())
+        logger.info(f"{self.dump_name} has {total_samples} total samples in {split}")
+        if self.max_samples is not None or split == 'validation':
+            if split == 'validation':
+                samples_to_select = self.max_val_samples
+            else:
+                samples_to_select = self.max_samples
+            logger.info(f"Uniformly selecting {samples_to_select} from {total_samples}")
+            if total_samples < samples_to_select:
+                sample_mask = np.ones((total_samples,), dtype=bool)
+            else:
+                sample_mask = self.get_samples_mask(
+                    total_samples,
+                    samples_to_select
+                )
 
-    def __len__(self):
-        return self._length
+        else:
+            logger.info("Not Doing sampling")
+            sample_mask = np.ones((total_samples,), dtype=bool)
+
+        split_dict = defaultdict(list)
+        line_number = 0
+        for d in map(json.loads, path_to_split.read_text('utf-8').splitlines()):
+            if not sample_mask[line_number]:
+                line_number += 1
+                continue
+            for k, v in d.items():
+                if k == "answers":
+                    split_dict[k].append(list(v.values()))
+                else:
+                    split_dict[k].append(v)
+            line_number += 1
+        return Dataset.from_dict(split_dict)
+
+    def map_to_standard_entries(self, sample: Dict) -> Dict:
+        # Set to -1 if there is no accepted answer because it is impossible.
+        accepted_answer_id = sample['accepted_answer'] or "-1"
+
+        # Do a list comprehension to eliminate the accepted answer
+        accepted_answer = None
+        answers = []
+        for d in sample['answers']:
+            if d['id'] == accepted_answer_id and self.answer_sorting == "accepted":
+                accepted_answer = d
+            else:
+                answers.append(d)
+
+        # Sort the answer keys
+        answers = sorted(
+            answers, key=lambda k: k['score'],
+            reverse=not self.answer_sorting == 'ascending'
+        )
+        if accepted_answer is not None and self.answer_sorting == "accepted":
+            answers = [accepted_answer, *answers]
+
+        sample['input_sequence'] = f"{sample['title']}\n{sample['body']}"
+        if self.answers_per_sample == -1:
+            answers_keep = len(answers)
+        else:
+            answers_keep = self.answers_per_sample
+        sample['input_sequence'] += "\n" + "\n".join(
+            [k['body'] for k in answers[:answers_keep]]
+        )
+        sample['target'] = ""
+        return sample
+
+    def serialize_task_features(self, idx: int, predictions: List, processed_sample: Dict) -> Dict:
+        return {}

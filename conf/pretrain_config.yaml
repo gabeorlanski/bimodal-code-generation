@@ -12,7 +12,7 @@ training:
   evaluation_strategy: steps
   save_steps: 500
   eval_steps: 500
-  logging_steps: 50
+  logging_steps: 100
   warmup_ratio: 0.01
 generation:
   num_return_sequences: 25
@@ -24,4 +24,4 @@ tracking:
   entity: nyu-code-research
 
 data_args:
-
+  seq_length: 512

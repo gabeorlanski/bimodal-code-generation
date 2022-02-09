@@ -1,94 +1,61 @@
 """
-Tests for the Language Modeling datasets
+Tests for the StackOverflow dataset
 """
+import json
+
 import pytest
 from transformers import AutoTokenizer
 from datasets import Dataset
+from unittest.mock import MagicMock
 
-from src.data import langauge_modeling
+from src.data import stackoverflow
 
 from src.common import FIXTURES_ROOT, PROJECT_ROOT
 
 
-@pytest.fixture()
-def example_dataset(tokenizer):
-    # Reference for the data:
-    # https://www.youtube.com/watch?v=6GN20jud6MI
-    example_data = [
-        "Are you thinking what I am thinking?",
-        "I don't know...",
-        "Were you thinking holy **** holy **** a swordfish almost went through my head?",
-        "If so, yes."
-    ]
-    example_tokenized = tokenizer(example_data, add_special_tokens=False)['input_ids']
-
-    seq_length = 20
-    expected_examples, rem = divmod(
-        sum(map(lambda t: len(t) + 1, example_tokenized)),
-        seq_length
+def test_load_samples(sample_parsed_so):
+    task = stackoverflow.StackOverflowTask(
+        'test',
+        AutoTokenizer.from_pretrained('gpt2'),
+        preprocessors=[],
+        postprocessors=[],
+        metric_fns=[],
+        max_samples=2,
+        max_val_samples=1,
+        split_mapping={'train': sample_parsed_so}
     )
-    expected_examples += rem > 0
-    yield example_data, example_tokenized, seq_length, expected_examples
+    task.get_samples_mask = MagicMock(return_value=[True, True, False])
+
+    result = task._load_samples('train')
+    assert len(result) == 2
+    assert result['id'] == ["13454", "13941"]
 
 
-class TestConstantLengthDataset:
-    @pytest.mark.parametrize('infinite', [True, False], ids=['Infinite', 'Finite'])
-    def test_iter(self, tokenizer, example_dataset, infinite):
-        ds, ds_tokenized, seq_length, expected_examples = example_dataset
-        dataset = langauge_modeling.LanguageModelingDataset(
-            tokenizer,
-            [{'input_sequence': t} for t in ds],
-            infinite=infinite,
-            seq_length=seq_length,
-            num_of_sequences=4,
-            chars_per_token=3.5
-        )
+@pytest.mark.parametrize("answer_sorting", ['accepted', 'ascending', 'descending'])
+def test_map_to_standard_entries(sample_parsed_so, answer_sorting):
+    sample = list(map(json.loads, sample_parsed_so.open('r')))[-1]
+    task = stackoverflow.StackOverflowTask(
+        'test',
+        AutoTokenizer.from_pretrained('gpt2'),
+        preprocessors=[],
+        postprocessors=[],
+        metric_fns=[],
+        max_samples=2,
+        max_val_samples=1,
+        answer_sorting=answer_sorting,
+        answers_per_sample=1,
+        split_mapping={'train': sample_parsed_so}
+    )
 
-        # Go through the steps we know will not trigger the stop iteration
-        result_tokens = []
-        result_attention_mask = []
-        ds_iter = iter(dataset)
-        for _ in range(expected_examples):
-            result = next(ds_iter)
-            result_tokens.extend(result['input_ids'].tolist())
-            result_attention_mask.extend(result['attention_mask'].tolist())
+    sample['answers'] = list(sample['answers'].values())
+    result = task.map_to_standard_entries(sample)
 
-        expected_tokens = []
-        expected_attention_mask = []
-        for t in ds_tokenized:
-            expected_tokens.extend(t + [dataset.concat_token_id])
-            expected_attention_mask.extend([1] * (len(t) + 1))
+    expected = "Title 3\nQuestion Body 3\n"
+    if answer_sorting == "ascending":
+        expected += "Answer 16"
+    elif answer_sorting == "descending":
+        expected += "Answer 12"
+    else:
+        expected += "Answer 9"
 
-        pad_amount = expected_examples * seq_length - len(expected_tokens)
-        if infinite:
-            spill = expected_tokens[:pad_amount]
-            expected_tokens.extend(spill)
-            expected_attention_mask.extend([1] * pad_amount)
-
-        else:
-            expected_tokens.extend([dataset.concat_token_id] * pad_amount)
-            expected_attention_mask.extend([0] * pad_amount)
-        assert len(expected_attention_mask) == 60
-        assert len(expected_tokens) == 60
-
-        assert result_tokens == expected_tokens
-        assert result_attention_mask == expected_attention_mask
-
-    @pytest.mark.parametrize('streaming', [True, False], ids=["Streaming", "No Streaming"])
-    def test_initialize(self, example_dataset, tokenizer, streaming):
-        ds, ds_tokenized, seq_length, expected_examples = example_dataset
-        dataset = langauge_modeling.LanguageModelingDataset(
-            tokenizer,
-            [{'input_sequence': t} for t in ds],
-            infinite=True,
-            seq_length=seq_length,
-            num_of_sequences=4,
-            chars_per_token=3.5,
-            streaming=streaming,
-            batches_per_epoch=5
-        )
-        number_yielded = 0
-        for _ in dataset:
-            number_yielded += 1
-
-        assert number_yielded == len(dataset)
+    assert result['input_sequence'] == expected

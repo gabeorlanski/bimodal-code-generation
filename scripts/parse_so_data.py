@@ -1,3 +1,7 @@
+"""
+Scripts to parse StackExchange dumps
+"""
+
 import json
 import argparse
 import logging

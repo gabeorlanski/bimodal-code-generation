@@ -10,4 +10,5 @@ eval_jid{{idx}}=$(sbatch --parsable --job-name={{ name }}_eval \
 	--dependency=afterok:$train_jid{{ idx}} eval.sbatch \
 	best_models/{{ FineTune.save_name }} validation,test 25)
 echo "Submitted Eval $eval_jid{{idx}} to run after $1(id=$train_jid{{ idx}})"
+sbatch --job-name='{{ name }}_execute' --dependency=afterok:$eval_jid{{idx}} eval_code.sbatch eval_results/MBPP {{ FineTune.save_name }} {{ num_return_sequences }}
 echo ""

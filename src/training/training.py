@@ -125,21 +125,8 @@ def train_model(cfg: DictConfig):
     logger.debug("Loading Model")
     model_cls, model = config.load_model_from_cfg(cfg)
 
-    if cfg.task.name == "so":
-        is_pretrain = True
-        tokenizer = config.load_tokenizer_from_cfg(cfg)
-        task = partial(  # type: ignore
-            StackOverflowTask,
-            dump_name='so',
-            tokenizer=tokenizer,
-            sequence_length=cfg.data_args.seq_length,
-            buffer_size=cfg.get('buffer_size', 50),
-            max_steps=10000
-        )
-    else:
-        is_pretrain = False
-        task: Task = config.load_task_from_cfg(cfg)
-        tokenizer = task.tokenizer
+    task: Task = config.load_task_from_cfg(cfg)
+    tokenizer = task.tokenizer
 
     if tokenizer.pad_token is None:
         tokenizer.pad_token = tokenizer.eos_token
@@ -170,22 +157,15 @@ def train_model(cfg: DictConfig):
                 v_use = v
             setattr(model.config, k, v_use)
     elif cfg.objective == 'lm':
-        if not is_pretrain:
-            logger.info("Setting up the LM objective")
+        logger.info("Setting up the LM objective")
 
-            if task.tokenizer.pad_token is None:
-                task.tokenizer.pad_token = task.tokenizer.eos_token
+        if task.tokenizer.pad_token is None:
+            task.tokenizer.pad_token = task.tokenizer.eos_token
 
-            train_data, validation_data, evaluate_fn = setup_lm(
-                cfg,
-                task
-            )
-        else:
-            logger.info(f"Setting up the pretrain objective")
-            train_data, validation_data, evaluate_fn = setup_pretrain(
-                cfg,
-                task
-            )
+        train_data, validation_data, evaluate_fn = setup_lm(
+            cfg,
+            task
+        )
 
         model.config.eos_token_id = tokenizer.eos_token_id
         model.config.pad_token_id = tokenizer.pad_token_id

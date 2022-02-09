@@ -1,6 +1,7 @@
 """
 Config related util functions.
 """
+import inspect
 import os
 from typing import List, Dict, Tuple, Callable
 import logging
@@ -101,6 +102,13 @@ def load_task_from_cfg(
             metric_dict = {}
         metrics.append(Metric.from_dict(metric_name, metric_dict))
 
+    task_sig = set(inspect.signature(Task).parameters)
+    cls_sig = set(inspect.signature(Task.by_name(cfg['task']['name'])).parameters)
+    additional_kwargs = {
+        k: v for k, v in cfg.task.items()
+        if k in cls_sig.difference(task_sig)
+    }
+
     return Task.get_task(
         name=cfg["task"]["name"],
         tokenizer=load_tokenizer_from_cfg(cfg, tokenizer_kwargs),
@@ -108,7 +116,7 @@ def load_task_from_cfg(
         postprocessors=postprocessors,
         metric_fns=metrics,
         split_mapping=cfg.task.get('split_mapping', {}),
-        additional_kwargs=cfg.task.get('kwargs', {})
+        additional_kwargs=additional_kwargs
     )
 
 

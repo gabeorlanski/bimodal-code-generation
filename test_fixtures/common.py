@@ -35,3 +35,7 @@ def tokenizer():
 def code_preds_dir():
     yield FIXTURES_ROOT.joinpath('code_predictions')
 
+
+@pytest.fixture()
+def sample_parsed_so():
+    yield FIXTURES_ROOT.joinpath('so_dumps', 'sample.jsonl')
