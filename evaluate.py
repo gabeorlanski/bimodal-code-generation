@@ -27,7 +27,8 @@ def main(
         train_config_path,
         name,
         override_str,
-        hydra_overrides
+        hydra_overrides,
+        dry_run:bool
 ):
     if Path('wandb_secret.txt').exists():
         os.environ["WANDB_API_KEY"] = open('wandb_secret.txt').read().strip()
@@ -136,19 +137,20 @@ def main(
         pred_dir.mkdir()
     all_metrics = {}
     split_paths = []
-    for split in splits_to_use:
-        logger.info(f"Evaluating split {split}")
-        with open_dict(cfg):
-            cfg.split = split
-        metrics, predictions = evaluate_model(copy.deepcopy(cfg), model=model)
+    if not dry_run:
+        for split in splits_to_use:
+            logger.info(f"Evaluating split {split}")
+            with open_dict(cfg):
+                cfg.split = split
+            metrics, predictions = evaluate_model(copy.deepcopy(cfg), model=model)
 
-        all_metrics.update({f"{split}/{k}": v for k, v in metrics.items()})
-        split_path = pred_dir.joinpath(f'{cfg.split}.jsonl')
-        split_paths.append(split_path)
-        logger.info(f"Saving predictions to '{split_path}'")
-        with split_path.open("w", encoding="utf-8") as f:
-            for serialized_dict in predictions:
-                f.write(json.dumps(serialized_dict) + '\n')
+            all_metrics.update({f"{split}/{k}": v for k, v in metrics.items()})
+            split_path = pred_dir.joinpath(f'{cfg.split}.jsonl')
+            split_paths.append(split_path)
+            logger.info(f"Saving predictions to '{split_path}'")
+            with split_path.open("w", encoding="utf-8") as f:
+                for serialized_dict in predictions:
+                    f.write(json.dumps(serialized_dict) + '\n')
 
     end_time = datetime.utcnow() - start_time
     logger.info(f"Total time spent on evaluation: {end_time}")
@@ -167,6 +169,8 @@ def main(
     # TRACKING CODE TO REMOVE ON RELEASE                                #
     #####################################################################
 
+    with working_dir.joinpath(f'eval_config.yaml').open('w') as f:
+        f.write(OmegaConf.to_yaml(cfg))
     if (
             isinstance(cfg.tracking, (dict, DictConfig))
             and int(os.environ.get("LOCAL_RANK", "-1")) <= 0
@@ -191,8 +195,6 @@ def main(
             str(working_dir.joinpath(f'eval_config.yaml').resolve().absolute()))
         run.log_artifact(preds_artifact)
         run.finish()
-    with working_dir.joinpath(f'eval_config.yaml').open('w') as f:
-        f.write(OmegaConf.to_yaml(cfg))
     logger.info("Finished Evaluation")
 
 
@@ -212,6 +214,10 @@ if __name__ == "__main__":
     parser.add_argument('--task', default=None,
                         help="The task to use that is "
                              "not the one specified in the training config.")
+    parser.add_argument('--dry-run',
+                        action="store_true",
+                        default=False,
+                        help="Dry run")
     parser.add_argument('--zero-shot-config', default=None,
                         help="Pass a train config to use instead of trying to find one.")
     parser.add_argument('--name', default=None,
@@ -232,5 +238,6 @@ if __name__ == "__main__":
         argv.zero_shot_config,
         argv.name,
         argv.override_str,
-        argv.hydra_overrides or []
+        argv.hydra_overrides or [],
+        argv.dry_run
     )
