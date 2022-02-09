@@ -1,6 +1,6 @@
 starting_commands: command_templates/sbatch_experiment.txt
 experiments:
-  Uniform.ParrotSmall:
+  Uniform32Epoch.ParrotSmall:
     overrides:
       objective: 'lm'
       device: 0
@@ -12,44 +12,47 @@ experiments:
       training:
         batch_size: 32
         gradient_accumulation_steps: 1
+        num_train_epochs: 32
     ablations:
       - DumpName:
           Negative:
             ++task.dump_name: negative
-            ++task.answer_sorting: ascending
+            ++model_path: best_models/SO.Uniform.Negative.Exceptions.PreTrain
           Exceptions:
             ++task.dump_name: exceptions
+            ++model_path: best_models/SO.Uniform.ParrotSmall.Exceptions.PreTrain
           General:
             ++task.dump_name: general
+            ++model_path: best_models/SO.Uniform.ParrotSmall.General.PreTrain
           HighQual:
             ++task.dump_name: high_qual
-            ++task.answer_sorting: descending
+            ++model_path: best_models/SO.Uniform.ParrotSmall.HighQual.PreTrain
     steps:
-      - name: PreTrain
-        base: pretrain_config
-        group: SO
-        overrides:
-          training:
-            save_steps: 200
-            eval_steps: 200
-            logging_steps: 50
-            learning_rate: 1e-3
-            max_steps: -1
-          task: so
-          ++task.max_samples: 27000
-          ++task.max_val_samples: 250
-          ++task.answers_per_sample: 1
+#      - name: PreTrain
+#        base: pretrain_config
+#        group: SO
+#        overrides:
+#          training:
+#            save_steps: 200
+#            eval_steps: 200
+#            logging_steps: 50
+#            learning_rate: 1e-3
+#            max_steps: -1
+#          task: so
+#          ++task.max_samples: 27000
+#          ++task.max_val_samples: 250
+#          ++task.answers_per_sample: 1
       - name: FineTune
         base: greene_config
         group: MBPP
         overrides:
           task: mbpp
           ++is_checkpoint: True
-          ++model_path: best_models/${..previous_step.save_name}
+
           training:
             learning_rate: 5e-5
     command:
-      file: command_templates/pretrain_then_finetune.txt
+      file: command_templates/finetune.txt
       kwargs:
         train_sbatch: train_single_gpu
         num_return_sequences: 100
