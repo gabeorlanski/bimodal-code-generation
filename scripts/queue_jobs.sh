@@ -1,6 +1,6 @@
 #!/bin/bash
 # Queue Slurm Jobs
-train_jid0=$(sbatch --parsable --job-name=Uniform32Epoch.ParrotSmall_Negative_finetune train_single_gpu.sbatch /home/gabe/Coding/springresearch/generated_experiments/MBPP.Uniform32Epoch.ParrotSmall.Negative.FineTune.yaml)
+train_jid0=$(sbatch --parsable --job-name=Uniform32Epoch.ParrotSmall_Negative_finetune train_single_gpu.sbatch generated_experiments/MBPP.Uniform32Epoch.ParrotSmall.Negative.FineTune.yaml)
 echo "Submitted Train (id=$train_jid0)"
 eval_jid0=$(sbatch --parsable --job-name=Uniform32Epoch.ParrotSmall_Negative_eval \
 	--dependency=afterok:$train_jid0 eval.sbatch \
