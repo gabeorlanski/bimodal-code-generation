@@ -13,6 +13,9 @@ experiments:
         batch_size: 32
         gradient_accumulation_steps: 1
         learning_rate: 5e-4
+        save_steps: 200
+        eval_steps: 200
+        logging_steps: 50
         ++max_steps: -1
     ablations:
       - DumpName:
