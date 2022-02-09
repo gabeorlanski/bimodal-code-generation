@@ -15,6 +15,7 @@ training:
   logging_steps: 100
   warmup_ratio: 0.01
   dataloader_num_workers: 4
+  load_best_model_at_end: False
 generation:
   num_return_sequences: 25
 device: 0

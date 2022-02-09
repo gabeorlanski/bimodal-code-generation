@@ -8,8 +8,7 @@ echo "Submitted Eval $eval_jid1 to run"
 sbatch --job-name='codeparrotsmall_execute' --dependency=afterok:$eval_jid1 eval_code.sbatch eval_results/MBPP MBPP.CodeParrotSmall
 echo ""
 
-eval_jid2=$(sbatch --parsable --job-name=codeparrot_eval  eval.sbatch \
-	best_models/MBPP.CodeParrot validation,test 25 "remove_input_ids=True")
+eval_jid2=$(sbatch --parsable --job-name=codeparrot_eval  eval.sbatch best_models/MBPP.CodeParrot validation,test 25 "remove_input_ids=True")
 echo "Submitted Eval $eval_jid2 to run "
 sbatch --job-name='codeparrotsmall_execute' --dependency=afterok:$eval_jid2 eval_code.sbatch eval_results/MBPP MBPP.CodeParrot
 
