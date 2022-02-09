@@ -152,3 +152,5 @@ generated_experiments/
 !test_fixtures/experiments/
 scratch/
 data/filtered_so/
+
+data/stackoverflow/
