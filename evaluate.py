@@ -189,6 +189,7 @@ def main(
 
         if dry_run and working_dir.joinpath('eval_metrics.json').exists():
             all_metrics = json.loads(working_dir.joinpath('eval_metrics.json').read_text('utf-8'))
+            print(all_metrics)
         run.log({f"eval/{k}": v for k, v in all_metrics.items()}, step=1)
         preds_artifact = wandb.Artifact(config.get_run_base_name_from_cfg(cfg, "preds"),
                                         type='predictions')
