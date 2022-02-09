@@ -187,7 +187,7 @@ def main(
 
         run.config.update(config.get_config_for_tracking(cfg))
 
-        if dry_run and pred_dir.joinpath('eval_metrics.json').read_text('utf-8'):
+        if dry_run and working_dir.joinpath('eval_metrics.json').read_text('utf-8'):
             all_metrics = json.loads(pred_dir.joinpath('eval_metrics.json').read_text('utf-8'))
         run.log({f"eval/{k}": v for k, v in all_metrics.items()}, step=1)
         preds_artifact = wandb.Artifact(config.get_run_base_name_from_cfg(cfg, "preds"),
