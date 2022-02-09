@@ -8,3 +8,11 @@ task: mbpp
 is_finetune: True
 is_checkpoint: True
 model_path: best_models/SO.Steps.N.PT
+meta:
+  ablation: N
+  card_name: Steps
+  step: FT
+test:
+  A: B
+  B: 5
+  C: 6

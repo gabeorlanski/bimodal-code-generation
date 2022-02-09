@@ -4,18 +4,26 @@ experiments:
       objective: 'lm'
       ++device: 0
       +disable_cache: True
+
     ablations:
       - Model:
           S:
             model: 'lvwerra/codeparrot-small'
+            test:
+              A: D
+              C: E
           N:
             model: 'lvwerra/codeparrot'
+            test:
+              A: B
     steps:
       - name: PT
         base: base
         group: SO
         overrides:
           task: so
+          test:
+            B: C
       - name: FT
         base: finetune
         group: MBPP
@@ -23,6 +31,8 @@ experiments:
           task: mbpp
           +is_checkpoint: True
           +model_path: best_models/${..previous_step.save_name}
+          test:
+            A: C
     command:
       file: test_fixtures/experiments/command.txt
       kwargs:

@@ -5,3 +5,11 @@ model: lvwerra/codeparrot
 name: Steps.N.PT
 objective: lm
 task: so
+meta:
+  ablation: N
+  card_name: Steps
+  step: PT
+test:
+  A: B
+  B: C
+  C: 3

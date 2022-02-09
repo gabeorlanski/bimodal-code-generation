@@ -90,6 +90,12 @@ class ComposedExperiments:
             logger.debug(f"Saving step {name}")
             logger.debug(f"Loading hydra config {experiment.base}")
 
+            overrides_dict = experiment.overrides
+
+            # Force add the meta section that would otherwise not be there.
+            if 'meta' in overrides_dict:
+                overrides_dict['++meta'] = overrides_dict.pop('meta')
+
             overrides_dict = flatten(experiment.overrides, sep='.')
             overrides_list = []
             for k, v in overrides_dict.items():
@@ -211,6 +217,12 @@ def get_experiment_card_cfg_from_dict(
     experiment_overrides = deepcopy(global_defaults.get('overrides', {}))
     experiment_overrides.update(experiment_card_dict.get('overrides', {}))
 
+    experiment_overrides['meta'] = {
+        "ablation": None,
+        "step"    : None,
+        "card_name": name
+    }
+
     logger.info(f"Experiment {name} has group {experiment_group}")
     logger.info(f"Experiment {name} has base config {base_config}")
     logger.info(f"Experiment {name} has {len(experiment_overrides)} total overrides")
@@ -222,6 +234,7 @@ def get_experiment_card_cfg_from_dict(
         if base_config is None:
             raise ValueError(f'Experiment {name} does not have a base config.')
         # There are no ablations for this experiment, so just yield it.
+
         yield ComposedExperiments(
             name=name,
             step_cards={
@@ -286,7 +299,7 @@ def get_experiment_card_cfg_from_dict(
                     logger.error(f"{step_group=}")
                     raise ValueError(f"Step {step_num} in {name} does not have correct keys")
 
-                step_overrides = step_dict.get("overrides", {})
+                step_overrides = deepcopy(step_dict.get("overrides", {}))
                 add_group_name = experiment_card_dict.get('add_name', True)
                 card_name = name if add_group_name else ''
                 if has_ablations:
@@ -301,11 +314,16 @@ def get_experiment_card_cfg_from_dict(
                 # mutable objects on each iteration.
                 card_overrides = deepcopy(experiment_overrides)
 
-                # Ablation gets priority over experiment
-                card_overrides = merge(card_overrides, ablation_overrides)
+                if has_ablations:
+                    card_overrides['meta']['ablation'] = ablation_name
+                if has_steps:
+                    card_overrides['meta']['step'] = step_name
 
-                # Step gets priority over ablation.
+                # Step gets priority over experiment.
                 card_overrides = merge(card_overrides, step_overrides)
+
+                # Ablation gets priority over step
+                card_overrides = merge(card_overrides, ablation_overrides)
 
                 # Make it into a dict config so we can use interpolation.
                 cfg = OmegaConf.create({
@@ -315,7 +333,7 @@ def get_experiment_card_cfg_from_dict(
                     "name"         : card_name,
                     "group"        : step_group,
                     "base"         : step_base,
-                    "overrides"    : card_overrides,
+                    "overrides"    : deepcopy(card_overrides),
                     "depends_on"   : previous_step.get('save_name')
                 })
                 OmegaConf.resolve(cfg)

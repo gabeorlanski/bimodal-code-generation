@@ -150,3 +150,4 @@ parsed_so/
 generated_experiments/
 
 !test_fixtures/experiments/
+scratch/

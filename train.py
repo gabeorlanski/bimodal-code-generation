@@ -82,6 +82,10 @@ def train_from_cfg(cfg):
 
     with open_dict(cfg):
         cfg.training.local_rank = int(os.environ.get('LOCAL_RANK', '-1'))
+        if "meta" not in cfg:
+            cfg['meta'] = {'base_name':get_run_base_name_from_cfg(cfg)}
+        else:
+            cfg['meta']['base_name'] = get_run_base_name_from_cfg(cfg)
 
     # Seed all GPUs with the same seed if available.
     if torch.cuda.is_available():
