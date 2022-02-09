@@ -155,9 +155,9 @@ def main(
     end_time = datetime.utcnow() - start_time
     logger.info(f"Total time spent on evaluation: {end_time}")
     all_metrics['runtime'] = str(end_time)
-
-    with working_dir.joinpath('eval_metrics.json').open('w', encoding='utf-8') as f:
-        json.dump(all_metrics, f)
+    if not dry_run:
+        with working_dir.joinpath('eval_metrics.json').open('w', encoding='utf-8') as f:
+            json.dump(all_metrics, f)
 
     run_id = os.getenv('WANDB_RUN_ID')
     with open_dict(cfg):
