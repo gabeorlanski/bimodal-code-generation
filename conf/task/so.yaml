@@ -2,15 +2,11 @@ defaults:
   - _self_
 name: so
 data_path: data/stackoverflow
-
 dump_name: ???
-split_mapping:
-  train: ${..data_path}/${..dump_name}.jsonl
-  validation: ${..data_path}/${..dump_name}_val.jsonl
-kwargs:
-  dump_name: ${..dump_name}
-preprocessors: [ ]
-postprocessors: [ ]
-override_preprocessors: True
-override_postprocessors: True
-
+train_path: ${.data_path}/${.dump_name}.jsonl
+validation_path: ${.data_path}/${.dump_name}_val.jsonl
+max_samples: null
+answer_sorting: 'accepted'
+answers_per_sample: -1
+sequence_length: 512
+seed: 1

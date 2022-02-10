@@ -11,13 +11,16 @@ from datasets import set_caching_enabled, Dataset
 import torch
 from tio import Task
 from src import config
-from src.common import get_stats_from_list, PROJECT_ROOT
+from src.common import get_stats_from_list, PROJECT_ROOT, set_global_logging_level
 from src.data import langauge_modeling
 from src.training.trainer import CustomTrainer
 from src.config import get_steps_from_training_args, get_lr_scheduler
 from src.data.stackoverflow import StackOverflowTask
 
 logger = logging.getLogger(__name__)
+
+set_global_logging_level(logging.ERROR,
+                         ["transformers", "nlp", "torch", "tensorflow", "tensorboard", "wandb"])
 
 
 def evaluate_seq2seq(eval_predictions: EvalPrediction, task: Task):
@@ -102,10 +105,30 @@ def setup_lm(cfg, task):
     return train_data, validation_data, None
 
 
-def setup_pretrain(cfg, task):
-    train_dataset = task(data_path=cfg.task.split_mapping['train'], infinite=True)
-    eval_dataset = task(data_path=cfg.task.split_mapping['validation'], infinite=False,
-                        max_samples=cfg.get('max_val_size', 500))
+def setup_pretrain(cfg, tokenizer):
+    train_dataset = StackOverflowTask(
+        dump_name=cfg.task.dump_name,
+        data_path=cfg.task.train_path,
+        tokenizer=tokenizer,
+        max_samples=cfg.task.max_samples,
+        answer_sorting=cfg.task.answer_sorting,
+        answers_per_sample=cfg.task.answers_per_sample,
+        sequence_length=cfg.task.sequence_length,
+        num_proc=cfg.get("num_proc", 1),
+        seed=cfg.task.seed,
+        max_steps=cfg.training.get('max_steps', -1)
+    )
+    eval_dataset = StackOverflowTask(
+        dump_name=f"{cfg.task.dump_name}_val",
+        data_path=cfg.task.validation_path,
+        tokenizer=tokenizer,
+        max_samples=250,
+        answer_sorting=cfg.task.answer_sorting,
+        answers_per_sample=cfg.task.answers_per_sample,
+        sequence_length=cfg.task.sequence_length,
+        num_proc=cfg.get("num_proc", 1),
+        seed=cfg.task.seed
+    )
     return train_dataset, eval_dataset, None
 
 
@@ -125,8 +148,12 @@ def train_model(cfg: DictConfig):
     logger.debug("Loading Model")
     model_cls, model = config.load_model_from_cfg(cfg)
 
-    task: Task = config.load_task_from_cfg(cfg)
-    tokenizer = task.tokenizer
+    if cfg.task.name == 'so':
+        tokenizer = config.load_tokenizer_from_cfg(cfg)
+        task = None  # type: ignore
+    else:
+        task: Task = config.load_task_from_cfg(cfg)
+        tokenizer = task.tokenizer
 
     if tokenizer.pad_token is None:
         tokenizer.pad_token = tokenizer.eos_token
@@ -157,15 +184,22 @@ def train_model(cfg: DictConfig):
                 v_use = v
             setattr(model.config, k, v_use)
     elif cfg.objective == 'lm':
-        logger.info("Setting up the LM objective")
+        if cfg.task.name == 'so':
+            logger.info(f"Setting up the SO pretrain objective")
+            train_data, validation_data, evaluate_fn = setup_pretrain(
+                cfg,
+                tokenizer
+            )
+        else:
+            logger.info("Setting up the LM objective")
 
-        if task.tokenizer.pad_token is None:
-            task.tokenizer.pad_token = task.tokenizer.eos_token
+            if task.tokenizer.pad_token is None:
+                task.tokenizer.pad_token = task.tokenizer.eos_token
 
-        train_data, validation_data, evaluate_fn = setup_lm(
-            cfg,
-            task
-        )
+            train_data, validation_data, evaluate_fn = setup_lm(
+                cfg,
+                task
+            )
 
         model.config.eos_token_id = tokenizer.eos_token_id
         model.config.pad_token_id = tokenizer.pad_token_id
