@@ -9,7 +9,7 @@ experiments:
       model: 'lvwerra/codeparrot-small'
       ++num_proc: 16
       training:
-#        batch_size: 32
+        batch_size: 32
         gradient_accumulation_steps: 1
         num_train_epochs: 1
     ablations:
@@ -20,6 +20,7 @@ experiments:
           Exceptions:
             ++task.dump_name: exceptions
           General:
+            ++task.max_samples: 750000
             ++task.dump_name: general
           HighQual:
             ++task.dump_name: high_qual
@@ -33,7 +34,7 @@ experiments:
             save_steps: 200
             eval_steps: 200
             logging_steps: 250
-            learning_rate: 1e-3
+            learning_rate: 1e-4
             max_steps: -1
           task: so
           ++task.max_val_samples: 250
