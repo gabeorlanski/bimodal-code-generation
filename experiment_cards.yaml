@@ -5,7 +5,7 @@ experiments:
       objective: 'lm'
       device: 0
       tracking:
-        log_model: false
+        log_model: true
       model: 'lvwerra/codeparrot-small'
       ++num_proc: 16
       training:
@@ -18,8 +18,8 @@ experiments:
             ++task.dump_name: negative
             ++task.answer_sorting: ascending
             training:
-              save_steps: 1000
-              eval_steps: 1000
+              save_steps: 500
+              eval_steps: 500
               logging_steps: 100
           Exceptions:
             ++task.dump_name: exceptions
