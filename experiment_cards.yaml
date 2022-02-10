@@ -34,7 +34,7 @@ experiments:
             save_steps: 200
             eval_steps: 200
             logging_steps: 250
-            learning_rate: 1e-4
+            learning_rate: 1e-3
             max_steps: -1
           task: so
           ++task.max_val_samples: 250
