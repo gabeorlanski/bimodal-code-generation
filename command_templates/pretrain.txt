@@ -2,4 +2,6 @@
 echo "Submitting Jobs for {{ name }}"
 {{ pretrain_jid }}=$(sbatch --parsable --job-name={{ name }}_pretrain \
 	{{ train_sbatch }}.sbatch {{ PreTrain.path }})
+
+echo "scancel ${{pretrain_jid}}" << generated_experiments/cancel_jobs.sh
 echo "Submitted PreTrain (id=${{ pretrain_jid }})"

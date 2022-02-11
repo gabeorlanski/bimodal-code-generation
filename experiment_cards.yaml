@@ -96,7 +96,7 @@ experiments:
           ++is_checkpoint: True
 
           training:
-            learning_rate: 5e-3
+            learning_rate: 5e-4
     command:
       file: command_templates/finetune.txt
       kwargs:
@@ -137,7 +137,7 @@ experiments:
           ++is_checkpoint: True
 
           training:
-            learning_rate: 5e-3
+            learning_rate: 5e-4
     command:
       file: command_templates/finetune.txt
       kwargs:
@@ -178,7 +178,7 @@ experiments:
           ++is_checkpoint: True
 
           training:
-            learning_rate: 5e-3
+            learning_rate: 5e-4
     command:
       file: command_templates/finetune.txt
       kwargs:
@@ -219,7 +219,7 @@ experiments:
           ++is_checkpoint: True
 
           training:
-            learning_rate: 5e-3
+            learning_rate: 5e-4
     command:
       file: command_templates/finetune.txt
       kwargs:
