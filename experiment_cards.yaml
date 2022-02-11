@@ -129,7 +129,7 @@ experiments:
           HighLR:
             training.learning_rate: 5e-4
           LongSteps:
-            training.max_steps: 1000
+            ++training.max_steps: 1000
     steps:
       - name: FineTune
         base: greene_config
