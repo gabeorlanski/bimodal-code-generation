@@ -78,12 +78,9 @@ experiments:
           Exceptions:
             ++task.dump_name: exceptions
             ++model_path: best_models/SO.FullData.ParrotSmall.Exceptions.PreTrain
-          #          General:
-          #            ++task.dump_name: general
-          #            training:
-          #              save_steps: 2000
-          #              eval_steps: 2000
-          #              logging_steps: 250
+          General:
+            ++task.dump_name: general
+            ++model_path: best_models/SO.FullData.ParrotSmall.General.PreTrain
           HighQual:
             ++task.dump_name: high_qual
             ++model_path: best_models/SO.FullData.ParrotSmall.HighQual.PreTrain
