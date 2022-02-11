@@ -11,7 +11,6 @@ experiments:
       training:
         batch_size: 32
         gradient_accumulation_steps: 1
-        num_train_epochs: 1
     ablations:
       - DumpName:
           Negative:
@@ -50,6 +49,7 @@ experiments:
             eval_steps: 200
             logging_steps: 250
             max_steps: -1
+            num_train_epochs: 1
           task: so
           ++task.max_val_samples: 250
           ++task.answers_per_sample: 1
@@ -70,7 +70,6 @@ experiments:
       training:
         batch_size: 32
         gradient_accumulation_steps: 1
-        num_train_epochs: 1
     ablations:
       - DumpName:
           Negative:
@@ -115,7 +114,6 @@ experiments:
       training:
         batch_size: 32
         gradient_accumulation_steps: 1
-        num_train_epochs: 1
     ablations:
       - DumpName:
           Negative:
@@ -157,7 +155,6 @@ experiments:
       training:
         batch_size: 32
         gradient_accumulation_steps: 1
-        num_train_epochs: 1
     ablations:
       - DumpName:
           Negative:
@@ -199,7 +196,6 @@ experiments:
       training:
         batch_size: 32
         gradient_accumulation_steps: 1
-        num_train_epochs: 1
     ablations:
       - DumpName:
           Negative:
