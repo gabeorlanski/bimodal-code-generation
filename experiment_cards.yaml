@@ -104,7 +104,7 @@ experiments:
         train_sbatch: train_single_gpu
         num_return_sequences: 100
 
-  Uniform.ParrotSmall:
+  Uniform.HighLR.ParrotSmall:
     overrides:
       objective: 'lm'
       device: 0
@@ -145,7 +145,8 @@ experiments:
       kwargs:
         train_sbatch: train_single_gpu
         num_return_sequences: 100
-  Uniform32Epoch.ParrotSmall:
+
+  Uniform32Epoch.HighLR.ParrotSmall:
     overrides:
       objective: 'lm'
       device: 0
@@ -171,6 +172,48 @@ experiments:
           HighQual:
             ++task.dump_name: high_qual
             ++model_path: best_models/SO.Uniform32Epoch.ParrotSmall.HighQual.PreTrain
+    steps:
+      - name: FineTune
+        base: greene_config
+        group: MBPP
+        overrides:
+          task: mbpp
+          ++is_checkpoint: True
+
+          training:
+            learning_rate: 5e-3
+    command:
+      file: command_templates/finetune.txt
+      kwargs:
+        train_sbatch: train_single_gpu
+        num_return_sequences: 100
+
+  SODump10KSteps.HighLR.ParrotSmall:
+    overrides:
+      objective: 'lm'
+      device: 0
+      tracking:
+        log_model: false
+      model: 'lvwerra/codeparrot-small'
+      ++num_proc: 16
+      training:
+        batch_size: 32
+        gradient_accumulation_steps: 1
+        num_train_epochs: 1
+    ablations:
+      - DumpName:
+          Negative:
+            ++task.dump_name: negative
+            ++model_path: best_models/SO.CodeParrotSmall.Negative.PreTrain
+          Exceptions:
+            ++task.dump_name: exceptions
+            ++model_path: best_models/SO.CodeParrotSmall.Exceptions.PreTrain
+          General:
+            ++task.dump_name: general
+            ++model_path: best_models/SO.CodeParrotSmall.General.PreTrain
+          HighQual:
+            ++task.dump_name: high_qual
+            ++model_path: best_models/SO.CodeParrotSmall.HighQual.PreTrain
     steps:
       - name: FineTune
         base: greene_config
