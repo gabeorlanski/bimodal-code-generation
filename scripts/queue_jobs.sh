@@ -23,7 +23,7 @@ do
       echo "Model= $model_name"
       eval_jid1=$(sbatch --parsable --job-name=${model_name}_eval eval.sbatch best_models/$model_name test human_eval 100 1024 "remove_input_ids=True")
       echo "Submitted $eval_jid1"
-      sbatch --job-name='${model_name}_execute' --dependency=afterok:$eval_jid1 eval_code.sbatch eval_results/HUMAN_EVAL $model_name
+      sbatch --job-name=${model_name}_execute --dependency=afterok:$eval_jid1 eval_code.sbatch eval_results/HUMAN_EVAL $model_name
       echo ""
 
     done
