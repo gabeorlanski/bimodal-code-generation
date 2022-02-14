@@ -15,6 +15,8 @@ do
       fi
       if [ "$ABLATION" == "SODump10KSteps" ]; then
         full_name=$ABLATION
+      elif [ "$ABLATION" == "Uniform32Epoch" ] && [ "$task" == "SO" ]; then
+        full_name="Uniform.ParrotSmall"
       else
         full_name="$ABLATION.ParrotSmall"
       fi
