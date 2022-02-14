@@ -104,6 +104,10 @@ def eval_from_checkpoint(
             cfg_processors = OmegaConf.to_object(cfg[k]) if k in cfg else []
             cfg[k] = train_processors + cfg_processors
 
+        if not use_train_task:
+            cfg.old_name = f"{cfg.group}.{cfg.name}"
+            cfg.group = task.upper()
+
     config.setup_tracking_env_from_cfg(cfg)
 
     # merge_configs gives priority to the first argument, so if we are not

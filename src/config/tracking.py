@@ -214,13 +214,17 @@ def setup_tracking_env_from_cfg(cfg: DictConfig):
     project = cfg['tracking'].get('project')
     run_name = cfg["name"]
 
-    if cfg.group != cfg.task.name.upper():
+    if cfg.get('old_name'):
+        run_name = cfg.get('old_name')
+    elif cfg.group != cfg.task.name.upper():
         run_name = f"{cfg.task.name.upper()}.{run_name}"
 
     if cfg.debug:
         project = f"debug-{project}"
         run_name = f"debug-{run_name}"
 
+    logger.info(f"Tracking is Using Run name {run_name}")
+    logger.info(f"Tracking is using group {cfg.group}")
     entity = cfg['tracking'].get('entity')
     if entity and not cfg.debug:
         os.environ['WANDB_ENTITY'] = entity
