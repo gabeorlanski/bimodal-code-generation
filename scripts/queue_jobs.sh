@@ -1,6 +1,7 @@
 #!/bin/bash
 # Queue Slurm Jobs
-
+rm -rf sbatch_logs
+mkdir sbatch_logs
 
 for task in "MBPP" "SO"
 do
