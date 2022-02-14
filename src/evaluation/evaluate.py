@@ -1,24 +1,24 @@
+import copy
 import json
 import math
 import os
 from collections import defaultdict
 
+from datetime import datetime
+from pathlib import Path
+import random
+
 import numpy as np
 import wandb
 from datasets import set_caching_enabled
-from omegaconf import DictConfig
+from omegaconf import DictConfig, open_dict, OmegaConf
 from transformers import PreTrainedModel, DataCollatorForSeq2Seq
 import torch
 import logging
 from tqdm import tqdm
-from torch.nn.parallel import DistributedDataParallel as DDP
-import torch.distributed as dist
-import torch.multiprocessing as mp
-from pathlib import Path
 
-from src.config import get_device_from_cfg, merge_configs, load_task_from_cfg
-from src.evaluation.util import serialize_prediction
-from src.config.tracking import get_config_for_tracking
+from src.config import get_device_from_cfg, load_task_from_cfg, get_config_for_tracking, \
+    get_run_base_name_from_cfg
 
 logger = logging.getLogger(__name__)
 
@@ -31,7 +31,8 @@ def generate_predictions(
         device,
         generation_kwargs,
         seq_per_sample,
-        remove_input_ids_from_output
+        remove_input_ids_from_output,
+        num_samples: int = None
 ):
     logger.info(f"{remove_input_ids_from_output=}")
     collator = DataCollatorForSeq2Seq(
@@ -41,11 +42,16 @@ def generate_predictions(
         padding="longest",
         label_pad_token_id=task.tokenizer.pad_token_id,
     )
+    if num_samples is not None:
+        logger.warning(f"DEBUG NUMBER OF SAMPLES={num_samples}")
+        tokenized = tokenized.select(list(range(num_samples)))
+
     tokenized = tokenized.map(
         lambda ex: {'length': sum(ex['attention_mask']), **ex}
     )
+
     tokenized = tokenized.sort('length', reverse=True)
-    tokenized = tokenized.filter(lambda ex: ex['length'] < 800)
+
     tokenized = tokenized.remove_columns('length')
     data_loader = torch.utils.data.DataLoader(
         tokenized,
@@ -156,6 +162,9 @@ def evaluate_model(cfg: DictConfig, model: PreTrainedModel):
     if cfg.objective == 'lm':
         if task.tokenizer.pad_token is None:
             task.tokenizer.pad_token = task.tokenizer.eos_token
+        model.config.eos_token_id = task.tokenizer.eos_token_id
+        model.config.pad_token_id = task.tokenizer.pad_token_id
+        model.config.bos_token_id = task.tokenizer.bos_token_id or task.tokenizer.eos_token
 
     device = get_device_from_cfg(cfg)
     logger.info(f"Using device {device}")
@@ -172,7 +181,8 @@ def evaluate_model(cfg: DictConfig, model: PreTrainedModel):
         device=device,
         generation_kwargs=cfg.get('generation', {}),
         seq_per_sample=cfg.get('seq_per_sample'),
-        remove_input_ids_from_output=cfg.get("remove_input_ids", False)
+        remove_input_ids_from_output=cfg.get("remove_input_ids", False),
+        num_samples=cfg.get('debug_num_samples', None)
     )
 
     labels = generation_results['labels']
@@ -191,3 +201,97 @@ def evaluate_model(cfg: DictConfig, model: PreTrainedModel):
         serialized_predictions.append(serialized_dict)
 
     return metrics, serialized_predictions
+
+
+def evaluate(
+        cfg,
+        model,
+        splits: str,
+        out_path: Path,
+        dry_run: bool,
+):
+    logger.debug("Setting the seeds")
+    seed = cfg["seed"]
+    numpy_seed = cfg["numpy_seed"]
+    torch_seed = cfg["pytorch_seed"]
+    logger.info(f"Seed={seed}")
+    logger.info(f"NumPy Seed={numpy_seed}")
+    logger.info(f"Torch Seed={torch_seed}")
+    random.seed(cfg["seed"])
+    np.random.seed(cfg["numpy_seed"])
+    torch.manual_seed(torch_seed)
+
+    logger.debug(f"Starting eval loop")
+    start_time = datetime.utcnow()
+
+    logger.info(f"Using split '{splits}' for task '{cfg.task.name}'")
+    splits_to_use = splits.split(',')
+
+    pred_dir = Path(out_path).joinpath('predictions')
+    if not pred_dir.exists():
+        pred_dir.mkdir()
+    all_metrics = {}
+    split_paths = []
+    if not dry_run:
+        for split in splits_to_use:
+            logger.info(f"Evaluating split {split}")
+            with open_dict(cfg):
+                cfg.split = split
+            metrics, predictions = evaluate_model(copy.deepcopy(cfg), model=model)
+
+            all_metrics.update({f"{split}/{k}": v for k, v in metrics.items()})
+            split_path = pred_dir.joinpath(f'{cfg.split}.jsonl')
+            split_paths.append(split_path)
+            logger.info(f"Saving predictions to '{split_path}'")
+            with split_path.open("w", encoding="utf-8") as f:
+                for serialized_dict in predictions:
+                    f.write(json.dumps(serialized_dict) + '\n')
+
+    end_time = datetime.utcnow() - start_time
+    logger.info(f"Total time spent on evaluation: {end_time}")
+    all_metrics['runtime'] = str(end_time)
+    if not dry_run:
+        with out_path.joinpath('eval_metrics.json').open('w', encoding='utf-8') as f:
+            json.dump(all_metrics, f)
+
+    run_id = os.getenv('WANDB_RUN_ID')
+    with open_dict(cfg):
+        cfg.run_id = run_id
+        cfg.split = splits
+        cfg.eval_run_name = os.getenv('WANDB_RUN_NAME')
+
+    #####################################################################
+    # TRACKING CODE TO REMOVE ON RELEASE                                #
+    #####################################################################
+
+    with out_path.joinpath(f'eval_config.yaml').open('w') as f:
+        f.write(OmegaConf.to_yaml(cfg))
+    if (
+            isinstance(cfg.tracking, (dict, DictConfig))
+            and int(os.environ.get("LOCAL_RANK", "-1")) <= 0
+    ):
+        run = wandb.init(
+            job_type='evaluate',
+            name=os.getenv('WANDB_RUN_NAME'),
+            project=os.getenv('WANDB_PROJECT'),
+            group=f"{cfg.group}[eval]",
+            entity=os.getenv('WANDB_ENTITY'),
+            config=get_config_for_tracking(cfg),
+            id=run_id
+        )
+
+        run.config.update(get_config_for_tracking(cfg))
+
+        if dry_run and out_path.joinpath('eval_metrics.json').exists():
+            all_metrics = json.loads(out_path.joinpath('eval_metrics.json').read_text('utf-8'))
+            print(all_metrics)
+        run.log({f"eval/{k}": v for k, v in all_metrics.items()}, step=1)
+        preds_artifact = wandb.Artifact(get_run_base_name_from_cfg(cfg, "preds"),
+                                        type='predictions')
+
+        preds_artifact.add_dir(str(pred_dir.resolve().absolute()))
+        preds_artifact.add_file(
+            str(out_path.joinpath(f'eval_config.yaml').resolve().absolute()))
+        run.log_artifact(preds_artifact)
+        run.finish()
+    logger.info("Finished Evaluation")

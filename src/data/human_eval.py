@@ -15,6 +15,8 @@ from tio import Task
 import re
 
 logger = logging.getLogger(__name__)
+EOF_STRINGS = ["\nclass", "\ndef", "\n#", "\n@", "\nprint", "\nif"]
+FIRST_BLOCK_REGEX = re.compile("|".join(EOF_STRINGS))
 
 
 @Task.register("human_eval")
@@ -44,6 +46,7 @@ class HumanEval(Task):
             split_mapping=split_mapping
         )
         self._dataset = load_dataset('openai_humaneval')
+        self.postprocessors = [first_block, *self.postprocessors]
 
     def _load_samples(self, split) -> Dataset:
         # Load the data into a dict where the key is the task_id
@@ -63,5 +66,52 @@ class HumanEval(Task):
             processed_sample: Dict
     ) -> Dict:
         return {
-            'tests'  : [processed_sample['test']+'\n'+f"check({processed_sample['entry_point']})"]
+            'tests': [processed_sample['test'] + '\n' + f"check({processed_sample['entry_point']})"]
         }
+
+    def serialize_predictions(
+            self,
+            split: str,
+            indices: List,
+            predictions: List[List]
+    ):
+        """
+        Serialize a prediction to a dict.
+
+        Args:
+            split (str): The split the predictions came from.
+            indices (List): The indices corresponding to the predictions.
+            predictions (List[List]): The list of predictions for each sample.
+
+        Returns:
+            A generator of dicts for each sample.
+        """
+
+        processed_data = self.preprocessed_splits[split]
+
+        assert len(indices) == len(predictions), "Indices must be the same length as predictions"
+
+        for idx, preds in zip(indices, predictions):
+            processed_sample = processed_data[idx]
+            tests_str = [
+                processed_sample['test'] + '\n' + f"check({processed_sample['entry_point']})"
+            ]
+
+            # Have to add the prompt back to the predictions
+            preds_list = [
+                processed_sample['input_sequence'] + p for p in preds
+            ]
+
+            yield {
+                'idx'           : idx,
+                'target'        : processed_sample['target'],
+                'input_sequence': processed_sample['input_sequence'],
+                'prediction'    : preds_list,
+                'tests'         : tests_str
+            }
+
+
+def first_block(string):
+    """Split off first block of code by scanning for class, def etc. on newlines."""
+    first_block_value, *_ = FIRST_BLOCK_REGEX.split(string)
+    return first_block_value.rstrip()

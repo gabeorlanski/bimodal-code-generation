@@ -1,9 +1,11 @@
-
 defaults:
   - _self_
 
 name: human_eval
-preprocessors: []
-postprocessors: []
-override_preprocessors: False
+preprocessors: [ ]
+postprocessors: [ ]
+override_preprocessors: True
 override_postprocessors: True
+
+eval_splits:
+  - test
