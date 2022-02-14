@@ -154,11 +154,6 @@ def evaluate_model(cfg: DictConfig, model: PreTrainedModel):
     task = load_task_from_cfg(cfg)
     logger.info(f"Reading data from '{cfg['data_path']}'")
 
-    tokenized = task.get_split(cfg['split'], overwrite_cache=True)
-    logger.info(f"{len(tokenized)} total samples found")
-
-    logger.info("Initializing the evaluator")
-
     if cfg.objective == 'lm':
         if task.tokenizer.pad_token is None:
             task.tokenizer.pad_token = task.tokenizer.eos_token
@@ -166,6 +161,14 @@ def evaluate_model(cfg: DictConfig, model: PreTrainedModel):
         model.config.pad_token_id = task.tokenizer.pad_token_id
         model.config.bos_token_id = task.tokenizer.bos_token_id or task.tokenizer.eos_token
 
+        def prepend_token(sample):
+            sample['input_sequence'] = task.tokenizer.eos_token + sample['input_sequence']
+            return sample
+
+        task.preprocessors.append(prepend_token)
+
+    tokenized = task.get_split(cfg['split'], overwrite_cache=True)
+    logger.info(f"{len(tokenized)} total samples found")
     device = get_device_from_cfg(cfg)
     logger.info(f"Using device {device}")
 
