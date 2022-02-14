@@ -139,7 +139,7 @@ def evaluate_code(
     all_correct = np.array(correct)
     all_total = np.array([samples_per_problem] * len(correct))
     total = int(sum(all_total))
-    for k in [1, 5, 10, 25, 50]:
+    for k in [1, 5, 10, 25, 50,100]:
         if (all_total < k).all():
             overview_metrics[f"pass@{k}"] = 0.0
             continue
