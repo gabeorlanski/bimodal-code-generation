@@ -140,7 +140,7 @@ experiments:
       file: command_templates/code_evaluate.txt
       kwargs:
         train_sbatch: train_single_gpu
-        num_return_sequences: 100
+        num_return_sequences: 200
         task_name: HUMAN_EVAL
       fields:
         - model_path
