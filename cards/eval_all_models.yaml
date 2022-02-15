@@ -110,13 +110,15 @@ experiments:
       task: human_eval
       is_checkpoint: False
       generation:
-        max_length: 512
-        num_return_sequences: 100
+        num_return_sequences: 200
+        max_new_tokens: 256
       ++device: 0
     ablations:
       - DumpName:
           CodeParrotSmall:
             model_path: best_models/MBPP.Uniform.ParrotSmall.Negative.FineTune
+            ++generation:
+              top_p: 0.95
           CodeParrotSmall.Replication:
             model_path: best_models/MBPP.Uniform.ParrotSmall.Negative.FineTune
             ++generation:

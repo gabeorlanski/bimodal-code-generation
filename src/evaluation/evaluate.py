@@ -100,11 +100,12 @@ def generate_predictions(
             pbar.update()
 
         if add_back_prompt:
-            generations.append([prompt + '\n\t' + gen for gen in task_generations])
+            generations.append(
+                [prompt + '\n\t' + task.postprocess(gen) for gen in task_generations])
             references.append(prompt + sample['target'])
         else:
             references.append(sample['target'])
-            generations.append(task_generations)
+            generations.append(list(map(task.postprocess, task_generations)))
         indices.append(i)
     pbar.close()
     return {
@@ -127,15 +128,7 @@ def evaluate_model(
     task = load_task_from_cfg(cfg)
     logger.info(f"Reading data from '{cfg['data_path']}'")
 
-    gen_kwargs = {
-        "do_sample"           : True,
-        "temperature"         : 0.2,
-        "max_new_tokens"      : 256,
-        "top_p"               : 0.95,
-        "top_k"               : 0,
-        "num_return_sequences": cfg.generation.get('num_return_sequences', 1)
-        # "stopping_criteria": StoppingCriteriaList([EndOfFunctionCriteria(0, EOF_STRINGS, task.tokenizer)]),
-    }
+    gen_kwargs = OmegaConf.to_object(cfg.generation)
     if cfg.objective == 'lm':
         if task.tokenizer.pad_token is None:
             task.tokenizer.pad_token = task.tokenizer.eos_token
