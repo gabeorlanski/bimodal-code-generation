@@ -77,7 +77,8 @@ def generate_predictions(
     num_seq = generation_kwargs.pop('num_return_sequences', 1)
     dataset = task.preprocess(split)
     task.preprocessed_splits[split] = dataset
-    for i, sample in tqdm(enumerate(dataset), total=len(dataset)):
+    pbar = tqdm(total=len(dataset) * (seq_per_sample // num_seq))
+    for i, sample in enumerate(dataset):
         if debug_samples and i > debug_samples:
             break
         task_generations = []
@@ -95,12 +96,16 @@ def generate_predictions(
                     **generation_kwargs
                 )
             )
+            pbar.update()
+
         if add_back_prompt:
-            generations.append([prompt + '\n\t' + task.postprocess(gen) for gen in task_generations])
+            generations.append([prompt + '\n\t' + gen for gen in task_generations])
+            references.append(prompt + sample['target'])
         else:
-            generations.append(list(map(task.postprocess, task_generations)))
-        references.append(prompt + sample['target'])
+            references.append(sample['target'])
+            generations.append(task_generations)
         indices.append(i)
+    pbar.close()
     return {
         "indices"    : indices,
         "labels"     : references,
@@ -122,11 +127,11 @@ def evaluate_model(
     logger.info(f"Reading data from '{cfg['data_path']}'")
 
     gen_kwargs = {
-        "do_sample": True,
-        "temperature": 0.2,
+        "do_sample"     : True,
+        "temperature"   : 0.2,
         "max_new_tokens": 256,
-        "top_p": 0.95,
-        "top_k": 0,
+        "top_p"         : 0.95,
+        "top_k"         : 0,
         # "stopping_criteria": StoppingCriteriaList([EndOfFunctionCriteria(0, EOF_STRINGS, task.tokenizer)]),
     }
     if cfg.objective == 'lm':
