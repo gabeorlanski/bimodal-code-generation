@@ -128,11 +128,12 @@ def evaluate_model(
     logger.info(f"Reading data from '{cfg['data_path']}'")
 
     gen_kwargs = {
-        "do_sample"     : True,
-        "temperature"   : 0.2,
-        "max_new_tokens": 256,
-        "top_p"         : 0.95,
-        "top_k"         : 0,
+        "do_sample"           : True,
+        "temperature"         : 0.2,
+        "max_new_tokens"      : 256,
+        "top_p"               : 0.95,
+        "top_k"               : 0,
+        "num_return_sequences": cfg.generation.get('num_return_sequences', 1)
         # "stopping_criteria": StoppingCriteriaList([EndOfFunctionCriteria(0, EOF_STRINGS, task.tokenizer)]),
     }
     if cfg.objective == 'lm':
