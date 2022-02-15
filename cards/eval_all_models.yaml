@@ -109,7 +109,7 @@ experiments:
     overrides:
       task: human_eval
       is_checkpoint: False
-      generation:
+      ++generation:
         num_return_sequences: 200
         max_new_tokens: 256
       ++device: 0
