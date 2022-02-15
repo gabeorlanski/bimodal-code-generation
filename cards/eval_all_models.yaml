@@ -58,38 +58,38 @@ experiments:
 #      task: human_eval
 #    ablations:
 #      - DumpName:
-#          Uniform.ParrotSmall.Negative.PreTrain:
-#            model_path: best_models/MBPP.Uniform.ParrotSmall.Negative.PreTrain
-#          Uniform.ParrotSmall.Exceptions.PreTrain:
-#            model_path: best_models/MBPP.Uniform.ParrotSmall.Exceptions.PreTrain
-#          Uniform.ParrotSmall.General.PreTrain:
-#            model_path: best_models/MBPP.Uniform.ParrotSmall.General.PreTrain
-#          Uniform.ParrotSmall.HighQual.PreTrain:
-#            model_path: best_models/MBPP.Uniform.ParrotSmall.HighQual.PreTrain
-#          SODump10KSteps.ParrotSmall.Negative.PreTrain:
-#            model_path: best_models/MBPP.SODump10KSteps.ParrotSmall.Negative.PreTrain
-#          SODump10KSteps.ParrotSmall.Exceptions.PreTrain:
-#            model_path: best_models/MBPP.SODump10KSteps.ParrotSmall.Exceptions.PreTrain
-#          SODump10KSteps.ParrotSmall.General.PreTrain:
-#            model_path: best_models/MBPP.SODump10KSteps.ParrotSmall.General.PreTrain
-#          SODump10KSteps.ParrotSmall.HighQual.PreTrain:
-#            model_path: best_models/MBPP.SODump10KSteps.ParrotSmall.HighQual.PreTrain
-#          FullData.ParrotSmall.Negative.PreTrain:
-#            model_path: best_models/MBPP.FullData.ParrotSmall.Negative.PreTrain
-#          FullData.ParrotSmall.Exceptions.PreTrain:
-#            model_path: best_models/MBPP.FullData.ParrotSmall.Exceptions.PreTrain
-#          FullData.ParrotSmall.General.PreTrain:
-#            model_path: best_models/MBPP.FullData.ParrotSmall.General.PreTrain
-#          FullData.ParrotSmall.HighQual.PreTrain:
-#            model_path: best_models/MBPP.FullData.ParrotSmall.HighQual.PreTrain
-#          FullData.ParrotSmall.Negative.PreTrain:
-#            model_path: best_models/MBPP.FullData.ParrotSmall.Negative.PreTrain
-#          FullData.ParrotSmall.Exceptions.PreTrain:
-#            model_path: best_models/MBPP.FullData.ParrotSmall.Exceptions.PreTrain
-#          FullData.ParrotSmall.General.PreTrain:
-#            model_path: best_models/MBPP.FullData.ParrotSmall.General.PreTrain
-#          FullData.ParrotSmall.HighQual.PreTrain:
-#            model_path: best_models/MBPP.FullData.ParrotSmall.HighQual.PreTrain
+#          Uniform.ParrotSmall.Negative.FineTune:
+#            model_path: best_models/MBPP.Uniform.ParrotSmall.Negative.FineTune
+#          Uniform.ParrotSmall.Exceptions.FineTune:
+#            model_path: best_models/MBPP.Uniform.ParrotSmall.Exceptions.FineTune
+#          Uniform.ParrotSmall.General.FineTune:
+#            model_path: best_models/MBPP.Uniform.ParrotSmall.General.FineTune
+#          Uniform.ParrotSmall.HighQual.FineTune:
+#            model_path: best_models/MBPP.Uniform.ParrotSmall.HighQual.FineTune
+#          SODump10KSteps.ParrotSmall.Negative.FineTune:
+#            model_path: best_models/MBPP.SODump10KSteps.ParrotSmall.Negative.FineTune
+#          SODump10KSteps.ParrotSmall.Exceptions.FineTune:
+#            model_path: best_models/MBPP.SODump10KSteps.ParrotSmall.Exceptions.FineTune
+#          SODump10KSteps.ParrotSmall.General.FineTune:
+#            model_path: best_models/MBPP.SODump10KSteps.ParrotSmall.General.FineTune
+#          SODump10KSteps.ParrotSmall.HighQual.FineTune:
+#            model_path: best_models/MBPP.SODump10KSteps.ParrotSmall.HighQual.FineTune
+#          FullData.ParrotSmall.Negative.FineTune:
+#            model_path: best_models/MBPP.FullData.ParrotSmall.Negative.FineTune
+#          FullData.ParrotSmall.Exceptions.FineTune:
+#            model_path: best_models/MBPP.FullData.ParrotSmall.Exceptions.FineTune
+#          FullData.ParrotSmall.General.FineTune:
+#            model_path: best_models/MBPP.FullData.ParrotSmall.General.FineTune
+#          FullData.ParrotSmall.HighQual.FineTune:
+#            model_path: best_models/MBPP.FullData.ParrotSmall.HighQual.FineTune
+#          FullData.ParrotSmall.Negative.FineTune:
+#            model_path: best_models/MBPP.FullData.ParrotSmall.Negative.FineTune
+#          FullData.ParrotSmall.Exceptions.FineTune:
+#            model_path: best_models/MBPP.FullData.ParrotSmall.Exceptions.FineTune
+#          FullData.ParrotSmall.General.FineTune:
+#            model_path: best_models/MBPP.FullData.ParrotSmall.General.FineTune
+#          FullData.ParrotSmall.HighQual.FineTune:
+#            model_path: best_models/MBPP.FullData.ParrotSmall.HighQual.FineTune
 #    steps:
 #      - name: Eval
 #        add_name: False
@@ -115,15 +115,15 @@ experiments:
     ablations:
       - DumpName:
           CodeParrotSmall:
-            model_path: best_models/MBPP.Uniform.ParrotSmall.Negative.PreTrain
+            model_path: best_models/MBPP.Uniform.ParrotSmall.Negative.FineTune
           CodeParrotSmall.Replication:
-            model_path: best_models/MBPP.Uniform.ParrotSmall.Negative.PreTrain
+            model_path: best_models/MBPP.Uniform.ParrotSmall.Negative.FineTune
             ++generation:
               top_p: 0.95
               top_k: 0
               temperature: 0.2
           CodeParrotSmall.HighTemp:
-            model_path: best_models/MBPP.Uniform.ParrotSmall.Negative.PreTrain
+            model_path: best_models/MBPP.Uniform.ParrotSmall.Negative.FineTune
             ++generation:
               top_p: 0.95
               top_k: 0
