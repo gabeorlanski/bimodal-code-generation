@@ -119,7 +119,7 @@ def eval_from_checkpoint(
             cfg.model_path = str(train_dir)
             if 'generation' not in cfg:
                 cfg['generation'] = {'num_return_sequences': num_return_sequences}
-            elif 'num_return_sequences' not in cfg.generation:
+            else:
                 cfg.generation['num_return_sequences'] = num_return_sequences
 
     else:

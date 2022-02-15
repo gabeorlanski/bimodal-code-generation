@@ -1,7 +1,10 @@
-# @package _global_
 defaults:
   - _self_
 
-task:
-  name: mbpp
+
+name: mbpp
+
+eval_splits:
+  - test
+  - validation
 

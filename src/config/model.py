@@ -61,5 +61,6 @@ def load_model_from_cfg(
         logger.info(f"Loading checkpoint from {model_path}")
         model = model_cls.from_pretrained(str(model_path.resolve().absolute()))
     else:
+        logger.info('NOT USING CHECKPOINT')
         model = model_cls.from_pretrained(cfg['model'])
     return model_cls, model

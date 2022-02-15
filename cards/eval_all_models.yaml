@@ -134,7 +134,7 @@ experiments:
       - name: Eval
         add_name: False
         base: eval_config
-        group: Baseline
+        group: HUMAN_EVAL
         overrides: { }
     command:
       file: command_templates/code_evaluate.txt

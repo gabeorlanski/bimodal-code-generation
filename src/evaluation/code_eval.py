@@ -139,7 +139,7 @@ def evaluate_code(
     all_correct = np.array(correct)
     all_total = np.array([samples_per_problem] * len(correct))
     total = int(sum(all_total))
-    for k in [1, 5, 10, 25, 50,100]:
+    for k in [1, 5, 10, 25, 50, 100]:
         if (all_total < k).all():
             overview_metrics[f"pass@{k}"] = 0.0
             continue
@@ -161,9 +161,9 @@ def evaluate_code(
         if k not in ["Correct", "Failed_Tests", "SyntaxError"]
     ) / total * 100
 
-    overview_metrics['correct_pct_ovr'] = outcome_pcts['Correct']
-    overview_metrics['failed_tests_pct_ovr'] = outcome_pcts['Failed_Tests']
-    overview_metrics['syntax_error_pct_ovr'] = outcome_pcts['SyntaxError']
+    overview_metrics['correct_pct_ovr'] = outcome_pcts.get('Correct', 0)
+    overview_metrics['failed_tests_pct_ovr'] = outcome_pcts.get('Failed_Tests', 0)
+    overview_metrics['syntax_error_pct_ovr'] = outcome_pcts.get('SyntaxError', 0)
     for k in sorted(overview_metrics.keys()):
         logger.info(f"\t{k:>32} = {overview_metrics[k]:0.3f}")
 

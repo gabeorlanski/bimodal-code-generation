@@ -3,7 +3,8 @@ defaults:
 
 name: human_eval
 preprocessors: [ ]
-postprocessors: [ ]
+postprocessors:
+  - strip: { }
 override_preprocessors: True
 override_postprocessors: True
 
