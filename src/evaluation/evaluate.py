@@ -57,124 +57,54 @@ def complete_code(pipe, prompt, num_completions=1, **gen_kwargs):
 
 def generate_predictions(
         model,
-        tokenized,
+        split,
         task,
-        batch_size,
         device,
         generation_kwargs,
         seq_per_sample,
-        remove_input_ids_from_output,
-        num_samples: int = None
+        debug_samples=None,
+        add_back_prompt: bool = False
 ):
-    logger.info(f"{remove_input_ids_from_output=}")
-    collator = DataCollatorForSeq2Seq(
-        tokenizer=task.tokenizer,
-        pad_to_multiple_of=1,
-        max_length=1024,
-        padding="longest",
-        label_pad_token_id=task.tokenizer.pad_token_id,
-    )
-    if num_samples is not None:
-        logger.warning(f"DEBUG NUMBER OF SAMPLES={num_samples}")
-        tokenized = tokenized.select(list(range(num_samples)))
+    pipe = pipeline("text-generation", model=model, tokenizer=task.tokenizer, device=device)
 
-    tokenized = tokenized.map(
-        lambda ex: {'length': sum(ex['attention_mask']), **ex}
-    )
-
-    tokenized = tokenized.sort('length', reverse=True)
-
-    tokenized = tokenized.remove_columns('length')
-    data_loader = torch.utils.data.DataLoader(
-        tokenized,
-        collate_fn=collator,
-        shuffle=False,
-        batch_size=batch_size,
-    )
-
-    logger.info("Starting Generation")
-
-    logger.info(f"Using batch size of {batch_size} and generating "
-                f"{seq_per_sample} per sample")
     logger.info("Generation kwargs:")
     for k, v in generation_kwargs.items():
         logger.info(f"\t{k:>20} = {v}")
 
+    generations = []
+    references = []
     indices = []
-    predictions = []
-    labels = []
-    num_return_sequences = generation_kwargs.get("num_return_sequences", 1)
-    generate_steps_per_sample, rem = divmod(seq_per_sample, num_return_sequences)
-    if rem > 0:
-        logger.error(f"{seq_per_sample}/{num_return_sequences} sequences had a "
-                     f"remainder of {rem}")
-        raise ValueError(
-            "seq_per_sample must be divisible by generation_kwargs.num_return_sequences"
-        )
-    logger.debug(f"{generate_steps_per_sample} steps per sample")
-    num_steps_needed = generate_steps_per_sample * len(data_loader)
-    logger.info(f"{num_steps_needed} total steps needed")
-
-    model.eval()
-    with torch.inference_mode():
-        progress_bar = tqdm(total=num_steps_needed, desc='Generating')
-        for batch in data_loader:
-
-            generated_results = [None for _ in range(generate_steps_per_sample)]
-            local_inputs = batch["input_ids"].to(device)
-            local_attn = batch['attention_mask'].to(device)
-            input_ids_len = list(map(sum, batch['attention_mask'].tolist()))
-            if 'stopping_criteria' in generation_kwargs:
-                generation_kwargs["stopping_criteria"][0].start_length = len(
-                    input_ids_len[0]
-                )
-            for i in range(generate_steps_per_sample):
-                generated_from_batch = model.generate(
-                    input_ids=local_inputs,
-                    attention_mask=local_attn,
+    num_seq = generation_kwargs.pop('num_return_sequences', 1)
+    dataset = task.preprocess(split)
+    task.preprocessed_splits[split] = dataset
+    for i, sample in tqdm(enumerate(dataset), total=len(dataset)):
+        if debug_samples and i > debug_samples:
+            break
+        task_generations = []
+        prompt = sample['input_sequence'].strip()
+        if 'stopping_criteria' in generation_kwargs:
+            generation_kwargs["stopping_criteria"][0].start_length = len(
+                task.tokenizer(prompt)["input_ids"]
+            )
+        for batch in range(seq_per_sample // num_seq):
+            task_generations.extend(
+                complete_code(
+                    pipe,
+                    prompt,
+                    num_completions=num_seq,
                     **generation_kwargs
                 )
-                if not remove_input_ids_from_output:
-                    generated_results[i] = generated_from_batch.tolist()
-                else:
-                    generated_results[i] = [
-                        None for _ in range(generated_from_batch.size()[0])
-                    ]
-
-                    for j, seq in enumerate(generated_from_batch.tolist()):
-                        seq_chopped = seq[input_ids_len[j // num_return_sequences]:]
-                        generated_results[i][j] = seq_chopped
-
-                progress_bar.update(1)
-
-            b = batch['input_ids'].size()[0]
-            # TODO: Combine this logic with the for loop below
-            postprocessed_preds = [None for _ in range(seq_per_sample * b)]
-            for i, gen in enumerate(map(task.postprocess, generated_results)):
-                for j, pred in enumerate(gen):
-                    seq_idx, offset = divmod(j, num_return_sequences)
-                    idx = (i * num_return_sequences) + seq_idx * seq_per_sample + offset
-                    postprocessed_preds[idx] = pred
-
-            postprocessed_targets = task.postprocess(
-                batch["labels"].numpy()
             )
-            for i in range(batch['input_ids'].shape[0]):
-                preds = postprocessed_preds[i * seq_per_sample:(i + 1) * seq_per_sample]
-                gold = postprocessed_targets[i]
-                # assert len(preds) == seq_per_sample, f"{len(preds)} != {seq_per_sample}"
-                # assert isinstance(gold, str)
-                predictions.append(preds)
-                labels.append(gold)
-                indices.append(batch['idx'][i].detach().item())
-
-        progress_bar.close()
-
-    logger.info("Generating finished.")
+        if add_back_prompt:
+            generations.append([prompt + '\n\t' + task.postprocess(gen) for gen in task_generations])
+        else:
+            generations.append(list(map(task.postprocess, task_generations)))
+        references.append(prompt + sample['target'])
+        indices.append(i)
     return {
         "indices"    : indices,
-        "labels"     : labels,
-        "predictions": predictions
+        "labels"     : references,
+        "predictions": generations
     }
 
 
@@ -190,19 +120,21 @@ def evaluate_model(
     """
     task = load_task_from_cfg(cfg)
     logger.info(f"Reading data from '{cfg['data_path']}'")
-    gen_kwargs = OmegaConf.to_object(cfg.get('generation', {}))
+
+    gen_kwargs = {
+        "do_sample": True,
+        "temperature": 0.2,
+        "max_new_tokens": 256,
+        "top_p": 0.95,
+        "top_k": 0,
+        # "stopping_criteria": StoppingCriteriaList([EndOfFunctionCriteria(0, EOF_STRINGS, task.tokenizer)]),
+    }
     if cfg.objective == 'lm':
         if task.tokenizer.pad_token is None:
             task.tokenizer.pad_token = task.tokenizer.eos_token
         model.config.eos_token_id = task.tokenizer.eos_token_id
         model.config.pad_token_id = task.tokenizer.pad_token_id
         model.config.bos_token_id = task.tokenizer.bos_token_id or task.tokenizer.eos_token
-
-        def prepend_token(sample):
-            sample['input_sequence'] = task.tokenizer.eos_token + sample['input_sequence']
-            return sample
-
-        task.preprocessors.append(prepend_token)
         if cfg.task.name == 'human_eval':
             gen_kwargs.update({
                 "stopping_criteria": StoppingCriteriaList(
@@ -210,26 +142,21 @@ def evaluate_model(
             })
             task.postprocessors.append(first_block)
 
-    tokenized = task.get_split(cfg['split'], overwrite_cache=True)
-    logger.info(f"{len(tokenized)} total samples found")
+    # tokenized = task.get_split(cfg['split'], overwrite_cache=True)
+    # logger.info(f"{len(tokenized)} total samples found")
 
     device = get_device_from_cfg(cfg)
     logger.info(f"Using device {device}")
 
     generation_results = generate_predictions(
         model.to(device),
-        tokenized=tokenized,
+        split=cfg['split'],
         task=task,
-        batch_size=cfg["training"].get(
-            "batch_size",
-            cfg['training'].get('per_device_eval_batch_size',
-                                cfg['training'].get('batch_size', 1))
-        ),
-        device=device,
+        device=cfg.get('device'),
         generation_kwargs=gen_kwargs,
         seq_per_sample=cfg.get('seq_per_sample'),
-        remove_input_ids_from_output=cfg.get("remove_input_ids", False),
-        num_samples=cfg.get('debug_num_samples', None)
+        debug_samples=cfg.get('debug_num_samples', None),
+        # add_back_prompt=cfg.task.name == 'human_eval'
     )
 
     labels = generation_results['labels']
