@@ -115,15 +115,15 @@ def main():
         references.append("\n" + test_func + "\n" + entry_point)
 
     print("Done")
-    # # Evaluate completions with "code_eval" metric
-    # pass_at_k, _ = code_eval_metric.compute(
-    #     references=references, predictions=generations, num_workers=args.num_workers
-    # )
-    # print(f"Results: {pass_at_k}")
-    #
-    # # Save results to json file
-    # with open(args.output_file, "w") as fp:
-    #     json.dump(pass_at_k, fp)
+    # Evaluate completions with "code_eval" metric
+    pass_at_k, _ = code_eval_metric.compute(
+        references=references, predictions=generations, num_workers=args.num_workers
+    )
+    print(f"Results: {pass_at_k}")
+
+    # Save results to json file
+    with open(args.output_file, "w") as fp:
+        json.dump(pass_at_k, fp)
 
 
 # For some reason the folliwng seems to be necessary sometimes for code_eval to work nice with multiprocessing
