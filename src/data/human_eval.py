@@ -98,9 +98,10 @@ class HumanEval(Task):
             ]
 
             # Have to add the prompt back to the predictions
+            preds_list = [first_block(p[len(processed_sample['prompt']):]) for p in preds]
             preds_list = [
                 processed_sample['prompt'] + ('\t' if not p.startswith('\t') else '') + p
-                for p in preds
+                for p in preds_list
             ]
 
             yield {
