@@ -111,6 +111,7 @@ experiments:
       is_checkpoint: False
       generation:
         max_length: 1024
+        num_return_sequences: 100
       ++device: 0
     ablations:
       - DumpName:

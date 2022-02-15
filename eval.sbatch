@@ -11,5 +11,5 @@ singularity exec --nv --overlay $SCRATCH/overlay-50G-10M.ext3:ro /scratch/work/p
 source /ext3/env.sh
 conda activate adversarial-code
 echo $(pwd)
-python evaluate.py $1 -seqs $2 -cfg $3
+python evaluate.py $1 -seqs $2  -cfg $3
 "

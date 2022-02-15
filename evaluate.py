@@ -68,15 +68,15 @@ from src.common import setup_global_logging, PROJECT_ROOT
 )
 def eval_from_checkpoint(
         train_dir: str,
+        output_dir_name,
+        num_return_sequences: int,
         splits_for_eval: str,
         sequences_per_sample: int,
-        num_return_sequences: int,
         debug_num_samples: int,
         eval_task_name: Optional[str],
         override_str: str,
         hydra_overrides: List[str],
         dry_run: bool,
-        output_dir_name,
         disable_tracking: bool,
         eval_cfg_path: str,
         debug: bool
@@ -119,7 +119,7 @@ def eval_from_checkpoint(
             cfg.model_path = str(train_dir)
             if 'generation' not in cfg:
                 cfg['generation'] = {'num_return_sequences': num_return_sequences}
-            else:
+            elif 'num_return_sequences' not in cfg.generation:
                 cfg.generation['num_return_sequences'] = num_return_sequences
 
     else:
