@@ -110,7 +110,7 @@ experiments:
       task: human_eval
       is_checkpoint: False
       generation:
-        max_length: 1024
+        max_length: 512
         num_return_sequences: 100
       ++device: 0
     ablations:
