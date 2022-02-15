@@ -6,6 +6,7 @@ is_checkpoint: true
 model_path: ???
 seq_per_sample: 100
 remove_input_ids: False
+splits: ${task.eval_splits}
 generation:
   max_length: 1024
 

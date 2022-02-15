@@ -14,7 +14,7 @@ import click
 if str(Path(__file__).parents[1]) not in sys.path:
     sys.path.insert(0, str(Path(__file__).parents[1]))
 from src.common import PROJECT_ROOT, setup_global_logging, flatten
-from src.config.experiments import load_composed_experiments_from_file, save_experiment_cards
+from src.experiment_cards import load_composed_experiments_from_file, save_experiment_cards
 
 
 def create_experiments(

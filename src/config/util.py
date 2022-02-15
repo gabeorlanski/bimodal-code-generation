@@ -9,7 +9,8 @@ from omegaconf import DictConfig, OmegaConf
 logger = logging.getLogger(__name__)
 
 __all__ = [
-    "merge_configs"
+    "merge_configs",
+    "create_overrides_list"
 ]
 
 
@@ -51,3 +52,24 @@ def merge_configs(
         return out
 
     return OmegaConf.create(_merge(merged_cfg, OmegaConf.to_object(old_cfg)))
+
+
+def create_overrides_list(
+        overrides_to_add_if_not_none: Dict,
+        base_overrides_list: List[str],
+        override_str: str = ""
+) -> List[str]:
+    cfg_overrides = []
+
+    # Got through the dict of overrides to add if they are not None and add
+    # them. The most useful place for this would be for CLI arguments where you
+    # would not want to add overrides if they are None.
+    for override_name, override_value in overrides_to_add_if_not_none.items():
+
+        if override_value:
+            cfg_overrides.append(f"{override_name}={override_value}")
+
+    cfg_overrides.extend(base_overrides_list)
+    if override_str:
+        cfg_overrides.extend(override_str.split(' '))
+    return cfg_overrides

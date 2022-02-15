@@ -1,0 +1,5 @@
+eval_jid{{idx}}=$(sbatch --parsable --job-name={{ name }}_eval eval.sbatch \
+	{{ Eval.model_path }} {{ num_return_sequences }} {{ Eval.path }})
+echo "Submitted Eval $eval_jid{{idx}} to run after $1(id=$train_jid{{ idx}})"
+sbatch --job-name='{{ name }}_execute' --dependency=afterok:$eval_jid{{idx}} eval_code.sbatch eval_results/MBPP {{ Eval.save_name }}
+echo ""

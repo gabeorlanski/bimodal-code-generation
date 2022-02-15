@@ -11,5 +11,5 @@ singularity exec --nv --overlay $SCRATCH/overlay-50G-10M.ext3:ro /scratch/work/p
 source /ext3/env.sh
 conda activate adversarial-code
 echo $(pwd)
-python evaluate.py $1 $2 --task $3 -seqs 100 --override-str ${6:-''} -hydra +generation.num_return_sequences=$4 +training.batch_size=1 +device=0 ++generation.max_length=${5:-512}
+python evaluate.py $1 -seqs $2 -cfg $3
 "

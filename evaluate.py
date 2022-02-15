@@ -1,77 +1,157 @@
-import copy
-import json
 import logging
-import argparse
-import random
-import numpy as np
-import wandb
+from typing import Optional, List
 from hydra import compose, initialize
-from hydra.core.global_hydra import GlobalHydra
 import yaml
-import torch
-from omegaconf import DictConfig, OmegaConf, open_dict
+from omegaconf import OmegaConf, open_dict
 import os
 from pathlib import Path
+import click
 
 from src import config
 from src.evaluation import evaluate
 from src.common import setup_global_logging, PROJECT_ROOT
 
 
+@click.command()
+@click.argument('train_dir', metavar="<PATH TO THE DIR CREATED BY TRAINING>")
+@click.option(
+    '--debug',
+    is_flag=True,
+    default=False,
+    help="Debug Mode"
+)
+@click.option(
+    '--dry-run', '-dry', 'dry_run',
+    is_flag=True,
+    default=False,
+    help="Dry run"
+)
+@click.option(
+    '--notrack', 'disable_tracking',
+    is_flag=True,
+    default=False,
+    help="Disable Tracking"
+)
+@click.option('--output-dir-name', '-o', 'output_dir_name', default=None,
+              help='Name of the output dir for saving the result.')
+@click.option(
+    '--seq-per-sample', '-seqs', 'sequences_per_sample',
+    default=1, type=int, help='Number of sequences per sample to generate.')
+@click.option(
+    '--num-seq-batch', '-seq-batch', 'num_return_sequences',
+    default=1, type=int, help='Number of sequences per batch to generate.')
+@click.option(
+    '--debug-samples', 'debug_num_samples',
+    default=-1, type=int, help='Debug number of samples')
+@click.option(
+    '--evaluation-task-name', '-task', 'eval_task_name',
+    default=None, help='Task Name for evaluation, will override '
+                       'whatever is in the eval config.')
+@click.option(
+    '--splits-for-eval', '-splits', 'splits_for_eval',
+    default=None,
+    help='Comma separated list of splits for eval. Will override the list of splits provided by the task.',
+    callback=lambda _ctx, _param, splits_str: splits_str.split(',') if splits_str else []
+)
+@click.option(
+    '--evaluation-config-path', '-cfg', 'eval_cfg_path',
+    default=None,
+    help='The path to the eval config.')
+@click.option(
+    '--override-str',
+    help='Bash does not like lists of variable args. so pass as seperated list of overrides, seperated by spaces.',
+    default=''
+)
+@click.argument(
+    'hydra_overrides', nargs=-1,
+    type=click.UNPROCESSED, metavar="[HYDRA OVERRIDES FOR EVAL CONFIG]"
+)
 def eval_from_checkpoint(
-        model_path,
-        splits,
-        seq_per_sample,
-        task,
-        override_str,
-        hydra_overrides,
+        train_dir: str,
+        splits_for_eval: str,
+        sequences_per_sample: int,
+        num_return_sequences: int,
+        debug_num_samples: int,
+        eval_task_name: Optional[str],
+        override_str: str,
+        hydra_overrides: List[str],
         dry_run: bool,
-        zero_shot: bool,
         output_dir_name,
-        debug
+        disable_tracking: bool,
+        eval_cfg_path: str,
+        debug: bool
 ):
     # Need to load in the secret from the file to log to wandb
     if Path('wandb_secret.txt').exists():
         os.environ["WANDB_API_KEY"] = open('wandb_secret.txt').read().strip()
 
+    print(f"Loading Training Config from {train_dir}")
     # Loading the model from the checkpoint and the
-    model_path = Path(model_path).resolve().absolute()
-    train_config_path = model_path.joinpath('config.yaml')
-    train_config = yaml.load(
+    train_dir = Path(train_dir).resolve().absolute()
+    train_config_path = train_dir.joinpath('config.yaml')
+    train_cfg = yaml.load(
         train_config_path.open('r', encoding='utf-8'),
         yaml.Loader
     )
-
     train_cfg = OmegaConf.create(
-        train_config
+        train_cfg
     )
 
-    if task is not None:
-        use_train_task = False
+    if eval_cfg_path:
+        print(f"Loading config from {eval_cfg_path}")
+        eval_cfg_path = Path(eval_cfg_path)
+        cfg = OmegaConf.create(
+            yaml.load(
+                eval_cfg_path.open('r', encoding='utf-8'),
+                yaml.Loader
+            )
+        )
+        with open_dict(cfg):
+            if eval_task_name:
+                raise ValueError("Eval task name is not allowed to be set when "
+                                 "specifying an eval config")
+            if sequences_per_sample:
+                cfg.seq_per_sample = sequences_per_sample
+
+            if splits_for_eval:
+                cfg.splits = splits_for_eval.split(',')
+
+            cfg.model_path = str(train_dir)
+            if 'generation' not in cfg:
+                cfg['generation'] = {'num_return_sequences': num_return_sequences}
+            else:
+                cfg.generation['num_return_sequences'] = num_return_sequences
+
     else:
-        use_train_task = True
-        task = train_cfg.task.name
+        cfg_overrides = config.create_overrides_list(
+            {
+                "model_path"                       : train_dir,
+                "task"                             : eval_task_name,
+                "seq_per_sample"                   : sequences_per_sample,
+                "splits"                           : splits_for_eval,
+                "++generation.num_return_sequences": num_return_sequences
+            },
+            hydra_overrides,
+            override_str
+        )
 
-    cfg_overrides = [
-        f"task={task}",
-        f"is_checkpoint={not zero_shot}",
-        f"model_path={str(model_path)}",
-        f"seq_per_sample={seq_per_sample}",
-        *hydra_overrides
-    ]
-    if override_str:
-        cfg_overrides += override_str.split(" ")
+        print('Loading Eval Config from conf/eval_config.yaml')
+        initialize(config_path="conf", job_name="evaluate")
+        cfg = compose(config_name="eval_config", overrides=cfg_overrides)
 
-    initialize(config_path="conf", job_name="evaluate")
-    cfg = compose(config_name="eval_config", overrides=cfg_overrides)
+    # merge_configs gives priority to the first argument, so if we are not
+    # overriding the task, we need to copy the task params from the train
+    # config.
     cfg = config.merge_configs(cfg, train_cfg, exclude_keys=['preprocessors', 'postprocessors'])
-    dir_name = output_dir_name or f"{train_cfg.group}.{train_cfg.name}"
+    dir_name = output_dir_name or f"{cfg.group}.{cfg.name}"
+
     if debug:
         dir_name = f"debug_{dir_name}"
     working_dir = PROJECT_ROOT.joinpath(
-        'eval_results', task.upper(),
+        'eval_results', cfg.task.name.upper(),
         dir_name
     )
+
     if not working_dir.exists():
         working_dir.mkdir(parents=True)
 
@@ -84,99 +164,62 @@ def eval_from_checkpoint(
     )
     logger = logging.getLogger("evaluate")
     logger.info("Starting Evaluate")
-    logger.info(f"Using model located at '{model_path.resolve().absolute()}'")
-    logger.info(f"Loading config from '{model_path.joinpath('config.yaml')}'")
+    logger.info(f"Working directory is {working_dir}")
+    logger.info(f"Using model located at '{train_dir.resolve().absolute()}'")
+    logger.debug(f"{sequences_per_sample} sequences to be generated per sample.")
 
-    if os.environ.get("WORLD_SIZE", '1') != '1' or os.environ.get('WANDB_DISABLED',
-                                                                  'true') != 'true':
-        os.environ['DISABLE_FAST_TOK'] = 'true'
+    if dry_run:
+        logger.warning("IN DRY RUN")
 
-    logger.debug(f"{seq_per_sample} sequences to be generated per sample.")
-    logger.debug(f"Hydra overrides are {hydra_overrides}")
-    if zero_shot:
-        logger.warning("NOT using checkpoint")
-
-    # Yes this is not a clean solution, but for distributed running this works.
+    logger.debug(f"Changing working directory to {working_dir}")
     os.chdir(working_dir.resolve().absolute())
+
+    logger.debug("Updating config with preprocessor and postprocessors")
     with open_dict(cfg):
         for k in ['preprocessors', 'postprocessors']:
             train_processors = OmegaConf.to_object(train_cfg[k]) if k in train_cfg else []
             cfg_processors = OmegaConf.to_object(cfg[k]) if k in cfg else []
             cfg[k] = train_processors + cfg_processors
 
-        if not use_train_task:
+        # If we are not loading from a checkpoint, use only the name in the
+        # config and nothing else.
+        if not cfg.is_checkpoint:
+            cfg.old_name = cfg.name
+
+        # If we are using a different task than that with which the model was
+        # trained, we need to indicate this for later saving. Thus we save the
+        # old name.
+        elif cfg.task.name != train_cfg.task.name and not cfg.get('force_use_group'):
             cfg.old_name = f"{cfg.group}.{cfg.name}"
-            cfg.group = task.upper()
+            logger.info(
+                f"{cfg.task.name.upper()} is a different task than training. "
+                f"Saving the old name '{cfg.old_name}'"
+            )
+            cfg.group = cfg.task.name.upper()
+
+        if disable_tracking:
+            cfg.tracking = False
+        if debug_num_samples > -1:
+            cfg.debug_num_samples = debug_num_samples
 
     config.setup_tracking_env_from_cfg(cfg)
 
-    # merge_configs gives priority to the first argument, so if we are not
-    # overriding the task, we need to copy the task params from the train
-    # config.
-    if use_train_task:
-        logger.info(
-            "Task was not overridden, using the task config from training"
-        )
-        with open_dict(cfg):
-            cfg.task = train_cfg.task
+    # Fast tokenizers do not like to be split for parallelization.
+    if (
+            os.environ.get("WORLD_SIZE", '1') != '1'
+            or os.environ.get('WANDB_DISABLED', 'true') != 'true'
+    ):
+        os.environ['DISABLE_FAST_TOK'] = 'true'
 
-    model_cls, model = config.load_model_from_cfg(cfg, model_path)
+    model_cls, model = config.load_model_from_cfg(cfg, train_dir)
     evaluate(
         cfg,
         model,
-        splits,
+        splits_for_eval,
         working_dir,
         dry_run
     )
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument('model_path', metavar="<Path To Model Directory>",
-                        help="Path to the model directory created by train.py")
-    parser.add_argument('splits', metavar="<Comma Seperated Splits>",
-                        help="Name of the splits to use.")
-    parser.add_argument(
-        '--workers', default=1, type=int
-    )
-    parser.add_argument(
-        '--seq-per-sample', '-seqs', type=int, default=1,
-        help="Number of sequences per sample to generate"
-    )
-    parser.add_argument('--task', default=None,
-                        help="The task to use that is "
-                             "not the one specified in the training config.")
-    parser.add_argument('--output-dir-name', '-o', default=None,
-                        help="The output dir name for saving.")
-    parser.add_argument('--dry-run',
-                        action="store_true",
-                        default=False,
-                        help="Dry run")
-    parser.add_argument('--debug',
-                        action="store_true",
-                        default=False,
-                        help="Debug")
-    parser.add_argument('--nochk',
-                        action="store_true",
-                        default=False,
-                        help="Do not use a checkpoint.")
-    parser.add_argument('--override-str',
-                        help='Bash does not like lists of variable args. so '
-                             'pass as seperated list of overrides, seperated by ' '.',
-                        default=None
-                        )
-    parser.add_argument('--hydra-overrides', '-hydra', nargs=argparse.REMAINDER)
-    argv = parser.parse_args()
-    os.environ['WORLD_SIZE'] = str(argv.workers)
-    eval_from_checkpoint(
-        argv.model_path,
-        argv.splits,
-        argv.seq_per_sample,
-        argv.task,
-        argv.override_str,
-        argv.hydra_overrides or [],
-        argv.dry_run,
-        argv.nochk,
-        argv.output_dir_name,
-        argv.debug
-    )
+    eval_from_checkpoint()

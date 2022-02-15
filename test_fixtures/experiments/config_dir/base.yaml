@@ -4,7 +4,6 @@ defaults:
 task: 'A'
 objective: 'seq2seq'
 model: "FAIL"
-
 test:
   A: 1
   B: 2

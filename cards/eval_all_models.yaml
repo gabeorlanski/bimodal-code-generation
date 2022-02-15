@@ -1,0 +1,144 @@
+starting_commands: command_templates/sbatch_experiment.txt
+experiments:
+#  EvalSO:
+#    add_name: False
+#    overrides:
+#      task: human_eval
+#    ablations:
+#      - DumpName:
+#          Uniform.ParrotSmall.Negative.PreTrain:
+#            model_path: best_models/SO.Uniform.ParrotSmall.Negative.PreTrain
+#          Uniform.ParrotSmall.Exceptions.PreTrain:
+#            model_path: best_models/SO.Uniform.ParrotSmall.Exceptions.PreTrain
+#          Uniform.ParrotSmall.General.PreTrain:
+#            model_path: best_models/SO.Uniform.ParrotSmall.General.PreTrain
+#          Uniform.ParrotSmall.HighQual.PreTrain:
+#            model_path: best_models/SO.Uniform.ParrotSmall.HighQual.PreTrain
+#          SODump10KSteps.ParrotSmall.Negative.PreTrain:
+#            model_path: best_models/SO.SODump10KSteps.ParrotSmall.Negative.PreTrain
+#          SODump10KSteps.ParrotSmall.Exceptions.PreTrain:
+#            model_path: best_models/SO.SODump10KSteps.ParrotSmall.Exceptions.PreTrain
+#          SODump10KSteps.ParrotSmall.General.PreTrain:
+#            model_path: best_models/SO.SODump10KSteps.ParrotSmall.General.PreTrain
+#          SODump10KSteps.ParrotSmall.HighQual.PreTrain:
+#            model_path: best_models/SO.SODump10KSteps.ParrotSmall.HighQual.PreTrain
+#          FullData.ParrotSmall.Negative.PreTrain:
+#            model_path: best_models/SO.FullData.ParrotSmall.Negative.PreTrain
+#          FullData.ParrotSmall.Exceptions.PreTrain:
+#            model_path: best_models/SO.FullData.ParrotSmall.Exceptions.PreTrain
+#          FullData.ParrotSmall.General.PreTrain:
+#            model_path: best_models/SO.FullData.ParrotSmall.General.PreTrain
+#          FullData.ParrotSmall.HighQual.PreTrain:
+#            model_path: best_models/SO.FullData.ParrotSmall.HighQual.PreTrain
+#          FullData.ParrotSmall.Negative.PreTrain:
+#            model_path: best_models/SO.FullData.ParrotSmall.Negative.PreTrain
+#          FullData.ParrotSmall.Exceptions.PreTrain:
+#            model_path: best_models/SO.FullData.ParrotSmall.Exceptions.PreTrain
+#          FullData.ParrotSmall.General.PreTrain:
+#            model_path: best_models/SO.FullData.ParrotSmall.General.PreTrain
+#          FullData.ParrotSmall.HighQual.PreTrain:
+#            model_path: best_models/SO.FullData.ParrotSmall.HighQual.PreTrain
+#    steps:
+#      - name: Eval
+#        add_name: False
+#        base: eval_config
+#        group: SO
+#        overrides: { }
+#    command:
+#      file: command_templates/code_evaluate.txt
+#      kwargs:
+#        train_sbatch: train_single_gpu
+#        num_return_sequences: 100
+#        gen_length: 512
+#      fields:
+#        - model_path
+#  EvalMBPP:
+#    add_name: False
+#    overrides:
+#      task: human_eval
+#    ablations:
+#      - DumpName:
+#          Uniform.ParrotSmall.Negative.PreTrain:
+#            model_path: best_models/MBPP.Uniform.ParrotSmall.Negative.PreTrain
+#          Uniform.ParrotSmall.Exceptions.PreTrain:
+#            model_path: best_models/MBPP.Uniform.ParrotSmall.Exceptions.PreTrain
+#          Uniform.ParrotSmall.General.PreTrain:
+#            model_path: best_models/MBPP.Uniform.ParrotSmall.General.PreTrain
+#          Uniform.ParrotSmall.HighQual.PreTrain:
+#            model_path: best_models/MBPP.Uniform.ParrotSmall.HighQual.PreTrain
+#          SODump10KSteps.ParrotSmall.Negative.PreTrain:
+#            model_path: best_models/MBPP.SODump10KSteps.ParrotSmall.Negative.PreTrain
+#          SODump10KSteps.ParrotSmall.Exceptions.PreTrain:
+#            model_path: best_models/MBPP.SODump10KSteps.ParrotSmall.Exceptions.PreTrain
+#          SODump10KSteps.ParrotSmall.General.PreTrain:
+#            model_path: best_models/MBPP.SODump10KSteps.ParrotSmall.General.PreTrain
+#          SODump10KSteps.ParrotSmall.HighQual.PreTrain:
+#            model_path: best_models/MBPP.SODump10KSteps.ParrotSmall.HighQual.PreTrain
+#          FullData.ParrotSmall.Negative.PreTrain:
+#            model_path: best_models/MBPP.FullData.ParrotSmall.Negative.PreTrain
+#          FullData.ParrotSmall.Exceptions.PreTrain:
+#            model_path: best_models/MBPP.FullData.ParrotSmall.Exceptions.PreTrain
+#          FullData.ParrotSmall.General.PreTrain:
+#            model_path: best_models/MBPP.FullData.ParrotSmall.General.PreTrain
+#          FullData.ParrotSmall.HighQual.PreTrain:
+#            model_path: best_models/MBPP.FullData.ParrotSmall.HighQual.PreTrain
+#          FullData.ParrotSmall.Negative.PreTrain:
+#            model_path: best_models/MBPP.FullData.ParrotSmall.Negative.PreTrain
+#          FullData.ParrotSmall.Exceptions.PreTrain:
+#            model_path: best_models/MBPP.FullData.ParrotSmall.Exceptions.PreTrain
+#          FullData.ParrotSmall.General.PreTrain:
+#            model_path: best_models/MBPP.FullData.ParrotSmall.General.PreTrain
+#          FullData.ParrotSmall.HighQual.PreTrain:
+#            model_path: best_models/MBPP.FullData.ParrotSmall.HighQual.PreTrain
+#    steps:
+#      - name: Eval
+#        add_name: False
+#        base: eval_config
+#        group: MBPP
+#        overrides: { }
+#    command:
+#      file: command_templates/code_evaluate.txt
+#      kwargs:
+#        train_sbatch: train_single_gpu
+#        num_return_sequences: 100
+#        gen_length: 512
+#      fields:
+#        - model_path
+  Base:
+    add_name: False
+    overrides:
+      task: human_eval
+      is_checkpoint: False
+      generation:
+        max_length: 1024
+      ++device: 0
+    ablations:
+      - DumpName:
+          CodeParrotSmall:
+            model_path: best_models/MBPP.Uniform.ParrotSmall.Negative.PreTrain
+          CodeParrotSmall.Replication:
+            model_path: best_models/MBPP.Uniform.ParrotSmall.Negative.PreTrain
+            ++generation:
+              top_p: 0.95
+              top_k: 0
+              temperature: 0.2
+          CodeParrotSmall.HighTemp:
+            model_path: best_models/MBPP.Uniform.ParrotSmall.Negative.PreTrain
+            ++generation:
+              top_p: 0.95
+              top_k: 0
+              temperature: 0.8
+
+    steps:
+      - name: Eval
+        add_name: False
+        base: eval_config
+        group: Baseline
+        overrides: { }
+    command:
+      file: command_templates/code_evaluate.txt
+      kwargs:
+        train_sbatch: train_single_gpu
+        num_return_sequences: 100
+      fields:
+        - model_path

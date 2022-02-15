@@ -1,149 +1,18 @@
 import itertools
 import logging
-from dataclasses import asdict, dataclass, field
-from functools import partial
+from dataclasses import asdict
 from pathlib import Path
 from typing import List, Dict, Generator, Optional, Tuple
 import yaml
 from copy import deepcopy
 
-from hydra import compose, initialize_config_dir
-from omegaconf import OmegaConf, open_dict
+from omegaconf import OmegaConf
 from collections import Counter
-from jinja2 import BaseLoader, Environment, StrictUndefined
 
-from src.common import flatten, PROJECT_ROOT
+from src.common import PROJECT_ROOT
+from src.experiment_cards.cards import ExperimentCard, ComposedExperiments
 
 logger = logging.getLogger(__name__)
-
-JINJA_ENV = Environment(loader=BaseLoader)  # type:ignore
-
-# Allow the python function zip()
-JINJA_ENV.globals.update(zip=zip)
-JINJA_ENV.undefined = StrictUndefined
-
-
-@dataclass()
-class ExperimentCard:
-    name: str = field(metadata={
-        "help": "Name of the experiment."
-    })
-    base: str = field(metadata={
-        "help": "Base config from the config_directory to load with hydra."
-    })
-    group: str = field(metadata={
-        "help": "Group of this experiment"
-    })
-    overrides: Dict = field(default_factory=dict, metadata={
-        "help": "List of Hydra overrides to use for the config."
-    })
-    depends_on: str = field(default=None, metadata={
-        "help": "The step/config this card is dependent on."
-    })
-
-    @property
-    def save_name(self):
-        return f"{self.group}.{self.name}"
-
-
-@dataclass()
-class ComposedExperiments:
-    name: str = field(metadata={
-        "help": "Name of the group of experiments composed."
-    })
-
-    step_cards: Dict[str, ExperimentCard] = field(metadata={
-        "help": "The list of experiment cards in this group."
-    })
-
-    command_template: Optional[str] = field(default=None, metadata={
-        "help": "Bash command templates for this group."
-    })
-
-    command_kwargs: Optional[Dict] = field(default_factory=dict, metadata={
-        "help": "Dictionary of arguments to pass to the jinja render."
-    })
-
-    def __post_init__(self):
-        if self.command_template:
-            self.command_template = JINJA_ENV.from_string(self.command_template)  # type:ignore
-        else:
-            self.command_template = None
-
-    @property
-    def is_single_experiment(self):
-        return len(self.step_cards) == 1
-
-    def __iter__(self):
-        for step in self.step_cards:
-            yield step
-
-    def values(self):
-        for value in self.step_cards.values():
-            yield value
-
-    def __len__(self):
-        return len(self.step_cards)
-
-    def save(self, output_path: Path, config_directory: Path):
-        for name, experiment in self.step_cards.items():
-            logger.debug(f"Saving step {name}")
-            logger.debug(f"Loading hydra config {experiment.base}")
-
-            overrides_dict = experiment.overrides
-
-            # Force add the meta section that would otherwise not be there.
-            if 'meta' in overrides_dict:
-                overrides_dict['++meta'] = overrides_dict.pop('meta')
-
-            overrides_dict = flatten(experiment.overrides, sep='.')
-            overrides_list = []
-            for k, v in overrides_dict.items():
-
-                # Easier way to handle Hydra's override grammar as users may want
-                # to put the override marker at different points.
-                override_key = k
-                if "++" in k:
-                    override_key = f"++{k.replace('++', '')}"
-                elif "+" in k:
-                    override_key = f"+{k.replace('+', '')}"
-                overrides_list.append(f"{override_key}={v}")
-
-            logger.info(f"{len(overrides_list)} overrides to use for {experiment.name}")
-            logger.debug(f"Overrides for {experiment.name=}: {', '.join(overrides_list)}")
-            save_path = output_path.joinpath(f"{experiment.save_name}.yaml")
-
-            # Load the original configs from hydra with the overrides.
-            with initialize_config_dir(config_dir=str(config_directory.absolute()),
-                                       job_name="create_configs"):
-                cfg = compose(config_name=experiment.base, overrides=overrides_list)
-
-                logger.info(f"Loaded config, now saving to {save_path}")
-                with save_path.open('w', encoding='utf-8') as f:
-                    # Add both the group and the name of the run to the configs
-                    # before saving them. Do not use overrides for these because
-                    # this is easier and it will ALWAYS occur.
-                    with open_dict(cfg):
-                        cfg['name'] = experiment.name
-                        cfg['group'] = experiment.group
-                    f.write(OmegaConf.to_yaml(cfg, resolve=True))
-
-    def get_command(self, idx: int, output_path: Path):
-        if not self.command_template:
-            return None
-
-        template_dict = {
-            "idx" : idx,
-            "name": self.name,
-            **self.command_kwargs
-        }
-        for step, experiment in self.step_cards.items():
-            template_dict[step] = {
-                'path'     : output_path.joinpath(f"{experiment.save_name}.yaml"),
-                'save_name': experiment.save_name
-            }
-
-        return self.command_template.render(**template_dict)  # type:ignore
 
 
 def get_all_ablation_combinations(ablation_list: List[Dict]):
@@ -218,8 +87,8 @@ def get_experiment_card_cfg_from_dict(
     experiment_overrides.update(experiment_card_dict.get('overrides', {}))
 
     experiment_overrides['meta'] = {
-        "ablation": None,
-        "step"    : None,
+        "ablation" : None,
+        "step"     : None,
         "card_name": name
     }
 
@@ -275,9 +144,11 @@ def get_experiment_card_cfg_from_dict(
 
             command_str = PROJECT_ROOT.joinpath(command_dict['file']).read_text()
             command_kwargs = command_dict.get('kwargs', {})
+            command_fields = command_dict.get('fields', [])
         else:
             command_str = None
             command_kwargs = {}
+            command_fields = []
 
         for ablation_name, ablation_overrides in ablations:
             previous_step = {}
@@ -285,7 +156,8 @@ def get_experiment_card_cfg_from_dict(
                 name=f"{name}_{ablation_name}" if has_ablations else name,
                 step_cards={},
                 command_template=command_str,
-                command_kwargs=command_kwargs
+                command_kwargs=command_kwargs,
+                command_fields=command_fields
             )
             for step_num, step_dict in enumerate(experiment_steps):
 
@@ -307,7 +179,7 @@ def get_experiment_card_cfg_from_dict(
 
                 # If there are not steps, would just repeat its own name so
                 # this bool stops that.
-                if has_steps:
+                if has_steps and step_dict.get('add_name', True):
                     card_name += f"{'.' if add_group_name or has_ablations else ''}{step_name}"
 
                 # Deepcopy here so we do not change any of the underlying

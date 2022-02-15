@@ -142,7 +142,10 @@ def generate_predictions(
     }
 
 
-def evaluate_model(cfg: DictConfig, model: PreTrainedModel):
+def evaluate_model(
+        cfg: DictConfig,
+        model: PreTrainedModel
+):
     """
     Evaluate a model with a reader on a file
     Args:
@@ -150,7 +153,6 @@ def evaluate_model(cfg: DictConfig, model: PreTrainedModel):
         model (PreTrainedModel): The pretrained huggingface model to use.
 
     """
-    set_caching_enabled(not cfg.get('disable_cache', False))
     task = load_task_from_cfg(cfg)
     logger.info(f"Reading data from '{cfg['data_path']}'")
 
@@ -169,6 +171,7 @@ def evaluate_model(cfg: DictConfig, model: PreTrainedModel):
 
     tokenized = task.get_split(cfg['split'], overwrite_cache=True)
     logger.info(f"{len(tokenized)} total samples found")
+
     device = get_device_from_cfg(cfg)
     logger.info(f"Using device {device}")
 
@@ -228,19 +231,25 @@ def evaluate(
     start_time = datetime.utcnow()
 
     logger.info(f"Using split '{splits}' for task '{cfg.task.name}'")
-    splits_to_use = splits.split(',')
+    splits_to_use = cfg.splits
 
     pred_dir = Path(out_path).joinpath('predictions')
     if not pred_dir.exists():
         pred_dir.mkdir()
     all_metrics = {}
     split_paths = []
+
+    set_caching_enabled(not cfg.get('disable_cache', False))
+
     if not dry_run:
         for split in splits_to_use:
             logger.info(f"Evaluating split {split}")
             with open_dict(cfg):
                 cfg.split = split
-            metrics, predictions = evaluate_model(copy.deepcopy(cfg), model=model)
+            metrics, predictions = evaluate_model(
+                copy.deepcopy(cfg),
+                model=model
+            )
 
             all_metrics.update({f"{split}/{k}": v for k, v in metrics.items()})
             split_path = pred_dir.joinpath(f'{cfg.split}.jsonl')
