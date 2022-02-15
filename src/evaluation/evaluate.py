@@ -67,6 +67,7 @@ def generate_predictions(
 ):
     pipe = pipeline("text-generation", model=model, tokenizer=task.tokenizer, device=device)
 
+    logger.info(f"{pipe.device=}")
     logger.info("Generation kwargs:")
     for k, v in generation_kwargs.items():
         logger.info(f"\t{k:>20} = {v}")
@@ -77,7 +78,7 @@ def generate_predictions(
     num_seq = generation_kwargs.pop('num_return_sequences', 1)
     dataset = task.preprocess(split)
     task.preprocessed_splits[split] = dataset
-    pbar = tqdm(total=len(dataset) * (seq_per_sample // num_seq))
+    pbar = tqdm(total=(len(dataset) * (seq_per_sample // num_seq)))
     for i, sample in enumerate(dataset):
         if debug_samples and i > debug_samples:
             break
