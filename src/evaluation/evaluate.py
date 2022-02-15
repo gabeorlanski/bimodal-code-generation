@@ -127,7 +127,7 @@ def evaluate_model(
         "max_new_tokens": 256,
         "top_p": 0.95,
         "top_k": 0,
-        "stopping_criteria": StoppingCriteriaList([EndOfFunctionCriteria(0, EOF_STRINGS, task.tokenizer)]),
+        # "stopping_criteria": StoppingCriteriaList([EndOfFunctionCriteria(0, EOF_STRINGS, task.tokenizer)]),
     }
     if cfg.objective == 'lm':
         if task.tokenizer.pad_token is None:
