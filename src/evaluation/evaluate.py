@@ -135,12 +135,12 @@ def evaluate_model(
         model.config.eos_token_id = task.tokenizer.eos_token_id
         model.config.pad_token_id = task.tokenizer.pad_token_id
         model.config.bos_token_id = task.tokenizer.bos_token_id or task.tokenizer.eos_token
-        if cfg.task.name == 'human_eval':
-            gen_kwargs.update({
-                "stopping_criteria": StoppingCriteriaList(
-                    [EndOfFunctionCriteria(0, EOF_STRINGS, task.tokenizer)]),
-            })
-            task.postprocessors.append(first_block)
+        # if cfg.task.name == 'human_eval':
+        #     # gen_kwargs.update({
+        #     #     "stopping_criteria": StoppingCriteriaList(
+        #     #         [EndOfFunctionCriteria(0, EOF_STRINGS, task.tokenizer)]),
+        #     # })
+        #     task.postprocessors.append(first_block)
 
     # tokenized = task.get_split(cfg['split'], overwrite_cache=True)
     # logger.info(f"{len(tokenized)} total samples found")
