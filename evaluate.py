@@ -36,10 +36,10 @@ from src.common import setup_global_logging, PROJECT_ROOT
               help='Name of the output dir for saving the result.')
 @click.option(
     '--seq-per-sample', '-seqs', 'sequences_per_sample',
-    default=1, type=int, help='Number of sequences per sample to generate.')
+    default=-1, type=int, help='Number of sequences per sample to generate.')
 @click.option(
     '--num-seq-batch', '-seq-batch', 'num_return_sequences',
-    default=1, type=int, help='Number of sequences per batch to generate.')
+    default=-1, type=int, help='Number of sequences per batch to generate.')
 @click.option(
     '--debug-samples', 'debug_num_samples',
     default=-1, type=int, help='Debug number of samples')
@@ -110,16 +110,17 @@ def eval_from_checkpoint(
             if eval_task_name:
                 raise ValueError("Eval task name is not allowed to be set when "
                                  "specifying an eval config")
-            if sequences_per_sample:
+            if sequences_per_sample > -1:
                 cfg.seq_per_sample = sequences_per_sample
 
             if splits_for_eval:
                 cfg.splits = splits_for_eval.split(',')
 
             cfg.model_path = str(train_dir)
+
             if 'generation' not in cfg:
-                cfg['generation'] = {'num_return_sequences': num_return_sequences}
-            else:
+                cfg['generation'] = {'num_return_sequences': max(num_return_sequences,1)}
+            elif num_return_sequences != -1:
                 cfg.generation['num_return_sequences'] = num_return_sequences
 
     else:
