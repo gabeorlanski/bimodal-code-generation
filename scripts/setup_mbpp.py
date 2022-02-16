@@ -75,8 +75,8 @@ def setup_mbpp_splits(
 
     validation_size = len(mbpp_data) - (test_size + few_shot_size + fine_tuning_size)
     splits = [
-        ("Test", "test.jsonl", test_size),
         ("Few-Shot", "few_shot.jsonl", few_shot_size),
+        ("Test", "test.jsonl", test_size),
         ("Fine-Tuning", "train.jsonl", fine_tuning_size),
         ("Validation", "validation.jsonl", validation_size),
     ]
