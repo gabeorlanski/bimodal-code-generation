@@ -102,47 +102,22 @@ experiments:
             model_path: best_models/MBPP.SODump10KSteps.32.ParrotSmall.General.FineTune
           SODump10KSteps.32.ParrotSmall.HighQual:
             model_path: best_models/MBPP.SODump10KSteps.32.ParrotSmall.HighQual.FineTune
-    steps:
-      - name: Eval
-        add_name: False
-        base: eval_config
-        group: MBPP
-        overrides: { }
-    command:
-      file: command_templates/code_evaluate.txt
-      kwargs:
-        num_return_sequences: 200
-        task_name: MBPP
-      fields:
-        - model_path
-  Base:
-    add_name: False
-    overrides:
-      task: mbpp
-      is_checkpoint: False
-      batch_size: 200
-      ++generation:
-        max_new_tokens: 256
-      ++device: 0
-    ablations:
-      - DumpName:
           CodeParrotSmall:
-            model_path: best_models/MBPP.Uniform.ParrotSmall.Negative.FineTune
+            model_path: best_models/MBPP.CodeParrotSmall
             ++generation:
               top_p: 0.95
           CodeParrotSmall.Replication:
-            model_path: best_models/MBPP.Uniform.ParrotSmall.Negative.FineTune
+            model_path: best_models/MBPP.CodeParrotSmall
             ++generation:
               top_p: 0.95
               top_k: 0
               temperature: 0.2
           CodeParrotSmall.HighTemp:
-            model_path: best_models/MBPP.Uniform.ParrotSmall.Negative.FineTune
+            model_path: best_models/MBPP.CodeParrotSmall
             ++generation:
               top_p: 0.95
               top_k: 0
               temperature: 0.8
-
     steps:
       - name: Eval
         add_name: False
@@ -156,3 +131,44 @@ experiments:
         task_name: MBPP
       fields:
         - model_path
+#  Base:
+#    add_name: False
+#    overrides:
+#      task: mbpp
+#      is_checkpoint: False
+#      batch_size: 200
+#      ++generation:
+#        max_new_tokens: 256
+#      ++device: 0
+#    ablations:
+#      - DumpName:
+#          CodeParrotSmall:
+#            model_path: best_models/MBPP.Uniform.ParrotSmall.Negative.FineTune
+#            ++generation:
+#              top_p: 0.95
+#          CodeParrotSmall.Replication:
+#            model_path: best_models/MBPP.Uniform.ParrotSmall.Negative.FineTune
+#            ++generation:
+#              top_p: 0.95
+#              top_k: 0
+#              temperature: 0.2
+#          CodeParrotSmall.HighTemp:
+#            model_path: best_models/MBPP.Uniform.ParrotSmall.Negative.FineTune
+#            ++generation:
+#              top_p: 0.95
+#              top_k: 0
+#              temperature: 0.8
+#
+#    steps:
+#      - name: Eval
+#        add_name: False
+#        base: eval_config
+#        group: MBPP
+#        overrides: { }
+#    command:
+#      file: command_templates/code_evaluate.txt
+#      kwargs:
+#        num_return_sequences: 200
+#        task_name: MBPP
+#      fields:
+#        - model_path
