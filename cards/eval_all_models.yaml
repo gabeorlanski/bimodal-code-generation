@@ -72,13 +72,13 @@ experiments:
           Uniform.ParrotSmall.HighQual:
             model_path: best_models/MBPP.Uniform.ParrotSmall.HighQual.FineTune
           SODump10KSteps.ParrotSmall.Negative:
-            model_path: best_models/MBPP.SODump10KSteps.ParrotSmall.Negative.FineTune
+            model_path: best_models/MBPP.SODump10KSteps.Negative.FineTune
           SODump10KSteps.ParrotSmall.Exceptions:
-            model_path: best_models/MBPP.SODump10KSteps.ParrotSmall.Exceptions.FineTune
+            model_path: best_models/MBPP.SODump10KSteps.Exceptions.FineTune
           SODump10KSteps.ParrotSmall.General:
-            model_path: best_models/MBPP.SODump10KSteps.ParrotSmall.General.FineTune
+            model_path: best_models/MBPP.SODump10KSteps.General.FineTune
           SODump10KSteps.ParrotSmall.HighQual:
-            model_path: best_models/MBPP.SODump10KSteps.ParrotSmall.HighQual.FineTune
+            model_path: best_models/MBPP.SODump10KSteps.HighQual.FineTune
           FullData.ParrotSmall.Negative:
             model_path: best_models/MBPP.FullData.ParrotSmall.Negative.FineTune
           FullData.ParrotSmall.Exceptions:
