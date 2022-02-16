@@ -222,7 +222,6 @@ def eval_from_checkpoint(
     evaluate(
         cfg,
         model,
-        splits_for_eval,
         working_dir,
         dry_run
     )

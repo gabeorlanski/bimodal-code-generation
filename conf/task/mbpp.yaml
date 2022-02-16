@@ -3,7 +3,9 @@ defaults:
 
 
 name: mbpp
-
+postprocessors:
+  - split:
+      split_phrase: "#Solution:"
 eval_splits:
   - test
   - validation

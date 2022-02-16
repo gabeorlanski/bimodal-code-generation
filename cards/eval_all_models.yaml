@@ -57,6 +57,7 @@ experiments:
     overrides:
       task: mbpp
       batch_size: 200
+      remove_input_ids: true
       ++generation:
         max_new_tokens: 256
       ++device: 0

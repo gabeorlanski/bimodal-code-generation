@@ -165,8 +165,10 @@ def evaluate_model(
         remove_input_ids_from_output=cfg.get("remove_input_ids", False),
     )
 
-    labels = generation_results['labels']
-    predictions = generation_results['predictions']
+    labels = list(map(task.postprocess, generation_results['labels']))
+    predictions = list(
+        map(lambda pl: list(map(task.postprocess, pl)), generation_results['predictions'])
+    )
     indices = generation_results['indices']
 
     metrics = task.evaluate(predictions, labels)
