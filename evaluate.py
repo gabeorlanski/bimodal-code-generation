@@ -206,7 +206,7 @@ def eval_from_checkpoint(
 
         if disable_tracking:
             cfg.tracking = False
-        if debug_num_samples > -1:
+        if debug_num_samples is not None:
             cfg.debug_num_samples = debug_num_samples
 
     config.setup_tracking_env_from_cfg(cfg)
