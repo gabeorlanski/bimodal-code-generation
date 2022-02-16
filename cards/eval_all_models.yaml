@@ -1,116 +1,127 @@
 starting_commands: command_templates/sbatch_experiment.txt
 experiments:
-#  EvalSO:
-#    add_name: False
-#    overrides:
-#      task: human_eval
-#    ablations:
-#      - DumpName:
-#          Uniform.ParrotSmall.Negative.PreTrain:
-#            model_path: best_models/SO.Uniform.ParrotSmall.Negative.PreTrain
-#          Uniform.ParrotSmall.Exceptions.PreTrain:
-#            model_path: best_models/SO.Uniform.ParrotSmall.Exceptions.PreTrain
-#          Uniform.ParrotSmall.General.PreTrain:
-#            model_path: best_models/SO.Uniform.ParrotSmall.General.PreTrain
-#          Uniform.ParrotSmall.HighQual.PreTrain:
-#            model_path: best_models/SO.Uniform.ParrotSmall.HighQual.PreTrain
-#          SODump10KSteps.ParrotSmall.Negative.PreTrain:
-#            model_path: best_models/SO.SODump10KSteps.ParrotSmall.Negative.PreTrain
-#          SODump10KSteps.ParrotSmall.Exceptions.PreTrain:
-#            model_path: best_models/SO.SODump10KSteps.ParrotSmall.Exceptions.PreTrain
-#          SODump10KSteps.ParrotSmall.General.PreTrain:
-#            model_path: best_models/SO.SODump10KSteps.ParrotSmall.General.PreTrain
-#          SODump10KSteps.ParrotSmall.HighQual.PreTrain:
-#            model_path: best_models/SO.SODump10KSteps.ParrotSmall.HighQual.PreTrain
-#          FullData.ParrotSmall.Negative.PreTrain:
-#            model_path: best_models/SO.FullData.ParrotSmall.Negative.PreTrain
-#          FullData.ParrotSmall.Exceptions.PreTrain:
-#            model_path: best_models/SO.FullData.ParrotSmall.Exceptions.PreTrain
-#          FullData.ParrotSmall.General.PreTrain:
-#            model_path: best_models/SO.FullData.ParrotSmall.General.PreTrain
-#          FullData.ParrotSmall.HighQual.PreTrain:
-#            model_path: best_models/SO.FullData.ParrotSmall.HighQual.PreTrain
-#          FullData.ParrotSmall.Negative.PreTrain:
-#            model_path: best_models/SO.FullData.ParrotSmall.Negative.PreTrain
-#          FullData.ParrotSmall.Exceptions.PreTrain:
-#            model_path: best_models/SO.FullData.ParrotSmall.Exceptions.PreTrain
-#          FullData.ParrotSmall.General.PreTrain:
-#            model_path: best_models/SO.FullData.ParrotSmall.General.PreTrain
-#          FullData.ParrotSmall.HighQual.PreTrain:
-#            model_path: best_models/SO.FullData.ParrotSmall.HighQual.PreTrain
-#    steps:
-#      - name: Eval
-#        add_name: False
-#        base: eval_config
-#        group: SO
-#        overrides: { }
-#    command:
-#      file: command_templates/code_evaluate.txt
-#      kwargs:
-#        train_sbatch: train_single_gpu
-#        num_return_sequences: 100
-#        gen_length: 512
-#      fields:
-#        - model_path
-#  EvalMBPP:
-#    add_name: False
-#    overrides:
-#      task: human_eval
-#    ablations:
-#      - DumpName:
-#          Uniform.ParrotSmall.Negative.FineTune:
-#            model_path: best_models/MBPP.Uniform.ParrotSmall.Negative.FineTune
-#          Uniform.ParrotSmall.Exceptions.FineTune:
-#            model_path: best_models/MBPP.Uniform.ParrotSmall.Exceptions.FineTune
-#          Uniform.ParrotSmall.General.FineTune:
-#            model_path: best_models/MBPP.Uniform.ParrotSmall.General.FineTune
-#          Uniform.ParrotSmall.HighQual.FineTune:
-#            model_path: best_models/MBPP.Uniform.ParrotSmall.HighQual.FineTune
-#          SODump10KSteps.ParrotSmall.Negative.FineTune:
-#            model_path: best_models/MBPP.SODump10KSteps.ParrotSmall.Negative.FineTune
-#          SODump10KSteps.ParrotSmall.Exceptions.FineTune:
-#            model_path: best_models/MBPP.SODump10KSteps.ParrotSmall.Exceptions.FineTune
-#          SODump10KSteps.ParrotSmall.General.FineTune:
-#            model_path: best_models/MBPP.SODump10KSteps.ParrotSmall.General.FineTune
-#          SODump10KSteps.ParrotSmall.HighQual.FineTune:
-#            model_path: best_models/MBPP.SODump10KSteps.ParrotSmall.HighQual.FineTune
-#          FullData.ParrotSmall.Negative.FineTune:
-#            model_path: best_models/MBPP.FullData.ParrotSmall.Negative.FineTune
-#          FullData.ParrotSmall.Exceptions.FineTune:
-#            model_path: best_models/MBPP.FullData.ParrotSmall.Exceptions.FineTune
-#          FullData.ParrotSmall.General.FineTune:
-#            model_path: best_models/MBPP.FullData.ParrotSmall.General.FineTune
-#          FullData.ParrotSmall.HighQual.FineTune:
-#            model_path: best_models/MBPP.FullData.ParrotSmall.HighQual.FineTune
-#          FullData.ParrotSmall.Negative.FineTune:
-#            model_path: best_models/MBPP.FullData.ParrotSmall.Negative.FineTune
-#          FullData.ParrotSmall.Exceptions.FineTune:
-#            model_path: best_models/MBPP.FullData.ParrotSmall.Exceptions.FineTune
-#          FullData.ParrotSmall.General.FineTune:
-#            model_path: best_models/MBPP.FullData.ParrotSmall.General.FineTune
-#          FullData.ParrotSmall.HighQual.FineTune:
-#            model_path: best_models/MBPP.FullData.ParrotSmall.HighQual.FineTune
-#    steps:
-#      - name: Eval
-#        add_name: False
-#        base: eval_config
-#        group: MBPP
-#        overrides: { }
-#    command:
-#      file: command_templates/code_evaluate.txt
-#      kwargs:
-#        train_sbatch: train_single_gpu
-#        num_return_sequences: 100
-#        gen_length: 512
-#      fields:
-#        - model_path
+  #  EvalSO:
+  #    add_name: False
+  #    overrides:
+  #      task: human_eval
+  #    ablations:
+  #      - DumpName:
+  #          Uniform.ParrotSmall.Negative.PreTrain:
+  #            model_path: best_models/SO.Uniform.ParrotSmall.Negative.PreTrain
+  #          Uniform.ParrotSmall.Exceptions.PreTrain:
+  #            model_path: best_models/SO.Uniform.ParrotSmall.Exceptions.PreTrain
+  #          Uniform.ParrotSmall.General.PreTrain:
+  #            model_path: best_models/SO.Uniform.ParrotSmall.General.PreTrain
+  #          Uniform.ParrotSmall.HighQual.PreTrain:
+  #            model_path: best_models/SO.Uniform.ParrotSmall.HighQual.PreTrain
+  #          SODump10KSteps.ParrotSmall.Negative.PreTrain:
+  #            model_path: best_models/SO.SODump10KSteps.ParrotSmall.Negative.PreTrain
+  #          SODump10KSteps.ParrotSmall.Exceptions.PreTrain:
+  #            model_path: best_models/SO.SODump10KSteps.ParrotSmall.Exceptions.PreTrain
+  #          SODump10KSteps.ParrotSmall.General.PreTrain:
+  #            model_path: best_models/SO.SODump10KSteps.ParrotSmall.General.PreTrain
+  #          SODump10KSteps.ParrotSmall.HighQual.PreTrain:
+  #            model_path: best_models/SO.SODump10KSteps.ParrotSmall.HighQual.PreTrain
+  #          FullData.ParrotSmall.Negative.PreTrain:
+  #            model_path: best_models/SO.FullData.ParrotSmall.Negative.PreTrain
+  #          FullData.ParrotSmall.Exceptions.PreTrain:
+  #            model_path: best_models/SO.FullData.ParrotSmall.Exceptions.PreTrain
+  #          FullData.ParrotSmall.General.PreTrain:
+  #            model_path: best_models/SO.FullData.ParrotSmall.General.PreTrain
+  #          FullData.ParrotSmall.HighQual.PreTrain:
+  #            model_path: best_models/SO.FullData.ParrotSmall.HighQual.PreTrain
+  #          FullData.ParrotSmall.Negative.PreTrain:
+  #            model_path: best_models/SO.FullData.ParrotSmall.Negative.PreTrain
+  #          FullData.ParrotSmall.Exceptions.PreTrain:
+  #            model_path: best_models/SO.FullData.ParrotSmall.Exceptions.PreTrain
+  #          FullData.ParrotSmall.General.PreTrain:
+  #            model_path: best_models/SO.FullData.ParrotSmall.General.PreTrain
+  #          FullData.ParrotSmall.HighQual.PreTrain:
+  #            model_path: best_models/SO.FullData.ParrotSmall.HighQual.PreTrain
+  #    steps:
+  #      - name: Eval
+  #        add_name: False
+  #        base: eval_config
+  #        group: SO
+  #        overrides: { }
+  #    command:
+  #      file: command_templates/code_evaluate.txt
+  #      kwargs:
+  #        train_sbatch: train_single_gpu
+  #        num_return_sequences: 100
+  #        gen_length: 512
+  #      fields:
+  #        - model_path
+  EvalMBPP:
+    add_name: False
+    overrides:
+      task: mbpp
+      batch_size: 200
+      ++generation:
+        max_new_tokens: 256
+      ++device: 0
+    ablations:
+      - DumpName:
+          Uniform.ParrotSmall.Negative:
+            model_path: best_models/MBPP.Uniform.ParrotSmall.Negative.FineTune
+          Uniform.ParrotSmall.Exceptions:
+            model_path: best_models/MBPP.Uniform.ParrotSmall.Exceptions.FineTune
+          Uniform.ParrotSmall.General:
+            model_path: best_models/MBPP.Uniform.ParrotSmall.General.FineTune
+          Uniform.ParrotSmall.HighQual:
+            model_path: best_models/MBPP.Uniform.ParrotSmall.HighQual.FineTune
+          SODump10KSteps.ParrotSmall.Negative:
+            model_path: best_models/MBPP.SODump10KSteps.ParrotSmall.Negative.FineTune
+          SODump10KSteps.ParrotSmall.Exceptions:
+            model_path: best_models/MBPP.SODump10KSteps.ParrotSmall.Exceptions.FineTune
+          SODump10KSteps.ParrotSmall.General:
+            model_path: best_models/MBPP.SODump10KSteps.ParrotSmall.General.FineTune
+          SODump10KSteps.ParrotSmall.HighQual:
+            model_path: best_models/MBPP.SODump10KSteps.ParrotSmall.HighQual.FineTune
+          FullData.ParrotSmall.Negative:
+            model_path: best_models/MBPP.FullData.ParrotSmall.Negative.FineTune
+          FullData.ParrotSmall.Exceptions:
+            model_path: best_models/MBPP.FullData.ParrotSmall.Exceptions.FineTune
+          FullData.ParrotSmall.General:
+            model_path: best_models/MBPP.FullData.ParrotSmall.General.FineTune
+          FullData.ParrotSmall.HighQual:
+            model_path: best_models/MBPP.FullData.ParrotSmall.HighQual.FineTune
+          Uniform32Epoch.ParrotSmall.Negative:
+            model_path: best_models/MBPP.Uniform32Epoch.ParrotSmall.Negative.FineTune
+          Uniform32Epoch.ParrotSmall.Exceptions:
+            model_path: best_models/MBPP.Uniform32Epoch.ParrotSmall.Exceptions.FineTune
+          Uniform32Epoch.ParrotSmall.General:
+            model_path: best_models/MBPP.Uniform32Epoch.ParrotSmall.General.FineTune
+          Uniform32Epoch.ParrotSmall.HighQual:
+            model_path: best_models/MBPP.Uniform32Epoch.ParrotSmall.HighQual.FineTune
+          SODump10KSteps.32.ParrotSmall.Negative:
+            model_path: best_models/MBPP.SODump10KSteps.32.ParrotSmall.Negative.FineTune
+          SODump10KSteps.32.ParrotSmall.Exceptions:
+            model_path: best_models/MBPP.SODump10KSteps.32.ParrotSmall.Exceptions.FineTune
+          SODump10KSteps.32.ParrotSmall.General:
+            model_path: best_models/MBPP.SODump10KSteps.32.ParrotSmall.General.FineTune
+          SODump10KSteps.32.ParrotSmall.HighQual:
+            model_path: best_models/MBPP.SODump10KSteps.32.ParrotSmall.HighQual.FineTune
+    steps:
+      - name: Eval
+        add_name: False
+        base: eval_config
+        group: MBPP
+        overrides: { }
+    command:
+      file: command_templates/code_evaluate.txt
+      kwargs:
+        num_return_sequences: 200
+        task_name: MBPP
+      fields:
+        - model_path
   Base:
     add_name: False
     overrides:
-      task: human_eval
+      task: mbpp
       is_checkpoint: False
+      batch_size: 200
       ++generation:
-        num_return_sequences: 200
         max_new_tokens: 256
       ++device: 0
     ablations:
@@ -136,13 +147,12 @@ experiments:
       - name: Eval
         add_name: False
         base: eval_config
-        group: HUMAN_EVAL
+        group: MBPP
         overrides: { }
     command:
       file: command_templates/code_evaluate.txt
       kwargs:
-        train_sbatch: train_single_gpu
         num_return_sequences: 200
-        task_name: HUMAN_EVAL
+        task_name: MBPP
       fields:
         - model_path

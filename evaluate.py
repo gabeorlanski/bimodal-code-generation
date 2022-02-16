@@ -36,13 +36,13 @@ from src.common import setup_global_logging, PROJECT_ROOT
               help='Name of the output dir for saving the result.')
 @click.option(
     '--seq-per-sample', '-seqs', 'sequences_per_sample',
-    default=-1, type=int, help='Number of sequences per sample to generate.')
+    default=None, type=int, help='Number of sequences per sample to generate.')
 @click.option(
-    '--num-seq-batch', '-seq-batch', 'num_return_sequences',
-    default=-1, type=int, help='Number of sequences per batch to generate.')
+    '--batch-size', '-B', 'batch_size',
+    default=None, type=int, help='Number of sequences per batch to generate.')
 @click.option(
     '--debug-samples', 'debug_num_samples',
-    default=-1, type=int, help='Debug number of samples')
+    default=None, type=int, help='Debug number of samples')
 @click.option(
     '--evaluation-task-name', '-task', 'eval_task_name',
     default=None, help='Task Name for evaluation, will override '
@@ -69,7 +69,7 @@ from src.common import setup_global_logging, PROJECT_ROOT
 def eval_from_checkpoint(
         train_dir: str,
         output_dir_name,
-        num_return_sequences: int,
+        batch_size: int,
         splits_for_eval: str,
         sequences_per_sample: int,
         debug_num_samples: int,
@@ -110,27 +110,24 @@ def eval_from_checkpoint(
             if eval_task_name:
                 raise ValueError("Eval task name is not allowed to be set when "
                                  "specifying an eval config")
-            if sequences_per_sample > -1:
+            if sequences_per_sample:
                 cfg.seq_per_sample = sequences_per_sample
 
             if splits_for_eval:
                 cfg.splits = splits_for_eval.split(',')
+            if batch_size:
+                cfg.batch_size = batch_size
 
             cfg.model_path = str(train_dir)
-
-            if 'generation' not in cfg:
-                cfg['generation'] = {'num_return_sequences': max(num_return_sequences,1)}
-            elif num_return_sequences != -1:
-                cfg.generation['num_return_sequences'] = num_return_sequences
 
     else:
         cfg_overrides = config.create_overrides_list(
             {
-                "model_path"                       : train_dir,
-                "task"                             : eval_task_name,
-                "seq_per_sample"                   : sequences_per_sample,
-                "splits"                           : splits_for_eval,
-                "++generation.num_return_sequences": num_return_sequences
+                "model_path"    : train_dir,
+                "task"          : eval_task_name,
+                "seq_per_sample": sequences_per_sample,
+                "splits"        : splits_for_eval,
+                "batch_size"    : batch_size
             },
             hydra_overrides,
             override_str
@@ -143,7 +140,16 @@ def eval_from_checkpoint(
     # merge_configs gives priority to the first argument, so if we are not
     # overriding the task, we need to copy the task params from the train
     # config.
-    cfg = config.merge_configs(cfg, train_cfg, exclude_keys=['preprocessors', 'postprocessors'])
+    cfg = config.merge_configs(
+        cfg,
+        train_cfg,
+        exclude_keys=[
+            'preprocessors',
+            'postprocessors',
+            'generation',
+            'training'
+        ]
+    )
     dir_name = output_dir_name or f"{cfg.group}.{cfg.name}"
 
     if debug:

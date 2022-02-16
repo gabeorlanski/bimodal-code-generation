@@ -1,17 +1,20 @@
 defaults:
   - _self_
   - task: ???
-
+seed: 1
 is_checkpoint: true
 model_path: ???
 seq_per_sample: 100
 remove_input_ids: False
 splits: ${task.eval_splits}
+batch_size: 1
 generation:
-  max_length: 512
-  num_return_sequences: 1
-training:
-  batch_size: 1
+  max_new_tokens: 256
+  do_sample: true
+  temperature: 0.5
+  top_p: 0.95
+  top_k: 50
+
 
 postprocessors:
   - strip: { }

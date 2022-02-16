@@ -37,7 +37,7 @@ def test_evaluate_code(code_preds_dir):
         'problems_correct_pct'  : 2 / 3 * 100
     })
 
-    for k in [5, 10, 25, 50]:
+    for k in [5, 10, 25, 50,100]:
         expected_overview[f"pass@{k}"] = 0.0
 
     for e in BASE_ERROR_TYPES:
