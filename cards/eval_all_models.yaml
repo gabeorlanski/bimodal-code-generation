@@ -61,8 +61,6 @@ experiments:
       ++generation:
         max_new_tokens: 256
       ++device: 0
-      +splits:
-        - validation
     ablations:
       - DumpName:
           Uniform.ParrotSmall.Negative:
