@@ -8,7 +8,7 @@ train_jid{{ idx}}=$(sbatch --parsable --dependency=afterok:${{pretrain_jid}} \
 echo "Submitted Train (id=$train_jid{{ idx}})"
 eval_jid{{idx}}=$(sbatch --parsable --job-name={{ name }}_eval \
 	--dependency=afterok:$train_jid{{ idx}} eval.sbatch \
-	best_models/{{ FineTune.save_name }} validation,test {{ Eval.model_path }} {{ num_return_sequences }} {{ Eval.path }})
+	{{ Eval.model_path }} {{ num_return_sequences }} {{ Eval.path }})
 echo "Submitted Eval $eval_jid{{idx}} to run after $1(id=$train_jid{{ idx}})"
 sbatch --job-name='{{ name }}_execute' --dependency=afterok:$eval_jid{{idx}} eval_code.sbatch eval_results/{{ task_name }} {{ Eval.save_name }}
 echo ""
