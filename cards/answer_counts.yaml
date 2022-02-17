@@ -73,7 +73,7 @@ experiments:
           remove_input_ids: true
           ++model_path: best_models/${..previous_step.save_name}
     command:
-      file: command_templates/pretrain_then_finetune.txt
+      file: command_templates/finetune.txt
       kwargs:
         num_return_sequences: 200
         task_name: MBPP

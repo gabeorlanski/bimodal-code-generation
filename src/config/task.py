@@ -39,16 +39,16 @@ def load_processors_from_cfg(cfg: DictConfig) -> Tuple[List[Callable], List[Call
             for name, func_kwargs in map(lambda d: next(iter(d.items())), processor_list)
         ]
 
-    preprocessor_list = cfg.get('preprocessors', [])
-    postprocessor_list = cfg.get('postprocessors', [])
+    preprocessor_list = list(cfg.get('preprocessors', []))
+    postprocessor_list = list(cfg.get('postprocessors', []))
 
-    task_preprocessors = cfg.task.get('preprocessors', [])
-    task_postprocessors = cfg.task.get('postprocessors', [])
+    task_preprocessors = list(cfg.task.get('preprocessors', []))
+    task_postprocessors = list(cfg.task.get('postprocessors', []))
     logger.info(f"{len(task_preprocessors)} task preprocessors")
     logger.info(f"{len(task_postprocessors)} task postprocessors")
 
-    model_type_preprocessors = cfg.get('model_type', {}).get('preprocessors', [])
-    model_type_postprocessors = cfg.get('model_type', {}).get('postprocessors', [])
+    model_type_preprocessors = list(cfg.get('model_type', {}).get('preprocessors', []))
+    model_type_postprocessors = list(cfg.get('model_type', {}).get('postprocessors', []))
     logger.info(
         f"Found {len(model_type_preprocessors)} preprocessors specific to the model type"
     )
