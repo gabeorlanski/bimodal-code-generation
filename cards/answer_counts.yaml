@@ -1,6 +1,6 @@
 starting_commands: command_templates/sbatch_experiment.txt
 experiments:
-  Uniform.ParrotSmall:
+  FullData:
     overrides:
       ++device: 0
       +disable_cache: True
@@ -48,7 +48,7 @@ experiments:
           tracking:
             log_model: true
           task: so
-          ++task.max_samples: 27000
+#          ++task.max_samples: 27000
           ++task.max_val_samples: 250
       - name: FineTune
         base: greene_config
