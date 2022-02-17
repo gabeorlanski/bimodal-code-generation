@@ -16,26 +16,26 @@ experiments:
           Negative:
             ++task.dump_name: negative
             ++task.answer_sorting: ascending
-            training:
+            ++training:
               save_steps: 2500
               eval_steps: 2500
               logging_steps: 250
           Exceptions:
             ++task.dump_name: exceptions
-            training:
+            ++training:
               save_steps: 2500
               eval_steps: 2500
               logging_steps: 250
           General:
             ++task.dump_name: general
-            training:
+            ++training:
               save_steps: 2500
               eval_steps: 2500
               logging_steps: 250
           HighQual:
             ++task.dump_name: high_qual
             ++task.answer_sorting: descending
-            training:
+            ++training:
               save_steps: 200
               eval_steps: 200
               logging_steps: 50
@@ -55,9 +55,6 @@ experiments:
         overrides:
           objective: 'lm'
           training:
-            save_steps: 200
-            eval_steps: 200
-            logging_steps: 50
             learning_rate: 1e-3
             max_steps: -1
           tracking:
@@ -65,30 +62,30 @@ experiments:
           task: so
           #          ++task.max_samples: 27000
           ++task.max_val_samples: 250
-      - name: FineTune
-        base: greene_config
-        group: MBPP
-        overrides:
-          objective: 'lm'
-          task: mbpp
-          ++is_checkpoint: True
-          ++model_path: best_models/${..previous_step.save_name}
-          training:
-            learning_rate: 5e-5
-      - name: Eval
-        base: eval_config
-        group: MBPP
-        overrides:
-          batch_size: 200
-          remove_input_ids: true
-          ++generation:
-            max_new_tokens: 256
-          ++device: 0
-          task: mbpp
-          remove_input_ids: true
-          ++model_path: best_models/${..previous_step.save_name}
+#      - name: FineTune
+#        base: greene_config
+#        group: MBPP
+#        overrides:
+#          objective: 'lm'
+#          task: mbpp
+#          ++is_checkpoint: True
+#          ++model_path: best_models/${..previous_step.save_name}
+#          training:
+#            learning_rate: 5e-5
+#      - name: Eval
+#        base: eval_config
+#        group: MBPP
+#        overrides:
+#          batch_size: 200
+#          remove_input_ids: true
+#          ++generation:
+#            max_new_tokens: 256
+#          ++device: 0
+#          task: mbpp
+#          remove_input_ids: true
+#          ++model_path: best_models/${..previous_step.save_name}
     command:
-      file: command_templates/code_evaluate.txt
+      file: command_templates/pretrain.txt
       kwargs:
         num_return_sequences: 200
         task_name: MBPP
