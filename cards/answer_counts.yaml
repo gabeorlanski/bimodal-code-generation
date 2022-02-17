@@ -1,0 +1,82 @@
+starting_commands: command_templates/sbatch_experiment.txt
+experiments:
+  Uniform.ParrotSmall:
+    overrides:
+      ++device: 0
+      +disable_cache: True
+      ++tracking:
+        log_model: false
+      ++model: 'lvwerra/codeparrot-small'
+      ++num_proc: 4
+      ++training:
+        batch_size: 32
+        gradient_accumulation_steps: 1
+    ablations:
+      - DumpName:
+          Negative:
+            ++task.dump_name: negative
+            ++task.answer_sorting: ascending
+          Exceptions:
+            ++task.dump_name: exceptions
+          General:
+            ++task.dump_name: general
+          HighQual:
+            ++task.dump_name: high_qual
+            ++task.answer_sorting: descending
+      - AnswerCount:
+          0:
+            ++task.answers_per_sample: 0
+          2:
+            ++task.answers_per_sample: 2
+          3:
+            ++task.answers_per_sample: 3
+          All:
+            ++task.answers_per_sample: -1
+
+    steps:
+      - name: PreTrain
+        base: pretrain_config
+        group: SO
+        overrides:
+          objective: 'lm'
+          training:
+            save_steps: 200
+            eval_steps: 200
+            logging_steps: 50
+            learning_rate: 1e-3
+            max_steps: -1
+          tracking:
+            log_model: true
+          task: so
+          ++task.max_samples: 27000
+          ++task.max_val_samples: 250
+      - name: FineTune
+        base: greene_config
+        group: MBPP
+        overrides:
+          objective: 'lm'
+          task: mbpp
+          ++is_checkpoint: True
+          ++model_path: best_models/${..previous_step.save_name}
+          training:
+            learning_rate: 5e-5
+      - name: Eval
+        base: eval_config
+        group: MBPP
+        overrides:
+          batch_size: 200
+          remove_input_ids: true
+          ++generation:
+            max_new_tokens: 256
+          ++device: 0
+          task: mbpp
+          remove_input_ids: true
+          ++model_path: best_models/${..previous_step.save_name}
+    command:
+      file: command_templates/pretrain_then_finetune.txt
+      kwargs:
+        num_return_sequences: 200
+        task_name: MBPP
+        train_sbatch: train_single_gpu
+      fields:
+        - model_path

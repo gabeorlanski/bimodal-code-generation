@@ -31,10 +31,12 @@ def get_all_ablation_combinations(ablation_list: List[Dict]):
     for ablation_combo in itertools.product(*all_keys):
         # Copy so we do not mess up the mutable dicts
         combo_dict = {}
+        ablation_vals = {}
         for i, ablation in enumerate(ablation_combo):
             ablation_override_dict = ablation_list[i][ablation_names[i]][ablation]
             combo_dict.update(deepcopy(ablation_override_dict))
-        out.append(('.'.join(ablation_combo), combo_dict))
+            ablation_vals[ablation_names[i]] = ablation
+        out.append(('.'.join(map(str, ablation_combo)), ablation_vals, combo_dict))
 
     logger.info(f"{len(out)} total ablation combos")
     return out
@@ -87,9 +89,9 @@ def get_experiment_card_cfg_from_dict(
     experiment_overrides.update(experiment_card_dict.get('overrides', {}))
 
     experiment_overrides['meta'] = {
-        "ablation" : None,
-        "step"     : None,
-        "card_name": name
+        "ablation"     : None,
+        "step"         : None,
+        "card_name"    : name
     }
 
     logger.info(f"Experiment {name} has group {experiment_group}")
@@ -150,7 +152,7 @@ def get_experiment_card_cfg_from_dict(
             command_kwargs = {}
             command_fields = []
 
-        for ablation_name, ablation_overrides in ablations:
+        for ablation_name, ablation_vals, ablation_overrides in ablations:
             previous_step = {}
             composed_experiments = ComposedExperiments(
                 name=f"{name}_{ablation_name}" if has_ablations else name,
@@ -159,6 +161,7 @@ def get_experiment_card_cfg_from_dict(
                 command_kwargs=command_kwargs,
                 command_fields=command_fields
             )
+
             for step_num, step_dict in enumerate(experiment_steps):
 
                 # Do basic error checking.
@@ -188,6 +191,7 @@ def get_experiment_card_cfg_from_dict(
 
                 if has_ablations:
                     card_overrides['meta']['ablation'] = ablation_name
+                    card_overrides['meta']['ablation_vals'] = ablation_vals
                 if has_steps:
                     card_overrides['meta']['step'] = step_name
 
