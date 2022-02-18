@@ -69,5 +69,4 @@ class TestAblationCombination:
                 })
 
             with pytest.raises(KeyError):
-
                 AblationCombination.from_ablations_info('test', ablations_info)

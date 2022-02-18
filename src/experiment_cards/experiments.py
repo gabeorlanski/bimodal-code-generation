@@ -52,7 +52,7 @@ def get_all_ablation_combinations(
         combo_values = {}
         for i, v in enumerate(ablation_combo):
             ablation_group = ablation_groups[i]
-            combo_names.append(v)
+            combo_names.append(str(v))
             combo_values[ablation_group.name] = (v, ablation_group[v])
         out.append(AblationCombination.from_ablations_info(
             name='.'.join(combo_names),
@@ -125,23 +125,29 @@ def make_experiment_card(
         step=step_name if has_steps else None
     ))
 
-    # Make it into a dict config so we can use interpolation.
-    cfg = OmegaConf.create({
+    # Create this metadata dict for allowing interpolation
+    experiment_meta = {
         # Previous step is only in here so the current step can
         # use interpolation on it.
         "previous_step": previous_step,
-        "name"         : group_name,
-        "group"        : step_group,
-        "base"         : step_base,
-        "overrides"    : deepcopy(card_overrides),
-        "depends_on"   : previous_step.get('save_name')
+        "ablation"     : asdict(ablation)
+    }
+
+    # Make it into a dict config so we can use interpolation.
+    cfg = OmegaConf.create({
+        "__META__"  : experiment_meta,
+        "name"      : group_name,
+        "group"     : step_group,
+        "base"      : step_base,
+        "overrides" : deepcopy(card_overrides),
+        "depends_on": previous_step.get('save_name')
     })
     OmegaConf.resolve(cfg)
 
     cfg = OmegaConf.to_object(cfg)
 
-    # Pop the previous step key because it is no longer needed.
-    cfg.pop("previous_step")
+    # Pop the meta key because it is no longer needed.
+    cfg.pop("__META__")
 
     return ExperimentCard(**cfg)
 

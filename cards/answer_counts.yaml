@@ -20,25 +20,25 @@ experiments:
               save_steps: 250
               eval_steps: 250
               logging_steps: 100
-#          Exceptions:
-#            ++task.dump_name: exceptions
-#            ++training:
-#              save_steps: 2500
-#              eval_steps: 2500
-#              logging_steps: 250
-#          General:
-#            ++task.dump_name: general
-#            ++training:
-#              save_steps: 2500
-#              eval_steps: 2500
-#              logging_steps: 250
-#          HighQual:
-#            ++task.dump_name: high_qual
-#            ++task.answer_sorting: descending
-#            ++training:
-#              save_steps: 200
-#              eval_steps: 200
-#              logging_steps: 50
+          Exceptions:
+            ++task.dump_name: exceptions
+            ++training:
+              save_steps: 2500
+              eval_steps: 2500
+              logging_steps: 250
+      #          General:
+      #            ++task.dump_name: general
+      #            ++training:
+      #              save_steps: 2500
+      #              eval_steps: 2500
+      #              logging_steps: 250
+          HighQual:
+            ++task.dump_name: high_qual
+            ++task.answer_sorting: descending
+            ++training:
+              save_steps: 200
+              eval_steps: 200
+              logging_steps: 50
       - AnswerCount:
           0:
             ++task.answers_per_sample: 0
@@ -49,19 +49,19 @@ experiments:
           All:
             ++task.answers_per_sample: -1
     steps:
-      - name: PreTrain
-        base: pretrain_config
-        group: SO
-        overrides:
-          objective: 'lm'
-          training:
-            learning_rate: 1e-3
-            max_steps: -1
-          tracking:
-            log_model: true
-          task: so
-          #          ++task.max_samples: 27000
-          ++task.max_val_samples: 250
+#      - name: PreTrain
+#        base: pretrain_config
+#        group: SO
+#        overrides:
+#          objective: 'lm'
+#          training:
+#            learning_rate: 1e-3
+#            max_steps: -1
+#          tracking:
+#            log_model: true
+#          task: so
+#          #          ++task.max_samples: 27000
+#          ++task.max_val_samples: 250
       - name: FineTune
         base: greene_config
         group: MBPP
@@ -69,23 +69,23 @@ experiments:
           objective: 'lm'
           task: mbpp
           ++is_checkpoint: True
-          ++model_path: best_models/{{ previous_step.save_name }}
+          ++model_path: best_models/SO.FullData.ParrotSmall.${..__META__.ablation.name}.PreTrain
           training:
             learning_rate: 5e-5
-#      - name: Eval
-#        base: eval_config
-#        group: MBPP
-#        overrides:
-#          batch_size: 200
-#          remove_input_ids: true
-#          ++generation:
-#            max_new_tokens: 256
-#          ++device: 0
-#          task: mbpp
-#          remove_input_ids: true
-#          ++model_path: best_models/${..previous_step.save_name}
+      - name: Eval
+        base: eval_config
+        group: MBPP
+        overrides:
+          batch_size: 200
+          remove_input_ids: true
+          ++generation:
+            max_new_tokens: 256
+          ++device: 0
+          task: mbpp
+          remove_input_ids: true
+          ++model_path: best_models/${..__META__.previous_step.save_name}
     command:
-      file: command_templates/pretrain.txt
+      file: command_templates/finetune.txt
       kwargs:
         num_return_sequences: 200
         task_name: MBPP
