@@ -10,46 +10,54 @@ from omegaconf import OmegaConf
 from collections import Counter
 
 from src.common import PROJECT_ROOT
-from src.experiment_cards.cards import ExperimentCard, ComposedExperiments
+from src.experiment_cards.cards import (
+    ExperimentCard,
+    ComposedExperiments,
+    AblationGroup,
+    AblationCombination
+)
 from src.experiment_cards.util import merge_dictionaries
+from src.experiment_cards.parsing import parse_ablations
 
 logger = logging.getLogger(__name__)
 
 
-def get_all_ablation_combinations(ablation_list: List[Dict]) -> List[Tuple[str, Dict, Dict]]:
+def get_all_ablation_combinations(
+        ablation_groups: List[AblationGroup]
+) -> List[AblationCombination]:
     """
     Get the list of all combinations for ablations.
 
     Args:
-        ablation_list (List[Dict]): The list of ablation dicts.
+        ablation_groups (List[AblationGroup]): The list of ablation groups.
 
     Returns:
-        List[Tuple[str, Dict, Dict]]: The list of tuples where the first
-            element is the name of the ablation, the second element is the
-            ablation value mapping of ablation group names to values, and the
-            final is the dict of ablation overrides.
+        List[AblationCombination]: The list of ablation combinations.
     """
-    logger.info(f"Making ablation combinations for {len(ablation_list)} items.")
-    all_keys = []
-    ablation_names = []
-    for ablation in ablation_list:
-        name = list(ablation)[0]
-        ablations = list(ablation[name])
-        logger.info(f"Ablation '{name}' has {len(ablations)} values")
-        ablation_names.append(name)
-        all_keys.append(ablations)
+    logger.info(f"Making ablation combinations for {len(ablation_groups)} items.")
+    all_keys = [g.ablation_names for g in ablation_groups]
     logger.debug(f"{all_keys=}")
+
+    # Check for the case where there are no ablations.
+    if len(ablation_groups) == 1 and ablation_groups[0].name == "NO_ABLATIONS_FOUND":
+        return [
+            AblationCombination.from_ablations_info(name="NO_ABLATIONS_FOUND", ablations_info={})
+        ]
 
     out = []
     for ablation_combo in itertools.product(*all_keys):
         # Copy so we do not mess up the mutable dicts
-        combo_dict = {}
-        ablation_vals = {}
-        for i, ablation in enumerate(ablation_combo):
-            ablation_override_dict = ablation_list[i][ablation_names[i]][ablation]
-            combo_dict.update(deepcopy(ablation_override_dict))
-            ablation_vals[ablation_names[i]] = ablation
-        out.append(('.'.join(map(str, ablation_combo)), ablation_vals, combo_dict))
+        logger.debug(f"Creating combination for {ablation_combo}")
+        combo_names = []
+        combo_values = {}
+        for i, v in enumerate(ablation_combo):
+            ablation_group = ablation_groups[i]
+            combo_names.append(v)
+            combo_values[ablation_group.name] = (v, ablation_group[v])
+        out.append(AblationCombination.from_ablations_info(
+            name='.'.join(combo_names),
+            ablations_info=combo_values)
+        )
 
     logger.info(f"{len(out)} total ablation combos")
     return out
@@ -59,7 +67,7 @@ def make_experiment_card(
         group_name: str,
         step_num: int,
         step_dict: Dict,
-        ablation: Tuple,
+        ablation: AblationCombination,
         card_overrides: Dict,
         previous_step: Dict,
         add_group_name: bool
@@ -89,14 +97,13 @@ def make_experiment_card(
     step_group = step_dict['group']
     step_base = step_dict['base']
 
-    ablation_name, ablation_vals, ablation_overrides = ablation
-    has_ablations = ablation_name != "DOES_NOT_HAVE_ABLATIONS"
+    has_ablations = ablation.name != "DOES_NOT_HAVE_ABLATIONS"
     has_steps = step_num != -1
 
     step_overrides = deepcopy(step_dict.get("overrides", {}))
     group_name = group_name if add_group_name else ''
     if has_ablations:
-        group_name += f"{'.' if add_group_name else ''}{ablation_name}"
+        group_name += f"{'.' if add_group_name else ''}{ablation.name}"
 
     # If there are not steps, would just repeat its own name so
     # this bool stops that.
@@ -104,8 +111,8 @@ def make_experiment_card(
         group_name += f"{'.' if add_group_name or has_ablations else ''}{step_name}"
 
     if has_ablations:
-        card_overrides['meta']['ablation'] = ablation_name
-        card_overrides['meta']['ablation_vals'] = ablation_vals
+        card_overrides['meta']['ablation'] = ablation.name
+        card_overrides['meta']['ablation_vals'] = ablation.ablation_values
 
     if has_steps:
         card_overrides['meta']['step'] = step_name
@@ -114,7 +121,9 @@ def make_experiment_card(
     card_overrides = merge_dictionaries(card_overrides, step_overrides)
 
     # Ablation gets priority over step
-    card_overrides = merge_dictionaries(card_overrides, ablation_overrides)
+    card_overrides = merge_dictionaries(card_overrides, ablation.get_overrides(
+        step=step_name if has_steps else None
+    ))
 
     # Make it into a dict config so we can use interpolation.
     cfg = OmegaConf.create({
@@ -198,13 +207,8 @@ def get_experiment_card_cfg_from_dict(
         )
     else:
         # We are at a complex card, so we need to do more.
-        has_ablations = True
-        if not ablations:
-            logger.debug(f"{name} has no ablations")
-            has_ablations = False
-            ablations = [("DOES_NOT_HAVE_ABLATIONS", {}, {})]
-        else:
-            ablations = get_all_ablation_combinations(ablations)
+        has_ablations = ablations is not None and len(ablations) > 0
+        ablations = get_all_ablation_combinations(parse_ablations(name, ablations))
 
         has_steps = True
         if not experiment_steps:
@@ -222,7 +226,6 @@ def get_experiment_card_cfg_from_dict(
         # Load the command template information for the given card.
         command_dict = experiment_card_dict.get('command')
         if command_dict is not None:
-
             command_str = PROJECT_ROOT.joinpath(command_dict['file']).read_text()
             command_kwargs = command_dict.get('kwargs', {})
             command_fields = command_dict.get('fields', [])
@@ -231,10 +234,10 @@ def get_experiment_card_cfg_from_dict(
             command_kwargs = {}
             command_fields = []
 
-        for ablation in ablations:
+        for ablation_combo in ablations:
             previous_step = {}
             composed_experiments = ComposedExperiments(
-                name=f"{name}_{ablation[0]}" if has_ablations else name,
+                name=f"{name}_{ablation_combo.name}" if has_ablations else name,
                 step_cards={},
                 command_template=command_str,
                 command_kwargs=command_kwargs,
@@ -248,7 +251,7 @@ def get_experiment_card_cfg_from_dict(
                     group_name=name,
                     step_num=step_num if has_steps else -1,
                     step_dict=step_dict,
-                    ablation=ablation,
+                    ablation=ablation_combo,
                     card_overrides=deepcopy(experiment_overrides),
                     previous_step=previous_step,
                     add_group_name=experiment_card_dict.get('add_name', True)

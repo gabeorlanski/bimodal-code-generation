@@ -1,14 +1,16 @@
 import itertools
 import logging
+from copy import deepcopy
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Dict, Optional, List
+from typing import Dict, Optional, List, Tuple
 
 from hydra import compose, initialize_config_dir
 from omegaconf import OmegaConf, open_dict
 from jinja2 import BaseLoader, Environment, StrictUndefined
 
 from src.common import flatten
+from src.experiment_cards.util import merge_dictionaries
 
 logger = logging.getLogger(__name__)
 
@@ -155,18 +157,150 @@ class ComposedExperiments:
 
 
 @dataclass()
-class AblationCard:
+class AblationCombination:
     # noinspection PyUnresolvedReferences
     """
-    The dataclass for the card that represents an ablation.
-    
+    An combination of multiple ablations
+
+
+    NOTE: there are NOT allowed to be conflicting keys between different
+    ablation groups.
+    Args:
+        name (str): The name of the ablation
+        ablations_info (Dict): The mapping of ablation group name to the
+            ablation from that group.
+
     Attributes:
-      name (str): The name of the ablation.
-      step_overrides (Dict[str, Dict]): The nested dictionary of overrides 
-        where the top level key maps 1:1 to a step.
-      global_overrides (Dict): The dictionary of overrides to apply to 
-        EVERY step.
+        name (str): The name of the ablation
+
+        overrides (Dict): The overrides for this combination.
+
+        step_overrides(Dict): The step overrides for this combination. Step
+            overrides take priority over normal overrides.
+        ablation_values(Dict): The mapping of ablation group to ablation
+            value name. This is NOT to be passed to init.
+
     """
     name: str
-    step_overrides: Dict[str, Dict]
-    global_overrides: Dict[str, Dict]
+    overrides: Dict
+    step_overrides: Dict
+    ablation_values: Dict
+
+    @classmethod
+    def from_ablations_info(cls, name: str, ablations_info: Dict):
+        overrides = {}
+        step_overrides = {}
+        ablation_values = {}
+        for k, v in ablations_info.items():
+            ablation_values[k], ablation_overrides = v
+
+            try:
+                overrides = merge_dictionaries(
+                    overrides,
+                    ablation_overrides.get('overrides', {}),
+                    no_conflicting_leaves=True
+                )
+            except KeyError as e:
+                logger.error(f"Ablation {k} in {name} has conflicting override keys")
+                raise e
+            try:
+                step_overrides = merge_dictionaries(
+                    step_overrides,
+                    ablation_overrides.get('step_overrides', {}),
+                    no_conflicting_leaves=True
+                )
+            except KeyError as e:
+                logger.error(f"Ablation {k} in {name} has conflicting step overrides keys")
+                raise e
+        return cls(
+            name=name,
+            overrides=overrides,
+            step_overrides=step_overrides,
+            ablation_values=ablation_values
+        )
+
+    def __eq__(self, other: 'AblationCombination') -> bool:
+        if self.name != other.name:
+            return False
+
+        if self.overrides != other.overrides:
+            return False
+
+        if self.step_overrides != other.step_overrides:
+            return False
+
+        return self.ablation_values == other.ablation_values
+
+    def get_overrides(self, step: str = None):
+        if step is None:
+            return self.overrides
+
+        return merge_dictionaries(self.overrides, self.step_overrides.get(step, {}))
+
+
+@dataclass()
+class AblationGroup:
+    # noinspection PyUnresolvedReferences
+    """
+    A group of ablations
+
+    Attributes:
+      name (str): The name of the ablation group.
+      ablation_cards (Dict[str,Dict]): The dict of ablation cards
+    """
+    name: str
+    ablation_cards: Dict[str, Dict]
+
+    @property
+    def ablation_names(self) -> List[str]:
+        """
+        Get the list of names for this ablation. Used for creating the ablation
+        combinations.
+
+        Returns:
+            List[str]: The list of names.
+        """
+        return list(self.ablation_cards)
+
+    def __getitem__(self, ablation_name):
+        # Copy to make sure that the underlying mutable values can never be
+        # changed by accident.
+        return deepcopy(self.ablation_cards[ablation_name])
+
+    def __setitem__(self, key, value):
+        raise AttributeError("Setting an item for an ablation group is not supported")
+
+    def __len__(self):
+        return len(self.ablation_cards)
+
+    @classmethod
+    def from_ablation_dict(
+            cls,
+            name: str,
+            ablation_group_dict: Dict[str, Dict]
+    ) -> 'AblationGroup':
+        ablation_cards = {}
+        for ablation_name, ablation_dict in ablation_group_dict.items():
+            step_overrides = ablation_dict.get('step_overrides', None)
+            if step_overrides is not None:
+                if not isinstance(step_overrides, dict):
+                    raise TypeError(f"Ablation dict for {name} has step overrides of "
+                                    f"type {type(step_overrides)}. Must be a dict.")
+                overrides = ablation_dict.get('overrides', {})
+                if not isinstance(overrides, dict):
+                    raise TypeError(f"Ablation dict for {name} has overrides of "
+                                    f"type {type(overrides)}. Must be a dict.")
+            else:
+                step_overrides = {}
+                overrides = ablation_dict
+
+            ablation_cards[ablation_name] = {
+                "name"          : ablation_name,
+                "step_overrides": step_overrides,
+                "overrides"     : overrides
+            }
+
+        return cls(
+            name=name,
+            ablation_cards=ablation_cards
+        )

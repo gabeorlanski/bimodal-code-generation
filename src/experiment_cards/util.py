@@ -1,8 +1,13 @@
 from copy import deepcopy
-from typing import Dict
+from typing import Dict, List, Optional
 
 
-def merge_dictionaries(left: Dict, right: Dict, path=None) -> Dict:
+def merge_dictionaries(
+        left: Dict,
+        right: Dict,
+        path: Optional[List[str]] = None,
+        no_conflicting_leaves: bool = False
+) -> Dict:
     """
     Merges the two dictionaries into each other. Will give priority to the 
     values in ``right`` (i.e. if a key is in both, the value from ``right`` 
@@ -13,22 +18,30 @@ def merge_dictionaries(left: Dict, right: Dict, path=None) -> Dict:
     Args:
         left (dict): The left dict.
         right (dict): The right dict.
-        path (List[str]): The path to where we currently are. 
+        path (List[str]): The path to where we currently are.
+        no_conflicting_leaves (bool): Raise an error if the two dictionaries
+            share leaves.
 
     Returns:
         Dict: The merged dictionaries.
     """
     if path is None:
         path = []
-
+    out = deepcopy(left)
     for key in right:
-        if key in left:
-            if isinstance(left[key], dict) and isinstance(left[key], dict):
-                merge_dictionaries(left[key], right[key], path + [str(key)])
-            elif left[key] == right[key]:
+        if key in out:
+            if isinstance(out[key], dict) and isinstance(out[key], dict):
+                out[key] = merge_dictionaries(out[key], right[key], path + [str(key)],
+                                              no_conflicting_leaves=no_conflicting_leaves)
+            elif out[key] == right[key]:
                 pass  # same leaf value
             else:
-                left[key] = right[key]
+                if no_conflicting_leaves:
+                    raise KeyError(
+                        f"{'->'.join(path or [])}[{key}] is found "
+                        f"in both dictionaries."
+                    )
+                out[key] = right[key]
         else:
-            left[key] = right[key]
-    return left
+            out[key] = right[key]
+    return out
