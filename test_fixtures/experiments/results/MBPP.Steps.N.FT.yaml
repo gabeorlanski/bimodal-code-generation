@@ -10,6 +10,8 @@ is_checkpoint: True
 model_path: best_models/SO.Steps.N.PT
 meta:
   ablation: N
+  ablation_vals:
+    Model: N
   card_name: Steps
   step: FT
 test:

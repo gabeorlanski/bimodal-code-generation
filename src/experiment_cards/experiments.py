@@ -11,6 +11,7 @@ from collections import Counter
 
 from src.common import PROJECT_ROOT
 from src.experiment_cards.cards import ExperimentCard, ComposedExperiments
+from src.experiment_cards.util import merge_dictionaries
 
 logger = logging.getLogger(__name__)
 
@@ -42,20 +43,69 @@ def get_all_ablation_combinations(ablation_list: List[Dict]):
     return out
 
 
-def merge(a, b, path=None):
-    "merges b into a"
-    if path is None: path = []
-    for key in b:
-        if key in a:
-            if isinstance(a[key], dict) and isinstance(b[key], dict):
-                merge(a[key], b[key], path + [str(key)])
-            elif a[key] == b[key]:
-                pass  # same leaf value
-            else:
-                a[key] = b[key]
-        else:
-            a[key] = b[key]
-    return a
+def make_experiment_card(
+        group_name: str,
+        step_num: int,
+        step_dict: Dict,
+        ablation: Tuple,
+        card_overrides: Dict,
+        previous_step: Dict,
+        add_group_name: bool
+):
+    # Do basic error checking.
+    for k in ['name', 'group', 'base']:
+        if k not in step_dict or step_dict[k] is None:
+            raise KeyError(f"Step {step_num} in {group_name} is missing key {k}")
+    step_name = step_dict['name']
+    step_group = step_dict['group']
+    step_base = step_dict['base']
+
+    ablation_name, ablation_vals, ablation_overrides = ablation
+    has_ablations = ablation_name != "DOES_NOT_HAVE_ABLATIONS"
+    has_steps = step_num != -1
+
+    step_overrides = deepcopy(step_dict.get("overrides", {}))
+    group_name = group_name if add_group_name else ''
+    if has_ablations:
+        group_name += f"{'.' if add_group_name else ''}{ablation_name}"
+
+    # If there are not steps, would just repeat its own name so
+    # this bool stops that.
+    if has_steps and step_dict.get('add_name', True):
+        group_name += f"{'.' if add_group_name or has_ablations else ''}{step_name}"
+
+    if has_ablations:
+        card_overrides['meta']['ablation'] = ablation_name
+        card_overrides['meta']['ablation_vals'] = ablation_vals
+
+    if has_steps:
+        card_overrides['meta']['step'] = step_name
+
+    # Step gets priority over experiment.
+    card_overrides = merge_dictionaries(card_overrides, step_overrides)
+
+    # Ablation gets priority over step
+    card_overrides = merge_dictionaries(card_overrides, ablation_overrides)
+
+    # Make it into a dict config so we can use interpolation.
+    cfg = OmegaConf.create({
+        # Previous step is only in here so the current step can
+        # use interpolation on it.
+        "previous_step": previous_step,
+        "name"         : group_name,
+        "group"        : step_group,
+        "base"         : step_base,
+        "overrides"    : deepcopy(card_overrides),
+        "depends_on"   : previous_step.get('save_name')
+    })
+    OmegaConf.resolve(cfg)
+
+    cfg = OmegaConf.to_object(cfg)
+
+    # Pop the previous step key because it is no longer needed.
+    cfg.pop("previous_step")
+
+    return ExperimentCard(**cfg)
 
 
 def get_experiment_card_cfg_from_dict(
@@ -89,9 +139,9 @@ def get_experiment_card_cfg_from_dict(
     experiment_overrides.update(experiment_card_dict.get('overrides', {}))
 
     experiment_overrides['meta'] = {
-        "ablation"     : None,
-        "step"         : None,
-        "card_name"    : name
+        "ablation" : None,
+        "step"     : None,
+        "card_name": name
     }
 
     logger.info(f"Experiment {name} has group {experiment_group}")
@@ -123,7 +173,7 @@ def get_experiment_card_cfg_from_dict(
         if not ablations:
             logger.debug(f"{name} has no ablations")
             has_ablations = False
-            ablations = [("NONE", {})]
+            ablations = [("DOES_NOT_HAVE_ABLATIONS", {}, {})]
         else:
             ablations = get_all_ablation_combinations(ablations)
 
@@ -152,10 +202,10 @@ def get_experiment_card_cfg_from_dict(
             command_kwargs = {}
             command_fields = []
 
-        for ablation_name, ablation_vals, ablation_overrides in ablations:
+        for ablation in ablations:
             previous_step = {}
             composed_experiments = ComposedExperiments(
-                name=f"{name}_{ablation_name}" if has_ablations else name,
+                name=f"{name}_{ablation[0]}" if has_ablations else name,
                 step_cards={},
                 command_template=command_str,
                 command_kwargs=command_kwargs,
@@ -163,64 +213,19 @@ def get_experiment_card_cfg_from_dict(
             )
 
             for step_num, step_dict in enumerate(experiment_steps):
-
-                # Do basic error checking.
-                step_name = step_dict.get('name')
-                step_group = step_dict.get('group')
-                step_base = step_dict.get('base')
-                if any([step_dict.get(k) is None for k in ['name', 'group', 'base']]):
-                    logger.error(f"{step_base=}")
-                    logger.error(f"{step_name=}")
-                    logger.error(f"{step_group=}")
-                    raise ValueError(f"Step {step_num} in {name} does not have correct keys")
-
-                step_overrides = deepcopy(step_dict.get("overrides", {}))
-                add_group_name = experiment_card_dict.get('add_name', True)
-                card_name = name if add_group_name else ''
-                if has_ablations:
-                    card_name += f"{'.' if add_group_name else ''}{ablation_name}"
-
-                # If there are not steps, would just repeat its own name so
-                # this bool stops that.
-                if has_steps and step_dict.get('add_name', True):
-                    card_name += f"{'.' if add_group_name or has_ablations else ''}{step_name}"
-
                 # Deepcopy here so we do not change any of the underlying
                 # mutable objects on each iteration.
-                card_overrides = deepcopy(experiment_overrides)
+                card = make_experiment_card(
+                    group_name=name,
+                    step_num=step_num if has_steps else -1,
+                    step_dict=step_dict,
+                    ablation=ablation,
+                    card_overrides=deepcopy(experiment_overrides),
+                    previous_step=previous_step,
+                    add_group_name=experiment_card_dict.get('add_name', True)
+                )
 
-                if has_ablations:
-                    card_overrides['meta']['ablation'] = ablation_name
-                    card_overrides['meta']['ablation_vals'] = ablation_vals
-                if has_steps:
-                    card_overrides['meta']['step'] = step_name
-
-                # Step gets priority over experiment.
-                card_overrides = merge(card_overrides, step_overrides)
-
-                # Ablation gets priority over step
-                card_overrides = merge(card_overrides, ablation_overrides)
-
-                # Make it into a dict config so we can use interpolation.
-                cfg = OmegaConf.create({
-                    # Previous step is only in here so the current step can
-                    # use interpolation on it.
-                    "previous_step": previous_step,
-                    "name"         : card_name,
-                    "group"        : step_group,
-                    "base"         : step_base,
-                    "overrides"    : deepcopy(card_overrides),
-                    "depends_on"   : previous_step.get('save_name')
-                })
-                OmegaConf.resolve(cfg)
-
-                cfg = OmegaConf.to_object(cfg)
-
-                # Pop the previous step key because it is no longer needed.
-                cfg.pop("previous_step")
-
-                card = ExperimentCard(**cfg)
-                composed_experiments.step_cards[step_name] = card
+                composed_experiments.step_cards[step_dict.get('name')] = card
                 previous_step = {'save_name': card.save_name, **asdict(card)}
             yield composed_experiments
 

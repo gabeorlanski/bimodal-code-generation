@@ -7,6 +7,8 @@ objective: lm
 task: so
 meta:
   ablation: S
+  ablation_vals:
+    Model: S
   card_name: Steps
   step: PT
 test:

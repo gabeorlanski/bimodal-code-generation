@@ -62,16 +62,16 @@ experiments:
           task: so
           #          ++task.max_samples: 27000
           ++task.max_val_samples: 250
-#      - name: FineTune
-#        base: greene_config
-#        group: MBPP
-#        overrides:
-#          objective: 'lm'
-#          task: mbpp
-#          ++is_checkpoint: True
-#          ++model_path: best_models/${..previous_step.save_name}
-#          training:
-#            learning_rate: 5e-5
+      - name: FineTune
+        base: greene_config
+        group: MBPP
+        overrides:
+          objective: 'lm'
+          task: mbpp
+          ++is_checkpoint: True
+          ++model_path: best_models/{{ previous_step.save_name }}
+          training:
+            learning_rate: 5e-5
 #      - name: Eval
 #        base: eval_config
 #        group: MBPP
