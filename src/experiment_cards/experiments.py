@@ -16,7 +16,19 @@ from src.experiment_cards.util import merge_dictionaries
 logger = logging.getLogger(__name__)
 
 
-def get_all_ablation_combinations(ablation_list: List[Dict]):
+def get_all_ablation_combinations(ablation_list: List[Dict]) -> List[Tuple[str, Dict, Dict]]:
+    """
+    Get the list of all combinations for ablations.
+
+    Args:
+        ablation_list (List[Dict]): The list of ablation dicts.
+
+    Returns:
+        List[Tuple[str, Dict, Dict]]: The list of tuples where the first
+            element is the name of the ablation, the second element is the
+            ablation value mapping of ablation group names to values, and the
+            final is the dict of ablation overrides.
+    """
     logger.info(f"Making ablation combinations for {len(ablation_list)} items.")
     all_keys = []
     ablation_names = []
@@ -51,7 +63,24 @@ def make_experiment_card(
         card_overrides: Dict,
         previous_step: Dict,
         add_group_name: bool
-):
+) -> ExperimentCard:
+    """
+    Create a single experiment card.
+
+    Args:
+        group_name (str): The name of the group that this experiment belongs too.
+        step_num (int): The index of the corresponding step. If it is -1, then
+            there is NO step.
+        step_dict (Dict): The dict for the current step.
+        ablation (Tuple): The ablation tuple. If there are no ablations, then
+            the ablation name is "DOES_NOT_HAVE_ABLATIONS"
+        card_overrides (Dict): The dict of card overrides to use.
+        previous_step (Dict): The dict of the previous step.
+        add_group_name (bool): Add the group name to the experiment or not.
+
+    Returns:
+        ExperimentCard: The created experiment card.
+    """
     # Do basic error checking.
     for k in ['name', 'group', 'base']:
         if k not in step_dict or step_dict[k] is None:

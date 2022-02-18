@@ -21,24 +21,21 @@ JINJA_ENV.undefined = StrictUndefined
 
 @dataclass()
 class ExperimentCard:
+    # noinspection PyUnresolvedReferences
     """
     Base Experiment Card Describing a single experiment
+    Attributes:
+        name (str): Name of the experiment
+        base (str): Base config from the config_directory to load with hydra.
+        group (str): Group of this experiment
+        overrides (Dict): List of Hydra overrides to use for the config.
+        depends_on (str): The step/config this card is dependent on.
     """
-    name: str = field(metadata={
-        "help": "Name of the experiment."
-    })
-    base: str = field(metadata={
-        "help": "Base config from the config_directory to load with hydra."
-    })
-    group: str = field(metadata={
-        "help": "Group of this experiment"
-    })
-    overrides: Dict = field(default_factory=dict, metadata={
-        "help": "List of Hydra overrides to use for the config."
-    })
-    depends_on: str = field(default=None, metadata={
-        "help": "The step/config this card is dependent on."
-    })
+    name: str
+    base: str
+    group: str
+    overrides: Dict = field(default_factory=dict)
+    depends_on: str = field(default=None)
 
     @property
     def save_name(self):
@@ -47,24 +44,25 @@ class ExperimentCard:
 
 @dataclass()
 class ComposedExperiments:
+    # noinspection PyUnresolvedReferences
     """
     A composition of many experiments that fall into the same group
+    
+    Attributes:
+        name (str):  Name of the group of experiments composed.
+        step_cards (Dict[str, ExperimentCard]): The list of experiment cards
+            in this group.
+        command_template (Optional[str]): Bash command templates for this group.
+        command_kwargs (Optional[Dict]): Dictionary of arguments to pass to the 
+            jinja render.
+        command_fields (Optional[List]): List of config specific fields to add 
+            to the command kwargs
     """
-    name: str = field(metadata={
-        "help": "Name of the group of experiments composed."
-    })
-    step_cards: Dict[str, ExperimentCard] = field(metadata={
-        "help": "The list of experiment cards in this group."
-    })
-    command_template: Optional[str] = field(default=None, metadata={
-        "help": "Bash command templates for this group."
-    })
-    command_kwargs: Optional[Dict] = field(default_factory=dict, metadata={
-        "help": "Dictionary of arguments to pass to the jinja render."
-    })
-    command_fields: Optional[List] = field(default_factory=list, metadata={
-        "help": "List of config specific fields to add to the command."
-    })
+    name: str
+    step_cards: Dict[str, ExperimentCard]
+    command_template: Optional[str] = field(default=None)
+    command_kwargs: Optional[Dict] = field(default_factory=dict)
+    command_fields: Optional[List] = field(default_factory=list)
 
     def __post_init__(self):
         if self.command_template:
@@ -158,43 +156,17 @@ class ComposedExperiments:
 
 @dataclass()
 class AblationCard:
-    name: str = field(metadata={
-        "help": "Name of the ablation."
-    })
-    overrides: Dict[str, Dict] = field(metadata={
-        "help": "The key:values of the ablation."
-    })
-
-
-@dataclass()
-class GridAblation(AblationCard):
-    overrides: Dict[str, Dict] = field(metadata={
-        "help": "The key values for the ablation. For the grid ablation, "
-                "you must, however, specify slots to fill using jinja templates."
-    })
-    grid_values: Dict[str, List] = field(metadata={
-        "help": "The grid of values to use."
-    })
-
-    name_template: str = field(metadata={
-        'help': "The jinja template for formatting names"
-    })
-
-    def __post_init__(self):
-        field_idx_mapping = {}
-        all_values = []
-        name_template = JINJA_ENV.from_string(self.name_template)  # type:ignore
-
-        for i, (grid_field, grid_value) in enumerate(self.grid_values.items()):
-            field_idx_mapping[i] = {}
-            all_values.append(grid_value)
-
-        new_overrides = {}
-        for combo in itertools.product(*all_values):
-            field_dict = {field_idx_mapping[i]: v for i, v in enumerate(combo)}
-            # ablation_name =
-
-
-STR_TO_CLASS_MAPPING = {
-    "grid": GridAblation
-}
+    # noinspection PyUnresolvedReferences
+    """
+    The dataclass for the card that represents an ablation.
+    
+    Attributes:
+      name (str): The name of the ablation.
+      step_overrides (Dict[str, Dict]): The nested dictionary of overrides 
+        where the top level key maps 1:1 to a step.
+      global_overrides (Dict): The dictionary of overrides to apply to 
+        EVERY step.
+    """
+    name: str
+    step_overrides: Dict[str, Dict]
+    global_overrides: Dict[str, Dict]
