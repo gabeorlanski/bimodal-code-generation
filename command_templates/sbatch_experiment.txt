@@ -1,3 +1,2 @@
-rm -rf sbatch_logs
-mkdir sbatch_logs
-rm generated_experiments/cancel_jobs.sh
+#rm -rf sbatch_logs
+#mkdir sbatch_logs
