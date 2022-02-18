@@ -14,18 +14,24 @@ experiments:
     ablations:
       - DumpName:
           Negative:
-            ++task.dump_name: negative
-            ++task.answer_sorting: ascending
-            ++training:
-              save_steps: 250
-              eval_steps: 250
-              logging_steps: 100
+            overrides:
+              ++task.dump_name: negative
+              ++task.answer_sorting: ascending
+            step_overrides:
+              PreTrain:
+                ++training:
+                  save_steps: 250
+                  eval_steps: 250
+                  logging_steps: 100
           Exceptions:
-            ++task.dump_name: exceptions
-            ++training:
-              save_steps: 2500
-              eval_steps: 2500
-              logging_steps: 250
+            overrides:
+              ++task.dump_name: exceptions
+            step_overrides:
+              PreTrain:
+                ++training:
+                  save_steps: 2500
+                  eval_steps: 2500
+                  logging_steps: 250
       #          General:
       #            ++task.dump_name: general
       #            ++training:
@@ -33,12 +39,15 @@ experiments:
       #              eval_steps: 2500
       #              logging_steps: 250
           HighQual:
-            ++task.dump_name: high_qual
-            ++task.answer_sorting: descending
-            ++training:
-              save_steps: 200
-              eval_steps: 200
-              logging_steps: 50
+            overrides:
+              ++task.dump_name: high_qual
+              ++task.answer_sorting: descending
+            step_overrides:
+              PreTrain:
+                ++training:
+                  save_steps: 200
+                  eval_steps: 200
+                  logging_steps: 50
       - AnswerCount:
           0:
             ++task.answers_per_sample: 0
