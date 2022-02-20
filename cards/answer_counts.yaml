@@ -33,7 +33,8 @@ experiments:
                   eval_steps: 2500
                   logging_steps: 250
           General:
-            ++task.dump_name: general
+            overrides:
+              ++task.dump_name: general
             step_overrides:
               PreTrain:
                 ++training:
