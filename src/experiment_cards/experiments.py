@@ -97,7 +97,7 @@ def make_experiment_card(
     step_group = step_dict['group']
     step_base = step_dict['base']
 
-    has_ablations = ablation.name != "DOES_NOT_HAVE_ABLATIONS"
+    has_ablations = not ablation.is_empty
     has_steps = step_num != -1
 
     step_overrides = deepcopy(step_dict.get("overrides", {}))

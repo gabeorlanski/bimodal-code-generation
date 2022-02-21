@@ -106,6 +106,22 @@ def setup_lm(cfg, task):
 
 
 def setup_pretrain(cfg, tokenizer):
+    additional_kwargs = {
+        k: cfg.task[k]
+        for k in [
+            "repeat_question_for_each_answer", "good_answer_cutoff",
+            "bad_answer_cutoff", "answer_prompt", "question_prompt",
+            "use_eos_token_when_repeat"
+        ]
+    }
+
+    if additional_kwargs['answer_prompt'] == "None":
+        additional_kwargs['answer_prompt'] = None
+
+    if additional_kwargs['question_prompt'] == "None":
+        additional_kwargs['question_prompt'] = None
+    if additional_kwargs['repeat_question_for_each_answer'] == "None":
+        additional_kwargs['question_prompt'] = None
     train_dataset = StackOverflowTask(
         dump_name=cfg.task.dump_name,
         data_path=cfg.task.train_path,
@@ -116,7 +132,8 @@ def setup_pretrain(cfg, tokenizer):
         sequence_length=cfg.task.sequence_length,
         num_proc=cfg.get("num_proc", 1),
         seed=cfg.task.seed,
-        max_steps=cfg.training.get('max_steps', -1)
+        max_steps=cfg.training.get('max_steps', -1),
+        **additional_kwargs
     )
     eval_dataset = StackOverflowTask(
         dump_name=f"{cfg.task.dump_name}_val",
@@ -127,7 +144,8 @@ def setup_pretrain(cfg, tokenizer):
         answers_per_sample=cfg.task.answers_per_sample,
         sequence_length=cfg.task.sequence_length,
         num_proc=cfg.get("num_proc", 1),
-        seed=cfg.task.seed
+        seed=cfg.task.seed,
+        **additional_kwargs
     )
     return train_dataset, eval_dataset, None
 

@@ -110,7 +110,12 @@ class ComposedExperiments:
                     override_key = f"++{k.replace('++', '')}"
                 elif "+" in k:
                     override_key = f"+{k.replace('+', '')}"
-                overrides_list.append(f"{override_key}={v}")
+
+                if isinstance(v, str) and "__" in v:
+                    value= f'"{v}"'
+                else:
+                    value = v
+                overrides_list.append(f"{override_key}={value}")
 
             logger.info(f"{len(overrides_list)} overrides to use for {experiment.name}")
             logger.debug(f"Overrides for {experiment.name=}: {', '.join(overrides_list)}")
@@ -236,6 +241,10 @@ class AblationCombination:
             return self.overrides
 
         return merge_dictionaries(self.overrides, self.step_overrides.get(step, {}))
+
+    @property
+    def is_empty(self):
+        return self.name == "NO_ABLATIONS_FOUND"
 
 
 @dataclass()
