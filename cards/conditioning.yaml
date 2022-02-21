@@ -50,9 +50,12 @@ experiments:
         group: SO
         overrides:
           objective: 'lm'
-          training:
+          ++training:
             learning_rate: 1e-3
             max_steps: -1
+            save_steps: 250
+            eval_steps: 250
+            logging_steps: 100
           tracking:
             log_model: true
           task: so
