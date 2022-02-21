@@ -1,6 +1,6 @@
 starting_commands: command_templates/sbatch_experiment.txt
 experiments:
-  Condition100K.General:
+  Condition250K.General:
     overrides:
       ++device: 0
       +disable_cache: True
@@ -59,7 +59,7 @@ experiments:
           tracking:
             log_model: true
           task: so
-          ++task.max_samples: 100000
+          ++task.max_samples: 250000
           ++task.max_val_samples: 250
       - name: FineTune
         base: condition_finetune
