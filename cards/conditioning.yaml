@@ -18,30 +18,30 @@ experiments:
           TitleEOS:
             ++task.repeat_question_for_each_answer: title
             ++task.use_eos_token_when_repeat: true
-#          Title:
-#            ++task.repeat_question_for_each_answer: title
-#            ++task.use_eos_token_when_repeat: false
-#          FullEOS:
-#            ++task.repeat_question_for_each_answer: full
-#            ++task.use_eos_token_when_repeat: true
-#          Full:
-#            ++task.repeat_question_for_each_answer: full
-#            ++task.use_eos_token_when_repeat: false
-#          NoneEOS:
-#            ++task.repeat_question_for_each_answer:
-#            ++task.use_eos_token_when_repeat: false
-#      - AnswerPrompt:
-#          APrompt:
-#            ++task.answer_prompt: "A __QUALITY__ answer:"
-#          NoAPrompt:
-#            ++task.answer_prompt:
-#      - QuestionPrompt:
-#          QPrompt:
-#            ++task.question_prompt: "Given the question: __TITLE__
-#
-#            __BODY__"
-#          NoQPrompt:
-#            ++task.question_prompt:
+          Title:
+            ++task.repeat_question_for_each_answer: title
+            ++task.use_eos_token_when_repeat: false
+          FullEOS:
+            ++task.repeat_question_for_each_answer: full
+            ++task.use_eos_token_when_repeat: true
+          Full:
+            ++task.repeat_question_for_each_answer: full
+            ++task.use_eos_token_when_repeat: false
+          NoneEOS:
+            ++task.repeat_question_for_each_answer:
+            ++task.use_eos_token_when_repeat: false
+      - AnswerPrompt:
+          APrompt:
+            ++task.answer_prompt: "A __QUALITY__ answer:"
+          NoAPrompt:
+            ++task.answer_prompt:
+      - QuestionPrompt:
+          QPrompt:
+            ++task.question_prompt: "Given the question: __TITLE__
+            
+            __BODY__"
+          NoQPrompt:
+            ++task.question_prompt:
 
 
     steps:
