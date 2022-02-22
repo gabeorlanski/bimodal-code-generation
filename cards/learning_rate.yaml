@@ -64,7 +64,6 @@ experiments:
         overrides:
           objective: 'lm'
           ++training:
-            max_steps: -1
             save_steps: 250
             eval_steps: 250
             logging_steps: 100

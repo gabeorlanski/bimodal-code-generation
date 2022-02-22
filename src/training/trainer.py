@@ -183,8 +183,10 @@ class CustomTrainer(Seq2SeqTrainer):
             ignore_keys: Optional[List[str]] = None,
             metric_key_prefix: str = "eval",
     ):
-        logger.debug(f"{type(dataloader.dataset)=}")
-        logger.debug(f"{isinstance(dataloader.dataset, collections.abc.Sized)=}")
+        if isinstance(dataloader.dataset, collections.abc.Sized):
+            logger.debug(f"Eval Loop is called for {len(dataloader.dataset)} samples")
+        else:
+            logger.debug(f"Eval loop is called")
         return super(CustomTrainer, self).evaluation_loop(
             dataloader,
             description,

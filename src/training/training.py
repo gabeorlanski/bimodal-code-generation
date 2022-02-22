@@ -132,7 +132,6 @@ def setup_pretrain(cfg, tokenizer):
         sequence_length=cfg.task.sequence_length,
         num_proc=cfg.get("num_proc", 1),
         seed=cfg.task.seed,
-        max_steps=cfg.training.get('max_steps', -1),
         **additional_kwargs
     )
     eval_dataset = StackOverflowTask(

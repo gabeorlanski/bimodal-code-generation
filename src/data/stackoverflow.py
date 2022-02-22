@@ -79,6 +79,9 @@ class StackOverflowTask(IterableDataset):
             self.num_samples = self.max_steps
         else:
             self.num_samples = len([1 for _ in self])
+        logger.debug(f"{self.num_samples} total samples")
+        self.samples_seen = 0
+        self.epoch = 0
 
     def get_samples_mask(self, total, num_to_select):
         # Just made this function to mock
@@ -189,11 +192,10 @@ class StackOverflowTask(IterableDataset):
         return self.tokenizer(sequences, truncation=False, add_special_tokens=False)['input_ids']
 
     def __iter__(self):
+        logger.debug(f"StackOverflowTask Iter was called.")
         data_iterator = iter(self.data)
         more_examples = True
         num_samples_yielded = 0
-        self.samples_seen = 0
-        self.epoch = 0
         buffer = []
         while more_examples:
             if self.num_samples != -1 and num_samples_yielded >= self.num_samples:
