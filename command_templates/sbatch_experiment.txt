@@ -1,4 +1,4 @@
-# rm -rf sbatch_logs
-# mkdir sbatch_logs
-rm generated_experiments/cancel_jobs.sh
+rm -rf sbatch_logs
+mkdir sbatch_logs
+rm -f generated_experiments/cancel_jobs.sh
 echo "#!/bin/bash" >> generated_experiments/cancel_jobs.sh

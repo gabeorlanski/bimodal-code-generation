@@ -7,7 +7,7 @@ experiments:
       ++tracking:
         log_model: false
       ++model: 'lvwerra/codeparrot-small'
-      ++num_proc: 4
+      ++num_proc: 8
       ++training:
         batch_size: 32
         gradient_accumulation_steps: 1
@@ -60,6 +60,8 @@ experiments:
           tracking:
             log_model: true
           task: so
+
+          ++task.max_samples: 500000
           ++task.max_val_samples: 250
       - name: FineTune
         base: greene_config
@@ -98,7 +100,7 @@ experiments:
       ++tracking:
         log_model: false
       ++model: 'lvwerra/codeparrot-small'
-      ++num_proc: 4
+      ++num_proc: 8
       ++training:
         batch_size: 32
         gradient_accumulation_steps: 1
