@@ -19,32 +19,44 @@ experiments:
             overrides:
               ++pretrain_lr: 1e-3
             step_overrides:
-              ++training:
-                learning_rate: 1e-3
+              PreTrain:
+                ++training.learning_rate: 1e-3
           5eNeg4:
             overrides:
               ++pretrain_lr: 5e-4
             step_overrides:
-              ++training:
-                learning_rate: 5e-4
+              PreTrain:
+                ++training.learning_rate: 5e-4
           1eNeg4:
             overrides:
               ++pretrain_lr: 1e-4
             step_overrides:
-              ++training:
-                learning_rate: 1e-4
+              PreTrain:
+                ++training.learning_rate: 1e-4
           5eNeg5:
             overrides:
               ++pretrain_lr: 5e-5
             step_overrides:
-              ++training:
-                learning_rate: 5e-5
+              PreTrain:
+                ++training.learning_rate: 5e-5
           1eNeg5:
             overrides:
               ++pretrain_lr: 1e-5
             step_overrides:
-              ++training:
-                learning_rate: 1e-5
+              PreTrain:
+                ++training.learning_rate: 1e-5
+          5eNeg6:
+            overrides:
+              ++pretrain_lr: 5e-6
+            step_overrides:
+              PreTrain:
+                ++training.learning_rate: 5e-6
+          1eNeg6:
+            overrides:
+              ++pretrain_lr: 1e-6
+            step_overrides:
+              PreTrain:
+                ++training.learning_rate: 1e-6
     steps:
       - name: PreTrain
         base: pretrain_config
