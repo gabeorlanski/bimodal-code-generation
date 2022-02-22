@@ -106,7 +106,7 @@ def test_get_text_from_sample_repeat(sample_parsed_so, repeat_mode, answer_promp
         sample_parsed_so,
         AutoTokenizer.from_pretrained('gpt2'),
         max_samples=2,
-        use_eos_token_when_repeat=use_eos_token,
+        join_answers_with_eos_token=use_eos_token,
         answer_prompt=answer_prompt_template,
         question_prompt=question_prompt_template,
         repeat_question_for_each_answer=repeat_mode
@@ -129,7 +129,7 @@ def test_get_text_from_sample_repeat(sample_parsed_so, repeat_mode, answer_promp
             expected_answer_strs[2],
         ]
 
-    if repeat_mode is not None and use_eos_token:
+    if use_eos_token:
         expected = f"{task.tokenizer.eos_token}".join(expected)
     else:
         expected = '\n'.join(expected)

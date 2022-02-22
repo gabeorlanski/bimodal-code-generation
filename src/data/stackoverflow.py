@@ -43,7 +43,7 @@ class StackOverflowTask(IterableDataset):
             bad_answer_cutoff: int = -1,
             answer_prompt: str = None,
             question_prompt: str = None,
-            use_eos_token_when_repeat: bool = False,
+            join_answers_with_eos_token: bool = False,
             add_question_prompt: bool = False
     ):
         super(StackOverflowTask, self).__init__()
@@ -58,7 +58,7 @@ class StackOverflowTask(IterableDataset):
         self.answer_prompt = answer_prompt if answer_prompt else None
         self.question_prompt = question_prompt if question_prompt else None
         self.add_question_prompt = add_question_prompt
-        self.use_eos_token_when_repeat = use_eos_token_when_repeat
+        self.join_answers_with_eos_token = join_answers_with_eos_token
 
         self.tokenizer = tokenizer
         self.answer_sorting = answer_sorting
@@ -166,12 +166,13 @@ class StackOverflowTask(IterableDataset):
                 answer_str = answer['body']
 
             # We only care about repeating after the first answer.
-            if i > 0 and self.repeat_question_for_each_answer is not None:
-                if self.repeat_question_for_each_answer == "title":
-                    answer_str = f"{sample['title']}\n{answer_str}"
-                elif self.repeat_question_for_each_answer == "full":
-                    answer_str = f"{question_str}\n{answer_str}"
-                if self.use_eos_token_when_repeat:
+            if i > 0:
+                if self.repeat_question_for_each_answer is not None:
+                    if self.repeat_question_for_each_answer == "title":
+                        answer_str = f"{sample['title']}\n{answer_str}"
+                    elif self.repeat_question_for_each_answer == "full":
+                        answer_str = f"{question_str}\n{answer_str}"
+                if self.join_answers_with_eos_token:
                     out += f"{self.tokenizer.eos_token}{answer_str}"
                 else:
                     out += f"\n{answer_str}"

@@ -13,6 +13,6 @@ good_answer_cutoff: 3
 bad_answer_cutoff: -1
 answer_prompt: null
 question_prompt: null
-use_eos_token_when_repeat: false
+join_answers_with_eos_token: false
 sequence_length: 512
 seed: 1
