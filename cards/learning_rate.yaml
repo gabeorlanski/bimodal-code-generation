@@ -1,0 +1,173 @@
+starting_commands: command_templates/sbatch_experiment.txt
+experiments:
+  LR10K.General:
+    overrides:
+      ++device: 0
+      +disable_cache: True
+      ++tracking:
+        log_model: false
+      ++model: 'lvwerra/codeparrot-small'
+      ++num_proc: 4
+      ++training:
+        batch_size: 32
+        gradient_accumulation_steps: 1
+      ++task.dump_name: general
+      ++task.answers_per_sample: -1
+    ablations:
+      - LearningRate:
+          1eNeg3:
+            overrides:
+              ++pretrain_lr: 1e-3
+            step_overrides:
+              ++training:
+                learning_rate: 1e-3
+          5eNeg4:
+            overrides:
+              ++pretrain_lr: 5e-4
+            step_overrides:
+              ++training:
+                learning_rate: 5e-4
+          1eNeg4:
+            overrides:
+              ++pretrain_lr: 1e-4
+            step_overrides:
+              ++training:
+                learning_rate: 1e-4
+          5eNeg5:
+            overrides:
+              ++pretrain_lr: 5e-5
+            step_overrides:
+              ++training:
+                learning_rate: 5e-5
+          1eNeg5:
+            overrides:
+              ++pretrain_lr: 1e-5
+            step_overrides:
+              ++training:
+                learning_rate: 1e-5
+    steps:
+      - name: PreTrain
+        base: pretrain_config
+        group: SO
+        overrides:
+          objective: 'lm'
+          ++training:
+            max_steps: -1
+            save_steps: 250
+            eval_steps: 250
+            logging_steps: 100
+            max_steps: 10000
+          tracking:
+            log_model: true
+          task: so
+          ++task.max_val_samples: 250
+      - name: FineTune
+        base: greene_config
+        group: MBPP
+        overrides:
+          objective: 'lm'
+          task: mbpp
+          ++is_checkpoint: True
+          ++model_path: best_models/${..__META__.previous_step.save_name}
+          training:
+            learning_rate: 5e-5
+      - name: Eval
+        base: eval_config
+        group: MBPP
+        overrides:
+          batch_size: 200
+          remove_input_ids: true
+          ++generation:
+            max_new_tokens: 256
+          ++device: 0
+          task: mbpp
+          remove_input_ids: true
+          ++model_path: best_models/${..__META__.previous_step.save_name}
+    command:
+      file: command_templates/pretrain_then_finetune.txt
+      kwargs:
+        num_return_sequences: 200
+        task_name: MBPP
+        train_sbatch: train_single_gpu
+      fields:
+        - model_path
+  QuestionRepeats100K.General:
+    overrides:
+      ++device: 0
+      +disable_cache: True
+      ++tracking:
+        log_model: false
+      ++model: 'lvwerra/codeparrot-small'
+      ++num_proc: 4
+      ++training:
+        batch_size: 32
+        gradient_accumulation_steps: 1
+      ++task.dump_name: general
+      ++task.answers_per_sample: -1
+    ablations:
+      - RepeatQuestion:
+          TitleEOS:
+            ++task.repeat_question_for_each_answer: title
+            ++task.use_eos_token_when_repeat: true
+          Title:
+            ++task.repeat_question_for_each_answer: title
+            ++task.use_eos_token_when_repeat: false
+          FullEOS:
+            ++task.repeat_question_for_each_answer: full
+            ++task.use_eos_token_when_repeat: true
+          Full:
+            ++task.repeat_question_for_each_answer: full
+            ++task.use_eos_token_when_repeat: false
+          NoRepeatEOS:
+            ++task.repeat_question_for_each_answer:
+            ++task.use_eos_token_when_repeat: true
+          NoRepeat:
+            ++task.repeat_question_for_each_answer:
+            ++task.use_eos_token_when_repeat: false
+    steps:
+      - name: PreTrain
+        base: pretrain_config
+        group: SO
+        overrides:
+          objective: 'lm'
+          ++training:
+            learning_rate: 5e-4
+            max_steps: -1
+            save_steps: 500
+            eval_steps: 500
+            logging_steps: 100
+          tracking:
+            log_model: true
+          task: so
+          ++task.max_samples: 100000
+          ++task.max_val_samples: 250
+      - name: FineTune
+        base: greene_config
+        group: MBPP
+        overrides:
+          objective: 'lm'
+          task: mbpp
+          ++is_checkpoint: True
+          ++model_path: best_models/${..__META__.previous_step.save_name}
+          training:
+            learning_rate: 5e-5
+      - name: Eval
+        base: eval_config
+        group: MBPP
+        overrides:
+          batch_size: 200
+          remove_input_ids: true
+          ++generation:
+            max_new_tokens: 256
+          ++device: 0
+          task: mbpp
+          remove_input_ids: true
+          ++model_path: best_models/${..__META__.previous_step.save_name}
+    command:
+      file: command_templates/pretrain_then_finetune.txt
+      kwargs:
+        num_return_sequences: 200
+        task_name: MBPP
+        train_sbatch: train_single_gpu
+      fields:
+        - model_path
