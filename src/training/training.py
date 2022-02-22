@@ -111,7 +111,7 @@ def setup_pretrain(cfg, tokenizer):
         for k in [
             "repeat_question_for_each_answer", "good_answer_cutoff",
             "bad_answer_cutoff", "answer_prompt", "question_prompt",
-            "use_eos_token_when_repeat"
+            "join_answers_with_eos_token"
         ]
     }
 
