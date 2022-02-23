@@ -143,7 +143,8 @@ def basic_cleaning(ex: Dict) -> Dict:
 
 
 CLEANING_NAME_TO_FN = {
-    "BASE": basic_cleaning
+    "BASE": basic_cleaning,
+    "NONE": lambda ex: ex
 }
 
 

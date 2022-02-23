@@ -27,7 +27,6 @@ import click
               help='The path to save the results.')
 @click.pass_context
 def main(ctx, debug, output_path):
-
     ctx.ensure_object(dict)
     if not PROJECT_ROOT.joinpath(output_path).exists():
         PROJECT_ROOT.joinpath(output_path).mkdir(parents=True)
@@ -40,7 +39,7 @@ def main(ctx, debug, output_path):
 @click.argument('num_workers', type=int, metavar='<Number Of Workers>')
 @click.argument('output_file_name', type=str, metavar='<Stem of the output file>')
 @click.option('--cleaner', 'clean_fn_name', default='BASE',
-              type=click.Choice(['BASE'], case_sensitive=False),
+              type=click.Choice(['BASE', 'NONE'], case_sensitive=False),
               help='Cleaning function to use.')
 @click.option('--min-score', '-min', 'min_score_allowed', default=float('-inf'),
               type=float, help='Minimum score for either a question or an answer that is allowed.')
@@ -67,6 +66,10 @@ def main(ctx, debug, output_path):
     default=0.05,
     help="Number of questions to put into the validation set."
 )
+@click.option(
+    '--do-not-filter',
+    is_flag=True, default=False, help="Do not do any filtering "
+)
 @click.pass_context
 def parse_so(
         ctx,
@@ -80,9 +83,9 @@ def parse_so(
         must_have_answers,
         question_score,
         only_question_body,
-        validation_pct
+        validation_pct,
+        do_not_filter
 ):
-
     setup_global_logging(f"{output_file_name}_so", str(PROJECT_ROOT.joinpath('logs')),
                          debug=ctx.obj['DEBUG'])
     logger = logging.getLogger('parse_so')
@@ -107,6 +110,10 @@ def parse_so(
 
     random.seed(1)
 
+    if do_not_filter:
+        logger.info("FILTERING IS DISABLED")
+        post_filter = lambda ex: ex
+
     filter_and_parse_so_posts(
         dump_path,
         output_path,
@@ -114,7 +121,8 @@ def parse_so(
         num_workers,
         clean_fn_name,
         post_filter,
-        validation_pct
+        validation_pct,
+
     )
 
 
