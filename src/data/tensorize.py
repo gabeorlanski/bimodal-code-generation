@@ -11,6 +11,7 @@ import multiprocessing as mp
 from transformers import AutoTokenizer
 from src.data.parse_so.util import log_process
 from tqdm import tqdm
+from src.common.file_util import human_readable_size
 
 logger = logging.getLogger(__name__)
 __all__ = [
@@ -88,6 +89,7 @@ class TensorizeProcessor(mp.Process):
 
 
 def tensorize_main_process(
+        save_name,
         raw_data_path,
         workers,
         task_queue,
@@ -110,7 +112,7 @@ def tensorize_main_process(
 
         if lines % 10000 == 0:
             logger.info(f"Read {lines} lines")
-        if batches_found != last_logged_batch and batches_found % 100 == 0:
+        if batches_found != last_logged_batch and batches_found % 1000 == 0:
             logger.info(f"Found {batches_found} batches")
             last_logged_batch = batches_found
 
@@ -120,7 +122,7 @@ def tensorize_main_process(
         task_queue.put(None)
 
     failure_count = 0
-    tensorized_data = TensorizedDataset(raw_data_path.stem)
+    tensorized_data = TensorizedDataset(save_name)
 
     pbar = tqdm(total=batches_found, desc='Processing')
     while True:
@@ -181,6 +183,7 @@ def tensorize(
         w.start()
     try:
         to_save = tensorize_main_process(
+            out_path.stem,
             raw_data_path,
             workers,
             task_queue,
@@ -203,3 +206,5 @@ def tensorize(
     logger.info(f"Saving {to_save.name} to {out_path}")
     with out_path.open('wb') as f:
         pickle.dump(to_save, f)
+
+    logger.info(f"Size of {to_save.name} is {human_readable_size(out_path.stat().st_size)}")

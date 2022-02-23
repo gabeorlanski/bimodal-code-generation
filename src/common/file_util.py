@@ -5,7 +5,7 @@ from typing import List, Union
 
 logger = logging.getLogger(__name__)
 
-__all__ = ["validate_files_exist", "ENV_VARS_TRUE_VALUES", "PathType"]
+__all__ = ["validate_files_exist", "ENV_VARS_TRUE_VALUES", "PathType","human_readable_size"]
 
 ENV_VARS_TRUE_VALUES = {"1", "ON", "YES", "TRUE"}
 
@@ -38,3 +38,10 @@ def validate_files_exist(
 
         out.append(file_path)
     return out
+
+def human_readable_size(size, decimal_places=2):
+    for unit in ['B', 'KB', 'MB', 'GB', 'TB', 'PB']:
+        if size < 1024.0 or unit == 'PiB':
+            break
+        size /= 1024.0
+    return f"{size:.{decimal_places}f} {unit}"

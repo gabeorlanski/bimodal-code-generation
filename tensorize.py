@@ -16,6 +16,7 @@ from src.data.stackoverflow import StackOverflowTextProcessor
 
 @click.command()
 @click.argument('name', metavar="<Name of this dataset>")
+@click.argument('output_name', metavar="<Name of the output file>")
 @click.argument('objective', metavar='<Objective to use>')
 @click.argument('processor_name', metavar='<Processor to use>')
 @click.argument('model_name', metavar='<Model to use>')
@@ -46,6 +47,7 @@ from src.data.stackoverflow import StackOverflowTextProcessor
 )
 def tensorize_data(
         name: str,
+        output_name: str,
         objective: str,
         processor_name: str,
         model_name: str,
@@ -105,7 +107,7 @@ def tensorize_data(
         raise ValueError(f'Unknown processor {cfg.processor.name}')
     tensorize(
         data_path.joinpath(train_file_name),
-        out_path.joinpath(f'{name}'),
+        out_path.joinpath(f'{output_name}'),
         num_workers,
         model_name,
         processor,
@@ -113,7 +115,7 @@ def tensorize_data(
     )
     tensorize(
         data_path.joinpath(validation_file),
-        out_path.joinpath(f"{validation_file_name or name + '_val'}"),
+        out_path.joinpath(f"{output_name}.val"),
         num_workers,
         model_name,
         processor,
