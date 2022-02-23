@@ -1,6 +1,7 @@
 #!/bin/bash
 #SBATCH --output=./sbatch_logs/job_parse_so.log
 #SBATCH --time=24:00:00
+#SBATCH --mem=180G
 #SBATCH -c 32
 #SBATCH -p cs
 echo "Starting Parse"
