@@ -30,7 +30,7 @@ def train_from_cfg(cfg):
     if Path('wandb_secret.txt').exists():
         os.environ["WANDB_API_KEY"] = open('wandb_secret.txt').read().strip()
 
-    if not Task.is_name_registered(task) and task not in ['so']:
+    if not Task.is_name_registered(task) and task not in ['tensorize']:
         valid_tasks = ''
         for t in Task.list_available():
             valid_tasks += f'\t{t}\n'

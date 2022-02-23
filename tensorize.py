@@ -4,13 +4,10 @@ from typing import Optional, List
 import transformers.utils.logging
 from hydra import compose, initialize
 import yaml
-from omegaconf import OmegaConf, open_dict
+from omegaconf import OmegaConf
 import os
-from pathlib import Path
 import click
 
-from src import config
-from src.evaluation import evaluate
 from src.common import setup_global_logging, PROJECT_ROOT
 from src.data.tensorize import tensorize
 from src.data.stackoverflow import StackOverflowTextProcessor

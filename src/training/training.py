@@ -15,7 +15,7 @@ from src.common import get_stats_from_list, PROJECT_ROOT, set_global_logging_lev
 from src.data import langauge_modeling
 from src.training.trainer import CustomTrainer
 from src.config import get_steps_from_training_args, get_lr_scheduler
-from src.data.stackoverflow import StackOverflowTask
+from src.data.tensorize import TensorizedTask
 
 logger = logging.getLogger(__name__)
 
@@ -105,46 +105,26 @@ def setup_lm(cfg, task):
     return train_data, validation_data, None
 
 
-def setup_pretrain(cfg, tokenizer):
-    additional_kwargs = {
-        k: cfg.task[k]
-        for k in [
-            "repeat_question_for_each_answer", "good_answer_cutoff",
-            "bad_answer_cutoff", "answer_prompt", "question_prompt",
-            "join_answers_with_eos_token"
-        ]
-    }
-
-    if additional_kwargs['answer_prompt'] == "None":
-        additional_kwargs['answer_prompt'] = None
-
-    if additional_kwargs['question_prompt'] == "None":
-        additional_kwargs['question_prompt'] = None
-    if additional_kwargs['repeat_question_for_each_answer'] == "None":
-        additional_kwargs['question_prompt'] = None
-    train_dataset = StackOverflowTask(
-        dump_name=cfg.task.dump_name,
-        data_path=cfg.task.train_path,
-        tokenizer=tokenizer,
-        max_samples=cfg.task.max_samples,
-        answer_sorting=cfg.task.answer_sorting,
-        answers_per_sample=cfg.task.answers_per_sample,
-        sequence_length=cfg.task.sequence_length,
-        num_proc=cfg.get("num_proc", 1),
-        seed=cfg.task.seed,
-        **additional_kwargs
+def setup_pretrain(cfg, tokenizer, train_args):
+    effective_batch_size = (
+            train_args.train_batch_size
+            * train_args.gradient_accumulation_steps
+            * train_args.world_size
     )
-    eval_dataset = StackOverflowTask(
-        dump_name=f"{cfg.task.dump_name}_val",
-        data_path=cfg.task.validation_path,
+
+    train_dataset = TensorizedTask(
+        data_path=PROJECT_ROOT.joinpath('data', 'tensorized', cfg.task.data_name),
+        objective=cfg.objective,
         tokenizer=tokenizer,
-        max_samples=250,
-        answer_sorting=cfg.task.answer_sorting,
-        answers_per_sample=cfg.task.answers_per_sample,
         sequence_length=cfg.task.sequence_length,
-        num_proc=cfg.get("num_proc", 1),
-        seed=cfg.task.seed,
-        **additional_kwargs
+        max_instances=effective_batch_size * train_args.max_steps if train_args.max_steps != -1 else -1
+    )
+    eval_dataset = TensorizedTask(
+        data_path=PROJECT_ROOT.joinpath('data', 'tensorized', f"{cfg.task.data_name}.val"),
+        objective=cfg.objective,
+        tokenizer=tokenizer,
+        sequence_length=cfg.task.sequence_length,
+        max_instances=-1
     )
     return train_dataset, eval_dataset, None
 
@@ -165,13 +145,14 @@ def train_model(cfg: DictConfig):
     logger.debug("Loading Model")
     model_cls, model = config.load_model_from_cfg(cfg)
 
-    if cfg.task.name == 'so':
+    if cfg.task.name == 'tensorize':
         tokenizer = config.load_tokenizer_from_cfg(cfg)
         task = None  # type: ignore
     else:
         task: Task = config.load_task_from_cfg(cfg)
         tokenizer = task.tokenizer
 
+    train_args = config.get_training_args_from_cfg(cfg)
     if tokenizer.pad_token is None:
         tokenizer.pad_token = tokenizer.eos_token
         model.config.pad_token_id = tokenizer.pad_token_id
@@ -201,11 +182,12 @@ def train_model(cfg: DictConfig):
                 v_use = v
             setattr(model.config, k, v_use)
     elif cfg.objective == 'lm':
-        if cfg.task.name == 'so':
+        if cfg.task.name == 'tensorize':
             logger.info(f"Setting up the SO pretrain objective")
             train_data, validation_data, evaluate_fn = setup_pretrain(
                 cfg,
-                tokenizer
+                tokenizer,
+                train_args
             )
         else:
             logger.info("Setting up the LM objective")
@@ -235,7 +217,6 @@ def train_model(cfg: DictConfig):
 
     logger.debug("Initializing trainer")
 
-    train_args = config.get_training_args_from_cfg(cfg)
     if train_args.local_rank <= 0:
         logger.info("Training Arguments:")
         for arg_name in sorted(train_args.to_sanitized_dict()):
