@@ -171,7 +171,7 @@ def tensorize(
         data_processor=data_processor
     )
     logger.info(f"Creating {num_workers} workers")
-    workers = [processor_init_fn(i) for i in range(num_workers)]
+    workers = [processor_init_fn(i) for i in range(num_workers-1)]
     log_thread = threading.Thread(
         target=log_process,
         args=(log_queue, num_workers)
