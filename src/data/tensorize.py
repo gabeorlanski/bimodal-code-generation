@@ -121,21 +121,16 @@ def tensorize_main_process(
     for _ in workers:
         task_queue.put(None)
 
+    task_queue.join()
+
     failure_count = 0
-    found =0
+    found = 0
     tensorized_data = TensorizedDataset(save_name)
 
     pbar = tqdm(total=batches_found, desc='Processing')
-    while True:
-        if all([not worker.is_alive() for worker in workers]):
-            break
-        if found == batches_found:
-            logger.info(f"Force stopping")
-            break
-        if result_queue.qsize() == 0 or result_queue.empty():
-            continue
+    while not result_queue.empty():
         batch_num, result = result_queue.get(timeout=5.0)
-        found+=1
+        found += 1
         pbar.update()
         if result is None:
             failure_count += 1
@@ -145,7 +140,6 @@ def tensorize_main_process(
 
     pbar.close()
 
-    task_queue.join()
     logger.info(f"{failure_count}/{batches_found} failed")
     logger.info(f"{tensorized_data.total_tokens:e} total tokens found")
     logger.info(f"{tensorized_data.input_token_count:e} input tokens found")
