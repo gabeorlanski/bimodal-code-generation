@@ -66,13 +66,13 @@ def tensorize_data(
     cfg = compose(config_name="tensorize", overrides=override_list)
 
     setup_global_logging(
-        'tensorize',
+        f'{name}_tensorize',
         PROJECT_ROOT.joinpath('logs'),
         rank=int(os.environ.get('LOCAL_RANK', '-1')),
         world_size=int(os.environ.get("WORLD_SIZE", 1)),
         debug=debug
     )
-    logger = logging.getLogger('tensorize')
+    logger = logging.getLogger(f'{name}_tensorize')
     logger.info(f"Starting tensorize of {name}")
     logger.info(f"Using objective {objective}")
     logger.info(f"Using processor {processor_name}")
