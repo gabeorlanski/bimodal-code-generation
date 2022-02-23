@@ -1,4 +1,5 @@
 #!/bin/bash
+#SBATCH --account=cds
 #SBATCH --output=./sbatch_logs/job_parse_so.log
 #SBATCH --time=24:00:00
 #SBATCH --mem=180G
