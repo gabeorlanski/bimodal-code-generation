@@ -17,7 +17,6 @@ from src.data.stackoverflow import StackOverflowTextProcessor
 @click.command()
 @click.argument('name', metavar="<Name of this dataset>")
 @click.argument('output_name', metavar="<Name of the output file>")
-@click.argument('objective', metavar='<Objective to use>')
 @click.argument('processor_name', metavar='<Processor to use>')
 @click.argument('model_name', metavar='<Model to use>')
 @click.argument('num_workers', type=int, metavar='<Number Of Workers>')
@@ -48,7 +47,6 @@ from src.data.stackoverflow import StackOverflowTextProcessor
 def tensorize_data(
         name: str,
         output_name: str,
-        objective: str,
         processor_name: str,
         model_name: str,
         num_workers: int,
@@ -76,7 +74,6 @@ def tensorize_data(
     )
     logger = logging.getLogger(f'{name}_tensorize')
     logger.info(f"Starting tensorize of {name}")
-    logger.info(f"Using objective {objective}")
     logger.info(f"Using processor {processor_name}")
     logger.info(f"Using model {model_name}")
     logger.debug(f"Override string is {override_str}")
@@ -100,7 +97,6 @@ def tensorize_data(
         logger.info(f"{k:>32} = {v}")
     if cfg.processor.name == 'stackoverflow':
         processor = StackOverflowTextProcessor(
-            objective=objective,
             **OmegaConf.to_object(cfg.processor.kwargs)
         )
     else:

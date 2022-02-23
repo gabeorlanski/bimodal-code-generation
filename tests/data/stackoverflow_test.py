@@ -8,39 +8,17 @@ from transformers import AutoTokenizer
 from src.data import stackoverflow
 
 
-#
-# @pytest.mark.parametrize('max_steps', [-1, 36])
-# def test_init(sample_parsed_so, max_steps):
-#     task = stackoverflow.StackOverflowTask(
-#         'test',
-#         str(sample_parsed_so),
-#         AutoTokenizer.from_pretrained('gpt2'),
-#         max_samples=1,
-#         seed=1,
-#         sequence_length=2,
-#         max_steps=max_steps
-#     )
-#     assert len(task.data) == 1
-#     result_seq = task.tokenizer.decode(task.data[0])
-#     assert result_seq == 'Title 2\nQuestion Body 2\nAnswer 6\nAnswer 8\nAnswer 9\nAnswer 7\nAnswer 10\nAnswer 11'
-#     expected_size = task.tokenizer(result_seq, add_special_tokens=False)['input_ids']
-#     expected_size = (len(expected_size) + 1) // 2
-#     assert len(task) == (expected_size if max_steps == -1 else max_steps)
-
-
 class TestStackOverflowProcessor:
 
-    @pytest.mark.parametrize('repeat_mode', [None, 'title', 'full'],
-                             ids=['NoRepeat', 'Title', 'Full'])
+    @pytest.mark.parametrize('repeat_mode', ['title', 'full'],
+                             ids=['Title', 'Full'])
     @pytest.mark.parametrize('answer_prompt', [True, False], ids=['APrompt', 'NoAPrompt'])
     @pytest.mark.parametrize('question_prompt', [True, False], ids=['QPrompt', 'NoQPrompt'])
-    @pytest.mark.parametrize('objective', ['lm', 'seq2seq'])
     def test_make_instances_from_question(
             self,
             repeat_mode,
             answer_prompt,
-            question_prompt,
-            objective
+            question_prompt
     ):
         sample = {
             "line" : 5991, "body": "Body", "type": 1, "id": "13454",
@@ -90,7 +68,6 @@ class TestStackOverflowProcessor:
             expected_question_str = f"{expected_title_str}\nBody"
 
         processor = stackoverflow.StackOverflowTextProcessor(
-            objective=objective,
             answer_prompt=answer_prompt_template,
             question_prompt=question_prompt_template,
             repeat_question_for_each_answer=repeat_mode,
@@ -98,21 +75,17 @@ class TestStackOverflowProcessor:
         )
 
         result = processor.make_instances_from_question(sample)
-        if repeat_mode == "full" or objective == 'seq2seq':
+        if repeat_mode == "full":
             expected = [
                 {'input': expected_question_str, 'target': expected_answer_strs[0]},
                 {'input': expected_question_str, 'target': expected_answer_strs[1]},
                 {'input': expected_question_str, 'target': expected_answer_strs[2]}
             ]
-        elif repeat_mode == "title":
+        else:
             expected = [
                 {'input': expected_question_str, 'target': expected_answer_strs[0]},
                 {'input': expected_title_str, 'target': expected_answer_strs[1]},
                 {'input': expected_title_str, 'target': expected_answer_strs[2]}
-            ]
-        else:
-            expected = [
-                {'input': expected_question_str, 'target': '\n'.join(expected_answer_strs)},
             ]
 
         assert result == expected
@@ -121,7 +94,6 @@ class TestStackOverflowProcessor:
     def test_answer_sorting(self, sample_parsed_so, answer_sorting):
         sample = list(map(json.loads, sample_parsed_so.open('r')))[-1]
         processor = stackoverflow.StackOverflowTextProcessor(
-            'lm',
             answer_sorting=answer_sorting,
             answers_per_sample=1,
         )
@@ -140,8 +112,7 @@ class TestStackOverflowProcessor:
         assert result[0]['input'] == expected_input
         assert result[0]['target'] == expected_answer
 
-    @pytest.mark.parametrize('objective', ['lm', 'seq2seq'])
-    def test_call(self, objective):
+    def test_call(self):
         sample = {
             "line" : 5991, "body": "Body", "type": 1, "id": "13454",
             "date" : "2008-08-17T01:23:50.067", "score": 13, "comment_count": 0,
@@ -164,9 +135,7 @@ class TestStackOverflowProcessor:
         }
         tokenizer = AutoTokenizer.from_pretrained('gpt2')
 
-        processor = stackoverflow.StackOverflowTextProcessor(
-            objective=objective,
-        )
+        processor = stackoverflow.StackOverflowTextProcessor()
 
         result = processor([sample], tokenizer)
         expected_answer_strs = [
@@ -174,14 +143,8 @@ class TestStackOverflowProcessor:
             "Answer 2",
             "Answer 1"
         ]
-        if objective == 'lm':
-            assert len(result) == 1
-            assert tokenizer.decode(result[0]['input_ids']) == 'Title\nBody\n' + '\n'.join(
-                expected_answer_strs)
-            assert len(result[0]['input_ids']) == sum(result[0]['attention_mask'])
-        else:
-            assert len(result) == 3
-            for i, v in enumerate(expected_answer_strs):
-                assert tokenizer.decode(result[i]['input_ids']) == 'Title\nBody'
-                assert tokenizer.decode(result[i]['label']) == v
-                assert len(result[i]['input_ids']) == sum(result[i]['attention_mask'])
+        assert len(result) == 3
+        for i, v in enumerate(expected_answer_strs):
+            assert tokenizer.decode(result[i]['input_ids']) == 'Title\nBody'
+            assert tokenizer.decode(result[i]['label']) == v
+            assert len(result[i]['input_ids']) == sum(result[i]['attention_mask'])

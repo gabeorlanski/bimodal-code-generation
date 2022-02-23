@@ -28,34 +28,22 @@ logging.getLogger("transformers.tokenization_utils").setLevel(logging.ERROR)
 class StackOverflowTextProcessor:
     def __init__(
             self,
-            objective: str,
             answer_sorting: str = 'accepted',
             answers_per_sample: int = -1,
-            repeat_question_for_each_answer: str = None,
+            repeat_question_for_each_answer: str = 'full',
             good_answer_cutoff: int = 3,
             bad_answer_cutoff: int = -1,
             answer_prompt: str = None,
             question_prompt: str = None,
             title_prompt: str = None
     ):
-        self.objective = objective
         self.answer_sorting = answer_sorting.lower()
         if self.answer_sorting not in ['ascending', 'descending', 'accepted']:
             raise ValueError(f"Unknown answer sorting method: {self.answer_sorting}")
 
-        if self.objective not in ['lm', 'seq2seq']:
-            raise ValueError(f'Invalid objective: {self.objective}')
-
         self.repeat_question_for_each_answer = repeat_question_for_each_answer
-        if self.repeat_question_for_each_answer is not None:
-            if self.repeat_question_for_each_answer not in ['title', 'full']:
+        if self.repeat_question_for_each_answer not in ['title', 'full']:
                 raise ValueError(f"Invalid repeat mode: {self.repeat_question_for_each_answer}")
-        else:
-            self.repeat_question_for_each_answer = "NO_REPEAT_MODE"
-        if self.objective == 'seq2seq':
-            if answers_per_sample == 0:
-                raise ValueError("Seq2Seq must have >0 answers per sample")
-            self.repeat_question_for_each_answer = 'full'
 
         self.good_answer_cutoff = good_answer_cutoff
         self.bad_answer_cutoff = bad_answer_cutoff
@@ -128,10 +116,7 @@ class StackOverflowTextProcessor:
 
             out.append({'input': input_str, 'target': answer_str})
 
-        if self.objective == 'seq2seq' or self.repeat_question_for_each_answer != 'NO_REPEAT_MODE':
-            return out
-
-        return [{'input': question_str, 'target': '\n'.join(d['target'] for d in out)}]
+        return out
 
     def __call__(self, samples, tokenizer):
         instances = list(map(self.make_instances_from_question, samples))
@@ -140,11 +125,8 @@ class StackOverflowTextProcessor:
 
         for instance_list in instances:
             for d in instance_list:
-                if self.objective == 'seq2seq':
-                    inputs.append(d['input'])
-                    targets.append(d['target'])
-                else:
-                    inputs.append(f"{d['input']}{self.lm_concat_delim}{d['target']}")
+                inputs.append(d['input'])
+                targets.append(d['target'])
 
         inputs_tokenized = tokenizer(inputs)
         if targets:
