@@ -130,12 +130,21 @@ def parse_so(
 @click.argument('dump_path', metavar='<Data Path>')
 @click.argument('num_workers', type=int, metavar='<Number Of Workers>')
 @click.argument('tag_filter_file')
+@click.option(
+    '--do-not-filter',
+    is_flag=True, default=False, help="Do not do any filtering "
+)
+@click.option(
+    '--out-name',default=None, help="name"
+)
 @click.pass_context
 def filter_so(
         ctx,
         dump_path,
         num_workers,
         tag_filter_file,
+        do_not_filter,
+        out_name
 ):
     debug = ctx.obj['DEBUG']
 
@@ -155,9 +164,15 @@ def filter_so(
         raise e
 
     logger.info(f"Reading tags filters from {tag_filter_file}")
-    tag_filters = PROJECT_ROOT.joinpath(tag_filter_file).read_text('utf-8').splitlines(False)
+    if  do_not_filter:
+        tag_filters=[]
+    else:
+        tag_filters = PROJECT_ROOT.joinpath(tag_filter_file).read_text('utf-8').splitlines(False)
     dump_name = path_to_dump.stem.split(".")[0]
-    output_path = output_path.joinpath(dump_name)
+    if out_name is None:
+        output_path = output_path.joinpath(dump_name)
+    else:
+        output_path = output_path.joinpath(out_name)
     if not output_path.exists():
         output_path.mkdir(parents=True)
     failures = filter_so_dump(

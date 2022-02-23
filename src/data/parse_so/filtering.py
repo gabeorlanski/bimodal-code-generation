@@ -107,9 +107,8 @@ def parse_line(line_number, line, tag_filter):
             for t in post_dict['Tags'].split(">")
             if t.strip()
         ]
-
         has_a_valid_tag = any(valid_t in t for t in post_tags for valid_t in tag_filter)
-        if not post_tags or not has_a_valid_tag:
+        if tag_filter and (not post_tags or not has_a_valid_tag):
             if not post_tags:
                 result['reason'] = "NO_VALID_TAG"
             else:
