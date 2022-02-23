@@ -68,7 +68,7 @@ def tensorize_data(
     cfg = compose(config_name="tensorize", overrides=override_list)
 
     setup_global_logging(
-        f'{name}_tensorize',
+        f'{output_name}_tensorize',
         PROJECT_ROOT.joinpath('logs'),
         rank=int(os.environ.get('LOCAL_RANK', '-1')),
         world_size=int(os.environ.get("WORLD_SIZE", 1)),
