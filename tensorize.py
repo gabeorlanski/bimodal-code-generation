@@ -1,5 +1,7 @@
 import logging
 from typing import Optional, List
+
+import transformers.utils.logging
 from hydra import compose, initialize
 import yaml
 from omegaconf import OmegaConf, open_dict
@@ -72,6 +74,7 @@ def tensorize_data(
         world_size=int(os.environ.get("WORLD_SIZE", 1)),
         debug=debug
     )
+    transformers.utils.logging.set_verbosity_error()
     logger = logging.getLogger(f'{name}_tensorize')
     logger.info(f"Starting tensorize of {name}")
     logger.info(f"Using processor {processor_name}")
