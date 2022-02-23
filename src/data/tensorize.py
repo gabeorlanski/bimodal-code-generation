@@ -3,6 +3,7 @@ import logging
 import pickle
 import random
 import threading
+from copy import deepcopy
 from dataclasses import dataclass, field
 from functools import partial
 from pathlib import Path
@@ -15,7 +16,6 @@ from src.common.file_util import human_readable_size
 
 logger = logging.getLogger(__name__)
 __all__ = [
-    "TensorizeProcessor",
     "TensorizedDataset",
     "tensorize"
 ]
@@ -38,115 +38,8 @@ class TensorizedDataset:
     def total_tokens(self):
         return self.input_token_count + self.target_token_count
 
-
-class TensorizeProcessor(mp.Process):
-    def __init__(
-            self,
-            worker_id,
-            task_queue,
-            result_queue,
-            log_queue,
-            model_name,
-            data_processor
-    ):
-        super().__init__()
-        self.worker_id = worker_id
-        self.tasks = task_queue
-        self.results = result_queue
-        self.logs = log_queue
-        self.model_name = model_name
-        self.processor = data_processor
-
-    def _log(self, level, message):
-        self.logs.put((level, f"WORKER {self.worker_id}: {message}"))
-
-    def run(self):
-        completed = 0
-        tokenizer = AutoTokenizer.from_pretrained(self.model_name, use_fast=True)
-        self._log(logging.INFO, "Started")
-        while True:
-            next_task = self.tasks.get()
-
-            # Poison pill means shutdown.
-            if next_task is None:
-                self.tasks.task_done()
-                self._log(logging.INFO, "Finished")
-                return
-
-            batch_num, instance_batch = next_task
-            try:
-                parsed_instances = self.processor(instance_batch, tokenizer)
-            except Exception as e:
-                parsed_instances = None
-                self._log(logging.ERROR, f"{batch_num=} failed with exception {e}")
-
-            self.results.put((batch_num, parsed_instances))
-
-            self.tasks.task_done()
-            completed += 1
-            if completed % 1000 == 0:
-                self._log(logging.INFO, f"Finished {completed}")
-
-
-def tensorize_main_process(
-        save_name,
-        raw_data_path,
-        workers,
-        task_queue,
-        result_queue,
-        batch_size
-) -> TensorizedDataset:
-    logger.info(f"Reading {raw_data_path}")
-    lines = 0
-    buffer = []
-    batches_found = 0
-    last_logged_batch = 0
-    for line in map(json.loads, raw_data_path.open('r')):
-        lines += 1
-        buffer.append(line)
-        if len(buffer) == batch_size:
-            task_queue.put((batches_found, buffer))
-            del buffer
-            buffer = []
-            batches_found += 1
-
-        if lines % 10000 == 0:
-            logger.info(f"Read {lines} lines")
-        if batches_found != last_logged_batch and batches_found % 1000 == 0:
-            logger.info(f"Found {batches_found} batches")
-            last_logged_batch = batches_found
-
-    logger.info(f"Read {lines} lines")
-    logger.info(f"Yielded {batches_found} batches")
-    for _ in workers:
-        task_queue.put(None)
-
-    failure_count = 0
-    tensorized_data = TensorizedDataset(save_name)
-
-    pbar = tqdm(total=batches_found, desc='Processing')
-    while True:
-        if all([not worker.is_alive() for worker in workers]):
-            break
-        if result_queue.qsize() == 0 or result_queue.empty():
-            continue
-        batch_num, result = result_queue.get(timeout=5.0)
-
-        pbar.update()
-        if result is None:
-            failure_count += 1
-            logger.warning(f"{batch_num} failed to tensorize")
-            continue
-        tensorized_data.add_instances(result)
-
-    pbar.close()
-
-    task_queue.join()
-    logger.info(f"{failure_count}/{batches_found} failed")
-    logger.info(f"{tensorized_data.total_tokens:e} total tokens found")
-    logger.info(f"{tensorized_data.input_token_count:e} input tokens found")
-    logger.info(f"{tensorized_data.target_token_count:e} target tokens found")
-    return tensorized_data
+def batch_process(batch, processor, tokenizer):
+    return processor(batch, tokenizer)
 
 
 def tensorize(
@@ -159,52 +52,54 @@ def tensorize(
 ):
     logger.info(f"Tensorizing {raw_data_path}")
     # Setup the queues
-    log_queue = mp.Queue()
-    task_queue = mp.JoinableQueue()
-    result_queue = mp.JoinableQueue()
 
-    # Setup processors
-    processor_init_fn = partial(
-        TensorizeProcessor,
-        task_queue=task_queue,
-        result_queue=result_queue,
-        log_queue=log_queue,
-        model_name=model_name,
-        data_processor=data_processor
+    logger.info(f"Reading {raw_data_path}")
+    lines = 0
+    buffer = []
+    batches = []
+    batches_found = 0
+    last_logged_batch = 0
+    for line in map(json.loads, raw_data_path.open('r')):
+        lines += 1
+        buffer.append(line)
+        if len(buffer) == batch_size:
+            batches.append(deepcopy(buffer))
+            del buffer
+            buffer = []
+            batches_found += 1
+
+        if lines % 10000 == 0:
+            logger.info(f"Read {lines} lines")
+        if batches_found != last_logged_batch and batches_found % 1000 == 0:
+            logger.info(f"Found {batches_found} batches")
+            last_logged_batch = batches_found
+
+    logger.info(f"Read {lines} lines")
+    logger.info(f"Yielded {batches_found} batches")
+
+    tokenizer = AutoTokenizer.from_pretrained(model_name)
+    map_fn = partial(
+        batch_process,
+        processor=data_processor,
+        tokenizer=tokenizer
     )
-    logger.info(f"Creating {num_workers} workers")
-    workers = [processor_init_fn(i) for i in range(num_workers)]
-    log_thread = threading.Thread(
-        target=log_process,
-        args=(log_queue, num_workers)
-    )
-    log_thread.start()
-    for w in workers:
-        w.start()
-    try:
-        to_save = tensorize_main_process(
-            out_path.stem,
-            raw_data_path,
-            workers,
-            task_queue,
-            result_queue,
-            batch_size
+
+    with mp.Pool(num_workers) as pool:
+        results = list(tqdm(
+            pool.imap(map_fn, batches),
+            total=len(batches),
+            desc='Tokenizing')
         )
-    except Exception as e:
-        # Making sure we cleanup
-        for w in workers:
-            w.terminate()
-        log_queue.put('KILL')
-        log_thread.join()
-        raise e
 
-    log_queue.put('KILL')
-    log_thread.join()
-    for w in workers:
-        w.terminate()
+    tensorized_data = TensorizedDataset(out_path.stem)
+    for processed_batch in results:
+        tensorized_data.add_instances(processed_batch)
 
-    logger.info(f"Saving {to_save.name} to {out_path}")
+    logger.info(f"{tensorized_data.total_tokens:e} total tokens found")
+    logger.info(f"{tensorized_data.input_token_count:e} input tokens found")
+    logger.info(f"{tensorized_data.target_token_count:e} target tokens found")
+
     with out_path.open('wb') as f:
-        pickle.dump(to_save, f)
+        pickle.dump(tensorized_data, f)
 
-    logger.info(f"Size of {to_save.name} is {human_readable_size(out_path.stat().st_size)}")
+    logger.info(f"Size of {tensorized_data.name} is {human_readable_size(out_path.stat().st_size)}")
