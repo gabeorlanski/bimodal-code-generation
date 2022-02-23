@@ -2,6 +2,7 @@ import json
 import logging
 import random
 import threading
+from collections import defaultdict
 from dataclasses import dataclass, field
 from functools import partial
 from pathlib import Path
@@ -9,6 +10,8 @@ from typing import List, Dict, Callable
 import multiprocessing as mp
 from tqdm import tqdm
 from bs4 import BeautifulSoup
+
+from src.common import PROJECT_ROOT
 from src.data.parse_so.util import POST_TYPE_TO_STR, log_process
 
 logger = logging.getLogger(__name__)
@@ -92,7 +95,8 @@ class CleaningProcessor(mp.Process):
             result_queue,
             log_queue,
             clean_fn,
-            filter_fn
+            filter_fn,
+            question_blacklist
     ):
         super().__init__()
         self.worker_id = worker_id
@@ -101,6 +105,7 @@ class CleaningProcessor(mp.Process):
         self.logs = log_queue
         self.clean_fn = clean_fn
         self.filter_fn = filter_fn
+        self.question_blacklist = question_blacklist
 
     def _log(self, level, message):
         self.logs.put((level, f"WORKER {self.worker_id}: {message}"))
@@ -120,7 +125,10 @@ class CleaningProcessor(mp.Process):
 
             line_num, question_dict = next_task
 
-            if not self.filter_fn(question_dict):
+            if int(question_dict['id']) in self.question_blacklist:
+                self._log(logging.INFO, f"{question_dict['id']} is in the blacklist, skipping")
+                self.results.put((False, question_dict))
+            elif not self.filter_fn(question_dict):
                 self.results.put((False, question_dict))
             else:
                 self.results.put((True, self.clean_fn(question_dict)))
@@ -214,6 +222,14 @@ def filter_and_parse_so_posts(
 
     logger.info(f"Getting cleaner {clean_fn_name}")
     clean_fn = CLEANING_NAME_TO_FN[clean_fn_name]
+    question_blacklist = {}
+    blacklist_file = PROJECT_ROOT.joinpath('data', 'so_question_id_blacklist.txt')
+    for question_id in blacklist_file.read_text().splitlines(False):
+        if question_id:
+            question_blacklist[int(question_id)] = True
+            logger.debug(f"{question_id} is on the blacklist")
+
+    logger.info(f"{len(question_blacklist)} questions in the blacklist")
 
     # Setup processors
     processor_init_fn = partial(
@@ -222,7 +238,8 @@ def filter_and_parse_so_posts(
         result_queue=result_queue,
         log_queue=log_queue,
         clean_fn=clean_fn,
-        filter_fn=question_filter
+        filter_fn=question_filter,
+        question_blacklist=question_blacklist
     )
     logger.info(f"Creating {num_workers} workers")
     workers = [processor_init_fn(i) for i in range(num_workers)]

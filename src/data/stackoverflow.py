@@ -24,6 +24,90 @@ import multiprocessing as mp
 logger = logging.getLogger(__name__)
 logging.getLogger("transformers.tokenization_utils").setLevel(logging.ERROR)
 
+
+class StackOverflowTextProcessor:
+    def __init__(
+            self,
+            objective: str,
+            answer_sorting: str = 'accepted',
+            answers_per_sample: int = -1,
+            repeat_question_for_each_answer: str = None,
+            good_answer_cutoff: int = 3,
+            bad_answer_cutoff: int = -1,
+            answer_prompt: str = None,
+            question_prompt: str = None,
+            add_question_prompt: bool = False,
+            eos_token: str = None
+    ):
+        self.objective = objective
+        if answer_sorting not in ['ascending', 'descending', 'accepted']:
+            raise ValueError(f"Unknown answer sorting method: {answer_sorting}")
+        self.repeat_question_for_each_answer = repeat_question_for_each_answer
+        self.good_answer_cutoff = good_answer_cutoff
+        self.bad_answer_cutoff = bad_answer_cutoff
+        self.answer_prompt = answer_prompt if answer_prompt else None
+        self.question_prompt = question_prompt if question_prompt else None
+        self.add_question_prompt = add_question_prompt
+        self.answer_sorting = answer_sorting
+        self.answers_per_sample = answers_per_sample
+        self.eos_token = eos_token or '\n'
+
+    def __call__(self, sample: Dict) -> List[Dict]:
+        """
+        Get the text string from the sample.
+        """
+        # Set to -1 if there is no accepted answer because it is impossible.
+        accepted_answer_id = sample['accepted_answer'] or "-1"
+
+        # Do a list comprehension to eliminate the accepted answer
+        accepted_answer = None
+        answers = []
+        for d in sample['answers'].values():
+            if d['id'] == accepted_answer_id and self.answer_sorting == "accepted":
+                accepted_answer = d
+            else:
+                answers.append(d)
+
+        # Sort the answer keys
+        answers = sorted(
+            answers, key=lambda k: k['score'],
+            reverse=not self.answer_sorting == 'ascending'
+        )
+
+        # If there is an accepted answer and we are sorting by accepted, put the
+        # accepted at the front of the list.
+        if accepted_answer is not None and self.answer_sorting == "accepted":
+            answers = [accepted_answer, *answers]
+
+        if self.question_prompt:
+            question_str = self.question_prompt.replace("__TITLE__", sample['title']).replace(
+                "__BODY__", sample['body'])
+        else:
+            question_str = f"{sample['title']}\n{sample['body']}"
+        if self.answers_per_sample == -1:
+            answers_keep = len(answers)
+        else:
+            answers_keep = self.answers_per_sample
+
+        answer_sequences = []
+        for i, answer in enumerate(answers[:answers_keep]):
+
+            if self.answer_prompt:
+                if answer['score'] >= self.good_answer_cutoff:
+                    quality_str = "good"
+                elif answer['score'] <= self.bad_answer_cutoff:
+                    quality_str = "bad"
+                else:
+                    quality_str = "ok"
+                answer_str = f"{self.answer_prompt.replace('__QUALITY__', quality_str)}\n{answer['body']}"
+            else:
+                answer_str = answer['body']
+
+            answer_sequences.append(answer_str)
+
+        return out
+
+
 class StackOverflowTask(IterableDataset):
 
     def __init__(
@@ -146,7 +230,8 @@ class StackOverflowTask(IterableDataset):
             answers = [accepted_answer, *answers]
 
         if self.question_prompt:
-            question_str = self.question_prompt.replace("__TITLE__",sample['title']).replace("__BODY__",sample['body'])
+            question_str = self.question_prompt.replace("__TITLE__", sample['title']).replace(
+                "__BODY__", sample['body'])
         else:
             question_str = f"{sample['title']}\n{sample['body']}"
         if self.answers_per_sample == -1:
@@ -164,7 +249,7 @@ class StackOverflowTask(IterableDataset):
                     quality_str = "bad"
                 else:
                     quality_str = "ok"
-                answer_str = f"{self.answer_prompt.replace('__QUALITY__',quality_str)}\n{answer['body']}"
+                answer_str = f"{self.answer_prompt.replace('__QUALITY__', quality_str)}\n{answer['body']}"
             else:
                 answer_str = answer['body']
 
