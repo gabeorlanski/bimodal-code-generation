@@ -34,9 +34,12 @@ class TensorizedDataset:
 
     def add_instances(self, instance_list):
         for instance in instance_list:
-            self.input_token_count += len(instance['input_ids'])
-            self.target_token_count += len(instance['label'])
-            self.instances.append(instance)
+            self.add_instance(instance)
+
+    def add_instance(self, instance):
+        self.input_token_count += len(instance['input_ids'])
+        self.target_token_count += len(instance['label'])
+        self.instances.append(instance)
 
     @property
     def total_tokens(self):
@@ -82,7 +85,10 @@ class TensorizedTask(IterableDataset):
 
     def _load_samples(self, data_path, max_instances):
         logger.info(f"Loading tensorized dataset from {data_path}")
-        tensorized_dataset: TensorizedDataset = pickle.load(data_path.open('rb'))
+
+        tensorized_dataset: TensorizedDataset = TensorizedDataset(data_path.stem)
+        for instance in tqdm(map(json.loads, data_path.open('r').readlines())):
+            tensorized_dataset.add_instance(instance)
 
         if max_instances != -1:
             return tensorized_dataset, max_instances
@@ -200,7 +206,9 @@ def tensorize(
     logger.info(f"{tensorized_data.input_token_count:e} input tokens found")
     logger.info(f"{tensorized_data.target_token_count:e} target tokens found")
 
-    with out_path.open('wb') as f:
-        pickle.dump(tensorized_data, f)
+    logger.info(f"Saving to {out_path}")
+    with out_path.open('w') as f:
+        for instance in tqdm(tensorized_data.instances):
+            f.write(json.dumps(instance) + '\n')
 
     logger.info(f"Size of {tensorized_data.name} is {human_readable_size(out_path.stat().st_size)}")
