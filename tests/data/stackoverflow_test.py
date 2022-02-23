@@ -34,11 +34,13 @@ class TestStackOverflowProcessor:
                              ids=['NoRepeat', 'Title', 'Full'])
     @pytest.mark.parametrize('answer_prompt', [True, False], ids=['APrompt', 'NoAPrompt'])
     @pytest.mark.parametrize('question_prompt', [True, False], ids=['QPrompt', 'NoQPrompt'])
-    def test_call(
+    @pytest.mark.parametrize('objective', ['lm', 'seq2seq'])
+    def test_make_instances_from_question(
             self,
             repeat_mode,
             answer_prompt,
-            question_prompt
+            question_prompt,
+            objective
     ):
         sample = {
             "line" : 5991, "body": "Body", "type": 1, "id": "13454",
@@ -76,35 +78,42 @@ class TestStackOverflowProcessor:
                 "Answer 1"
             ]
         if question_prompt:
-            question_prompt_template = "Title:__TITLE__\nBody:__BODY__"
-            expected_question_str = "Title:Title\nBody:Body\n"
+            title_prompt = "Title:__TITLE__"
+            question_prompt_template = "Body:__BODY__"
+            expected_title_str = "Title:Title"
+            expected_question_str = f"{expected_title_str}\nBody:Body"
         else:
             question_prompt_template = None
+            title_prompt = None
 
-            expected_question_str = "Title\nBody\n"
+            expected_title_str = "Title"
+            expected_question_str = f"{expected_title_str}\nBody"
 
         processor = stackoverflow.StackOverflowTextProcessor(
+            objective=objective,
             answer_prompt=answer_prompt_template,
             question_prompt=question_prompt_template,
-            repeat_question_for_each_answer=repeat_mode
+            repeat_question_for_each_answer=repeat_mode,
+            title_prompt=title_prompt
         )
 
-        result = processor(sample)
-
-        if repeat_mode == "title":
-            expected = [
-                {'input': expected_question_str, 'target': expected_answer_strs[0]},
-                {'input': "Title", 'target': expected_answer_strs[1]},
-                {'input': "Title", 'target': expected_answer_strs[2]}
-            ]
-        elif repeat_mode == "full":
+        result = processor.make_instances_from_question(sample)
+        if repeat_mode == "full" or objective == 'seq2seq':
             expected = [
                 {'input': expected_question_str, 'target': expected_answer_strs[0]},
                 {'input': expected_question_str, 'target': expected_answer_strs[1]},
-                {'input': expected_question_str, 'target': expected_answer_strs[2]}]
+                {'input': expected_question_str, 'target': expected_answer_strs[2]}
+            ]
+        elif repeat_mode == "title":
+            expected = [
+                {'input': expected_question_str, 'target': expected_answer_strs[0]},
+                {'input': expected_title_str, 'target': expected_answer_strs[1]},
+                {'input': expected_title_str, 'target': expected_answer_strs[2]}
+            ]
         else:
-            answer = '\n'.join(expected_answer_strs)
-            expected = [{'input': expected_question_str, 'target': answer}]
+            expected = [
+                {'input': expected_question_str, 'target': '\n'.join(expected_answer_strs)},
+            ]
 
         assert result == expected
 
@@ -112,13 +121,14 @@ class TestStackOverflowProcessor:
     def test_answer_sorting(self, sample_parsed_so, answer_sorting):
         sample = list(map(json.loads, sample_parsed_so.open('r')))[-1]
         processor = stackoverflow.StackOverflowTextProcessor(
+            'lm',
             answer_sorting=answer_sorting,
             answers_per_sample=1,
         )
 
-        result = processor(sample)
+        result = processor.make_instances_from_question(sample)
 
-        expected_input = "Title 3\nQuestion Body 3\n"
+        expected_input = "Title 3\nQuestion Body 3"
         if answer_sorting == "ascending":
             expected_answer = "Answer 16"
         elif answer_sorting == "descending":
@@ -129,3 +139,49 @@ class TestStackOverflowProcessor:
         assert len(result) == 1
         assert result[0]['input'] == expected_input
         assert result[0]['target'] == expected_answer
+
+    @pytest.mark.parametrize('objective', ['lm', 'seq2seq'])
+    def test_call(self, objective):
+        sample = {
+            "line" : 5991, "body": "Body", "type": 1, "id": "13454",
+            "date" : "2008-08-17T01:23:50.067", "score": 13, "comment_count": 0,
+            "tags" : ["python", "string", "escaping"], "title": "Title", "answer_count": 5,
+            "views": 8027, "accepted_answer": None, "answers": {
+                "13608"   : {
+                    "line"     : 6083, "body": "Answer 1", "type": 2, "id": "13608",
+                    "date"     : "2008-08-17T12:55:25.100", "score": -1, "comment_count": 0,
+                    "parent_id": "13454"
+                }, "13456": {
+                    "line"     : 5993, "body": "Answer 2", "type": 2, "id": "13456",
+                    "date"     : "2008-08-17T01:26:52.043", "score": 0, "comment_count": 0,
+                    "parent_id": "13454"
+                }, "13598": {
+                    "line"     : 6077, "body": "Answer 3", "type": 2, "id": "13598",
+                    "date"     : "2008-08-17T12:15:13.170", "score": 13, "comment_count": 0,
+                    "parent_id": "13454"
+                }
+            }
+        }
+        tokenizer = AutoTokenizer.from_pretrained('gpt2')
+
+        processor = stackoverflow.StackOverflowTextProcessor(
+            objective=objective,
+        )
+
+        result = processor([sample], tokenizer)
+        expected_answer_strs = [
+            "Answer 3",
+            "Answer 2",
+            "Answer 1"
+        ]
+        if objective == 'lm':
+            assert len(result) == 1
+            assert tokenizer.decode(result[0]['input_ids']) == 'Title\nBody\n' + '\n'.join(
+                expected_answer_strs)
+            assert len(result[0]['input_ids']) == sum(result[0]['attention_mask'])
+        else:
+            assert len(result) == 3
+            for i, v in enumerate(expected_answer_strs):
+                assert tokenizer.decode(result[i]['input_ids']) == 'Title\nBody'
+                assert tokenizer.decode(result[i]['label']) == v
+                assert len(result[i]['input_ids']) == sum(result[i]['attention_mask'])

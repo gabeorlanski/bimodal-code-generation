@@ -1,0 +1,7 @@
+defaults:
+  - processor: ???
+  - _self_
+
+name: ???
+out_path: data/tensorized_data
+batch_size: 16
