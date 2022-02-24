@@ -12,6 +12,7 @@ experiments:
         batch_size: 16
         gradient_accumulation_steps: 4
         deepspeed: ds_config.json
+        save_total_limit: 5
       ++task.data_name: raw_python_so
       ++task.sequence_length: 1024
     steps:
