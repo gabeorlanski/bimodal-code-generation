@@ -4,7 +4,7 @@ import pickle
 import random
 import threading
 from copy import deepcopy, copy
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, asdict
 from functools import partial
 from pathlib import Path
 from typing import List, Dict, Callable
@@ -19,27 +19,23 @@ from src.common.file_util import human_readable_size
 
 logger = logging.getLogger(__name__)
 __all__ = [
-    "TensorizedDataset",
+    "TensorizedDatasetCFG",
     "tensorize",
     "TensorizedTask"
 ]
 
 
 @dataclass
-class TensorizedDataset:
+class TensorizedDatasetCFG:
     name: str
     input_token_count: int = 0
     target_token_count: int = 0
-    instances: List[Dict] = field(default_factory=list)
-
-    def add_instances(self, instance_list):
-        for instance in instance_list:
-            self.add_instance(instance)
+    num_instances: int = 0
 
     def add_instance(self, instance):
+        self.num_instances += 1
         self.input_token_count += len(instance['input_ids'])
         self.target_token_count += len(instance['label'])
-        self.instances.append(instance)
 
     @property
     def total_tokens(self):
@@ -64,6 +60,7 @@ class TensorizedTask(IterableDataset):
 
     def __init__(
             self,
+            name,
             data_path,
             objective,
             tokenizer: PreTrainedTokenizer,
@@ -73,6 +70,7 @@ class TensorizedTask(IterableDataset):
     ):
         self.objective = objective
         self.data_path = data_path
+        self.name = name
         self.concat_token_id = tokenizer.bos_token_id or tokenizer.eos_token_id
         self.sequence_length = sequence_length
         self.infinite = infinite
@@ -80,32 +78,35 @@ class TensorizedTask(IterableDataset):
         self.buffer_size = 1024 * self.sequence_length
         self.lm_concat_delim = self.tokenizer.encode('\n')
         self.max_instances = max_instances
-        self.tensorized_dataset, self.length = self._load_samples(data_path, max_instances)
-        self.tensorized_dataset: TensorizedDataset
+        self.tensorized_cfg, self.length = self._load_samples(data_path, max_instances)
+        self.tensorized_cfg: TensorizedDatasetCFG
         logger.info(f"{self.length} total samples")
         self.samples_yielded = 0
 
     def _load_samples(self, data_path, max_instances):
         logger.info(f"Loading tensorized dataset from {data_path}")
 
-        tensorized_dataset: TensorizedDataset = TensorizedDataset(data_path.stem)
-        for instance in tqdm(self.get_samples()):
-            tensorized_dataset.target_token_count += len(instance['label'])
-            tensorized_dataset.input_token_count += len(instance['input_ids'])
+        tensorized_cfg = TensorizedDatasetCFG(**json.loads(
+            data_path.joinpath(f"{self.name}.cfg.json").read_text()
+        ))
 
+        logger.info(f"{tensorized_cfg.total_tokens:e} total tokens found")
+        logger.info(f"{tensorized_cfg.input_token_count:e} input tokens found")
+        logger.info(f"{tensorized_cfg.target_token_count:e} target tokens found")
+        logger.info(f"{tensorized_cfg.num_instances:e} instances found")
         if max_instances != -1:
-            return tensorized_dataset, max_instances
+            return tensorized_cfg, max_instances
 
         if self.objective == 'lm':
-            return tensorized_dataset, (
-                    tensorized_dataset.total_tokens
+            return tensorized_cfg, (
+                    tensorized_cfg.total_tokens
                     + ((len(self.lm_concat_delim) + 1)
-                       * len(tensorized_dataset.instances))
+                       * tensorized_cfg.num_instances)
             ) // self.sequence_length
-        return tensorized_dataset, len(tensorized_dataset.instances)
+        return tensorized_cfg, tensorized_cfg.num_instances
 
     def get_samples(self):
-        for line in self.data_path.open():
+        for line in self.data_path.joinpath(f"{self.name}.jsonl").open():
             yield json.loads(line)
 
     def __iter__(self):
@@ -151,7 +152,6 @@ class TensorizedTask(IterableDataset):
                     break
             del buffer
             buffer = overflow
-        data_file.close()
 
     def __len__(self):
         return self.length
@@ -160,6 +160,7 @@ class TensorizedTask(IterableDataset):
 def tensorize(
         raw_data_path: Path,
         out_path: Path,
+        output_name: str,
         num_workers: int,
         model_name: str,
         data_processor,
@@ -199,24 +200,21 @@ def tensorize(
         tokenizer=tokenizer
     )
 
-    with mp.Pool(num_workers) as pool:
-        results = list(tqdm(
-            pool.imap(map_fn, batches),
-            total=len(batches),
-            desc='Tokenizing')
-        )
-
-    tensorized_data = TensorizedDataset(out_path.stem)
-    for processed_batch in results:
-        tensorized_data.add_instances(processed_batch)
+    tensorized_data = TensorizedDatasetCFG(out_path.stem)
+    out_file = out_path.joinpath(f"{output_name}.jsonl")
+    with out_file.open('w') as out_file:
+        with mp.Pool(num_workers) as pool:
+            for result in tqdm(pool.imap(map_fn, batches), total=len(batches), desc='Tokenizing'):
+                for instance in result:
+                    out_file.write(json.dumps(instance) + '\n')
+                    tensorized_data.add_instance(instance)
 
     logger.info(f"{tensorized_data.total_tokens:e} total tokens found")
     logger.info(f"{tensorized_data.input_token_count:e} input tokens found")
     logger.info(f"{tensorized_data.target_token_count:e} target tokens found")
+    logger.info(f"{tensorized_data.num_instances:e} instances found")
 
-    logger.info(f"Saving to {out_path}")
-    with out_path.open('w') as f:
-        for instance in tqdm(tensorized_data.instances):
-            f.write(json.dumps(instance) + '\n')
+    with out_path.joinpath(f"{output_name}.cfg.json").open('w') as f:
+        json.dump(asdict(tensorized_data), f, indent=True)
 
     logger.info(f"Size of {tensorized_data.name} is {human_readable_size(out_path.stat().st_size)}")

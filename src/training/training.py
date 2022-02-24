@@ -113,14 +113,16 @@ def setup_pretrain(cfg, tokenizer, train_args):
     )
 
     train_dataset = TensorizedTask(
-        data_path=PROJECT_ROOT.joinpath('data', 'tensorized', cfg.task.data_name),
+        name=cfg.task.data_name,
+        data_path=PROJECT_ROOT.joinpath('data', 'tensorized'),
         objective=cfg.objective,
         tokenizer=tokenizer,
         sequence_length=cfg.task.sequence_length,
         max_instances=effective_batch_size * train_args.max_steps if train_args.max_steps != -1 else -1
     )
     eval_dataset = TensorizedTask(
-        data_path=PROJECT_ROOT.joinpath('data', 'tensorized', f"{cfg.task.data_name}.val"),
+        name=f"{cfg.task.data_name}.val",
+        data_path=PROJECT_ROOT.joinpath('data', 'tensorized'),
         objective=cfg.objective,
         tokenizer=tokenizer,
         sequence_length=cfg.task.sequence_length,

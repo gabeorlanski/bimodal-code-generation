@@ -103,7 +103,8 @@ def tensorize_data(
         raise ValueError(f'Unknown processor {cfg.processor.name}')
     tensorize(
         data_path.joinpath(train_file_name),
-        out_path.joinpath(f'{output_name}'),
+        out_path,
+        output_name,
         num_workers,
         model_name,
         processor,
@@ -111,7 +112,8 @@ def tensorize_data(
     )
     tensorize(
         data_path.joinpath(validation_file),
-        out_path.joinpath(f"{output_name}.val"),
+        out_path,
+        f"{output_name}.val",
         num_workers,
         model_name,
         processor,
