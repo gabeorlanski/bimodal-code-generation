@@ -1,5 +1,6 @@
 import json
 import logging
+import os
 import pickle
 import random
 import threading
@@ -16,6 +17,7 @@ from transformers import AutoTokenizer, PreTrainedTokenizer
 from src.data.parse_so.util import log_process
 from tqdm import tqdm
 from src.common.file_util import human_readable_size
+import psutil
 
 logger = logging.getLogger(__name__)
 __all__ = [
@@ -184,11 +186,14 @@ def tensorize(
             buffer = []
             batches_found += 1
 
-        if lines % 10000 == 0:
-            logger.info(f"Read {lines} lines")
+        if lines % 50000 == 0:
+            logger.info(f"Read {lines} lines. ")
+
         if batches_found != last_logged_batch and batches_found % 1000 == 0:
             logger.info(f"Found {batches_found} batches")
             last_logged_batch = batches_found
+            logger.info(f"RAM Used={psutil.virtual_memory()[2]}%")
+            logger.info(f"CPU Used={psutil.getloadavg()[-1] / os.cpu_count() * 100:0.2f}%")
 
     logger.info(f"Read {lines} lines")
     logger.info(f"Yielded {batches_found} batches")
