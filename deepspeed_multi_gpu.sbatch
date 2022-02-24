@@ -11,5 +11,7 @@ conda activate adversarial-code
 python scripts/prepare_train_environment.py $1 -force
 pip install deepspeed
 pip show deepspeed
+ds_report
+conda env list
 deepspeed --num_gpus=4 train.py from_config $1
 "
