@@ -72,12 +72,14 @@ class TensorizedTask(IterableDataset):
             max_instances=-1,
     ):
         self.objective = objective
+        self.data_path = data_path
         self.concat_token_id = tokenizer.bos_token_id or tokenizer.eos_token_id
         self.sequence_length = sequence_length
         self.infinite = infinite
         self.tokenizer = tokenizer
         self.buffer_size = 1024 * self.sequence_length
         self.lm_concat_delim = self.tokenizer.encode('\n')
+        self.max_instances = max_instances
         self.tensorized_dataset, self.length = self._load_samples(data_path, max_instances)
         self.tensorized_dataset: TensorizedDataset
         logger.info(f"{self.length} total samples")
@@ -87,8 +89,9 @@ class TensorizedTask(IterableDataset):
         logger.info(f"Loading tensorized dataset from {data_path}")
 
         tensorized_dataset: TensorizedDataset = TensorizedDataset(data_path.stem)
-        for instance in tqdm(map(json.loads, data_path.open('r').readlines())):
-            tensorized_dataset.add_instance(instance)
+        for instance in tqdm(self.get_samples()):
+            tensorized_dataset.target_token_count += len(instance['label'])
+            tensorized_dataset.input_token_count += len(instance['input_ids'])
 
         if max_instances != -1:
             return tensorized_dataset, max_instances
@@ -101,9 +104,13 @@ class TensorizedTask(IterableDataset):
             ) // self.sequence_length
         return tensorized_dataset, len(tensorized_dataset.instances)
 
+    def get_samples(self):
+        for line in self.data_path.open():
+            yield json.loads(line)
+
     def __iter__(self):
         buffer = []
-        data_iter = iter(self.tensorized_dataset.instances)
+        data_iter = iter(self.get_samples())
         more_examples = True
         total_yielded = 0
         while more_examples and total_yielded < self.length:
@@ -118,8 +125,8 @@ class TensorizedTask(IterableDataset):
                     )
                     self.samples_yielded += 1
                 except StopIteration:
-                    if self.infinite:
-                        data_iter = iter(self.dataset)
+                    if self.infinite or (self.max_instances != -1 and total_yielded < self.length):
+                        data_iter = iter(self.get_samples())
                         self.epoch += 1
                         logger.info(f"Dataset epoch: {self.epoch}")
                     else:
@@ -144,6 +151,7 @@ class TensorizedTask(IterableDataset):
                     break
             del buffer
             buffer = overflow
+        data_file.close()
 
     def __len__(self):
         return self.length
