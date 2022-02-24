@@ -24,7 +24,7 @@ experiments:
           ++training:
             save_steps: 2500
             eval_steps: 250
-            logging_steps: 100
+            logging_steps: 25
             max_steps: 10000
             warmup_steps: 500
           tracking:
