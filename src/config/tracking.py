@@ -14,7 +14,7 @@ from omegaconf import DictConfig, OmegaConf, open_dict
 import os
 import logging
 from src.common import flatten, ENV_VARS_TRUE_VALUES
-from src.data.stackoverflow import StackOverflowTask
+from src.data.tensorize import TensorizedTask
 
 logger = logging.getLogger(__name__)
 
@@ -181,10 +181,11 @@ class TrackingCallback(TrainerCallback):
         if state.is_world_process_zero:
             logs = rewrite_logs(logs)
 
-            if isinstance(kwargs['train_dataloader'].dataset, StackOverflowTask):
+            if isinstance(kwargs['train_dataloader'].dataset, TensorizedTask):
                 train_ds = kwargs['train_dataloader'].dataset
                 logs['train/ds_epoch'] = train_ds.epoch
                 logs['train/samples_seen'] = train_ds.samples_seen
+                logs['train/tokens_seen'] = train_ds.tokens_seen
             self._wandb.log(logs, step=state.global_step)
 
 

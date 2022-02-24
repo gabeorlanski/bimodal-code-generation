@@ -126,7 +126,7 @@ def setup_pretrain(cfg, tokenizer, train_args):
         objective=cfg.objective,
         tokenizer=tokenizer,
         sequence_length=cfg.task.sequence_length,
-        max_instances=-1
+        max_instances=cfg.get('debug_val_size', -1)
     )
     return train_dataset, eval_dataset, None
 

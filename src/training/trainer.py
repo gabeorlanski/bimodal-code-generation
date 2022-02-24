@@ -126,15 +126,7 @@ class CustomTrainer(Seq2SeqTrainer):
             self.store_flos()
             current = datetime.utcnow()
             elapsed_start = (current - self.start_time).total_seconds()
-            elapsed_last_log = (current - self.time_last_log).total_seconds()
-
-            logs['train_runtime_last_log'] = round(elapsed_last_log, 4)
             logs['train_runtime_total'] = round(elapsed_start, 4)
-
-            elapsed_steps = self.state.global_step - self.last_runtime_step
-            logs['train_steps_per_second_last_log'] = round(
-                elapsed_steps / elapsed_last_log, 3
-            )
             logs['train_steps_per_second_total'] = round(
                 self.state.global_step / elapsed_start, 3
             )

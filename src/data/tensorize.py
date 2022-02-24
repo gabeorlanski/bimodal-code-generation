@@ -83,7 +83,10 @@ class TensorizedTask(IterableDataset):
         self.tensorized_cfg, self.length = self._load_samples(data_path, max_instances)
         self.tensorized_cfg: TensorizedDatasetCFG
         logger.info(f"{self.length} total samples")
-        self.samples_yielded = 0
+        self.samples_seen = 0
+        self.tokens_seen = 0
+        self.epoch = 0
+        logger.debug(f"{max_instances=} while length is {self.length}")
 
     def _load_samples(self, data_path, max_instances):
         logger.info(f"Loading tensorized dataset from {data_path}")
@@ -126,7 +129,7 @@ class TensorizedTask(IterableDataset):
                         + current_instance["input_ids"]
                         + [self.tokenizer.eos_token_id]
                     )
-                    self.samples_yielded += 1
+                    self.samples_seen += 1
                 except StopIteration:
                     if self.infinite or (self.max_instances != -1 and total_yielded < self.length):
                         data_iter = iter(self.get_samples())
@@ -138,10 +141,9 @@ class TensorizedTask(IterableDataset):
             overflow = []
             for i in range(0, len(buffer), self.sequence_length):
                 input_ids = buffer[i: i + self.sequence_length]
-                input_len = len(input_ids)
-                attention_mask = [1] * input_len
                 if len(input_ids) == self.sequence_length:
                     total_yielded += 1
+                    self.tokens_seen += self.sequence_length
                     yield {
                         'input_ids': torch.tensor(input_ids),
                         # 'attention_mask': torch.tensor(attention_mask),
@@ -206,8 +208,8 @@ def tensorize(
     )
 
     tensorized_data = TensorizedDatasetCFG(out_path.stem)
-    out_file = out_path.joinpath(f"{output_name}.jsonl")
-    with out_file.open('w') as out_file:
+    out_file_path = out_path.joinpath(f"{output_name}.jsonl")
+    with out_file_path.open('w') as out_file:
         with mp.Pool(num_workers) as pool:
             for result in tqdm(pool.imap(map_fn, batches), total=len(batches), desc='Tokenizing'):
                 for instance in result:
@@ -222,6 +224,6 @@ def tensorize(
     with out_path.joinpath(f"{output_name}.cfg.json").open('w') as f:
         json.dump(asdict(tensorized_data), f, indent=True)
 
-    logger.info(f"Saved to {out_file} (Config was saved to '{output_name}.cfg.json')")
+    logger.info(f"Saved to {out_file_path} (Config was saved to '{output_name}.cfg.json')")
 
     logger.info(f"Size of {tensorized_data.name} is {human_readable_size(out_path.stat().st_size)}")
