@@ -16,7 +16,7 @@ if str(Path(__file__).parents[1]) not in sys.path:
     sys.path.insert(0, str(Path(__file__).parents[1]))
 from src.common import PROJECT_ROOT, setup_global_logging
 from src.common.file_util import validate_files_exist
-from src.data.parse_so import filter_so_dump, filter_and_parse_so_posts, QuestionFilter
+from src.data.parse_so import parse_so_dump, filter_and_parse_so_posts, QuestionFilter
 import click
 
 

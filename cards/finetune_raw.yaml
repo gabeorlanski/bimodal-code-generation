@@ -1,0 +1,44 @@
+starting_commands: command_templates/sbatch_experiment.txt
+experiments:
+  PretrainRaw.ParrotSmall:
+    overrides:
+      ++device: 0
+      +disable_cache: True
+      ++tracking:
+        log_model: false
+      ++model: 'lvwerra/codeparrot-small'
+      ++num_proc: 4
+      ++training:
+        batch_size: 32
+        gradient_accumulation_steps: 1
+    steps:
+      - name: FineTune
+        base: greene_config
+        group: MBPP
+        overrides:
+          objective: 'lm'
+          task: mbpp
+          ++is_checkpoint: True
+          ++model_path: best_models/SO.PretrainRaw.ParrotSmall.PreTrain
+          training:
+            learning_rate: 5e-5
+      - name: Eval
+        base: eval_config
+        group: MBPP
+        overrides:
+          batch_size: 200
+          remove_input_ids: true
+          ++generation:
+            max_new_tokens: 256
+          ++device: 0
+          task: mbpp
+          remove_input_ids: true
+          ++model_path: best_models/${..__META__.previous_step.save_name}
+    command:
+      file: command_templates/finetune.txt
+      kwargs:
+        num_return_sequences: 200
+        task_name: MBPP
+        train_sbatch: train_single_gpu
+      fields:
+        - model_path

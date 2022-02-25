@@ -16,7 +16,7 @@ if str(Path(__file__).parents[1]) not in sys.path:
     sys.path.insert(0, str(Path(__file__).parents[1]))
 from src.common import PROJECT_ROOT, setup_global_logging
 from src.common.file_util import validate_files_exist
-from src.data.parse_so import filter_so_dump, filter_and_parse_so_posts, QuestionFilter
+from src.data.parse_so import parse_so_dump, filter_and_parse_so_posts, QuestionFilter
 import click
 
 
@@ -34,7 +34,7 @@ def main(ctx, debug, output_path):
     ctx.obj['OUT_PATH'] = output_path
 
 
-@main.command('parse')
+@main.command('clean')
 @click.argument('dump_path', metavar='<Data Path>')
 @click.argument('num_workers', type=int, metavar='<Number Of Workers>')
 @click.argument('output_file_name', type=str, metavar='<Stem of the output file>')
@@ -71,7 +71,7 @@ def main(ctx, debug, output_path):
     is_flag=True, default=False, help="Do not do any filtering "
 )
 @click.pass_context
-def parse_so(
+def clean_so_data(
         ctx,
         dump_path,
         num_workers,
@@ -126,24 +126,17 @@ def parse_so(
     )
 
 
-@main.command('filter')
+@main.command('parse')
 @click.argument('dump_path', metavar='<Data Path>')
 @click.argument('num_workers', type=int, metavar='<Number Of Workers>')
-@click.argument('tag_filter_file')
-@click.option(
-    '--do-not-filter',
-    is_flag=True, default=False, help="Do not do any filtering "
-)
 @click.option(
     '--out-name',default=None, help="name"
 )
 @click.pass_context
-def filter_so(
+def parse_dump(
         ctx,
         dump_path,
         num_workers,
-        tag_filter_file,
-        do_not_filter,
         out_name
 ):
     debug = ctx.obj['DEBUG']
@@ -163,11 +156,6 @@ def filter_so(
         logger.error(f"Missing '{e.file}' in '{path_to_dump.resolve()}' ")
         raise e
 
-    logger.info(f"Reading tags filters from {tag_filter_file}")
-    if  do_not_filter:
-        tag_filters=[]
-    else:
-        tag_filters = PROJECT_ROOT.joinpath(tag_filter_file).read_text('utf-8').splitlines(False)
     dump_name = path_to_dump.stem.split(".")[0]
     if out_name is None:
         output_path = output_path.joinpath(dump_name)
@@ -175,19 +163,14 @@ def filter_so(
         output_path = output_path.joinpath(out_name)
     if not output_path.exists():
         output_path.mkdir(parents=True)
-    failures = filter_so_dump(
+    parse_so_dump(
         posts_path,
         num_workers,
         output_path,
-        tag_filters,
         debug
     )
 
-    logger.info(f"Saving stats for '{dump_name}' to {output_path}")
-    if not output_path.exists():
-        output_path.mkdir(parents=True)
-    with output_path.joinpath(f'{dump_name}_failures.json').open('w', encoding='utf-8') as f:
-        json.dump(failures, f, indent=True)
+
 
 
 if __name__ == "__main__":

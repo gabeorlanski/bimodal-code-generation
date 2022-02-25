@@ -118,7 +118,9 @@ def setup_pretrain(cfg, tokenizer, train_args):
         objective=cfg.objective,
         tokenizer=tokenizer,
         sequence_length=cfg.task.sequence_length,
-        max_instances=effective_batch_size * train_args.max_steps if train_args.max_steps != -1 else -1
+        max_instances=effective_batch_size * train_args.max_steps if train_args.max_steps != -1 else -1,
+        local_rank=train_args.local_rank,
+        effective_batch_size=effective_batch_size
     )
     eval_dataset = TensorizedTask(
         name=f"{cfg.task.data_name}.val",
@@ -126,7 +128,9 @@ def setup_pretrain(cfg, tokenizer, train_args):
         objective=cfg.objective,
         tokenizer=tokenizer,
         sequence_length=cfg.task.sequence_length,
-        max_instances=cfg.get('debug_val_size', -1)
+        max_instances=cfg.get('debug_val_size', -1),
+        local_rank=train_args.local_rank,
+        effective_batch_size=effective_batch_size
     )
     return train_dataset, eval_dataset, None
 
