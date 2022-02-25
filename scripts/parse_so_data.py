@@ -141,9 +141,9 @@ def parse_dump(
 ):
     debug = ctx.obj['DEBUG']
 
-    setup_global_logging(f"filter_so", str(PROJECT_ROOT.joinpath('logs')),
+    setup_global_logging(f"parse_dump", str(PROJECT_ROOT.joinpath('logs')),
                          debug=debug)
-    logger = logging.getLogger('filter_so')
+    logger = logging.getLogger('parse_dump')
     output_path = PROJECT_ROOT.joinpath(ctx.obj['OUT_PATH'])
     path_to_dump = PROJECT_ROOT.joinpath(dump_path)
     logger.info(f"Starting parse_so with inputs {path_to_dump} "
