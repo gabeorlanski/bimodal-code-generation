@@ -1,12 +1,15 @@
 import json
 import argparse
 import logging
+import os
 import shutil
 import threading
 from collections import defaultdict, Counter
 from pathlib import Path
 import multiprocessing as mp
 import sys
+
+import psutil
 from lxml import etree
 from tqdm import tqdm
 from unidecode import unidecode
@@ -140,6 +143,8 @@ def read_dump(dump_path: Path, debug: bool):
 
             if (line_num + 1) % 100000 == 0:
                 logger.info(f"Read {line_num + 1} lines")
+                logger.info(f"RAM Used={psutil.virtual_memory()[2]}%")
+                logger.info(f"CPU Used={psutil.getloadavg()[-1] / os.cpu_count() * 100:0.2f}%")
             line_num += 1
 
             yield parsed
