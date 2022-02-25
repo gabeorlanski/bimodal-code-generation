@@ -110,13 +110,6 @@ def parse_line(line_number, line):
             for t in post_dict['Tags'].split(">")
             if t.strip()
         ]
-        # has_a_valid_tag = any(valid_t in t for t in post_tags for valid_t in tag_filter)
-        # if tag_filter and (not post_tags or not has_a_valid_tag):
-        #     if not post_tags:
-        #         result['reason'] = "NO_VALID_TAG"
-        #     else:
-        #         result['reason'] = "FILTERED_OUT"
-        #     return result
         result.update({
             'tags'           : post_tags,
             'title'          : unidecode(post_dict.get('Title')),
@@ -161,8 +154,6 @@ def initial_parse_dump(dump_path: Path, out_dir: Path, debug):
     tag_counts = Counter()
     post_type_to_file = {}
     for k, v in POST_TYPE_TO_STR.items():
-        if k in ['answers', 'questions']:
-            continue
         post_type_to_file[k] = out_dir.joinpath(
             f"{v}.jsonl"
         ).open('w', encoding='utf-8')
@@ -175,6 +166,7 @@ def initial_parse_dump(dump_path: Path, out_dir: Path, debug):
             continue
 
         post_type_counter[POST_TYPE_TO_STR[parsed['type']]] += 1
+        post_type_to_file[parsed['type']].write(json.dumps(parsed) + '\n')
         if parsed['type'] == 1:
             question_overview_data[parsed['id']] = {
                 'tags'           : parsed['tags'],
@@ -186,10 +178,6 @@ def initial_parse_dump(dump_path: Path, out_dir: Path, debug):
             }
             for t in parsed['tags']:
                 tag_counts[t] += 1
-        elif parsed['type'] != 2:
-            post_type_to_file[parsed['type']].write(
-                json.dumps(parsed) + '\n'
-            )
 
     logger.info("Closing files")
     for k in post_type_to_file:
@@ -217,16 +205,16 @@ def initial_parse_dump(dump_path: Path, out_dir: Path, debug):
     with out_dir.joinpath('question_overview.json').open('w') as f:
         json.dump(question_overview_data, f)
 
-    return question_overview_data, tag_counts, line_number, dump_stats
+    return question_overview_data, tag_counts, dump_stats
 
 
 def second_parse_dump(
-        dump_path: Path,
+        questions_path: Path,
+        answers_path: Path,
         out_dir: Path,
         question_overview_data,
         tag_counts,
-        total_line_count,
-        debug
+        answer_counts
 ):
     logger.info("Starting second pass")
     question_dir = out_dir.joinpath(f'questions')
@@ -239,33 +227,43 @@ def second_parse_dump(
     tag_file_descriptors = {}
     posts_per_tag = Counter()
     no_tags = 0
-    for parsed in tqdm(read_dump(dump_path, debug), desc='Second Pass', total=total_line_count):
+    for line in tqdm(
+            questions_path.open('r'),
+            desc='Sorting Questions',
+            total=len(question_overview_data)
+    ):
+        parsed = json.loads(line)
         if parsed['result'] != 'PASS' or parsed['type'] not in [1, 2]:
             continue
-
-        if parsed['type'] == 1:
-            if not parsed.get('tags', []):
-                tag_to_use = 'NO_TAG'
-                no_tags += 1
-            else:
-                tag_to_use = max(parsed['tags'], key=lambda t: tag_counts[t])
-
-            if tag_to_use not in tag_file_descriptors:
-                logger.info(f"Creating File for {tag_to_use}")
-                tag_file_descriptors[tag_to_use] = question_dir.joinpath(
-                    f'{tag_to_use}.jsonl').open('w')
+        if not parsed.get('tags', []):
+            tag_to_use = 'NO_TAG'
+            no_tags += 1
         else:
-            try:
-                tags_for_answer = question_overview_data[parsed['parent_id']].get('tags', [])
-            except KeyError:
-                logger.error(
-                    f"{parsed['id']} has a parent ({parsed['parent_id']=})that does not exist")
-                continue
-            if not tags_for_answer:
-                tag_to_use = 'NO_TAG'
-                no_tags += 1
-            else:
-                tag_to_use = max(tags_for_answer, key=lambda t: tag_counts[t])
+            tag_to_use = max(parsed['tags'], key=lambda t: tag_counts[t])
+
+        if tag_to_use not in tag_file_descriptors:
+            logger.info(f"Creating File for {tag_to_use}")
+            tag_file_descriptors[tag_to_use] = question_dir.joinpath(
+                f'{tag_to_use}.jsonl').open('w')
+        posts_per_tag[tag_to_use] += 1
+        tag_file_descriptors[tag_to_use].write(json.dumps(parsed) + '\n')
+    for line in tqdm(
+            answers_path.open('r'),
+            desc='Sorting Answers',
+            total=answer_counts
+    ):
+        parsed = json.loads(line)
+        try:
+            tags_for_answer = question_overview_data[parsed['parent_id']].get('tags', [])
+        except KeyError:
+            logger.error(
+                f"{parsed['id']} has a parent ({parsed['parent_id']=})that does not exist")
+            continue
+        if not tags_for_answer:
+            tag_to_use = 'NO_TAG'
+            no_tags += 1
+        else:
+            tag_to_use = max(tags_for_answer, key=lambda t: tag_counts[t])
 
         posts_per_tag[tag_to_use] += 1
         tag_file_descriptors[tag_to_use].write(json.dumps(parsed) + '\n')
@@ -315,21 +313,33 @@ def parse_so_dump(
         out_dir: Path,
         debug
 ):
-    question_overview_data, tag_counts, total_line_count, dump_stats = initial_parse_dump(
+    question_overview_data, tag_counts, dump_stats = initial_parse_dump(
         posts_path,
         out_dir=out_dir,
         debug=debug
     )
 
+    if posts_path.parent.joinpath('Tags.xml'):
+        tag_counts = {}
+        for line in posts_path.parent.joinpath('Tags.xml').open('r'):
+            try:
+                post_dict = etree.XML(line).attrib
+            except Exception as e:
+                continue
+
+            tag_counts[post_dict['TagName']] = post_dict['Count']
+
     tag_files = second_parse_dump(
-        posts_path,
+        out_dir.joinpath('questions.jsonl'),
+        out_dir.joinpath('answers.jsonl'),
         out_dir,
         question_overview_data,
         tag_counts,
-        total_line_count,
-        debug
+        dump_stats['post_types']['answers']
     )
 
+    os.remove(out_dir.joinpath('questions.jsonl'))
+    os.remove(out_dir.joinpath('answers.jsonl'))
     tag_files = [out_dir.joinpath('questions', f"{t}.jsonl") for t in tag_files]
     logger.info(f"Aligning {len(tag_files)} tag files")
 
