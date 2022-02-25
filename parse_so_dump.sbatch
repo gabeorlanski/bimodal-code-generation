@@ -9,5 +9,5 @@ singularity exec --nv --overlay $SCRATCH/overlay-50G-10M.ext3:ro /scratch/work/p
 source /ext3/env.sh
 conda activate adversarial-code
 echo $(pwd)
-python scripts/parse_so_data.py parse $1/$2 48
+python scripts/parse_so_data.py parse $1 48
 "
