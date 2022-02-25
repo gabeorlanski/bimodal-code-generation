@@ -245,8 +245,14 @@ def second_parse_dump(
             logger.info(f"Creating File for {tag_to_use}")
             tag_file_descriptors[tag_to_use] = question_dir.joinpath(
                 f'{tag_to_use}.jsonl').open('w')
+
         posts_per_tag[tag_to_use] += 1
         tag_file_descriptors[tag_to_use].write(json.dumps(parsed) + '\n')
+        if len(tag_file_descriptors) >= 1000:
+            # IF we have too many files open at once, we will get an error.
+            for v in tag_file_descriptors.values():
+                v.close()
+            tag_file_descriptors = {}
     for line in tqdm(
             answers_path.open('r'),
             desc='Sorting Answers',
@@ -267,6 +273,11 @@ def second_parse_dump(
 
         posts_per_tag[tag_to_use] += 1
         tag_file_descriptors[tag_to_use].write(json.dumps(parsed) + '\n')
+        if len(tag_file_descriptors) >= 1000:
+            # IF we have too many files open at once, we will get an error.
+            for v in tag_file_descriptors.values():
+                v.close()
+            tag_file_descriptors = {}
 
     logger.info(f"{len(posts_per_tag)} total tag files created")
     logger.info(f"{no_tags} had no tags")
