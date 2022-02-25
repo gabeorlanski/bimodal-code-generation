@@ -69,6 +69,8 @@ class TensorizedTask(IterableDataset):
             infinite=False,
             sequence_length=1024,
             max_instances=-1,
+            local_rank: int = -1,
+            effective_batch_size: int = 16
     ):
         self.objective = objective
         self.data_path = data_path
@@ -77,12 +79,12 @@ class TensorizedTask(IterableDataset):
         self.sequence_length = sequence_length
         self.infinite = infinite
         self.tokenizer = tokenizer
-        self.buffer_size = 1024 * self.sequence_length
+        self.buffer_size = effective_batch_size * self.sequence_length
         self.lm_concat_delim = self.tokenizer.encode('\n')
         self.max_instances = max_instances
         self.tensorized_cfg, self.length = self._load_samples(data_path, max_instances)
         self.tensorized_cfg: TensorizedDatasetCFG
-        logger.info(f"{self.length} total samples")
+        logger.info(f"{self.length} total samples with a buffer of {self.buffer_size}")
         self.samples_seen = 0
         self.tokens_seen = 0
         self.epoch = 0
@@ -119,6 +121,7 @@ class TensorizedTask(IterableDataset):
         data_iter = iter(self.get_samples())
         more_examples = True
         total_yielded = 0
+
         while more_examples and total_yielded < self.length:
             while len(buffer) < self.buffer_size:
                 try:
@@ -145,9 +148,9 @@ class TensorizedTask(IterableDataset):
                     total_yielded += 1
                     self.tokens_seen += self.sequence_length
                     yield {
-                        'input_ids': torch.tensor(input_ids),
-                        'attention_mask': torch.tensor([1]*len(input_ids)),
-                        'labels'   : torch.tensor(input_ids),
+                        'input_ids'     : torch.tensor(input_ids),
+                        'attention_mask': torch.tensor([1] * len(input_ids)),
+                        'labels'        : torch.tensor(input_ids),
                     }
                 else:
                     overflow.extend(copy(input_ids))
