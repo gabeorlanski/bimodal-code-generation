@@ -308,72 +308,8 @@ def parse_so_dump(
         posts_path: Path,
         num_workers,
         out_dir: Path,
-        tag_filters,
         debug
 ):
-    # logger.info(f"{len(tag_filters)} total tag filters")
-    # log_queue = mp.JoinableQueue()
-    # task_queue = mp.JoinableQueue()
-    # result_queue = mp.JoinableQueue()
-    # logger.info(f"Initializing {num_workers} workers")
-    # workers = [
-    #     FilterWorker(i, task_queue, result_queue, log_queue, tag_filters)
-    #     for i in range(num_workers)
-    # ]
-    #
-    # logger.info(f"Starting {num_workers} workers")
-    # for w in workers:
-    #     w.start()
-    #
-    # logger.debug(f"Reading lines from {posts_path}")
-    # line_num = 0
-    # logger.info(f"Starting the logging thread")
-    # log_thread = threading.Thread(
-    #     target=log_process,
-    #     args=(log_queue, num_workers)
-    # )
-    # log_thread.start()
-    # with posts_path.open('r', encoding='utf-8', errors='replace') as posts_file:
-    #     for line in posts_file:
-    #         task_queue.put({'line_num': line_num, 'line': line})
-    #
-    #         if (line_num + 1) % 100000 == 0:
-    #             logger.info(f"Read {line_num + 1} lines")
-    #         line_num += 1
-    #
-    #         if line_num >= 2500 and debug:
-    #             break
-    #
-    # logger.info(f"{line_num} total lines")
-    #
-    # logger.debug("Putting in poison pills")
-    # for _ in workers:
-    #     task_queue.put(None)
-    #
-    # logger.debug("Starting result processing loop")
-    # try:
-    #     dump_stats = main_process(
-    #         out_dir,
-    #         line_num,
-    #         result_queue,
-    #         workers
-    #     )
-    # except Exception as e:
-    #     logger.error("SOMETHING WENT REALLY WRONG")
-    #     logger.error('Killing workers')
-    #     for worker in workers:
-    #         worker.terminate()
-    #     # Something failed so kill all of the workers then exit
-    #     logger.error("Poisoning the log thread")
-    #     log_queue.put(None)
-    #     stop_thread = True
-    #     # log_thread.join()
-    #     raise e
-    # log_queue.put('KILL')
-    # log_thread.join()
-    # for worker in workers:
-    #     worker.terminate()
-
     question_overview_data, tag_counts, total_line_count, dump_stats = initial_parse_dump(
         posts_path,
         out_dir=out_dir,
