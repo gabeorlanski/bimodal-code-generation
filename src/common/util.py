@@ -52,9 +52,13 @@ def get_world_size():
     return int(os.getenv('WORLD_SIZE', '-1'))
 
 
-def get_estimated_time_remaining(start_time, completed, total):
+def get_estimated_time_remaining(start_time, completed, total, step_size=None):
     elapsed = datetime.utcnow() - start_time
-    current_rate = elapsed.total_seconds() / completed
+    if step_size is None:
+        current_rate = elapsed.total_seconds() / completed
+    else:
+        current_rate = elapsed.total_seconds() / step_size
+
     estimated_seconds_left = (total - completed) * current_rate
     hours, rem = divmod(estimated_seconds_left, 3600)
     minutes, seconds = divmod(rem, 60)
