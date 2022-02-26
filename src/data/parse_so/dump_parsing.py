@@ -133,22 +133,30 @@ def parse_line(line_number, line):
     return result
 
 
-def read_dump(dump_path: Path, debug: bool):
+def read_dump(dump_path: Path, debug: bool, expected_total_lines: int):
     line_num = 0
+    start_time = datetime.utcnow()
+    update_freq = 2500 if debug else 250000
     with dump_path.open('r', encoding='utf-8', errors='replace') as dump_file:
         for line in dump_file:
             parsed = parse_line(line_num, line)
 
-            if (line_num + 1) % 100000 == 0:
-                logger.info(f"Read {line_num + 1} lines")
-                logger.info(f"RAM Used={psutil.virtual_memory()[2]}%")
-                logger.info(f"CPU Used={psutil.getloadavg()[-1] / os.cpu_count() * 100:0.2f}%")
-            line_num += 1
-
             yield parsed
 
-            if line_num >= 2500 and debug:
-                break
+            line_num += 1
+            if line_num % update_freq == 0:
+                hours, minutes, seconds = get_estimated_time_remaining(
+                    start_time,
+                    line_num,
+                    expected_total_lines
+                )
+
+                logger.info(
+                    f"Completed {line_num:>10}/{expected_total_lines}. "
+                    f"Estimated to finish in {str(hours).zfill(2)}:{str(minutes).zfill(2)}:{str(seconds).zfill(2)}")
+                ram_pct = f"{psutil.virtual_memory()[2]:0.2f}%"
+                cpu_pct = f"{psutil.getloadavg()[-1] / os.cpu_count() * 100:0.2f}%"
+                logger.debug(f"RAM Used={ram_pct:<6} | CPU Used={cpu_pct:<6}")
 
 
 def save_post_using_tag(parsed, tag_file_descriptors, tag_counts, out_dir, max_files_open):
@@ -158,14 +166,11 @@ def save_post_using_tag(parsed, tag_file_descriptors, tag_counts, out_dir, max_f
         tag_to_use = max(parsed['tags'], key=lambda t: tag_counts[t])
 
     if tag_to_use not in tag_file_descriptors:
-        logger.debug(f"Creating File for {tag_to_use}")
         tag_file_descriptors[tag_to_use] = out_dir.joinpath(
             f'{tag_to_use}.jsonl').open('w')
 
     tag_file_descriptors[tag_to_use].write(json.dumps(parsed) + '\n')
     if len(tag_file_descriptors) >= max_files_open:
-
-        logger.info(f"Closing {len(tag_file_descriptors)} file descriptors")
         # IF we have too many files open at once, we will get an error.
         for v in tag_file_descriptors.values():
             v.close()
@@ -189,7 +194,7 @@ def initial_parse_dump(dump_path: Path, out_dir: Path, debug):
             f"{v}.jsonl"
         ).open('w', encoding='utf-8')
     line_number = 0
-    for parsed in read_dump(dump_path, debug):
+    for parsed in read_dump(dump_path, debug, line_count):
         line_number += 1
         if parsed['result'] != 'PASS':
             failures_counts[parsed['result']] += 1
