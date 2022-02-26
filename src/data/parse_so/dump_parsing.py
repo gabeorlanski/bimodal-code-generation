@@ -226,7 +226,7 @@ def create_question_tag_files(
         tmp_dir.mkdir()
 
     max_files_open = 1000 if not debug else 16
-    update_freq = 1000 if not debug else 100000
+    update_freq = 1000 if debug else 100000
 
     tag_file_descriptors = {}
     created_files = {}
@@ -304,7 +304,7 @@ def create_answer_tag_files(
         tmp_dir.mkdir()
 
     max_files_open = 1000 if not debug else 16
-    update_freq = 1000 if not debug else 100000
+    update_freq = 1000 if debug else 100000
 
     tag_file_descriptors = {}
     created_files = {}

@@ -202,6 +202,14 @@ def filter_tags(ctx, parsed_path, tag_filter_file, out_path):
     for question_id, question_dict in tqdm(question_overview.items(), total=len(question_overview)):
         tag_file_counts[question_dict['tag_to_use']] += 1
 
+        tags = question_dict.get('tags', [])
+        if not tags:
+            continue
+        first_tag, *rest_of_tags = tags
+        passes_filter = tag_filters[first_tag]
+        for t in rest_of_tags:
+            passes_filter = passes_filter or tag_filters[t]
+
         if any(tag_filters[t] for t in question_dict['tags']):
             tag_files_to_get[question_dict['tag_to_use']].append(question_id)
             questions_passing_filter += 1
@@ -209,8 +217,41 @@ def filter_tags(ctx, parsed_path, tag_filter_file, out_path):
     logger.info(f"{len(tag_files_to_get)} tags to use.")
     logger.info(f"{questions_passing_filter} passed the filter")
 
-    with PROJECT_ROOT.joinpath('data',f'{out_path}.json').open('w') as filter_file:
+    with PROJECT_ROOT.joinpath('data', f'{out_path}.json').open('w') as filter_file:
         json.dump(tag_files_to_get, filter_file, indent=True)
+
+
+@main.command('make_kg')
+@click.argument('parsed_path', metavar='<Data Path>')
+@click.pass_context
+def make_kg(ctx, parsed_path):
+    debug = ctx.obj['DEBUG']
+    setup_global_logging(f"filter", str(PROJECT_ROOT.joinpath('logs')),
+                         debug=debug)
+    logger = logging.getLogger('filter')
+    logger.info(f"Making the KG for {parsed_path}")
+    parsed_path = PROJECT_ROOT.joinpath(parsed_path)
+    question_path = parsed_path.joinpath('question_overview.json')
+    logger.info("Loading the parsed question overview")
+    question_overview = ujson.load(question_path.open())
+
+    logger.info(f"{len(question_overview)} questions found")
+    knowledge_graph = defaultdict(Counter)
+    for question_id, question_dict in tqdm(question_overview.items(), total=len(question_overview)):
+
+        tags = question_dict.get('tags', [])
+        if not tags:
+            continue
+        first_tag, *rest_of_tags = tags
+        for t in rest_of_tags:
+            knowledge_graph[first_tag][t] += 1
+
+    logger.info(f"{len(knowledge_graph)} unique first tags")
+    kg_path = PROJECT_ROOT.joinpath('data', 'knowledge_graph')
+    if not kg_path.exists():
+        kg_path.mkdir()
+    with kg_path.joinpath(f"{parsed_path.stem}_kg.json").open('w') as kg_file:
+        json.dump(knowledge_graph, kg_file, indent=True)
 
 
 if __name__ == "__main__":
