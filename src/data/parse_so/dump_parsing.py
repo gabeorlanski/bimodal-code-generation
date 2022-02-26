@@ -1,21 +1,19 @@
 import json
-import argparse
 import logging
 import os
 import shutil
-import threading
 from collections import defaultdict, Counter
 from pathlib import Path
 import multiprocessing as mp
-import sys
 
 from datetime import datetime
 import psutil
+import ujson
 from lxml import etree
 from tqdm import tqdm
 from unidecode import unidecode
 
-from src.data.parse_so.util import POST_TYPE_TO_STR, log_process
+from src.data.parse_so.util import POST_TYPE_TO_STR
 from src.common import get_estimated_time_remaining
 
 logger = logging.getLogger(__name__)
@@ -112,6 +110,11 @@ def parse_line(line_number, line):
             for t in post_dict['Tags'].split(">")
             if t.strip()
         ]
+
+        if not post_dict.get('Title'):
+            result['result'] = 'NO_TITLE'
+            return result
+
         result.update({
             'tags'           : post_tags,
             'title'          : unidecode(post_dict.get('Title')),
@@ -148,8 +151,34 @@ def read_dump(dump_path: Path, debug: bool):
                 break
 
 
+def save_post_using_tag(parsed, tag_file_descriptors, tag_counts, out_dir, max_files_open):
+    if not parsed.get('tags', []):
+        tag_to_use = 'NO_TAG'
+    else:
+        tag_to_use = max(parsed['tags'], key=lambda t: tag_counts[t])
+
+    if tag_to_use not in tag_file_descriptors:
+        logger.debug(f"Creating File for {tag_to_use}")
+        tag_file_descriptors[tag_to_use] = out_dir.joinpath(
+            f'{tag_to_use}.jsonl').open('w')
+
+    tag_file_descriptors[tag_to_use].write(json.dumps(parsed) + '\n')
+    if len(tag_file_descriptors) >= max_files_open:
+
+        logger.info(f"Closing {len(tag_file_descriptors)} file descriptors")
+        # IF we have too many files open at once, we will get an error.
+        for v in tag_file_descriptors.values():
+            v.close()
+        tag_file_descriptors = {}
+    return tag_file_descriptors, tag_to_use
+
+
 def initial_parse_dump(dump_path: Path, out_dir: Path, debug):
     logger.info(f"Doing initial pass on {dump_path}")
+
+    line_count = sum(map(lambda _x: 1, dump_path.open()))
+    logger.info(f"{line_count} total lines")
+
     question_overview_data = {}
     failures_counts = Counter()
     post_type_counter = Counter()
@@ -202,10 +231,6 @@ def initial_parse_dump(dump_path: Path, out_dir: Path, debug):
         'tag_counts': tag_counts
     }
 
-    logger.info(f"Saving question overview to {out_dir.joinpath('question_overview.json')}")
-    with out_dir.joinpath('question_overview.json').open('w') as f:
-        json.dump(question_overview_data, f)
-
     return question_overview_data, tag_counts, dump_stats
 
 
@@ -240,27 +265,18 @@ def second_parse_dump(
 
         if parsed['result'] != 'PASS' or parsed['type'] not in [1, 2]:
             continue
-        if not parsed.get('tags', []):
-            tag_to_use = 'NO_TAG'
-            no_tags += 1
-        else:
-            tag_to_use = max(parsed['tags'], key=lambda t: tag_counts[t])
 
-        if tag_to_use not in tag_file_descriptors:
-            logger.debug(f"Creating File for {tag_to_use}")
-            tag_file_descriptors[tag_to_use] = question_dir.joinpath(
-                f'{tag_to_use}.jsonl').open('w')
+        tag_file_descriptors, tag_to_use = save_post_using_tag(
+            parsed,
+            tag_file_descriptors=tag_file_descriptors,
+            tag_counts=tag_counts,
+            out_dir=question_dir,
+            max_files_open=max_files_open
+        )
 
         posts_per_tag[tag_to_use] += 1
-        tag_file_descriptors[tag_to_use].write(json.dumps(parsed) + '\n')
-        if len(tag_file_descriptors) >= max_files_open:
-
-            logger.info(f"Closing {len(tag_file_descriptors)} file descriptors")
-            # IF we have too many files open at once, we will get an error.
-            for v in tag_file_descriptors.values():
-                v.close()
-            tag_file_descriptors = {}
-
+        no_tags += tag_to_use == "NO_TAG"
+        question_overview_data[parsed['id']]['tag_to_use'] = tag_to_use
         completed += 1
         if completed % update_freq == 0:
             hours, minutes, seconds = get_estimated_time_remaining(
@@ -279,26 +295,19 @@ def second_parse_dump(
     for line in answers_path.open('r'):
         parsed = json.loads(line)
         try:
-            tags_for_answer = question_overview_data[parsed['parent_id']].get('tags', [])
+            parsed['tags'] = question_overview_data[parsed['parent_id']].get('tags', [])
         except KeyError:
             logger.error(
                 f"{parsed['id']} has a parent ({parsed['parent_id']=})that does not exist")
             continue
-        if not tags_for_answer:
-            tag_to_use = 'NO_TAG'
-            no_tags += 1
-        else:
-            tag_to_use = max(tags_for_answer, key=lambda t: tag_counts[t])
-
-        posts_per_tag[tag_to_use] += 1
-
-        tag_file_descriptors[tag_to_use].write(json.dumps(parsed) + '\n')
-        if len(tag_file_descriptors) >= max_files_open:
-            logger.info(f"Closing {len(tag_file_descriptors)} file descriptors")
-            # IF we have too many files open at once, we will get an error.
-            for v in tag_file_descriptors.values():
-                v.close()
-            tag_file_descriptors = {}
+        tag_file_descriptors, tag_to_use = save_post_using_tag(
+            parsed,
+            tag_file_descriptors=tag_file_descriptors,
+            tag_counts=tag_counts,
+            out_dir=question_dir,
+            max_files_open=max_files_open
+        )
+        no_tags += tag_to_use == 'NO_TAG'
         completed += 1
         if completed % update_freq == 0:
             hours, minutes, seconds = get_estimated_time_remaining(
@@ -362,7 +371,7 @@ def parse_so_dump(
         debug=debug
     )
 
-    if posts_path.parent.joinpath('Tags.xml'):
+    if posts_path.parent.joinpath('Tags.xml').exists():
         tag_counts = {}
         for line in posts_path.parent.joinpath('Tags.xml').open('r'):
             try:
@@ -381,6 +390,10 @@ def parse_so_dump(
         dump_stats['post_types']['answers'],
         debug
     )
+
+    logger.info(f"Saving question overview to {out_dir.joinpath('question_overview.json')}")
+    with out_dir.joinpath('question_overview.json').open('w') as f:
+        ujson.dump(question_overview_data, f)
 
     os.remove(out_dir.joinpath('questions.jsonl'))
     os.remove(out_dir.joinpath('answers.jsonl'))
