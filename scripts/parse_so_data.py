@@ -186,25 +186,31 @@ def filter_tags(ctx, parsed_path, tag_filter_file, out_path):
                          debug=debug)
     logger = logging.getLogger('filter')
     logger.info(f"Filtering {parsed_path}")
-    parsed_path = Path(parsed_path).joinpath('question_overview.json')
+    parsed_path = PROJECT_ROOT.joinpath(parsed_path, 'question_overview.json')
     tag_filters = defaultdict(lambda: False)
-    for tag in Path(tag_filter_file).read_text().splitlines():
+    for tag in PROJECT_ROOT.joinpath(tag_filter_file).read_text().splitlines():
         tag_filters[tag] = True
-    logger.info(f"{tag_filters} tags in the filter")
+    logger.info(f"{len(tag_filters)} tags in the filter")
 
     logger.info("Loading the parsed question overview")
     question_overview = ujson.load(parsed_path.open())
 
-    logger.info(f"{question_overview} questions found")
-    tags_to_get = set(tag_filters)
+    logger.info(f"{len(question_overview)} questions found")
+    tag_files_to_get = defaultdict(list)
+    questions_passing_filter = 0
     tag_file_counts = Counter()
     for question_id, question_dict in tqdm(question_overview.items(), total=len(question_overview)):
         tag_file_counts[question_dict['tag_to_use']] += 1
 
         if any(tag_filters[t] for t in question_dict['tags']):
-            tags_to_get.add(question_dict['tag_to_use'])
+            tag_files_to_get[question_dict['tag_to_use']].append(question_id)
+            questions_passing_filter += 1
 
-    logger.info(f"{len(tags_to_get)} tags to use")
+    logger.info(f"{len(tag_files_to_get)} tags to use.")
+    logger.info(f"{questions_passing_filter} passed the filter")
+
+    with PROJECT_ROOT.joinpath('data',f'{out_path}.json').open('w') as filter_file:
+        json.dump(tag_files_to_get, filter_file, indent=True)
 
 
 if __name__ == "__main__":

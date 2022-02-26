@@ -100,10 +100,8 @@ def test_parse_so_dump(tmpdir):
 
     questions_dir = Path(tmpdir, 'questions')
     expected_tags = {
-        "backpropagation"     : {
-            "1": {"3"}
-        },
-        "machine-learning"    : {
+        "neural-networks"     : {
+            "1": {"3"},
             "2": {"9"},
         },
         "agi"                 : {"7": set()},
