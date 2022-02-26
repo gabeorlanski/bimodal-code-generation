@@ -136,6 +136,7 @@ def parse_line(line_number, line):
 
 def read_dump(dump_path: Path, debug: bool, expected_total_lines: int):
     line_num = 0
+    last_update = datetime.utcnow()
     start_time = datetime.utcnow()
     update_freq = 2500 if debug else 250000
     with dump_path.open('r', encoding='utf-8', errors='replace') as dump_file:
@@ -147,13 +148,14 @@ def read_dump(dump_path: Path, debug: bool, expected_total_lines: int):
             line_num += 1
             if line_num % update_freq == 0:
                 hours, minutes, seconds = get_estimated_time_remaining(
-                    start_time,
+                    last_update,
                     line_num,
                     expected_total_lines
                 )
+                last_update = datetime.utcnow()
 
                 logger.info(
-                    f"Completed {line_num:>16}. "
+                    f"Completed {line_num:>16} in {str(datetime.utcnow() - start_time).split('.')[0]}. "
                     f"Estimated to finish 100M in {str(hours).zfill(2)}:{str(minutes).zfill(2)}:{str(seconds).zfill(2)}")
                 ram_pct = f"{psutil.virtual_memory()[2]:0.2f}%"
                 cpu_pct = f"{psutil.getloadavg()[-1] / os.cpu_count() * 100:0.2f}%"
@@ -191,8 +193,8 @@ def initial_parse_dump(dump_path: Path, out_dir: Path, debug):
                 'accepted_answer': parsed['accepted_answer'],
 
             }
-            for t in parsed['tags']:
-                tag_counts[t] += 1
+            # for t in parsed['tags']:
+            #     tag_counts[t] += 1
 
     logger.info("Closing files")
     for k in post_type_to_file:
@@ -315,7 +317,7 @@ def create_answer_tag_files(
     update_freq = 1000 if not debug else 100000
 
     tag_file_descriptors = {}
-    created_files= {}
+    created_files = {}
     posts_per_tag = Counter()
     no_tags = 0
     start_time = datetime.utcnow()
