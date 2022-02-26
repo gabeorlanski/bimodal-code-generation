@@ -153,8 +153,8 @@ def read_dump(dump_path: Path, debug: bool, expected_total_lines: int):
                 )
 
                 logger.info(
-                    f"Completed {line_num:>16}/{expected_total_lines}. "
-                    f"Estimated to finish in {str(hours).zfill(2)}:{str(minutes).zfill(2)}:{str(seconds).zfill(2)}")
+                    f"Completed {line_num:>16}. "
+                    f"Estimated to finish 100M in {str(hours).zfill(2)}:{str(minutes).zfill(2)}:{str(seconds).zfill(2)}")
                 ram_pct = f"{psutil.virtual_memory()[2]:0.2f}%"
                 cpu_pct = f"{psutil.getloadavg()[-1] / os.cpu_count() * 100:0.2f}%"
                 logger.debug(f"RAM Used={ram_pct:<6} | CPU Used={cpu_pct:<6}")
@@ -162,9 +162,6 @@ def read_dump(dump_path: Path, debug: bool, expected_total_lines: int):
 
 def initial_parse_dump(dump_path: Path, out_dir: Path, debug):
     logger.info(f"Doing initial pass on {dump_path}")
-
-    line_count = sum(map(lambda _x: 1, dump_path.open()))
-    logger.info(f"{line_count} total lines")
 
     question_overview_data = {}
     failures_counts = Counter()
@@ -176,7 +173,8 @@ def initial_parse_dump(dump_path: Path, out_dir: Path, debug):
             f"{v}.jsonl"
         ).open('w', encoding='utf-8')
     line_number = 0
-    for parsed in read_dump(dump_path, debug, line_count):
+
+    for parsed in read_dump(dump_path, debug, 100000000):
         line_number += 1
         if parsed['result'] != 'PASS':
             failures_counts[parsed['result']] += 1
