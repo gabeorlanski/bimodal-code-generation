@@ -100,12 +100,14 @@ def test_parse_so_dump(tmpdir):
 
     questions_dir = Path(tmpdir, 'questions')
     expected_tags = {
-        "neural-networks": {
-            "1": {"3"},
+        "backpropagation"     : {
+            "1": {"3"}
+        },
+        "machine-learning"    : {
             "2": {"9"},
         },
-        "agi"            : {"7": set()},
-        "terminology"    : {"10": set()}
+        "agi"                 : {"7": set()},
+        "deep-neural-networks": {"10": set()}
     }
 
     for tag_name, expected_ids in expected_tags.items():

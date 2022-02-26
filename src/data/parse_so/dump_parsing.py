@@ -163,7 +163,19 @@ def save_post_using_tag(parsed, tag_file_descriptors, tag_counts, out_dir, max_f
     if not parsed.get('tags', []):
         tag_to_use = 'NO_TAG'
     else:
-        tag_to_use = max(parsed['tags'], key=lambda t: tag_counts[t])
+        post_tag_counts = [(t, tag_counts[t]) for t in parsed['tags']]
+        # In the case two of the tags have the same count and that count is the
+        # least frequent, use the placement of the tags to determine the order
+        post_counter = Counter([t[1] for t in post_tag_counts])
+        lowest_tag = min(post_tag_counts, key=lambda t: t[1])
+        if post_counter[lowest_tag[1]] > 1:
+            tag_to_use = None
+            for t, v in post_tag_counts:
+                if v == lowest_tag[1]:
+                    tag_to_use = t
+                    break
+        else:
+            tag_to_use = lowest_tag[0]
 
     if tag_to_use not in tag_file_descriptors:
         tag_file_descriptors[tag_to_use] = out_dir.joinpath(

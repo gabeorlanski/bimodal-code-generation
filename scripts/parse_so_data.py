@@ -6,9 +6,14 @@ import json
 import argparse
 import logging
 import random
+from collections import defaultdict, Counter
 from pathlib import Path
 import sys
 from dataclasses import asdict
+import click
+from tqdm import tqdm
+
+import ujson
 
 # If this file is called by itself (for creating the splits) then it will
 # have import issues.
@@ -17,7 +22,6 @@ if str(Path(__file__).parents[1]) not in sys.path:
 from src.common import PROJECT_ROOT, setup_global_logging
 from src.common.file_util import validate_files_exist
 from src.data.parse_so import parse_so_dump, filter_and_parse_so_posts, QuestionFilter
-import click
 
 
 # Here just to allow the grouping.
@@ -130,7 +134,7 @@ def clean_so_data(
 @click.argument('dump_path', metavar='<Data Path>')
 @click.argument('num_workers', type=int, metavar='<Number Of Workers>')
 @click.option(
-    '--out-name',default=None, help="name"
+    '--out-name', default=None, help="name"
 )
 @click.pass_context
 def parse_dump(
@@ -171,6 +175,36 @@ def parse_dump(
     )
 
 
+@main.command('filter')
+@click.argument('parsed_path', metavar='<Data Path>')
+@click.argument('tag_filter_file', metavar="<Path to list of tags to filter>")
+@click.argument('out_path', metavar="<Path to save to>")
+@click.pass_context
+def filter_tags(ctx, parsed_path, tag_filter_file, out_path):
+    debug = ctx.obj['DEBUG']
+    setup_global_logging(f"filter", str(PROJECT_ROOT.joinpath('logs')),
+                         debug=debug)
+    logger = logging.getLogger('filter')
+    logger.info(f"Filtering {parsed_path}")
+    parsed_path = Path(parsed_path).joinpath('question_overview.json')
+    tag_filters = defaultdict(lambda: False)
+    for tag in Path(tag_filter_file).read_text().splitlines():
+        tag_filters[tag] = True
+    logger.info(f"{tag_filters} tags in the filter")
+
+    logger.info("Loading the parsed question overview")
+    question_overview = ujson.load(parsed_path.open())
+
+    logger.info(f"{question_overview} questions found")
+    tags_to_get = set(tag_filters)
+    tag_file_counts = Counter()
+    for question_id, question_dict in tqdm(question_overview.items(), total=len(question_overview)):
+        tag_file_counts[question_dict['tag_to_use']] += 1
+
+        if any(tag_filters[t] for t in question_dict['tags']):
+            tags_to_get.add(question_dict['tag_to_use'])
+
+    logger.info(f"{len(tags_to_get)} tags to use")
 
 
 if __name__ == "__main__":
