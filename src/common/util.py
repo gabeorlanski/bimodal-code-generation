@@ -2,12 +2,14 @@ import collections
 from typing import Dict, List
 import numpy as np
 import os
+from datetime import datetime
 
 __all__ = [
     "flatten",
     "get_stats_from_list",
     "is_currently_distributed",
-    "get_world_size"
+    "get_world_size",
+    "get_estimated_time_remaining"
 ]
 
 
@@ -48,3 +50,12 @@ def is_currently_distributed() -> bool:
 
 def get_world_size():
     return int(os.getenv('WORLD_SIZE', '-1'))
+
+
+def get_estimated_time_remaining(start_time, completed, total):
+    elapsed = datetime.utcnow() - start_time
+    current_rate = elapsed.total_seconds() / completed
+    estimated_seconds_left = (total - completed) * current_rate
+    hours, rem = divmod(estimated_seconds_left, 3600)
+    minutes, seconds = divmod(rem, 60)
+    return int(hours), int(minutes), int(seconds)

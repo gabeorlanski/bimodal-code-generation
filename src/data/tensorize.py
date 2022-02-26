@@ -79,7 +79,7 @@ class TensorizedTask(IterableDataset):
         self.sequence_length = sequence_length
         self.infinite = infinite
         self.tokenizer = tokenizer
-        self.buffer_size = effective_batch_size * self.sequence_length
+        self.buffer_size = effective_batch_size * self.sequence_length * 25
         self.lm_concat_delim = self.tokenizer.encode('\n')
         self.max_instances = max_instances
         self.tensorized_cfg, self.length = self._load_samples(data_path, max_instances)

@@ -9,12 +9,14 @@ from pathlib import Path
 import multiprocessing as mp
 import sys
 
+from datetime import datetime
 import psutil
 from lxml import etree
 from tqdm import tqdm
 from unidecode import unidecode
 
 from src.data.parse_so.util import POST_TYPE_TO_STR, log_process
+from src.common import get_estimated_time_remaining
 
 logger = logging.getLogger(__name__)
 
@@ -161,7 +163,6 @@ def initial_parse_dump(dump_path: Path, out_dir: Path, debug):
     for parsed in read_dump(dump_path, debug):
         line_number += 1
         if parsed['result'] != 'PASS':
-            logger.warning(f"Line {line_number} failed to parse")
             failures_counts[parsed['result']] += 1
             continue
 
@@ -214,7 +215,8 @@ def second_parse_dump(
         out_dir: Path,
         question_overview_data,
         tag_counts,
-        answer_counts
+        answer_counts,
+        debug
 ):
     logger.info("Starting second pass")
     question_dir = out_dir.joinpath(f'questions')
@@ -224,15 +226,18 @@ def second_parse_dump(
         shutil.rmtree(question_dir)
         question_dir.mkdir()
 
+    max_files_open = 1000 if not debug else 16
+    update_freq = 1000 if not debug else 100000
+
     tag_file_descriptors = {}
     posts_per_tag = Counter()
     no_tags = 0
-    for line in tqdm(
-            questions_path.open('r'),
-            desc='Sorting Questions',
-            total=len(question_overview_data)
-    ):
+    completed = 0
+    start_time = datetime.utcnow()
+
+    for line in questions_path.open('r'):
         parsed = json.loads(line)
+
         if parsed['result'] != 'PASS' or parsed['type'] not in [1, 2]:
             continue
         if not parsed.get('tags', []):
@@ -242,22 +247,36 @@ def second_parse_dump(
             tag_to_use = max(parsed['tags'], key=lambda t: tag_counts[t])
 
         if tag_to_use not in tag_file_descriptors:
-            logger.info(f"Creating File for {tag_to_use}")
+            logger.debug(f"Creating File for {tag_to_use}")
             tag_file_descriptors[tag_to_use] = question_dir.joinpath(
                 f'{tag_to_use}.jsonl').open('w')
 
         posts_per_tag[tag_to_use] += 1
         tag_file_descriptors[tag_to_use].write(json.dumps(parsed) + '\n')
-        if len(tag_file_descriptors) >= 1000:
+        if len(tag_file_descriptors) >= max_files_open:
+
+            logger.info(f"Closing {len(tag_file_descriptors)} file descriptors")
             # IF we have too many files open at once, we will get an error.
             for v in tag_file_descriptors.values():
                 v.close()
             tag_file_descriptors = {}
-    for line in tqdm(
-            answers_path.open('r'),
-            desc='Sorting Answers',
-            total=answer_counts
-    ):
+
+        completed += 1
+        if completed % update_freq == 0:
+            hours, minutes, seconds = get_estimated_time_remaining(
+                start_time,
+                completed,
+                len(question_overview_data)
+            )
+
+            logger.info(
+                f"Completed {completed:>10}/{len(question_overview_data)}. "
+                f"Estimated to finish in {str(hours).zfill(2)}:{str(minutes).zfill(2)}:{str(seconds).zfill(2)}")
+
+    logger.info("Parsing Answers")
+    start_time = datetime.utcnow()
+    completed = 0
+    for line in answers_path.open('r'):
         parsed = json.loads(line)
         try:
             tags_for_answer = question_overview_data[parsed['parent_id']].get('tags', [])
@@ -272,12 +291,25 @@ def second_parse_dump(
             tag_to_use = max(tags_for_answer, key=lambda t: tag_counts[t])
 
         posts_per_tag[tag_to_use] += 1
+
         tag_file_descriptors[tag_to_use].write(json.dumps(parsed) + '\n')
-        if len(tag_file_descriptors) >= 1000:
+        if len(tag_file_descriptors) >= max_files_open:
+            logger.info(f"Closing {len(tag_file_descriptors)} file descriptors")
             # IF we have too many files open at once, we will get an error.
             for v in tag_file_descriptors.values():
                 v.close()
             tag_file_descriptors = {}
+        completed += 1
+        if completed % update_freq == 0:
+            hours, minutes, seconds = get_estimated_time_remaining(
+                start_time,
+                answer_counts,
+                len(question_overview_data)
+            )
+
+            logger.info(
+                f"Completed {completed:>10}/{answer_counts}. "
+                f"Estimated to finish in {str(hours).zfill(2)}:{str(minutes).zfill(2)}:{str(seconds).zfill(2)}")
 
     logger.info(f"{len(posts_per_tag)} total tag files created")
     logger.info(f"{no_tags} had no tags")
@@ -346,7 +378,8 @@ def parse_so_dump(
         out_dir,
         question_overview_data,
         tag_counts,
-        dump_stats['post_types']['answers']
+        dump_stats['post_types']['answers'],
+        debug
     )
 
     os.remove(out_dir.joinpath('questions.jsonl'))
