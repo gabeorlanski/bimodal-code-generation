@@ -52,11 +52,13 @@ class ConstantLengthDataset(IterableDataset):
         if max_steps != -1:
             self.length = max_steps * effective_batch_size * seq_length
         else:
-            self.length = 10
+            self.length = float('inf')
 
         self.rng = np.random.default_rng(seed)
         self.local_rank = local_rank
         self.disable_distributed = disable_distributed
+        self.cache = []
+
 
     def get_next_sequence(self):
         for line in map(json.loads, self.data_path.open()):
@@ -64,47 +66,45 @@ class ConstantLengthDataset(IterableDataset):
                 yield f"{instance['input']}\n{instance['target']}"
 
     def __iter__(self):
-        worker_total_num = torch.utils.data.get_worker_info().num_workers
-        worker_id = torch.utils.data.get_worker_info().id
-        iterator = iter(self.get_next_sequence())
-        more_examples = True
-        total_yielded = 0
-        device_slices = self.max_buffer_size // torch.cuda.device_count()
-        worker_slice = device_slices // worker_total_num
-        local_rank = max(self.local_rank, 0)
-        lower_bound = worker_slice * worker_id + device_slices * local_rank
-        upper_bound = worker_slice * (worker_id + 1) + device_slices * local_rank
-        while more_examples and total_yielded < self.length:
-            buffer = []
-            line_count = 0
-            while line_count < self.max_buffer_size:
+        if not self.infinite and self.cache:
+            for instance in self.cache:
+                yield torch.tensor(instance)
+        else:
+            iterator = iter(self.get_next_sequence())
+            more_examples = True
+            total_yielded = 0
+            while more_examples and total_yielded < self.length:
+                buffer = []
+                line_count = 0
+                while line_count < self.max_buffer_size:
 
-                try:
-                    sequence = next(iterator)
-                    line_count += 1
+                    try:
+                        sequence = next(iterator)
+                        line_count += 1
 
-                    if lower_bound <= line_count < upper_bound or self.disable_distributed:
                         sequence = self.tokenizer(sequence, truncation=False)['input_ids']
                         buffer.append(sequence)
-                except StopIteration:
-                    if self.infinite:
-                        iterator = iter(self.get_next_sequence())
-                        self.epoch += 1
-                        print(f"Dataset epoch: {self.epoch}")
-                    else:
-                        print('End Of DS')
-                        more_examples = False
-                        break
-            self.rng.shuffle(buffer)
-            all_token_ids = []
-            for tokenized_input in buffer:
-                all_token_ids.extend(tokenized_input + [self.concat_token_id])
 
-            for i in range(0, len(all_token_ids), self.seq_length):
-                input_ids = all_token_ids[i: i + self.seq_length]
-                if len(input_ids) == self.seq_length:
-                    total_yielded += 1
-                    yield torch.tensor(input_ids)
+                    except StopIteration:
+                        if self.infinite:
+                            iterator = iter(self.get_next_sequence())
+                            self.epoch += 1
+                            print(f"Dataset epoch: {self.epoch}")
+                        else:
+                            more_examples = False
+                            break
+                self.rng.shuffle(buffer)
+                all_token_ids = []
+                for tokenized_input in buffer:
+                    all_token_ids.extend(tokenized_input + [self.concat_token_id])
+
+                for i in range(0, len(all_token_ids), self.seq_length):
+                    input_ids = all_token_ids[i: i + self.seq_length]
+                    if len(input_ids) == self.seq_length:
+                        total_yielded += 1
+                        if not self.infinite:
+                            self.cache.append(input_ids)
+                        yield torch.tensor(input_ids)
 
     def __len__(self):
         return self.length
