@@ -88,18 +88,21 @@ class ConstantLengthDataset(IterableDataset):
             for tokenized_input in buffer:
                 all_token_ids.extend(tokenized_input + [self.concat_token_id])
             slices = len(all_token_ids) // self.seq_length
-            slices = slices // (worker_total_num * torch.cuda.device_count())
+            slices //= torch.cuda.device_count()
 
-            local_rank = max(self.local_rank, 0) + 1
-            print(slices * worker_id * self.seq_length * local_rank)
-            print(slices * (worker_id + 1) * self.seq_length * local_rank)
-            worker_token_slice = all_token_ids[
-                                 slices * worker_id * self.seq_length * local_rank:
-                                 slices * (worker_id + 1) * self.seq_length * local_rank
-                                 ]
+            local_rank = max(self.local_rank, 0)
+            local_slices = all_token_ids[slices * self.seq_length * local_rank
+                                         :slices * self.seq_length * (local_rank + 1)]
+
+            slices = len(local_slices) // self.seq_length
+            slices //= worker_total_num
+
+            worker_token_slice = local_slices[slices * self.seq_length * worker_id
+                                              :slices * self.seq_length * (worker_id + 1)]
+
             for i in range(0, len(worker_token_slice), self.seq_length):
                 input_ids = worker_token_slice[i: i + self.seq_length]
-                print(f"{self.local_rank}_{os.getenv('LOCAL_RANK')}_{input_ids[:4]}")
+                print(f"{self.local_rank}_{worker_id}_{input_ids[:4]}")
                 if len(input_ids) == self.seq_length:
                     total_yielded += 1
                     yield torch.tensor(input_ids)
