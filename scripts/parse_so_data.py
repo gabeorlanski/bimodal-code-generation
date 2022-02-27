@@ -22,6 +22,7 @@ if str(Path(__file__).parents[1]) not in sys.path:
 from src.common import PROJECT_ROOT, setup_global_logging
 from src.common.file_util import validate_files_exist
 from src.data.parse_so import parse_so_dump, filter_and_parse_so_posts, QuestionFilter
+from src.data.parse_so.filtering import create_filter_for_so_data
 
 
 # Here just to allow the grouping.
@@ -177,47 +178,38 @@ def parse_dump(
 
 @main.command('filter')
 @click.argument('parsed_path', metavar='<Data Path>')
-@click.argument('tag_filter_file', metavar="<Path to list of tags to filter>")
+@click.argument('tag_filter_file',
+                metavar="<Path to list of tags to filter, use RANDOM for random selection>")
 @click.argument('out_path', metavar="<Path to save to>")
+@click.option(
+    '--blacklist', default=None, help="Blacklist of questions to not include."
+)
+@click.option(
+    '--seed', type=int, default=1, help="Seed to use"
+)
 @click.pass_context
-def filter_tags(ctx, parsed_path, tag_filter_file, out_path):
+def filter_tags(ctx, parsed_path, tag_filter_file, out_path, blacklist, seed):
     debug = ctx.obj['DEBUG']
     setup_global_logging(f"filter", str(PROJECT_ROOT.joinpath('logs')),
                          debug=debug)
     logger = logging.getLogger('filter')
-    logger.info(f"Filtering {parsed_path}")
-    parsed_path = PROJECT_ROOT.joinpath(parsed_path, 'question_overview.json')
-    tag_filters = defaultdict(lambda: False)
-    for tag in PROJECT_ROOT.joinpath(tag_filter_file).read_text().splitlines():
-        tag_filters[tag] = True
-    logger.info(f"{len(tag_filters)} tags in the filter")
+    logger.info("Starting filter")
+    tag_files_to_get = create_filter_for_so_data(
+        parsed_path=parsed_path,
+        tag_filter_file=tag_filter_file,
+        blacklist=blacklist,
+        debug=debug,
+        seed=seed
+    )
 
-    logger.info("Loading the parsed question overview")
-    question_overview = ujson.load(parsed_path.open())
+    filter_path = PROJECT_ROOT.joinpath('data', 'filters')
+    if not filter_path.exists():
+        logger.info(f"Creating {filter_path}")
+        filter_path.mkdir()
 
-    logger.info(f"{len(question_overview)} questions found")
-    tag_files_to_get = defaultdict(list)
-    questions_passing_filter = 0
-    tag_file_counts = Counter()
-    for question_id, question_dict in tqdm(question_overview.items(), total=len(question_overview)):
-        tag_file_counts[question_dict['tag_to_use']] += 1
+    logger.info(f"Saving Filter to {filter_path.joinpath(f'{out_path}.json')}")
 
-        tags = question_dict.get('tags', [])
-        if not tags:
-            continue
-        first_tag, *rest_of_tags = tags
-        passes_filter = tag_filters[first_tag]
-        for t in rest_of_tags:
-            passes_filter = passes_filter or tag_filters[t]
-
-        if any(tag_filters[t] for t in question_dict['tags']):
-            tag_files_to_get[question_dict['tag_to_use']].append(question_id)
-            questions_passing_filter += 1
-
-    logger.info(f"{len(tag_files_to_get)} tags to use.")
-    logger.info(f"{questions_passing_filter} passed the filter")
-
-    with PROJECT_ROOT.joinpath('data', f'{out_path}.json').open('w') as filter_file:
+    with filter_path.joinpath(f'{out_path}.json').open('w') as filter_file:
         json.dump(tag_files_to_get, filter_file, indent=True)
 
 
