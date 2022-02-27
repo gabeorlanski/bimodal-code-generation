@@ -75,16 +75,15 @@ class ConstantLengthDataset(IterableDataset):
             total_yielded = 0
             while more_examples and total_yielded < self.length:
                 buffer = []
-                line_count = 0
-                while line_count < self.max_buffer_size:
+                buffer_size = 0
+                while buffer_size < self.max_buffer_size:
 
                     try:
                         sequence = next(iterator)
-                        line_count += 1
 
                         sequence = self.tokenizer(sequence, truncation=False)['input_ids']
                         buffer.append(sequence)
-
+                        buffer_size+=len(sequence)
                     except StopIteration:
                         if self.infinite:
                             iterator = iter(self.get_next_sequence())
