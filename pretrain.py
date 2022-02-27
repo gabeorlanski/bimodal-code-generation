@@ -91,7 +91,6 @@ class ConstantLengthDataset(IterableDataset):
                     worker_id + 1) * self.seq_length]
             for i in range(0, len(worker_token_slice), self.seq_length):
                 input_ids = worker_token_slice[i: i + self.seq_length]
-                print(f"{os.getenv('LOCAL_RANK')}_{worker_id}: {input_ids[:5]}")
                 if len(input_ids) == self.seq_length:
                     total_yielded += 1
                     yield torch.tensor(input_ids)
