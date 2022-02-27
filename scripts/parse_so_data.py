@@ -87,15 +87,20 @@ def consolidate_so_data(
     train_file = output_path.joinpath(f"{name}.jsonl").open('w')
     val_file = output_path.joinpath(f"{name}_val.jsonl").open('w')
 
-    for tag_name, questions in tqdm(filter_dict.items()):
+    update_freq = 1000 if debug else 25000
+    for tag_name, questions in filter_dict.items():
         logger.info(f"Handling tag {tag_name}")
-        for line in question_path.joinpath(f"{tag_name}.jsonl").open():
+        line_num = 0
+        for line in tqdm(question_path.joinpath(f"{tag_name}.jsonl").open()):
             parsed = json.loads(line)
+            line_num += 1
             if parsed['id'] in questions:
                 if is_in_val[parsed['id']]:
                     val_file.write(line.strip() + "\n")
                 else:
-                    train_file.write(line.strip()+'\n')
+                    train_file.write(line.strip() + '\n')
+            if line_num % update_freq == 0:
+                logger.info(f"Finished {line_num}")
     train_file.close()
     val_file.close()
 
