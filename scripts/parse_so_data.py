@@ -91,16 +91,28 @@ def consolidate_so_data(
     for tag_name, questions in filter_dict.items():
         logger.info(f"Handling tag {tag_name}")
         line_num = 0
+        found = 0
+
+        # Use a dict to check if they exist because searching dict O(1)
+        questions_looking_for = {k:True for k in questions}
+
         for line in tqdm(question_path.joinpath(f"{tag_name}.jsonl").open()):
             parsed = json.loads(line)
             line_num += 1
-            if parsed['id'] in questions:
+            if parsed['id'] in questions_looking_for:
+                questions_looking_for.pop(parsed['id'])
                 if is_in_val[parsed['id']]:
                     val_file.write(line.strip() + "\n")
                 else:
                     train_file.write(line.strip() + '\n')
+                found += 1
+
             if line_num % update_freq == 0:
-                logger.info(f"Finished {line_num}")
+                logger.info(f"Finished {line_num}, found {found:>8}/{len(questions)}")
+
+            if not questions_looking_for:
+                logger.info(f"Found all looking for")
+                break
     train_file.close()
     val_file.close()
 
