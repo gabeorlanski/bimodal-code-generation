@@ -13,6 +13,7 @@ import wandb
 import yaml
 from torch.utils.data import IterableDataset
 from torch.utils.data.dataloader import DataLoader
+import torch.distributed as dist
 import click
 from transformers import AdamW, AutoModelForCausalLM, AutoTokenizer, HfArgumentParser, \
     get_scheduler, set_seed
@@ -36,7 +37,8 @@ class ConstantLengthDataset(IterableDataset):
             seq_length=1024,
             effective_batch_size=256,
             seed=1,
-            local_rank=-1
+            local_rank=-1,
+            disable_distributed: bool = False
     ):
         self.tokenizer = tokenizer
         self.concat_token_id = tokenizer.bos_token_id
@@ -54,6 +56,7 @@ class ConstantLengthDataset(IterableDataset):
 
         self.rng = np.random.default_rng(seed)
         self.local_rank = local_rank
+        self.disable_distributed = disable_distributed
 
     def get_next_sequence(self):
         for line in map(json.loads, self.data_path.open()):
@@ -71,7 +74,6 @@ class ConstantLengthDataset(IterableDataset):
         local_rank = max(self.local_rank, 0)
         lower_bound = worker_slice * worker_id + device_slices * local_rank
         upper_bound = worker_slice * (worker_id + 1) + device_slices * local_rank
-        print(f"{local_rank=} {worker_id=} will take lines {lower_bound=} {upper_bound=}")
         while more_examples and total_yielded < self.length:
             buffer = []
             line_count = 0
@@ -81,7 +83,7 @@ class ConstantLengthDataset(IterableDataset):
                     sequence = next(iterator)
                     line_count += 1
 
-                    if lower_bound <= line_count < upper_bound:
+                    if lower_bound <= line_count < upper_bound or self.disable_distributed:
                         sequence = self.tokenizer(sequence, truncation=False)['input_ids']
                         buffer.append(sequence)
                 except StopIteration:
@@ -90,6 +92,7 @@ class ConstantLengthDataset(IterableDataset):
                         self.epoch += 1
                         print(f"Dataset epoch: {self.epoch}")
                     else:
+                        print('End Of DS')
                         more_examples = False
                         break
             self.rng.shuffle(buffer)
@@ -219,7 +222,8 @@ def pretrain_lm(
         processor=StackOverflowProcessor(**OmegaConf.to_object(cfg.processor.param)),
         seq_length=cfg.seq_length,
         effective_batch_size=cfg.train_batch_size * cfg.gradient_accumulation_steps,
-        local_rank=local_rank
+        local_rank=local_rank,
+        disable_distributed=True
     )
     eval_dataloader = DataLoader(valid_dataset, batch_size=cfg.eval_batch_size,
                                  num_workers=cfg.data_loader_workers)
