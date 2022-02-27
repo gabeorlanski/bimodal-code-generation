@@ -35,7 +35,8 @@ class ConstantLengthDataset(IterableDataset):
             max_steps=-1,
             seq_length=1024,
             effective_batch_size=256,
-            seed=1
+            seed=1,
+            local_rank=-1
     ):
         self.tokenizer = tokenizer
         self.concat_token_id = tokenizer.bos_token_id
@@ -52,6 +53,7 @@ class ConstantLengthDataset(IterableDataset):
             self.length = 10
 
         self.rng = np.random.default_rng(seed)
+        self.local_rank = local_rank
 
     def get_next_sequence(self):
         for line in map(json.loads, self.data_path.open()):
@@ -91,6 +93,7 @@ class ConstantLengthDataset(IterableDataset):
                     worker_id + 1) * self.seq_length]
             for i in range(0, len(worker_token_slice), self.seq_length):
                 input_ids = worker_token_slice[i: i + self.seq_length]
+                print(f"{self.local_rank}_{input_ids[:4]}")
                 if len(input_ids) == self.seq_length:
                     total_yielded += 1
                     yield torch.tensor(input_ids)
@@ -202,14 +205,16 @@ def pretrain_lm(
         processor=StackOverflowProcessor(**OmegaConf.to_object(cfg.processor.param)),
         max_steps=cfg.max_steps,
         seq_length=cfg.seq_length,
-        effective_batch_size=cfg.train_batch_size * cfg.gradient_accumulation_steps
+        effective_batch_size=cfg.train_batch_size * cfg.gradient_accumulation_steps,
+        local_rank=local_rank
     )
     valid_dataset = ConstantLengthDataset(
         tokenizer,
         PROJECT_ROOT.joinpath(cfg.val_file),
         processor=StackOverflowProcessor(**OmegaConf.to_object(cfg.processor.param)),
         seq_length=cfg.seq_length,
-        effective_batch_size=cfg.train_batch_size * cfg.gradient_accumulation_steps
+        effective_batch_size=cfg.train_batch_size * cfg.gradient_accumulation_steps,
+        local_rank=local_rank
     )
     eval_dataloader = DataLoader(valid_dataset, batch_size=cfg.eval_batch_size, num_workers=1)
     train_dataloader = DataLoader(train_dataset, batch_size=cfg.train_batch_size, num_workers=1)
