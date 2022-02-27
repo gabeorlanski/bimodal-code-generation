@@ -183,7 +183,7 @@ def pretrain_lm(
             cfg = compose(config_name, overrides=override_str.split(" "))
     else:
         cfg = OmegaConf.create(
-            yaml.load(PROJECT_ROOT.joinpath(config_name), yaml.Loader)
+            yaml.load(PROJECT_ROOT.joinpath(config_name).open(), yaml.Loader)
         )
 
     random.seed(cfg.seed)
