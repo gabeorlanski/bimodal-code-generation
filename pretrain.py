@@ -298,7 +298,7 @@ def pretrain_lm(
     )
     logger = logging.getLogger('pretrain')
     logger.info(f"Starting pretrain")
-
+    logger.info(f"{device=}")
     # Train model
     model_engine.train()
     completed_steps = 0

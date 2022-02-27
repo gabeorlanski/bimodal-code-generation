@@ -8,13 +8,13 @@ experiments:
       model: 'lvwerra/codeparrot-small'
       train_batch_size: 16
       eval_batch_size: 16
-      gradient_accumulation_steps: 8
+      gradient_accumulation_steps: 16
       seq_length: 1024
       processor: stackoverflow
       lr: 1e-4
-      save_steps: 5000
-      max_steps: 25000
-      warmup_steps: 1000
+      save_steps: 2500
+      max_steps: 10000
+      warmup_steps: 500
     ablations:
       - DumpName:
           Python:
@@ -23,9 +23,9 @@ experiments:
             dump_name: random
       - Cleaning:
           Clean:
-            ++processor.params.clean: True
+            ++processor.param.clean: True
           NoClean:
-            ++processor.params.clean: False
+            ++processor.param.clean: False
     steps:
       - name: PreTrain
         base: pretrain
