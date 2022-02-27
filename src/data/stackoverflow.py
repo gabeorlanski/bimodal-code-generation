@@ -1,25 +1,9 @@
 """
 Code for handling
 """
-import json
-from collections import defaultdict
-from copy import copy
-from pathlib import Path
 import logging
-
-import torch
-from torch.utils.data import IterableDataset
-import numpy as np
 from typing import Callable, List, Dict, Iterator
-from datasets import Dataset, DatasetDict, load_dataset
-from src.common import PROJECT_ROOT
-from tio import Task
-import re
-
-from jinja2 import BaseLoader, Environment, StrictUndefined
-
-from tqdm import tqdm
-import multiprocessing as mp
+from bs4 import BeautifulSoup
 
 logger = logging.getLogger(__name__)
 logging.getLogger("transformers.tokenization_utils").setLevel(logging.ERROR)
@@ -35,7 +19,8 @@ class StackOverflowProcessor:
             bad_answer_cutoff: int = -1,
             answer_prompt: str = None,
             question_prompt: str = None,
-            title_prompt: str = None
+            title_prompt: str = None,
+            clean: bool = False
     ):
         self.answer_sorting = answer_sorting.lower()
         if self.answer_sorting not in ['ascending', 'descending', 'accepted']:
@@ -52,6 +37,7 @@ class StackOverflowProcessor:
         self.title_prompt = title_prompt if title_prompt else '__TITLE__'
         self.answers_per_sample = answers_per_sample
         self.lm_concat_delim = '\n'
+        self.clean = clean
 
     def make_instances_from_question(self, sample: Dict) -> List[Dict]:
         """
@@ -59,6 +45,14 @@ class StackOverflowProcessor:
         """
         # Set to -1 if there is no accepted answer because it is impossible.
         accepted_answer_id = sample['accepted_answer'] or "-1"
+
+        if self.clean:
+            soup = BeautifulSoup(sample['body'], 'lxml')
+            sample['body'] = soup.text
+
+            for k in sample['answers'].keys():
+                soup = BeautifulSoup(sample['answers'][k]['body'], 'lxml')
+                sample['answers'][k]['body'] = soup.text
 
         # Do a list comprehension to eliminate the accepted answer
         accepted_answer = None

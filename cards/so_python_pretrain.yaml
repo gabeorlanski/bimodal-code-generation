@@ -3,33 +3,36 @@ experiments:
   PretrainRaw.ParrotSmall:
     overrides:
       ++device: 0
-      +disable_cache: True
       ++tracking:
         log_model: True
-      ++model: 'lvwerra/codeparrot-small'
-      ++num_proc: 8
-      ++training:
-        batch_size: 16
-        gradient_accumulation_steps: 4
-        deepspeed: ds_config.json
-        save_total_limit: 5
-      ++task.data_name: raw_python_so
-      ++task.sequence_length: 1024
+      model: 'lvwerra/codeparrot-small'
+      train_batch_size: 16
+      eval_batch_size: 16
+      gradient_accumulation_steps: 4
+      seq_length: 1024
+      processor: stackoverflow
+      lr: 1e-4
+      save_steps: 2500
+      max_steps: 10000
+      warmup_steps: 500
+    ablations:
+      - DumpName:
+          Python:
+            dump_name: python
+          Random:
+            dump_name: random
+      - Cleaning:
+          Clean:
+            ++processor.params.clean: True
+          NoClean:
+            ++processor.params.clean: False
     steps:
       - name: PreTrain
-        base: pretrain_config
+        base: pretrain
         group: SO
         overrides:
-          objective: 'lm'
-          ++training:
-            save_steps: 2500
-            eval_steps: 250
-            logging_steps: 25
-            max_steps: 10000
-            warmup_steps: 500
           tracking:
             log_model: true
-          task: tensorize
     command:
       file: command_templates/deepspeed_pretrain.txt
       fields:
