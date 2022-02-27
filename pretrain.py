@@ -225,7 +225,7 @@ def pretrain_lm(
         effective_batch_size=cfg.train_batch_size * cfg.gradient_accumulation_steps,
         local_rank=local_rank
     )
-    eval_dataloader = DataLoader(valid_dataset, batch_size=cfg.eval_batch_size, num_workers=1)
+    eval_dataloader = DataLoader(valid_dataset, batch_size=cfg.eval_batch_size, num_workers=cfg.data_loader_workers)
     train_dataloader = DataLoader(train_dataset, batch_size=cfg.train_batch_size, num_workers=1)
     device = get_device_from_cfg(cfg)
     if disable_deepspeed:

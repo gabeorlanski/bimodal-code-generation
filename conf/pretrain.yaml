@@ -32,6 +32,7 @@ objective: lm
 train_batch_size: 1
 gradient_accumulation_steps: 4
 save_checkpoint_steps: 50
+data_loader_workers: 4
 
 max_steps: 500
 warmup_steps: 50
