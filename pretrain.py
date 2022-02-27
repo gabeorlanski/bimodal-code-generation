@@ -102,7 +102,6 @@ class ConstantLengthDataset(IterableDataset):
 
             for i in range(0, len(worker_token_slice), self.seq_length):
                 input_ids = worker_token_slice[i: i + self.seq_length]
-                print(f"{self.local_rank}_{worker_id}_{input_ids[:4]}")
                 if len(input_ids) == self.seq_length:
                     total_yielded += 1
                     yield torch.tensor(input_ids)
@@ -338,12 +337,12 @@ def pretrain_lm(
                 lr = optimizer.param_groups[0]["lr"]
             else:
                 lr = model_engine.get_lr()[0]
-
+            metrics = {
+                "lr"        : lr,
+                "batch_loss": running_loss.item() if disable_deepspeed else unscaled_loss
+            }
             if completed_steps % cfg.logging_steps == 0 and completed_steps != last_logged_step:
-                metrics = {
-                    "lr"        : lr,
-                    "batch_loss": running_loss.item() if disable_deepspeed else unscaled_loss
-                }
+
                 if completed_steps != 0:
                     metrics['loss'] = losses_since_last_update / cfg.logging_steps
                 else:
