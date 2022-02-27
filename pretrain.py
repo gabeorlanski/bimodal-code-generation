@@ -66,15 +66,24 @@ class ConstantLengthDataset(IterableDataset):
         iterator = iter(self.get_next_sequence())
         more_examples = True
         total_yielded = 0
+        device_slices = self.max_buffer_size // torch.cuda.device_count()
+        worker_slice = device_slices // worker_total_num
+        local_rank = max(self.local_rank, 0)
+        lower_bound = worker_slice * worker_id + device_slices * local_rank
+        upper_bound = worker_slice * (worker_id + 1) + device_slices * local_rank
+        print(f"{local_rank=} {worker_id=} will take lines {lower_bound=} {upper_bound=}")
         while more_examples and total_yielded < self.length:
             buffer = []
-            buffer_size = 0
-            while buffer_size < self.max_buffer_size:
+            line_count = 0
+            while line_count < self.max_buffer_size:
+
                 try:
                     sequence = next(iterator)
-                    sequence = self.tokenizer(sequence, truncation=False)['input_ids']
-                    buffer.append(sequence)
-                    buffer_size += len(sequence)
+                    line_count += 1
+
+                    if lower_bound <= line_count < upper_bound:
+                        sequence = self.tokenizer(sequence, truncation=False)['input_ids']
+                        buffer.append(sequence)
                 except StopIteration:
                     if self.infinite:
                         iterator = iter(self.get_next_sequence())
@@ -87,21 +96,9 @@ class ConstantLengthDataset(IterableDataset):
             all_token_ids = []
             for tokenized_input in buffer:
                 all_token_ids.extend(tokenized_input + [self.concat_token_id])
-            slices = len(all_token_ids) // self.seq_length
-            slices //= torch.cuda.device_count()
 
-            local_rank = max(self.local_rank, 0)
-            local_slices = all_token_ids[slices * self.seq_length * local_rank
-                                         :slices * self.seq_length * (local_rank + 1)]
-
-            slices = len(local_slices) // self.seq_length
-            slices //= worker_total_num
-
-            worker_token_slice = local_slices[slices * self.seq_length * worker_id
-                                              :slices * self.seq_length * (worker_id + 1)]
-
-            for i in range(0, len(worker_token_slice), self.seq_length):
-                input_ids = worker_token_slice[i: i + self.seq_length]
+            for i in range(0, len(all_token_ids), self.seq_length):
+                input_ids = all_token_ids[i: i + self.seq_length]
                 if len(input_ids) == self.seq_length:
                     total_yielded += 1
                     yield torch.tensor(input_ids)
@@ -224,7 +221,8 @@ def pretrain_lm(
         effective_batch_size=cfg.train_batch_size * cfg.gradient_accumulation_steps,
         local_rank=local_rank
     )
-    eval_dataloader = DataLoader(valid_dataset, batch_size=cfg.eval_batch_size, num_workers=cfg.data_loader_workers)
+    eval_dataloader = DataLoader(valid_dataset, batch_size=cfg.eval_batch_size,
+                                 num_workers=cfg.data_loader_workers)
     train_dataloader = DataLoader(train_dataset, batch_size=cfg.train_batch_size, num_workers=1)
     device = get_device_from_cfg(cfg)
     if disable_deepspeed:
