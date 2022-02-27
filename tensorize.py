@@ -10,7 +10,7 @@ import click
 
 from src.common import setup_global_logging, PROJECT_ROOT
 from src.data.tensorize import tensorize
-from src.data.stackoverflow import StackOverflowTextProcessor
+from src.data.stackoverflow import StackOverflowProcessor
 
 
 @click.command()
@@ -96,7 +96,7 @@ def tensorize_data(
     for k, v in cfg.processor.kwargs.items():
         logger.info(f"{k:>32} = {v}")
     if cfg.processor.name == 'stackoverflow':
-        processor = StackOverflowTextProcessor(
+        processor = StackOverflowProcessor(
             **OmegaConf.to_object(cfg.processor.kwargs)
         )
     else:

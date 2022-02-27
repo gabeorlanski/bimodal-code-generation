@@ -160,3 +160,7 @@ data/run_data/
 data/tensorized/
 
 data/filters/
+
+pretrain_outputs/
+
+data/dumps/

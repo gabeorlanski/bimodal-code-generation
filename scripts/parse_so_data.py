@@ -11,6 +11,7 @@ from pathlib import Path
 import sys
 from dataclasses import asdict
 import click
+import numpy as np
 from tqdm import tqdm
 
 import ujson
@@ -39,96 +40,64 @@ def main(ctx, debug, output_path):
     ctx.obj['OUT_PATH'] = output_path
 
 
-@main.command('clean')
-@click.argument('dump_path', metavar='<Data Path>')
-@click.argument('num_workers', type=int, metavar='<Number Of Workers>')
-@click.argument('output_file_name', type=str, metavar='<Stem of the output file>')
-@click.option('--cleaner', 'clean_fn_name', default='BASE',
-              type=click.Choice(['BASE', 'NONE'], case_sensitive=False),
-              help='Cleaning function to use.')
-@click.option('--min-score', '-min', 'min_score_allowed', default=float('-inf'),
-              type=float, help='Minimum score for either a question or an answer that is allowed.')
-@click.option('--max-score', '-max', 'max_score_allowed', default=float('inf'), type=float,
-              help='Maximum score for either a question or an answer that is allowed.')
-@click.option('--body-contains', '-contains', 'words_body_must_have', default="",
-              help='Comma separated list of words that the question body must contain.',
-              callback=lambda ctx, params, l: [w for w in l.split(',') if w])
-@click.option('--must-have-answers', is_flag=True, default=False,
-              help='Questions must have answers.')
+@main.command('consolidate')
+@click.argument("name")
+@click.argument("filter_file")
+@click.argument("dump_path")
 @click.option(
-    '--question-score', is_flag=True, default=False,
-    help='Only look at question score for filtering. If false, a '
-         'post will pass the filter if ANY answer score (question or answer):'
-         ' min score <= score <= max score.'
-)
-@click.option(
-    '--only-question-body', is_flag=True, default=False,
-    help='Only look at question body for filtering based on words'
-)
-@click.option(
-    '--val-size', '-val', 'validation_pct',
-    type=float,
-    default=0.05,
-    help="Number of questions to put into the validation set."
-)
-@click.option(
-    '--do-not-filter',
-    is_flag=True, default=False, help="Do not do any filtering "
+    '--seed', type=int, default=1, help="Seed to use"
 )
 @click.pass_context
-def clean_so_data(
+def consolidate_so_data(
         ctx,
+        name,
+        filter_file,
         dump_path,
-        num_workers,
-        output_file_name,
-        clean_fn_name,
-        min_score_allowed,
-        max_score_allowed,
-        words_body_must_have,
-        must_have_answers,
-        question_score,
-        only_question_body,
-        validation_pct,
-        do_not_filter
+        seed
 ):
-    setup_global_logging(f"{output_file_name}_so", str(PROJECT_ROOT.joinpath('logs')),
-                         debug=ctx.obj['DEBUG'])
-    logger = logging.getLogger('parse_so')
-    logger.info("Starting Parse")
+    debug = ctx.obj['DEBUG']
+    setup_global_logging(f"consolidate", str(PROJECT_ROOT.joinpath('logs')),
+                         debug=debug)
+    logger = logging.getLogger('consolidate')
+    logger.info("Starting Consolidate")
 
-    output_path = PROJECT_ROOT.joinpath(ctx.obj['OUT_PATH'], f"{output_file_name}.jsonl")
-    val_path = PROJECT_ROOT.joinpath(ctx.obj['OUT_PATH'], f"{output_file_name}_val.jsonl")
-    dump_path = PROJECT_ROOT.joinpath(dump_path)
-    logger.info("Initializing the filter.")
-    post_filter = QuestionFilter(
-        minimum_score=min_score_allowed,
-        maximum_score=max_score_allowed,
-        must_have_answer=must_have_answers,
-        use_question_score=question_score,
-        word_whitelist=words_body_must_have,
-        only_question_body=only_question_body
+    output_path = PROJECT_ROOT.joinpath("data", "dumps")
+    if not output_path.exists():
+        output_path.mkdir()
+
+    filter_dict = json.loads(
+        PROJECT_ROOT.joinpath(filter_file).read_text()
     )
 
-    logger.info("Filtering Arguments:")
-    for k, v in asdict(post_filter).items():
-        logger.info(f"\t{k:<24} = {v}")
+    all_questions = [qid for t in filter_dict.values() for qid in t]
+    logger.info(f"Total questions={len(all_questions)}")
 
-    random.seed(1)
+    val_questions = min(1000, int(.1 * len(all_questions)))
+    logger.info(f"{val_questions} questions will be used for validation set")
+    sample_mask = np.zeros((len(all_questions),), dtype=bool)
+    rng = np.random.default_rng(seed)
+    sample_mask[rng.choice(len(all_questions), (val_questions,), replace=False)] = True
 
-    if do_not_filter:
-        logger.info("FILTERING IS DISABLED")
-        post_filter = lambda ex: ex
+    logger.info("Creating mask")
+    is_in_val = {}
+    for in_val, qid in zip(sample_mask, all_questions):
+        is_in_val[qid] = in_val
 
-    filter_and_parse_so_posts(
-        dump_path,
-        output_path,
-        val_path,
-        num_workers,
-        clean_fn_name,
-        post_filter,
-        validation_pct,
+    question_path = PROJECT_ROOT.joinpath(dump_path, 'questions')
+    train_file = output_path.joinpath(f"{name}.jsonl").open('w')
+    val_file = output_path.joinpath(f"{name}_val.jsonl").open('w')
 
-    )
+    for tag_name, questions in tqdm(filter_dict.items()):
+        logger.info(f"Handling tag {tag_name}")
+        for line in question_path.joinpath(f"{tag_name}.jsonl").open():
+            parsed = json.loads(line)
+            if parsed['id'] in questions:
+                if is_in_val[parsed['id']]:
+                    val_file.write(line.strip() + "\n")
+                else:
+                    train_file.write(line.strip()+'\n')
+    train_file.close()
+    val_file.close()
 
 
 @main.command('parse')

@@ -67,7 +67,7 @@ class TestStackOverflowProcessor:
             expected_title_str = "Title"
             expected_question_str = f"{expected_title_str}\nBody"
 
-        processor = stackoverflow.StackOverflowTextProcessor(
+        processor = stackoverflow.StackOverflowProcessor(
             answer_prompt=answer_prompt_template,
             question_prompt=question_prompt_template,
             repeat_question_for_each_answer=repeat_mode,
@@ -93,7 +93,7 @@ class TestStackOverflowProcessor:
     @pytest.mark.parametrize("answer_sorting", ['accepted', 'ascending', 'descending'])
     def test_answer_sorting(self, sample_parsed_so, answer_sorting):
         sample = list(map(json.loads, sample_parsed_so.open('r')))[-1]
-        processor = stackoverflow.StackOverflowTextProcessor(
+        processor = stackoverflow.StackOverflowProcessor(
             answer_sorting=answer_sorting,
             answers_per_sample=1,
         )
@@ -135,7 +135,7 @@ class TestStackOverflowProcessor:
         }
         tokenizer = AutoTokenizer.from_pretrained('gpt2')
 
-        processor = stackoverflow.StackOverflowTextProcessor()
+        processor = stackoverflow.StackOverflowProcessor()
 
         result = processor([sample], tokenizer)
         expected_answer_strs = [

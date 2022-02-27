@@ -25,12 +25,12 @@ logger = logging.getLogger(__name__)
 logging.getLogger("transformers.tokenization_utils").setLevel(logging.ERROR)
 
 
-class StackOverflowTextProcessor:
+class StackOverflowProcessor:
     def __init__(
             self,
             answer_sorting: str = 'accepted',
             answers_per_sample: int = -1,
-            repeat_question_for_each_answer: str = 'full',
+            repeat_question_for_each_answer: str = 'none',
             good_answer_cutoff: int = 3,
             bad_answer_cutoff: int = -1,
             answer_prompt: str = None,
@@ -42,8 +42,8 @@ class StackOverflowTextProcessor:
             raise ValueError(f"Unknown answer sorting method: {self.answer_sorting}")
 
         self.repeat_question_for_each_answer = repeat_question_for_each_answer
-        if self.repeat_question_for_each_answer not in ['title', 'full']:
-                raise ValueError(f"Invalid repeat mode: {self.repeat_question_for_each_answer}")
+        if self.repeat_question_for_each_answer not in ['title', 'full', 'none']:
+            raise ValueError(f"Invalid repeat mode: {self.repeat_question_for_each_answer}")
 
         self.good_answer_cutoff = good_answer_cutoff
         self.bad_answer_cutoff = bad_answer_cutoff
@@ -116,6 +116,8 @@ class StackOverflowTextProcessor:
 
             out.append({'input': input_str, 'target': answer_str})
 
+        if self.repeat_question_for_each_answer == 'none' and out:
+            out = [{'input': out[0]['input'], 'target': '\n'.join(d['target'] for d in out)}]
         return out
 
     def __call__(self, samples, tokenizer):

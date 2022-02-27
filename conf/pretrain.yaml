@@ -1,0 +1,77 @@
+defaults:
+  - base_config
+  - processor: ???
+  - _self_
+
+# Required Arguments
+model: lvwerra/codeparrot-small
+model_path: null
+is_checkpoint: false
+project: "adversarial-code"
+
+tracking:
+  watch: all
+  project: adversarial-code
+  log_model: false
+  entity: nyu-code-research
+
+
+# General Arguments
+device: 0
+seed: 1
+numpy_seed: 2
+pytorch_seed: 3
+
+dump_name: ???
+train_file: data/dumps/${dump_name}.jsonl
+val_file: data/dumps/${dump_name}_val.jsonl
+task:
+  name: ${..dump_name}
+objective: lm
+
+train_batch_size: 1
+gradient_accumulation_steps: 4
+save_checkpoint_steps: 50
+
+max_steps: 500
+warmup_steps: 50
+seq_length: 512
+eval_batch_size: 2
+lr: 1e-6
+logging_steps: 25
+save_steps: 100
+
+deepspeed:
+  optimizer:
+    type: Adam
+    params:
+      lr: 1e-16
+  scheduler:
+    type: WarmupDecayLR
+    params:
+      warmup_min_lr: 1e-16
+      warmup_max_lr: ${....lr}
+      warmup_num_steps: ${....warmup_steps}
+      total_num_steps: ${....max_steps}
+  fp16:
+    enabled: true
+    loss_scale: 0
+    loss_scale_window: 1000
+    initial_scale_power: 16
+    hysteresis: 2
+    min_loss_scale: 1
+  
+  zero_optimization:
+    stage: 2
+    allgather_partitions: true
+    allgather_bucket_size: 1e8
+    reduce_scatter: true
+    reduce_bucket_size: 1e8
+    overlap_comm: true
+    contiguous_gradients: true
+  
+  gradient_accumulation_steps: ${..gradient_accumulation_steps}
+  gradient_clipping: 1.0
+  steps_per_print: 50
+  train_micro_batch_size_per_gpu: ${..train_batch_size}
+  wall_clock_breakdown: false
