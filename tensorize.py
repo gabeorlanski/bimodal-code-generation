@@ -58,7 +58,7 @@ def tensorize_data(
         config_file,
         out_path
 ):
-    if config_file is not None:
+    if config_file is None:
         override_list = [
             f"name={name}",
             f"processor={processor_name}"
