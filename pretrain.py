@@ -4,7 +4,7 @@ import logging
 import os
 import random
 import shutil
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 import deepspeed
 import numpy as np
@@ -228,6 +228,8 @@ def pretrain_lm(
     losses_since_last_update = 0
 
     running_loss = None
+    start_time = datetime.utcnow()
+
     for step, batch in enumerate(train_dataloader):
         local_batch = batch.to(model_engine.device)
         # print(batch[0,:5])
@@ -262,7 +264,12 @@ def pretrain_lm(
                 lr = model_engine.get_lr()[0]
 
             if completed_steps % 10 == 0 and completed_steps != 0:
-                logger.info(f"Finished {completed_steps:>10}/{cfg.max_steps} Steps")
+                elapsed = datetime.utcnow() - start_time
+                cur_rate = completed_steps / elapsed.total_seconds()
+                logger.info(
+                    f"Finished {completed_steps:>10}/{cfg.max_steps} Steps @ {cur_rate:.4f} steps/second")
+                estimated_rem = timedelta(seconds=(cfg.max_steps - completed_steps) / cur_rate)
+                logger.info(f"Estimated to finish in {str(estimated_rem).split('.')[0]}")
 
             if completed_steps % cfg.logging_steps == 0 and completed_steps != last_logged_step:
                 metrics = {
@@ -283,7 +290,7 @@ def pretrain_lm(
             running_loss = None
             torch.cuda.empty_cache()
 
-        if completed_steps % cfg.save_checkpoint_steps == 0 and last_eval_step != completed_steps:
+        if completed_steps % cfg.evaluate_steps == 0 and last_eval_step != completed_steps:
             logger.info("Evaluating Model")
             if local_rank <= 0:
                 eval_loss, perplexity = evaluate(model_engine, eval_dataloader)

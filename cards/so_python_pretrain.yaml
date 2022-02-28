@@ -13,6 +13,7 @@ experiments:
       processor: stackoverflow
       lr: 1e-4
       save_steps: 2500
+      evaluate_steps: 500
       max_steps: 10000
       warmup_steps: 500
     ablations:
