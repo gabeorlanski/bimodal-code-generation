@@ -19,12 +19,15 @@ experiments:
       - DumpName:
           Python:
             dump_name: python
+            ++processor.params.clean: false
+          RandomClean:
+            dump_name: random_clean
+            ++processor.params.clean: True
+          PythonClean:
+            dump_name: python_clean
+            ++processor.params.clean: True
           Random:
             dump_name: random
-      - Cleaning:
-          Clean:
-            ++processor.params.clean: True
-          NoClean:
             ++processor.params.clean: False
     steps:
       - name: PreTrain
