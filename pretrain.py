@@ -281,7 +281,7 @@ def pretrain_lm(
             torch.cuda.empty_cache()
 
         if completed_steps % cfg.save_checkpoint_steps == 0 and last_eval_step != completed_steps:
-            logger.info("Evaluating and saving model checkpoint")
+            logger.info("Evaluating Model")
             if local_rank <= 0:
                 eval_loss, perplexity = evaluate(model_engine, eval_dataloader)
                 logger.info(
@@ -294,6 +294,7 @@ def pretrain_lm(
 
             # Save the checkpoint
             if completed_steps > 0 and completed_steps % cfg.save_steps == 0:
+                logger.info("Saving Model")
                 if local_rank <= 0:
                     cur_chk = checkpoint_path.joinpath(f'checkpoint-{completed_steps}')
                     cur_chk.mkdir()
