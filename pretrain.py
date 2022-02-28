@@ -261,6 +261,9 @@ def pretrain_lm(
             else:
                 lr = model_engine.get_lr()[0]
 
+            if completed_steps % 10 == 0 and completed_steps != 0:
+                logger.info(f"Finished {completed_steps:>10}/{cfg.max_steps} Steps")
+
             if completed_steps % cfg.logging_steps == 0 and completed_steps != last_logged_step:
                 metrics = {
                     "lr"      : lr,

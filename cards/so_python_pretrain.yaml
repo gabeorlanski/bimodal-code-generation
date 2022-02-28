@@ -1,6 +1,6 @@
 starting_commands: command_templates/sbatch_experiment.txt
 experiments:
-  PretrainRaw.ParrotSmall:
+  Pretrain.ParrotSmall:
     overrides:
       ++device: 0
       ++tracking:
@@ -31,6 +31,7 @@ experiments:
             ++processor.params.clean: False
     steps:
       - name: PreTrain
+        add_name: False
         base: pretrain
         group: SO
         overrides:
