@@ -23,9 +23,9 @@ experiments:
             dump_name: random
       - Cleaning:
           Clean:
-            ++processor.param.clean: True
+            ++processor.params.clean: True
           NoClean:
-            ++processor.param.clean: False
+            ++processor.params.clean: False
     steps:
       - name: PreTrain
         base: pretrain

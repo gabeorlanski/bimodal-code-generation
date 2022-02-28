@@ -21,92 +21,10 @@ from transformers import AdamW, AutoModelForCausalLM, AutoTokenizer, HfArgumentP
 from omegaconf import OmegaConf, open_dict
 from hydra import initialize_config_dir, compose
 from src.common import PROJECT_ROOT
-from src.data.stackoverflow import StackOverflowProcessor
+from src.data.langauge_modeling import ConstantLengthDataset, IterableDatasetShard
 from src.config import setup_tracking_env_from_cfg, load_model_from_cfg, get_device_from_cfg, \
     get_config_for_tracking
 from src.common.log_util import setup_global_logging
-
-
-class ConstantLengthDataset(IterableDataset):
-    def __init__(
-            self,
-            tokenizer,
-            data_path: Path,
-            processor,
-            max_steps=-1,
-            seq_length=1024,
-            effective_batch_size=256,
-            seed=1,
-            local_rank=-1,
-            disable_distributed: bool = False
-    ):
-        self.tokenizer = tokenizer
-        self.concat_token_id = tokenizer.bos_token_id
-        self.data_path = data_path
-        self.seq_length = seq_length
-        self.max_buffer_size = seq_length * effective_batch_size
-        self.effective_batch_size = effective_batch_size
-        self.epoch = 0
-        self.infinite = max_steps != -1
-        self.processor = processor
-        if max_steps != -1:
-            self.length = max_steps * effective_batch_size * seq_length
-        else:
-            self.length = float('inf')
-
-        self.rng = np.random.default_rng(seed)
-        self.local_rank = local_rank
-        self.disable_distributed = disable_distributed
-        self.cache = []
-
-
-    def get_next_sequence(self):
-        for line in map(json.loads, self.data_path.open()):
-            for instance in self.processor.make_instances_from_question(line):
-                yield f"{instance['input']}\n{instance['target']}"
-
-    def __iter__(self):
-        if not self.infinite and self.cache:
-            for instance in self.cache:
-                yield torch.tensor(instance)
-        else:
-            iterator = iter(self.get_next_sequence())
-            more_examples = True
-            total_yielded = 0
-            while more_examples and total_yielded < self.length:
-                buffer = []
-                buffer_size = 0
-                while buffer_size < self.max_buffer_size:
-
-                    try:
-                        sequence = next(iterator)
-
-                        sequence = self.tokenizer(sequence, truncation=False)['input_ids']
-                        buffer.append(sequence)
-                        buffer_size+=len(sequence)
-                    except StopIteration:
-                        if self.infinite:
-                            iterator = iter(self.get_next_sequence())
-                            self.epoch += 1
-                            print(f"Dataset epoch: {self.epoch}")
-                        else:
-                            more_examples = False
-                            break
-                self.rng.shuffle(buffer)
-                all_token_ids = []
-                for tokenized_input in buffer:
-                    all_token_ids.extend(tokenized_input + [self.concat_token_id])
-
-                for i in range(0, len(all_token_ids), self.seq_length):
-                    input_ids = all_token_ids[i: i + self.seq_length]
-                    if len(input_ids) == self.seq_length:
-                        total_yielded += 1
-                        if not self.infinite:
-                            self.cache.append(input_ids)
-                        yield torch.tensor(input_ids)
-
-    def __len__(self):
-        return self.length
 
 
 def get_grouped_params(model, weight_decay, no_decay=None):
@@ -203,26 +121,30 @@ def pretrain_lm(
 
     # Load model and tokenizer
     _, model = load_model_from_cfg(cfg)
-    tokenizer = AutoTokenizer.from_pretrained(cfg.model)
+    tokenizer = AutoTokenizer.from_pretrained(cfg.model, use_fast=False)
 
     # Load dataset and dataloader
     train_dataset = ConstantLengthDataset(
         tokenizer,
         PROJECT_ROOT.joinpath(cfg.train_file),
-        processor=StackOverflowProcessor(**OmegaConf.to_object(cfg.processor.param)),
         max_steps=cfg.max_steps,
         seq_length=cfg.seq_length,
         effective_batch_size=cfg.train_batch_size * cfg.gradient_accumulation_steps,
         local_rank=local_rank
     )
+    train_dataset = IterableDatasetShard(
+        dataset=train_dataset,
+        batch_size=cfg.train_batch_size * cfg.gradient_accumulation_steps,
+        num_processes=int(os.getenv('WORLD_SIZE', 1)),
+        process_index=max(local_rank, 0)
+    )
+
     valid_dataset = ConstantLengthDataset(
         tokenizer,
         PROJECT_ROOT.joinpath(cfg.val_file),
-        processor=StackOverflowProcessor(**OmegaConf.to_object(cfg.processor.param)),
         seq_length=cfg.seq_length,
         effective_batch_size=cfg.train_batch_size * cfg.gradient_accumulation_steps,
         local_rank=local_rank,
-        disable_distributed=True
     )
     eval_dataloader = DataLoader(valid_dataset, batch_size=cfg.eval_batch_size,
                                  num_workers=cfg.data_loader_workers)
@@ -348,7 +270,7 @@ def pretrain_lm(
                     metrics['loss'] = losses_since_last_update / cfg.logging_steps
                 else:
                     metrics['loss'] = losses_since_last_update
-                metrics['ds_epoch'] = train_dataloader.dataset.epoch
+                metrics['ds_epoch'] = train_dataloader.dataset.dataset.epoch
                 logger.info(f"Step {completed_steps}: {metrics}")
                 losses_since_last_update = 0
                 last_logged_step = completed_steps
@@ -361,12 +283,14 @@ def pretrain_lm(
 
         if completed_steps % cfg.save_checkpoint_steps == 0 and last_eval_step != completed_steps:
             logger.info("Evaluating and saving model checkpoint")
-            eval_loss, perplexity = evaluate(model_engine, eval_dataloader)
-            logger.info(
-                f"Eval @ Step {completed_steps}: loss={eval_loss:.4f} "
-                f"perplexity={perplexity:.4f}"
-            )
-            log_to_wandb('eval', completed_steps, {'loss': eval_loss, 'perplexity': perplexity})
+            if local_rank <= 0:
+                eval_loss, perplexity = evaluate(model_engine, eval_dataloader)
+                logger.info(
+                    f"Eval @ Step {completed_steps}: loss={eval_loss:.4f} "
+                    f"perplexity={perplexity:.4f}"
+                )
+                log_to_wandb('eval', completed_steps, {'loss': eval_loss, 'perplexity': perplexity})
+
             last_eval_step = completed_steps
 
             # Save the checkpoint
@@ -379,10 +303,10 @@ def pretrain_lm(
                     else:
                         model_engine.module.save_pretrained(cur_chk)
 
-                if not disable_deepspeed:
-                    logger.info("Waiting")
-                    torch.distributed.barrier()
-                    logger.info("Resuming")
+            if not disable_deepspeed:
+                logger.info("Waiting")
+                torch.distributed.barrier()
+                logger.info("Resuming")
 
         # model.train()
         if completed_steps >= cfg.max_steps:

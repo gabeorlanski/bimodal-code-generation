@@ -4,7 +4,7 @@ from typing import Optional, List
 import transformers.utils.logging
 from hydra import compose, initialize
 import yaml
-from omegaconf import OmegaConf
+from omegaconf import OmegaConf, open_dict
 import os
 import click
 
@@ -28,7 +28,7 @@ from src.data.stackoverflow import StackOverflowProcessor
 @click.option(
     '--data-path', '-I',
     help='Path to the input data',
-    default='data/stackoverflow'
+    default='data/dumps'
 )
 @click.option(
     '--out-path', '-O',
@@ -38,6 +38,8 @@ from src.data.stackoverflow import StackOverflowProcessor
 @click.option(
     '--validation-file-name', '-val', default=None,
     help='Name of the validation raw data, if not provided, will use the {name}_val')
+@click.option(
+    '--config', 'config_file', default=None, help='Path to config file.')
 @click.option(
     '--override-str',
     help='Bash does not like lists of variable args. so pass as seperated list of overrides, seperated by spaces.',
@@ -53,16 +55,24 @@ def tensorize_data(
         debug: bool,
         data_path,
         validation_file_name,
+        config_file,
         out_path
 ):
-    override_list = [
-        f"name={name}",
-        f"processor={processor_name}"
-    ]
-    override_list.extend(override_str.split(' ') if override_str else [])
-
-    initialize(config_path="conf", job_name="train")
-    cfg = compose(config_name="tensorize", overrides=override_list)
+    if config_file is not None:
+        override_list = [
+            f"name={name}",
+            f"processor={processor_name}"
+        ]
+        override_list.extend(override_str.split(' ') if override_str else [])
+        initialize(config_path="conf", job_name="train")
+        cfg = compose(config_name="tensorize", overrides=override_list)
+    else:
+        cfg = OmegaConf.create(yaml.load(
+            PROJECT_ROOT.joinpath(config_file).open(),
+            yaml.Loader
+        ))
+        with open_dict(cfg):
+            cfg.name = name
 
     setup_global_logging(
         f'{output_name}_tensorize',
@@ -93,11 +103,11 @@ def tensorize_data(
     logger.debug(f"Initializing processor {cfg.processor.name}")
 
     logger.info("Processor arguments:")
-    for k, v in cfg.processor.kwargs.items():
+    for k, v in cfg.processor.params.items():
         logger.info(f"{k:>32} = {v}")
     if cfg.processor.name == 'stackoverflow':
         processor = StackOverflowProcessor(
-            **OmegaConf.to_object(cfg.processor.kwargs)
+            **OmegaConf.to_object(cfg.processor.params)
         )
     else:
         raise ValueError(f'Unknown processor {cfg.processor.name}')
@@ -108,7 +118,7 @@ def tensorize_data(
         num_workers,
         model_name,
         processor,
-        cfg.batch_size
+        cfg.tensorize_batch_size
     )
     tensorize(
         data_path.joinpath(validation_file),
@@ -117,7 +127,7 @@ def tensorize_data(
         num_workers,
         model_name,
         processor,
-        cfg.batch_size
+        cfg.tensorize_batch_size
     )
 
 

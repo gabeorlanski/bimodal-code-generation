@@ -224,9 +224,6 @@ def tensorize(
     logger.info(f"{tensorized_data.target_token_count:e} target tokens found")
     logger.info(f"{tensorized_data.num_instances:e} instances found")
 
-    with out_path.joinpath(f"{output_name}.cfg.json").open('w') as f:
-        json.dump(asdict(tensorized_data), f, indent=True)
-
-    logger.info(f"Saved to {out_file_path} (Config was saved to '{output_name}.cfg.json')")
+    logger.info(f"Saved to {out_file_path}")
 
     logger.info(f"Size of {tensorized_data.name} is {human_readable_size(out_path.stat().st_size)}")

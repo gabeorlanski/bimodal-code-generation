@@ -8,6 +8,8 @@ model: lvwerra/codeparrot-small
 model_path: null
 is_checkpoint: false
 project: "adversarial-code"
+tensorize_batch_size: 64
+
 
 tracking:
   watch: all
@@ -23,8 +25,8 @@ numpy_seed: 2
 pytorch_seed: 3
 
 dump_name: ???
-train_file: data/dumps/${dump_name}.jsonl
-val_file: data/dumps/${dump_name}_val.jsonl
+train_file: data/tensorized/${dump_name}.jsonl
+val_file: data/tensorized/${dump_name}.val.jsonl
 task:
   name: ${..dump_name}
 objective: lm
