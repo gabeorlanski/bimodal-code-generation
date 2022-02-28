@@ -190,7 +190,7 @@ class IterableDatasetShard(IterableDataset):
             current_batch.append(element)
             # Wait to have a full batch before yielding elements.
             if len(current_batch) == real_batch_size:
-                print(f"{self.process_index=} {self.num_processes=}: {current_batch[0][:5]}")
+                print(f"{self.process_index=} {self.num_processes=}: {current_batch[process_slice[0]][:5]}")
                 for i in process_slice:
                     yield current_batch[i]
                 if first_batch is None:
