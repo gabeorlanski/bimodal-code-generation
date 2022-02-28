@@ -203,7 +203,7 @@ def tensorize(
     logger.info(f"Read {lines} lines")
     logger.info(f"Yielded {batches_found} batches")
 
-    tokenizer = AutoTokenizer.from_pretrained(model_name)
+    tokenizer = AutoTokenizer.from_pretrained(model_name,use_fast=False)
     map_fn = partial(
         batch_process,
         processor=data_processor,
