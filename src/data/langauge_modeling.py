@@ -203,4 +203,5 @@ class IterableDatasetShard(IterableDataset):
             while len(current_batch) < real_batch_size:
                 current_batch += first_batch
             for i in process_slice:
+                print(f"{self.process_index=} {self.num_processes=}: {current_batch[i][0,:]}")
                 yield current_batch[i]

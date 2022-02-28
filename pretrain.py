@@ -260,22 +260,21 @@ def pretrain_lm(
                 lr = optimizer.param_groups[0]["lr"]
             else:
                 lr = model_engine.get_lr()[0]
-            metrics = {
-                "lr"        : lr,
-                "batch_loss": running_loss.item() if disable_deepspeed else unscaled_loss
-            }
-            if completed_steps % cfg.logging_steps == 0 and completed_steps != last_logged_step:
 
+            if completed_steps % cfg.logging_steps == 0 and completed_steps != last_logged_step:
+                metrics = {
+                    "lr"      : lr,
+                    "ds_epoch": train_dataloader.dataset.dataset.epoch
+                }
                 if completed_steps != 0:
                     metrics['loss'] = losses_since_last_update / cfg.logging_steps
                 else:
                     metrics['loss'] = losses_since_last_update
-                metrics['ds_epoch'] = train_dataloader.dataset.dataset.epoch
                 logger.info(f"Step {completed_steps}: {metrics}")
                 losses_since_last_update = 0
                 last_logged_step = completed_steps
 
-            log_to_wandb('train', completed_steps, metrics)
+                log_to_wandb('train', completed_steps, metrics)
 
             del running_loss
             running_loss = None
