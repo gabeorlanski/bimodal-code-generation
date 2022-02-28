@@ -8,7 +8,7 @@ experiments:
       model: 'lvwerra/codeparrot-small'
       train_batch_size: 16
       eval_batch_size: 16
-      gradient_accumulation_steps: 16
+      gradient_accumulation_steps: 4
       seq_length: 1024
       processor: stackoverflow
       lr: 1e-4
