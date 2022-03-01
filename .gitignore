@@ -164,3 +164,5 @@ data/filters/
 pretrain_outputs/
 
 data/dumps/
+
+data/knowledge_graph/

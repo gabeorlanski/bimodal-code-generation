@@ -94,7 +94,7 @@ def consolidate_so_data(
         found = 0
 
         # Use a dict to check if they exist because searching dict O(1)
-        questions_looking_for = {k:True for k in questions}
+        questions_looking_for = {k: True for k in questions}
 
         for line in tqdm(question_path.joinpath(f"{tag_name}.jsonl").open()):
             parsed = json.loads(line)
@@ -220,9 +220,11 @@ def make_kg(ctx, parsed_path):
         tags = question_dict.get('tags', [])
         if not tags:
             continue
-        first_tag, *rest_of_tags = tags
-        for t in rest_of_tags:
-            knowledge_graph[first_tag][t] += 1
+        for i in tags:
+            for j in tags:
+                if i == j:
+                    continue
+                knowledge_graph[i][j] += 1
 
     logger.info(f"{len(knowledge_graph)} unique first tags")
     kg_path = PROJECT_ROOT.joinpath('data', 'knowledge_graph')
