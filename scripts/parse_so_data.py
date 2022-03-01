@@ -238,7 +238,7 @@ def make_kg(ctx, parsed_path):
         json.dump({
             'total_questions': total_questions,
             'total_tags'     : len(knowledge_graph),
-            'tag_counts'     : tag_counts,
+            'first_tag_counts'     : tag_counts,
             'knowledge_graph': knowledge_graph
         }, kg_file, indent=True)
 
