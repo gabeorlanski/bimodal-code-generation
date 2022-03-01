@@ -1,6 +1,6 @@
 starting_commands: command_templates/sbatch_experiment.txt
 experiments:
-  PretrainRaw.ParrotSmall:
+  Pretrain.ParrotSmall:
     overrides:
       ++device: 0
       +disable_cache: True
@@ -11,6 +11,31 @@ experiments:
       ++training:
         batch_size: 32
         gradient_accumulation_steps: 1
+
+    ablations:
+      - DumpName:
+          Python:
+            ++dump_name: python
+            ++processor.params.clean: false
+          RandomClean:
+            ++dump_name: random_clean
+            ++processor.params.clean: True
+          PythonClean:
+            ++dump_name: python_clean
+            ++processor.params.clean: True
+          Random:
+            ++dump_name: random
+            ++processor.params.clean: False
+      - CheckPoint:
+          Chk10K:
+            ++checkpoint: checkpoint-10000
+          Chk2.5K:
+            ++checkpoint: checkpoint-2500
+          Chk5K:
+            ++checkpoint: checkpoint-5000
+          Chk7.5K:
+            ++checkpoint: checkpoint-7500
+
     steps:
       - name: FineTune
         base: greene_config
@@ -19,7 +44,7 @@ experiments:
           objective: 'lm'
           task: mbpp
           ++is_checkpoint: True
-          ++model_path: best_models/SO.PretrainRaw.ParrotSmall.PreTrain
+          ++model_path: pretrain_outputs/SO.Pretrain.ParrotSmall.${..__META__.ablation.ablation_values.DumpName}/checkpoints/${..__META__.ablation.overrides.++checkpoint}
           training:
             learning_rate: 5e-5
       - name: Eval

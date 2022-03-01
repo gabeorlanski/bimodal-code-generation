@@ -226,4 +226,4 @@ def tensorize(
 
     logger.info(f"Saved to {out_file_path}")
 
-    logger.info(f"Size of {tensorized_data.name} is {human_readable_size(out_path.stat().st_size)}")
+    logger.info(f"Size of {tensorized_data.name} is {human_readable_size(out_file_path.stat().st_size)}")
