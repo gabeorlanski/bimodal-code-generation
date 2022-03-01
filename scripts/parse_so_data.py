@@ -204,9 +204,9 @@ def filter_tags(ctx, parsed_path, tag_filter_file, out_path, blacklist, seed):
 @click.pass_context
 def make_kg(ctx, parsed_path):
     debug = ctx.obj['DEBUG']
-    setup_global_logging(f"filter", str(PROJECT_ROOT.joinpath('logs')),
+    setup_global_logging(f"make_kg", str(PROJECT_ROOT.joinpath('logs')),
                          debug=debug)
-    logger = logging.getLogger('filter')
+    logger = logging.getLogger('make_kg')
     logger.info(f"Making the KG for {parsed_path}")
     parsed_path = PROJECT_ROOT.joinpath(parsed_path)
     question_path = parsed_path.joinpath('question_overview.json')
@@ -215,6 +215,7 @@ def make_kg(ctx, parsed_path):
 
     logger.info(f"{len(question_overview)} questions found")
     knowledge_graph = defaultdict(Counter)
+    total_questions = 0
     for question_id, question_dict in tqdm(question_overview.items(), total=len(question_overview)):
 
         tags = question_dict.get('tags', [])
@@ -225,13 +226,19 @@ def make_kg(ctx, parsed_path):
                 if i == j:
                     continue
                 knowledge_graph[i][j] += 1
+        total_questions += 1
 
-    logger.info(f"{len(knowledge_graph)} unique first tags")
+    logger.info(f"{len(knowledge_graph)} unique tags")
     kg_path = PROJECT_ROOT.joinpath('data', 'knowledge_graph')
     if not kg_path.exists():
         kg_path.mkdir()
+
     with kg_path.joinpath(f"{parsed_path.stem}_kg.json").open('w') as kg_file:
-        json.dump(knowledge_graph, kg_file, indent=True)
+        json.dump({
+            'total_questions': total_questions,
+            'total_tags'     : len(knowledge_graph),
+            'knowledge_graph': knowledge_graph
+        }, kg_file, indent=True)
 
 
 if __name__ == "__main__":
