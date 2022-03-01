@@ -216,16 +216,17 @@ def make_kg(ctx, parsed_path):
     logger.info(f"{len(question_overview)} questions found")
     knowledge_graph = defaultdict(Counter)
     total_questions = 0
+    tag_counts = Counter()
+    unique_tags = set()
     for question_id, question_dict in tqdm(question_overview.items(), total=len(question_overview)):
 
         tags = question_dict.get('tags', [])
         if not tags:
             continue
-        for i in tags:
-            for j in tags:
-                if i == j:
-                    continue
-                knowledge_graph[i][j] += 1
+        first_tag, *rem_tags = tags
+        tag_counts[first_tag] += 1
+        for t in rem_tags:
+            knowledge_graph[first_tag][t] += 1
         total_questions += 1
 
     logger.info(f"{len(knowledge_graph)} unique tags")
@@ -237,6 +238,7 @@ def make_kg(ctx, parsed_path):
         json.dump({
             'total_questions': total_questions,
             'total_tags'     : len(knowledge_graph),
+            'tag_counts'     : tag_counts,
             'knowledge_graph': knowledge_graph
         }, kg_file, indent=True)
 
