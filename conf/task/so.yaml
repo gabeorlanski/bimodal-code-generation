@@ -1,10 +1,10 @@
 defaults:
   - _self_
 name: so
-data_path: data/stackoverflow
+data_path: data/tensorized
 dump_name: ???
 train_path: ${.data_path}/${.dump_name}.jsonl
-validation_path: ${.data_path}/${.dump_name}_val.jsonl
+validation_path: ${.data_path}/${.dump_name}.val.jsonl
 max_samples: null
 answer_sorting: 'accepted'
 answers_per_sample: -1

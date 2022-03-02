@@ -37,7 +37,7 @@ class TensorizedDatasetCFG:
     def add_instance(self, instance):
         self.num_instances += 1
         self.input_token_count += len(instance['input_ids'])
-        self.target_token_count += len(instance['label'])
+        self.target_token_count += len(instance['labels'])
 
     @property
     def total_tokens(self):

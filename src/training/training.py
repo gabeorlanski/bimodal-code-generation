@@ -1,4 +1,5 @@
 import math
+from itertools import chain
 from pathlib import Path
 
 import logging
@@ -7,12 +8,12 @@ from transformers import (
     DataCollatorForSeq2Seq, EvalPrediction, AdamW
 )
 from functools import partial
-from datasets import set_caching_enabled, Dataset
+from datasets import set_caching_enabled, Dataset, load_dataset
 import torch
 from tio import Task
 from src import config
 from src.common import get_stats_from_list, PROJECT_ROOT, set_global_logging_level
-from src.data import langauge_modeling
+from src.data import langauge_modeling, NON_REGISTERED_TASKS
 from src.training.trainer import CustomTrainer
 from src.config import get_steps_from_training_args, get_lr_scheduler
 from src.data.tensorize import TensorizedTask
@@ -106,31 +107,45 @@ def setup_lm(cfg, task):
 
 
 def setup_pretrain(cfg, tokenizer, train_args):
-    effective_batch_size = (
-            train_args.train_batch_size
-            * train_args.gradient_accumulation_steps
-            * train_args.world_size
+    concat_delim = tokenizer('\n')['input_ids']
+    block_size = cfg.task.sequence_length
+
+    def group_texts(examples):
+        # Concatenate all texts.
+        concatenated_examples = {k: list(chain(*examples[k])) for k in examples.keys()}
+        total_length = len(concatenated_examples[list(examples.keys())[0]])
+        # We drop the small remainder, we could add padding if the model supported it instead of this drop, you can
+        # customize this part to your needs.
+        if total_length >= block_size:
+            total_length = (total_length // block_size) * block_size
+        # Split by chunks of max_len.
+        result = {
+            k: [t[i: i + block_size] for i in range(0, total_length, block_size)]
+            for k, t in concatenated_examples.items()
+        }
+        result["labels"] = result["input_ids"].copy()
+        return result
+
+    # For the HF Trainer, we need the eval set to have a size, so we split up
+    # the initialization so one is in streaming mode and the other is not.
+    train_dataset = load_dataset(
+        'json',
+        data_files={'train': str(PROJECT_ROOT.joinpath(cfg.task.train_path))},
+        streaming=True
+    )['train']
+    train_dataset = train_dataset.map(
+        group_texts,
+        batched=True,
     )
 
-    train_dataset = TensorizedTask(
-        name=cfg.task.data_name,
-        data_path=PROJECT_ROOT.joinpath('data', 'tensorized'),
-        objective=cfg.objective,
-        tokenizer=tokenizer,
-        sequence_length=cfg.task.sequence_length,
-        max_instances=effective_batch_size * train_args.max_steps if train_args.max_steps != -1 else -1,
-        local_rank=train_args.local_rank,
-        effective_batch_size=effective_batch_size
-    )
-    eval_dataset = TensorizedTask(
-        name=f"{cfg.task.data_name}.val",
-        data_path=PROJECT_ROOT.joinpath('data', 'tensorized'),
-        objective=cfg.objective,
-        tokenizer=tokenizer,
-        sequence_length=cfg.task.sequence_length,
-        max_instances=cfg.get('debug_val_size', -1),
-        local_rank=train_args.local_rank,
-        effective_batch_size=effective_batch_size
+    eval_dataset = load_dataset(
+        'json',
+        data_files={'validation': str(PROJECT_ROOT.joinpath(cfg.task.validation_path))},
+        streaming=False
+    )['validation']
+    eval_dataset = eval_dataset.map(
+        group_texts,
+        batched=True,
     )
     return train_dataset, eval_dataset, None
 
@@ -151,7 +166,7 @@ def train_model(cfg: DictConfig):
     logger.debug("Loading Model")
     model_cls, model = config.load_model_from_cfg(cfg)
 
-    if cfg.task.name == 'tensorize':
+    if cfg.task.name in NON_REGISTERED_TASKS:
         tokenizer = config.load_tokenizer_from_cfg(cfg)
         task = None  # type: ignore
     else:
@@ -188,7 +203,7 @@ def train_model(cfg: DictConfig):
                 v_use = v
             setattr(model.config, k, v_use)
     elif cfg.objective == 'lm':
-        if cfg.task.name == 'tensorize':
+        if cfg.task.name in NON_REGISTERED_TASKS:
             logger.info(f"Setting up the SO pretrain objective")
             train_data, validation_data, evaluate_fn = setup_pretrain(
                 cfg,

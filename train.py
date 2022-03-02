@@ -16,6 +16,7 @@ from tio import Task
 from src.common import setup_global_logging, is_currently_distributed
 from src.training import train_model
 from src.config import setup_tracking_env_from_cfg, get_run_base_name_from_cfg
+from src.data import NON_REGISTERED_TASKS
 
 # Hydra Messes with the CWD, so we need to save it at the beginning.
 PROJECT_ROOT = Path.cwd()
@@ -30,7 +31,7 @@ def train_from_cfg(cfg):
     if Path('wandb_secret.txt').exists():
         os.environ["WANDB_API_KEY"] = open('wandb_secret.txt').read().strip()
 
-    if not Task.is_name_registered(task) and task not in ['tensorize']:
+    if not Task.is_name_registered(task) and task not in NON_REGISTERED_TASKS:
         valid_tasks = ''
         for t in Task.list_available():
             valid_tasks += f'\t{t}\n'

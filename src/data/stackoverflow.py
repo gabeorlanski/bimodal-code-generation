@@ -133,7 +133,7 @@ class StackOverflowProcessor:
         out = []
         for i, label in enumerate(targets_tokenized):
             out.append({
-                'label'         : label,
+                'labels'         : label,
                 'input_ids'     : inputs_tokenized['input_ids'][i],
                 'attention_mask': inputs_tokenized['attention_mask'][i]
             })
