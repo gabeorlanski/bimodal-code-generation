@@ -218,11 +218,94 @@ def get_file_name_from_tag(tags):
         return '_'.join(tags[:2])
 
 
+def parse_post_lines(
+        posts_path,
+        tmp_dir,
+        get_tag_fn,
+        max_buffer_size,
+        total_expected,
+        debug=False
+):
+    created_files = {}
+    posts_per_tag = Counter()
+    no_tags = 0
+    completed = 0
+    post_tag_to_use = {}
+    update_freq = 1000 if debug else 100000
+    failed = 0
+
+    buffer = defaultdict(list)
+    buffer_size = 0
+
+    def empty_buffer(buffer_dict):
+        for tag_name, items in buffer_dict.items():
+            # if tag_name not in tag_file_descriptors:
+            if tag_name not in created_files:
+                created_files[tag_name] = tmp_dir.joinpath(f'{tag_name}.jsonl')
+                tag_file_descriptor = created_files[tag_name].open('w')
+            else:
+                tag_file_descriptor = created_files[tag_name].open('a')
+
+            for post in items:
+                tag_file_descriptor.write(json.dumps(post) + '\n')
+            tag_file_descriptor.close()
+
+    start_time = datetime.utcnow()
+    for line_num, line in enumerate(posts_path.open('r')):
+        parsed = json.loads(line)
+
+        if parsed['result'] != 'PASS' or parsed['type'] not in [1, 2]:
+            continue
+
+        try:
+            tags = get_tag_fn(parsed)
+        except Exception as e:
+            logger.info(f"Line {line_num} failed with exception {e}")
+            failed += 1
+            continue
+        tag_to_use = get_file_name_from_tag(tags)
+        if tag_to_use == 'NO_TAG':
+            no_tags += 1
+
+        buffer[tag_to_use].append(parsed)
+        buffer_size += 1
+
+        if buffer_size >= max_buffer_size:
+            ram_pct = f"{psutil.virtual_memory()[2]:0.2f}%"
+            logger.info(f"Emptying Buffer using {ram_pct} RAM")
+            empty_buffer(buffer)
+            del buffer
+            buffer = {}
+            buffer_size = 0
+        posts_per_tag[tag_to_use] += 1
+        no_tags += tag_to_use == "NO_TAG"
+        post_tag_to_use[parsed['id']] = tag_to_use
+        completed += 1
+        if completed % update_freq == 0:
+            hours, minutes, seconds = get_estimated_time_remaining(
+                start_time,
+                completed,
+                total_expected
+            )
+
+            logger.info(
+                f"Completed {completed:>10}/{total_expected}. "
+                f"Estimated to finish in {str(hours).zfill(2)}:{str(minutes).zfill(2)}:{str(seconds).zfill(2)}")
+            ram_pct = f"{psutil.virtual_memory()[2]:0.2f}%"
+            cpu_pct = f"{psutil.getloadavg()[-1] / os.cpu_count() * 100:0.2f}%"
+            logger.debug(f"RAM Used={ram_pct:<6} | CPU Used={cpu_pct:<6}")
+    empty_buffer(buffer)
+    logger.info(f"{failed} failed to get tags")
+
+    return completed, no_tags, post_tag_to_use, posts_per_tag
+
+
 def create_question_tag_files(
         questions_path: Path,
         out_dir: Path,
         question_overview_data,
-        debug
+        buffer_size,
+        debug,
 ):
     logger.info("Parsing Questions into Tag files")
     tmp_dir = out_dir.joinpath(f'tmp_questions')
@@ -232,58 +315,20 @@ def create_question_tag_files(
         shutil.rmtree(tmp_dir)
         tmp_dir.mkdir()
 
-    max_files_open = 1000 if not debug else 16
-    update_freq = 1000 if debug else 100000
-
-    tag_file_descriptors = {}
-    created_files = {}
-
-    posts_per_tag = Counter()
-    no_tags = 0
-    completed = 0
-    start_time = datetime.utcnow()
-
-    for line in questions_path.open('r'):
-        parsed = json.loads(line)
-
-        if parsed['result'] != 'PASS' or parsed['type'] not in [1, 2]:
-            continue
-
-        tag_to_use = get_file_name_from_tag(parsed.get('tags', []))
-        if tag_to_use == 'NO_TAG':
-            no_tags += 1
-        if tag_to_use not in tag_file_descriptors:
-            if tag_to_use not in created_files:
-                created_files[tag_to_use] = tmp_dir.joinpath(f'{tag_to_use}.jsonl')
-                tag_file_descriptors[tag_to_use] = created_files[tag_to_use].open('w')
-            else:
-                tag_file_descriptors[tag_to_use] = created_files[tag_to_use].open('a')
-
-        tag_file_descriptors[tag_to_use].write(json.dumps(parsed) + '\n')
-        if len(tag_file_descriptors) >= max_files_open:
-            # IF we have too many files open at once, we will get an error.
-            for v in tag_file_descriptors.values():
-                v.close()
-            tag_file_descriptors = {}
-
-        posts_per_tag[tag_to_use] += 1
-        no_tags += tag_to_use == "NO_TAG"
-        question_overview_data[parsed['id']]['tag_to_use'] = tag_to_use
-        completed += 1
-        if completed % update_freq == 0:
-            hours, minutes, seconds = get_estimated_time_remaining(
-                start_time,
-                completed,
-                len(question_overview_data)
-            )
-
-            logger.info(
-                f"Completed {completed:>10}/{len(question_overview_data)}. "
-                f"Estimated to finish in {str(hours).zfill(2)}:{str(minutes).zfill(2)}:{str(seconds).zfill(2)}")
-    for v in tag_file_descriptors.values():
-        v.close()
+    completed, no_tags, post_tags_to_use, posts_per_tag = parse_post_lines(
+        posts_path=questions_path,
+        tmp_dir=tmp_dir,
+        get_tag_fn=lambda parsed: parsed.get('tags', []),
+        max_buffer_size=1e7,
+        total_expected=len(question_overview_data),
+        debug=debug
+    )
 
     logger.info(f"{completed} total questions")
+    logger.info("Adding the tag to use data back to the questions overview")
+    for k, v in tqdm(post_tags_to_use.items()):
+        question_overview_data[k]['tag_to_use'] = v
+
     logger.info(f"{len(posts_per_tag)} total question files created")
     logger.info(f"{no_tags} had no tags")
     logger.info(f"Breakdown of the top {min(25, len(posts_per_tag))}")
@@ -298,7 +343,8 @@ def create_answer_tag_files(
         out_dir,
         question_overview_data,
         answer_count,
-        debug
+        buffer_size,
+        debug,
 ):
     logger.info("Parsing Answers into Tag files")
     tmp_dir = out_dir.joinpath(f'tmp_answers')
@@ -308,61 +354,17 @@ def create_answer_tag_files(
         shutil.rmtree(tmp_dir)
         tmp_dir.mkdir()
 
-    max_files_open = 1000 if not debug else 16
-    update_freq = 1000 if debug else 100000
+    def get_tags(parsed):
+        return question_overview_data[parsed['parent_id']].get('tags', [])
 
-    tag_file_descriptors = {}
-    created_files = {}
-    posts_per_tag = Counter()
-    no_tags = 0
-    start_time = datetime.utcnow()
-    completed = 0
-    for line in answers_path.open('r'):
-        parsed = json.loads(line)
-        try:
-            parsed['tags'] = question_overview_data[parsed['parent_id']].get('tags', [])
-            tag_name_to_use = question_overview_data[parsed['parent_id']].get('tag_to_use', None)
-        except KeyError:
-            logger.error(
-                f"{parsed['id']} has a parent ({parsed['parent_id']=})that does not exist")
-            continue
-
-        if tag_name_to_use is None:
-            tag_to_use = get_file_name_from_tag(parsed.get('tags', []))
-            if tag_to_use == 'NO_TAG':
-                no_tags+=1
-        else:
-            tag_to_use = tag_name_to_use
-
-        if tag_to_use not in tag_file_descriptors:
-            if tag_to_use not in created_files:
-                created_files[tag_to_use] = tmp_dir.joinpath(f'{tag_to_use}.jsonl')
-                tag_file_descriptors[tag_to_use] = created_files[tag_to_use].open('w')
-            else:
-                tag_file_descriptors[tag_to_use] = created_files[tag_to_use].open('a')
-
-        tag_file_descriptors[tag_to_use].write(json.dumps(parsed) + '\n')
-        if len(tag_file_descriptors) >= max_files_open:
-            # IF we have too many files open at once, we will get an error.
-            for v in tag_file_descriptors.values():
-                v.close()
-            tag_file_descriptors = {}
-        posts_per_tag[tag_to_use] += 1
-        completed += 1
-        if completed % update_freq == 0:
-            hours, minutes, seconds = get_estimated_time_remaining(
-                start_time,
-                completed=completed,
-                total=answer_count
-            )
-
-            logger.info(
-                f"Completed {completed:>10}/{answer_count}. "
-                f"Estimated to finish in "
-                f"{str(hours).zfill(2)}:{str(minutes).zfill(2)}:{str(seconds).zfill(2)}")
-
-    for v in tag_file_descriptors.values():
-        v.close()
+    completed, no_tags, _, posts_per_tag = parse_post_lines(
+        posts_path=answers_path,
+        tmp_dir=tmp_dir,
+        get_tag_fn=get_tags,
+        max_buffer_size=1e7,
+        total_expected=answer_count,
+        debug=debug
+    )
     logger.info(f"{completed} total answers")
     logger.info(f"{len(posts_per_tag)} total answer files created")
     logger.info(f"{no_tags} had no tags")
@@ -403,7 +405,8 @@ def parse_so_dump(
         posts_path: Path,
         num_workers,
         out_dir: Path,
-        debug
+        debug,
+        buffer_size
 ):
     question_overview_data, tag_counts, dump_stats = initial_parse_dump(
         posts_path,
@@ -424,14 +427,16 @@ def parse_so_dump(
     tmp_question_dir, question_posts_per_tag, question_overview_data = create_question_tag_files(
         out_dir.joinpath('questions.jsonl'),
         out_dir,
-        question_overview_data,
-        debug
+        question_overview_data=question_overview_data,
+        buffer_size=buffer_size,
+        debug=debug
     )
     tmp_answer_dir, answer_posts_per_tag = create_answer_tag_files(
         out_dir.joinpath('answers.jsonl'),
         out_dir,
         question_overview_data,
         answer_count=dump_stats['post_types']['answers'],
+        buffer_size=buffer_size,
         debug=debug
     )
 

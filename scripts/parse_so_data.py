@@ -120,6 +120,7 @@ def consolidate_so_data(
 @main.command('parse')
 @click.argument('dump_path', metavar='<Data Path>')
 @click.argument('num_workers', type=int, metavar='<Number Of Workers>')
+@click.option('--buffer-size', '-buffer', type=int, help='Buffer Size', default=1000000)
 @click.option(
     '--out-name', default=None, help="name"
 )
@@ -128,7 +129,8 @@ def parse_dump(
         ctx,
         dump_path,
         num_workers,
-        out_name
+        out_name,
+        buffer_size
 ):
     debug = ctx.obj['DEBUG']
 
@@ -158,7 +160,8 @@ def parse_dump(
         posts_path,
         num_workers,
         output_path,
-        debug
+        debug,
+        buffer_size=buffer_size
     )
 
 

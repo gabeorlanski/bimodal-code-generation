@@ -10,6 +10,7 @@ from functools import partial
 from pathlib import Path
 from typing import List, Dict, Callable
 import multiprocessing as mp
+import numpy as np
 
 import torch
 from torch.utils.data import IterableDataset
@@ -66,31 +67,26 @@ class TensorizedTask(IterableDataset):
             data_path,
             objective,
             tokenizer: PreTrainedTokenizer,
-            infinite=False,
             sequence_length=1024,
-            max_instances=-1,
-            local_rank: int = -1,
-            effective_batch_size: int = 16
+            effective_batch_size: int = 16,
+            max_samples: int = -1,
+            seed=1,
+            buffer_size=25,
     ):
-        self.objective = objective
-        self.data_path = data_path
         self.name = name
+        self.data_file_path = data_path.joinpath(f'{name}.jsonl')
+        self.objective = objective
         self.concat_token_id = tokenizer.bos_token_id or tokenizer.eos_token_id
         self.sequence_length = sequence_length
-        self.infinite = infinite
         self.tokenizer = tokenizer
-        self.buffer_size = effective_batch_size * self.sequence_length * 25
+        self.buffer_size = effective_batch_size * self.sequence_length * buffer_size
+        self.rng = np.random.default_rng(seed)
         self.lm_concat_delim = self.tokenizer.encode('\n')
-        self.max_instances = max_instances
-        self.tensorized_cfg, self.length = self._load_samples(data_path, max_instances)
-        self.tensorized_cfg: TensorizedDatasetCFG
-        logger.info(f"{self.length} total samples with a buffer of {self.buffer_size}")
-        self.samples_seen = 0
-        self.tokens_seen = 0
-        self.epoch = 0
-        logger.debug(f"{max_instances=} while length is {self.length}")
+        self.length = self._get_length(data_path, max_instances=max_samples)
 
-    def _load_samples(self, data_path, max_instances):
+        logger.info(f"{self.length} total samples with a buffer of {self.buffer_size}")
+
+    def _get_length(self, data_path, max_instances):
         logger.info(f"Loading tensorized dataset from {data_path}")
 
         tensorized_cfg = TensorizedDatasetCFG(**json.loads(
@@ -102,18 +98,18 @@ class TensorizedTask(IterableDataset):
         logger.info(f"{tensorized_cfg.target_token_count:e} target tokens found")
         logger.info(f"{tensorized_cfg.num_instances:e} instances found")
         if max_instances != -1:
-            return tensorized_cfg, max_instances
+            return max_instances
 
         if self.objective == 'lm':
-            return tensorized_cfg, (
-                    tensorized_cfg.total_tokens
-                    + ((len(self.lm_concat_delim) + 1)
-                       * tensorized_cfg.num_instances)
-            ) // self.sequence_length
-        return tensorized_cfg, tensorized_cfg.num_instances
+            return (
+                           tensorized_cfg.total_tokens
+                           + ((len(self.lm_concat_delim) + 1)
+                              * tensorized_cfg.num_instances)
+                   ) // self.sequence_length
+        return tensorized_cfg.num_instances
 
     def get_samples(self):
-        for line in self.data_path.joinpath(f"{self.name}.jsonl").open():
+        for line in self.data_file_path.open():
             yield json.loads(line)
 
     def __iter__(self):
@@ -122,31 +118,26 @@ class TensorizedTask(IterableDataset):
         more_examples = True
         total_yielded = 0
 
-        while more_examples and total_yielded < self.length:
+        while more_examples:
             while len(buffer) < self.buffer_size:
                 try:
                     current_instance = next(data_iter)
                     buffer.extend(
-                        current_instance['label']
+                        current_instance['labels']
                         + self.lm_concat_delim
                         + current_instance["input_ids"]
                         + [self.tokenizer.eos_token_id]
                     )
-                    self.samples_seen += 1
                 except StopIteration:
-                    if self.infinite or (self.max_instances != -1 and total_yielded < self.length):
-                        data_iter = iter(self.get_samples())
-                        self.epoch += 1
-                        logger.info(f"Dataset epoch: {self.epoch}")
-                    else:
-                        more_examples = False
-                        break
+                    more_examples = False
+                    break
+
+            self.rng.shuffle(buffer)
             overflow = []
             for i in range(0, len(buffer), self.sequence_length):
                 input_ids = buffer[i: i + self.sequence_length]
                 if len(input_ids) == self.sequence_length:
                     total_yielded += 1
-                    self.tokens_seen += self.sequence_length
                     yield {
                         'input_ids'     : torch.tensor(input_ids),
                         'attention_mask': torch.tensor([1] * len(input_ids)),
@@ -154,9 +145,9 @@ class TensorizedTask(IterableDataset):
                     }
                 else:
                     overflow.extend(copy(input_ids))
-                if total_yielded >= self.length:
-                    more_examples = False
-                    break
+                # if total_yielded >= self.length:
+                #     more_examples = False
+                #     break
             del buffer
             buffer = overflow
 
@@ -171,7 +162,8 @@ def tensorize(
         num_workers: int,
         model_name: str,
         data_processor,
-        batch_size
+        batch_size,
+        debug_max_samples
 ):
     logger.info(f"Tensorizing {raw_data_path}")
     # Setup the queues
@@ -199,11 +191,14 @@ def tensorize(
             last_logged_batch = batches_found
             logger.info(f"RAM Used={psutil.virtual_memory()[2]}%")
             logger.info(f"CPU Used={psutil.getloadavg()[-1] / os.cpu_count() * 100:0.2f}%")
+        if debug_max_samples != -1 and lines >= debug_max_samples:
+            logger.warning(f"Stopping at {lines} for debugging")
+            break
 
     logger.info(f"Read {lines} lines")
     logger.info(f"Yielded {batches_found} batches")
 
-    tokenizer = AutoTokenizer.from_pretrained(model_name,use_fast=False)
+    tokenizer = AutoTokenizer.from_pretrained(model_name, use_fast=False)
     map_fn = partial(
         batch_process,
         processor=data_processor,
@@ -226,4 +221,7 @@ def tensorize(
 
     logger.info(f"Saved to {out_file_path}")
 
-    logger.info(f"Size of {tensorized_data.name} is {human_readable_size(out_file_path.stat().st_size)}")
+    logger.info(
+        f"Size of {tensorized_data.name} is {human_readable_size(out_file_path.stat().st_size)}")
+    with out_path.joinpath(f"{output_name}.cfg.json").open('w') as f:
+        json.dump(asdict(tensorized_data), f, indent=True)

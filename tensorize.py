@@ -41,6 +41,8 @@ from src.data.stackoverflow import StackOverflowProcessor
 @click.option(
     '--config', 'config_file', default=None, help='Path to config file.')
 @click.option(
+    '--debug-samples', 'debug_samples', default=-1, help='Debug Samples to use.')
+@click.option(
     '--override-str',
     help='Bash does not like lists of variable args. so pass as seperated list of overrides, seperated by spaces.',
     default=''
@@ -56,7 +58,8 @@ def tensorize_data(
         data_path,
         validation_file_name,
         config_file,
-        out_path
+        out_path,
+        debug_samples
 ):
     if config_file is None:
         override_list = [
@@ -118,7 +121,8 @@ def tensorize_data(
         num_workers,
         model_name,
         processor,
-        cfg.tensorize_batch_size
+        cfg.tensorize_batch_size,
+        debug_max_samples=debug_samples
     )
     tensorize(
         data_path.joinpath(validation_file),
@@ -127,7 +131,8 @@ def tensorize_data(
         num_workers,
         model_name,
         processor,
-        cfg.tensorize_batch_size
+        cfg.tensorize_batch_size,
+        debug_max_samples=debug_samples
     )
 
 

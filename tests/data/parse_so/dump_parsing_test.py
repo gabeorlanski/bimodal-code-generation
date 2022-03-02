@@ -90,22 +90,26 @@ def test_initial_pass(tmpdir):
     assert set(found_excerpts) == {"11"}
 
 
-def test_parse_so_dump(tmpdir):
+@pytest.mark.parametrize('buffer_size', [1000, 1])
+def test_parse_so_dump(tmpdir, buffer_size):
     parse_so_dump(
         posts_path=FIXTURES_ROOT.joinpath('so_dumps', 'Posts.xml'),
         num_workers=1,
         out_dir=Path(tmpdir),
-        debug=False
+        debug=False,
+        buffer_size=buffer_size
     )
 
     questions_dir = Path(tmpdir, 'questions')
     expected_tags = {
-        "neural-networks"     : {
+        "neural-networks_backpropagation" : {
             "1": {"3"},
+        },
+        "neural-networks_machine-learning": {
             "2": {"9"},
         },
-        "agi"                 : {"7": set()},
-        "deep-neural-networks": {"10": set()}
+        "agi_superintelligence"           : {"7": set()},
+        "deep-neural-networks_terminology": {"10": set()}
     }
 
     for tag_name, expected_ids in expected_tags.items():

@@ -1,3 +1,4 @@
+import json
 import math
 from itertools import chain
 from pathlib import Path
@@ -9,6 +10,7 @@ from transformers import (
 )
 from functools import partial
 from datasets import set_caching_enabled, Dataset, load_dataset
+from datasets.iterable_dataset import iterable_dataset
 import torch
 from tio import Task
 from src import config
@@ -112,31 +114,52 @@ def setup_pretrain(cfg, tokenizer, train_args):
 
     def group_texts(examples):
         # Concatenate all texts.
-        concatenated_examples = {k: list(chain(*examples[k])) for k in examples.keys()}
-        total_length = len(concatenated_examples[list(examples.keys())[0]])
+        concatenated = []
+        for input_ids, label in zip(examples['input_ids'], examples['labels']):
+            concatenated.extend(input_ids + concat_delim + label + [tokenizer.eos_token_id])
+        total_length = len(concatenated)
         # We drop the small remainder, we could add padding if the model supported it instead of this drop, you can
         # customize this part to your needs.
         if total_length >= block_size:
             total_length = (total_length // block_size) * block_size
         # Split by chunks of max_len.
-        result = {
-            k: [t[i: i + block_size] for i in range(0, total_length, block_size)]
-            for k, t in concatenated_examples.items()
+        blocks = [concatenated[i: i + block_size] for i in range(0, total_length, block_size)]
+
+        return {
+            "input_ids": blocks,
+            "labels"   : blocks.copy()
         }
-        result["labels"] = result["input_ids"].copy()
-        return result
 
     # For the HF Trainer, we need the eval set to have a size, so we split up
     # the initialization so one is in streaming mode and the other is not.
-    train_dataset = load_dataset(
-        'json',
-        data_files={'train': str(PROJECT_ROOT.joinpath(cfg.task.train_path))},
-        streaming=True
-    )['train']
+    # train_dataset = TensorizedTask(
+    #     name=cfg.task.dump_name,
+    #     data_path=PROJECT_ROOT.joinpath(cfg.task.data_path),
+    #     objective=cfg.objective,
+    #     tokenizer=tokenizer,
+    #     sequence_length=cfg.task.sequence_length,
+    #     effective_batch_size=(
+    #             train_args.train_batch_size
+    #             * train_args.gradient_accumulation_steps
+    #             * train_args.world_size
+    #     ),
+    #     max_samples=cfg.task.get('debug_max_samples', -1),
+    #     seed=cfg.seed,
+    #     buffer_size=cfg.get('buffer_size', 25)
+    # )
+    # train_dataset = load_dataset(
+    #     'json',
+    #     data_files={'train': str(PROJECT_ROOT.joinpath(cfg.task.train_path))},
+    #     streaming=True
+    # )['train']
+    train_dataset = iterable_dataset(
+        map(json.loads, PROJECT_ROOT.joinpath(cfg.task.train_path).open()),
+
+    )
     train_dataset = train_dataset.map(
         group_texts,
-        batched=True,
-    )
+        batched=True
+    ).with_format("torch").shuffle(buffer_size=50_000, seed=cfg.seed)
 
     eval_dataset = load_dataset(
         'json',
@@ -146,6 +169,7 @@ def setup_pretrain(cfg, tokenizer, train_args):
     eval_dataset = eval_dataset.map(
         group_texts,
         batched=True,
+        remove_columns=['attention_mask']
     )
     return train_dataset, eval_dataset, None
 
@@ -246,19 +270,19 @@ def train_model(cfg: DictConfig):
             )
 
     logger.info(f"Setting up the optimizer")
-    optimizer = AdamW(
-        get_grouped_params(model, train_args),
-        lr=train_args.learning_rate,
-        betas=(train_args.adam_beta1, train_args.adam_beta2),
-        eps=train_args.adam_epsilon,
-        weight_decay=train_args.weight_decay
-    )
+    # optimizer = AdamW(
+    #     get_grouped_params(model, train_args),
+    #     lr=train_args.learning_rate,
+    #     betas=(train_args.adam_beta1, train_args.adam_beta2),
+    #     eps=train_args.adam_epsilon,
+    #     weight_decay=train_args.weight_decay
+    # )
 
     total_steps, warmup_steps = get_steps_from_training_args(train_args, train_data)
 
     logger.info(f"{total_steps} total training steps and {warmup_steps} warmup")
 
-    lr_scheduler = get_lr_scheduler(train_args, optimizer, total_steps, warmup_steps)
+    # lr_scheduler = get_lr_scheduler(train_args, optimizer, total_steps, warmup_steps)
 
     device = train_args.device
     logger.info(f"Using device {device}")
@@ -271,7 +295,7 @@ def train_model(cfg: DictConfig):
         train_dataset=train_data,
         data_collator=collator,
         compute_metrics=evaluate_fn,
-        optimizers=(optimizer, lr_scheduler)
+        # optimizers=(optimizer, lr_scheduler)
 
     )
     trainer.train()

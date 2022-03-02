@@ -33,8 +33,8 @@ class StackOverflowProcessor:
         self.good_answer_cutoff = good_answer_cutoff
         self.bad_answer_cutoff = bad_answer_cutoff
         self.answer_prompt = answer_prompt
-        self.question_prompt = question_prompt if question_prompt else '__BODY__'
-        self.title_prompt = title_prompt if title_prompt else '__TITLE__'
+        self.question_prompt = question_prompt if question_prompt else 'Body: __BODY__'
+        self.title_prompt = title_prompt if title_prompt else 'Question Title: __TITLE__'
         self.answers_per_sample = answers_per_sample
         self.lm_concat_delim = '\n'
         self.clean = clean
@@ -85,6 +85,8 @@ class StackOverflowProcessor:
 
         # Add the quality information to the answer.
         out = []
+        if not answers:
+            return [{'input': question_str, 'target': ''}]
         for i, answer in enumerate(answers[:answers_keep]):
 
             if self.answer_prompt:
@@ -133,7 +135,7 @@ class StackOverflowProcessor:
         out = []
         for i, label in enumerate(targets_tokenized):
             out.append({
-                'labels'         : label,
+                'labels'        : label,
                 'input_ids'     : inputs_tokenized['input_ids'][i],
                 'attention_mask': inputs_tokenized['attention_mask'][i]
             })
