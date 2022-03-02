@@ -142,6 +142,7 @@ def get_file_name_from_tag(tags):
 
 
 def empty_buffer(buffer_dict, out_dir, created_files):
+    finished = 0
     for tag_name, items in buffer_dict.items():
         # if tag_name not in tag_file_descriptors:
         if tag_name not in created_files:
@@ -153,6 +154,9 @@ def empty_buffer(buffer_dict, out_dir, created_files):
         for post in items:
             tag_file_descriptor.write(json.dumps(post) + '\n')
         tag_file_descriptor.close()
+        finished += 1
+        if finished % 1000 == 0:
+            logger.info(f"Finished {finished:>8}/{len(buffer_dict)}")
     return created_files
 
 
@@ -222,7 +226,7 @@ def initial_parse_dump(
                 created_files = empty_buffer(buffer, tmp_dir, created_files)
                 del buffer
                 buffer = defaultdict(list)
-                buffer_size=0
+                buffer_size = 0
 
         else:
             post_type_to_file[parsed['type']].write(json.dumps(parsed) + '\n')
