@@ -211,6 +211,13 @@ def initial_parse_dump(dump_path: Path, out_dir: Path, debug):
     return question_overview_data, tag_counts, dump_stats
 
 
+def get_file_name_from_tag(tags):
+    if not tags:
+        return 'NO_TAG'
+    else:
+        return '_'.join(tags[:2])
+
+
 def create_question_tag_files(
         questions_path: Path,
         out_dir: Path,
@@ -242,11 +249,9 @@ def create_question_tag_files(
         if parsed['result'] != 'PASS' or parsed['type'] not in [1, 2]:
             continue
 
-        if not parsed.get('tags', []):
-            tag_to_use = 'NO_TAG'
-        else:
-            tag_to_use = '_'.join(parsed['tags'][:2])
-
+        tag_to_use = get_file_name_from_tag(parsed.get('tags', []))
+        if tag_to_use == 'NO_TAG':
+            no_tags += 1
         if tag_to_use not in tag_file_descriptors:
             if tag_to_use not in created_files:
                 created_files[tag_to_use] = tmp_dir.joinpath(f'{tag_to_use}.jsonl')
@@ -323,11 +328,9 @@ def create_answer_tag_files(
             continue
 
         if tag_name_to_use is None:
-            if not parsed.get('tags', []):
-                tag_to_use = 'NO_TAG'
-                no_tags += 1
-            else:
-                tag_to_use = '_'.join(parsed['tags'][:2])
+            tag_to_use = get_file_name_from_tag(parsed.get('tags', []))
+            if tag_to_use == 'NO_TAG':
+                no_tags+=1
         else:
             tag_to_use = tag_name_to_use
 
