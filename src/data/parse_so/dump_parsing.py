@@ -24,46 +24,6 @@ __all__ = [
 ]
 
 
-class FilterWorker(mp.Process):
-    def __init__(
-            self,
-            worker_id,
-            task_queue,
-            result_queue,
-            log_queue,
-            tag_filter
-    ):
-        super().__init__()
-        self.worker_id = worker_id
-        self.tasks = task_queue
-        self.results = result_queue
-        self.logs = log_queue
-        self.tag_filter = tag_filter
-
-    def _log(self, level, message):
-        self.logs.put((level, f"WORKER {self.worker_id}: {message}"))
-
-    def run(self):
-
-        completed = 0
-        self._log(logging.INFO, "Started")
-        while True:
-            next_task = self.tasks.get()
-
-            # Poison pill means shutdown.
-            if next_task is None:
-                self._log(logging.INFO, "Finished")
-                self.logs.put(None)
-                self.tasks.task_done()
-                return
-
-            self.results.put(parse_line(next_task['line_num'], next_task['line'], self.tag_filter))
-            self.tasks.task_done()
-            completed += 1
-            if completed % 10000 == 0:
-                self._log(logging.INFO, f"Finished {completed}")
-
-
 def parse_line(line_number, line):
     result = {
         "line"  : line_number,
@@ -160,6 +120,17 @@ def empty_buffer(buffer_dict, out_dir, created_files):
     return created_files
 
 
+def empty_buffer_worker(task_queue: mp.JoinableQueue, out_dir, created_files):
+    while True:
+        buffer = task_queue.get()
+        if buffer is None:
+            task_queue.task_done()
+            return
+
+        created_files = empty_buffer(buffer, out_dir, created_files)
+        task_queue.task_done()
+
+
 def initial_parse_dump(
         dump_path: Path,
         out_dir: Path,
@@ -171,7 +142,6 @@ def initial_parse_dump(
 
     question_overview_data = {}
     failures_counts = Counter()
-    created_files = {}
     post_type_counter = Counter()
     posts_per_tag = Counter()
     tag_counts = Counter()
@@ -189,6 +159,11 @@ def initial_parse_dump(
     buffer_size = 0
     no_tags = 0
 
+    task_queue = mp.JoinableQueue()
+    manager = mp.Manager()
+    created_files = manager.dict()
+    process = mp.Process(target=empty_buffer_worker, args=(task_queue, tmp_dir, created_files))
+    process.start()
     update_freq = 2500 if debug else 250000
     for line in dump_path.open('r', encoding='utf-8', errors='replace'):
         parsed = parse_line(line_number, line)
@@ -222,8 +197,8 @@ def initial_parse_dump(
 
             if buffer_size >= max_buffer_size:
                 ram_pct = f"{psutil.virtual_memory()[2]:0.2f}%"
-                logger.info(f"Emptying Buffer of {len(buffer)} files using {ram_pct} RAM")
-                created_files = empty_buffer(buffer, tmp_dir, created_files)
+                logger.info(f"Putting Buffer of {len(buffer)} files onto queue {ram_pct} RAM")
+                task_queue.put(buffer)
                 del buffer
                 buffer = defaultdict(list)
                 buffer_size = 0
@@ -245,6 +220,9 @@ def initial_parse_dump(
             ram_pct = f"{psutil.virtual_memory()[2]:0.2f}%"
             cpu_pct = f"{psutil.getloadavg()[-1] / os.cpu_count() * 100:0.2f}%"
             logger.debug(f"RAM Used={ram_pct:<6} | CPU Used={cpu_pct:<6}")
+    task_queue.put(None)
+    task_queue.join()
+    process.terminate()
 
     empty_buffer(buffer, tmp_dir, created_files)
 

@@ -120,7 +120,7 @@ def consolidate_so_data(
 @main.command('parse')
 @click.argument('dump_path', metavar='<Data Path>')
 @click.argument('num_workers', type=int, metavar='<Number Of Workers>')
-@click.option('--buffer-size', '-buffer', type=int, help='Buffer Size', default=5000000)
+@click.option('--buffer-size', '-buffer', type=int, help='Buffer Size', default=250000)
 @click.option(
     '--out-name', default=None, help="name"
 )
