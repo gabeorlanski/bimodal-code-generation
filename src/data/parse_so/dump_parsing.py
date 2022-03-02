@@ -101,7 +101,7 @@ def get_file_name_from_tag(tags):
         return tags[0]
 
 
-def empty_buffer(buffer_dict, out_dir, created_files):
+def empty_buffer(buffer_dict, out_dir, created_files, disable_print=False):
     finished = 0
     for tag_name, items in buffer_dict.items():
         # if tag_name not in tag_file_descriptors:
@@ -115,7 +115,7 @@ def empty_buffer(buffer_dict, out_dir, created_files):
             tag_file_descriptor.write(json.dumps(post) + '\n')
         tag_file_descriptor.close()
         finished += 1
-        if finished % 1000 == 0:
+        if finished % 1000 == 0 and not disable_print:
             logger.info(f"Finished {finished:>8}/{len(buffer_dict)}")
     return created_files
 
@@ -127,7 +127,7 @@ def empty_buffer_worker(task_queue: mp.JoinableQueue, out_dir, created_files):
             task_queue.task_done()
             return
 
-        created_files = empty_buffer(buffer, out_dir, created_files)
+        created_files = empty_buffer(buffer, out_dir, created_files, True)
         task_queue.task_done()
 
 
@@ -139,6 +139,7 @@ def initial_parse_dump(
         debug
 ):
     logger.info(f"Doing initial pass on {dump_path}")
+    logger.info(f"Buffer size is {max_buffer_size}")
 
     question_overview_data = {}
     failures_counts = Counter()
