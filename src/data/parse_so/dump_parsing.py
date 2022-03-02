@@ -462,13 +462,14 @@ def parse_so_dump(
 
     orphans_by_tag = {}
 
+    total_aligned = 0
     with mp.Pool(num_workers) as pool:
-        for result in tqdm(
-                pool.imap(align_fn, tag_files), total=len(tag_files),
-                desc='Aligning'
-        ):
+        for result in pool.imap(align_fn, tag_files):
             tag, orphan = result
             orphans_by_tag[tag] = orphan
+            total_aligned += 1
+            if total_aligned % 100 == 0:
+                logger.info(f"Aligned {total_aligned:>8}/{len(tag_files)}")
 
     logger.info(f"{sum(orphans_by_tag.values())} total orphaned children")
     dump_stats['orphans'] = orphans_by_tag
