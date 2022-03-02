@@ -245,7 +245,7 @@ def create_question_tag_files(
         if not parsed.get('tags', []):
             tag_to_use = 'NO_TAG'
         else:
-            tag_to_use = parsed['tags'][0]
+            tag_to_use = '_'.join(parsed['tags'][:3])
 
         if tag_to_use not in tag_file_descriptors:
             if tag_to_use not in created_files:
@@ -327,7 +327,7 @@ def create_answer_tag_files(
                 tag_to_use = 'NO_TAG'
                 no_tags += 1
             else:
-                tag_to_use = parsed['tags'][0]
+                tag_to_use = '_'.join(parsed['tags'][:3])
         else:
             tag_to_use = tag_name_to_use
 
