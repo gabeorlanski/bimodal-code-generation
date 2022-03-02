@@ -236,6 +236,7 @@ def parse_post_lines(
 
     buffer = defaultdict(list)
     buffer_size = 0
+    num_buffer_empties = 0
 
     def empty_buffer(buffer_dict):
         for tag_name, items in buffer_dict.items():
@@ -272,11 +273,12 @@ def parse_post_lines(
 
         if buffer_size >= max_buffer_size:
             ram_pct = f"{psutil.virtual_memory()[2]:0.2f}%"
-            logger.info(f"Emptying Buffer using {ram_pct} RAM")
+            logger.info(f"Emptying Buffer of {len(buffer)} files using {ram_pct} RAM")
             empty_buffer(buffer)
             del buffer
-            buffer = {}
+            buffer = defaultdict(list)
             buffer_size = 0
+            num_buffer_empties += 1
         posts_per_tag[tag_to_use] += 1
         no_tags += tag_to_use == "NO_TAG"
         post_tag_to_use[parsed['id']] = tag_to_use
@@ -296,6 +298,7 @@ def parse_post_lines(
             logger.debug(f"RAM Used={ram_pct:<6} | CPU Used={cpu_pct:<6}")
     empty_buffer(buffer)
     logger.info(f"{failed} failed to get tags")
+    logger.debug(f"{num_buffer_empties} total buffer empties")
 
     return completed, no_tags, post_tag_to_use, posts_per_tag
 
@@ -319,7 +322,7 @@ def create_question_tag_files(
         posts_path=questions_path,
         tmp_dir=tmp_dir,
         get_tag_fn=lambda parsed: parsed.get('tags', []),
-        max_buffer_size=1e7,
+        max_buffer_size=buffer_size,
         total_expected=len(question_overview_data),
         debug=debug
     )
@@ -361,7 +364,7 @@ def create_answer_tag_files(
         posts_path=answers_path,
         tmp_dir=tmp_dir,
         get_tag_fn=get_tags,
-        max_buffer_size=1e7,
+        max_buffer_size=buffer_size,
         total_expected=answer_count,
         debug=debug
     )
