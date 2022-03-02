@@ -11,28 +11,57 @@ from src.data.parse_so.dump_parsing import initial_parse_dump, parse_so_dump
 
 
 def test_initial_pass(tmpdir):
-    question_overview_data, tag_counts, dump_stats = initial_parse_dump(
+    question_overview_data,_, tag_counts, dump_stats = initial_parse_dump(
         FIXTURES_ROOT.joinpath('so_dumps', 'Posts.xml'),
         Path(tmpdir),
-        False
+        debug=False,
+        max_buffer_size=1,
+        tmp_dir=Path(tmpdir)
     )
 
     assert question_overview_data == {
-        "1"    : {
-            "tags" : ["neural-networks", "backpropagation", "terminology", "definitions"],
-            "score": 10, "views": 625, "answer_count": 5, "accepted_answer": "3"
+        '1' : {
+            'accepted_answer': '3',
+            'answer_count'   : 5,
+            'score'          : 10,
+            'tag_to_use'     : 'neural-networks',
+            'tags'           : ['neural-networks',
+                                'backpropagation',
+                                'terminology',
+                                'definitions'],
+            'views'          : 625
         },
-        "2"    : {
-            "tags" : ["neural-networks", "machine-learning", "statistical-ai", "generalization"],
-            "score": 14, "views": 801, "answer_count": 3, "accepted_answer": "9"
+        '10': {
+            'accepted_answer': '32',
+            'answer_count'   : 6,
+            'score'          : 48,
+            'tag_to_use'     : 'deep-neural-networks',
+            'tags'           : ['deep-neural-networks', 'terminology', 'fuzzy-logic'],
+            'views'          : 2302
         },
-        "7"    : {
-            "tags" : ["agi", "superintelligence", "singularity", "ai-safety", "ai-takeover"],
-            "score": 10, "views": 544, "answer_count": 6, "accepted_answer": None,
-        }, "10": {
-            "tags" : ["deep-neural-networks", "terminology", "fuzzy-logic"], "score": 48,
-            "views": 2302, "answer_count": 6, "accepted_answer": "32",
+        '2' : {
+            'accepted_answer': '9',
+            'answer_count'   : 3,
+            'score'          : 14,
+            'tag_to_use'     : 'neural-networks',
+            'tags'           : ['neural-networks',
+                                'machine-learning',
+                                'statistical-ai',
+                                'generalization'],
+            'views'          : 801
         },
+        '7' : {
+            'accepted_answer': None,
+            'answer_count'   : 6,
+            'score'          : 10,
+            'tag_to_use'     : 'agi',
+            'tags'           : ['agi',
+                                'superintelligence',
+                                'singularity',
+                                'ai-safety',
+                                'ai-takeover'],
+            'views'          : 544
+        }
     }
     assert tag_counts == Counter([
         "agi", "superintelligence", "singularity", "ai-safety", "ai-takeover",
@@ -67,10 +96,6 @@ def test_initial_pass(tmpdir):
         })
     }
 
-    found_questions = [
-        json.loads(d)['id'] for d in
-        Path(tmpdir, 'questions.jsonl').read_text().splitlines()
-    ]
     found_answers = [
         json.loads(d)['id'] for d in
         Path(tmpdir, 'answers.jsonl').read_text().splitlines()
@@ -84,7 +109,6 @@ def test_initial_pass(tmpdir):
         Path(tmpdir, 'wiki_excerpts.jsonl').read_text().splitlines()
     ]
 
-    assert set(found_questions) == {"1", "2", "7", "10"}
     assert set(found_answers) == {"3", "9"}
     assert set(found_wiki) == {"12"}
     assert set(found_excerpts) == {"11"}
@@ -102,14 +126,12 @@ def test_parse_so_dump(tmpdir, buffer_size):
 
     questions_dir = Path(tmpdir, 'questions')
     expected_tags = {
-        "neural-networks_backpropagation" : {
+        "neural-networks" : {
             "1": {"3"},
-        },
-        "neural-networks_machine-learning": {
             "2": {"9"},
         },
-        "agi_superintelligence"           : {"7": set()},
-        "deep-neural-networks_terminology": {"10": set()}
+        "agi"           : {"7": set()},
+        "deep-neural-networks": {"10": set()}
     }
 
     for tag_name, expected_ids in expected_tags.items():
@@ -120,3 +142,50 @@ def test_parse_so_dump(tmpdir, buffer_size):
             map(json.loads, questions_dir.joinpath(f"{tag_name}.jsonl").open('r'))
         }
         assert result == expected_ids
+
+    overview_data = json.load(Path(tmpdir, 'question_overview.json').open())
+
+    assert overview_data == {
+        '1' : {
+            'accepted_answer': '3',
+            'answer_count'   : 5,
+            'score'          : 10,
+            'tag_to_use'     : 'neural-networks',
+            'tags'           : ['neural-networks',
+                                'backpropagation',
+                                'terminology',
+                                'definitions'],
+            'views'          : 625
+        },
+        '10': {
+            'accepted_answer': '32',
+            'answer_count'   : 6,
+            'score'          : 48,
+            'tag_to_use'     : 'deep-neural-networks',
+            'tags'           : ['deep-neural-networks', 'terminology', 'fuzzy-logic'],
+            'views'          : 2302
+        },
+        '2' : {
+            'accepted_answer': '9',
+            'answer_count'   : 3,
+            'score'          : 14,
+            'tag_to_use'     : 'neural-networks',
+            'tags'           : ['neural-networks',
+                                'machine-learning',
+                                'statistical-ai',
+                                'generalization'],
+            'views'          : 801
+        },
+        '7' : {
+            'accepted_answer': None,
+            'answer_count'   : 6,
+            'score'          : 10,
+            'tag_to_use'     : 'agi',
+            'tags'           : ['agi',
+                                'superintelligence',
+                                'singularity',
+                                'ai-safety',
+                                'ai-takeover'],
+            'views'          : 544
+        }
+    }

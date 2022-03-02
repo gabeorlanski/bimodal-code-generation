@@ -134,21 +134,57 @@ def parse_line(line_number, line):
     return result
 
 
-def initial_parse_dump(dump_path: Path, out_dir: Path, debug):
+def get_file_name_from_tag(tags):
+    if not tags:
+        return 'NO_TAG'
+    else:
+        return tags[0]
+
+
+def empty_buffer(buffer_dict, out_dir, created_files):
+    for tag_name, items in buffer_dict.items():
+        # if tag_name not in tag_file_descriptors:
+        if tag_name not in created_files:
+            created_files[tag_name] = out_dir.joinpath(f'{tag_name}.jsonl')
+            tag_file_descriptor = created_files[tag_name].open('w')
+        else:
+            tag_file_descriptor = created_files[tag_name].open('a')
+
+        for post in items:
+            tag_file_descriptor.write(json.dumps(post) + '\n')
+        tag_file_descriptor.close()
+    return created_files
+
+
+def initial_parse_dump(
+        dump_path: Path,
+        out_dir: Path,
+        tmp_dir: Path,
+        max_buffer_size,
+        debug
+):
     logger.info(f"Doing initial pass on {dump_path}")
 
     question_overview_data = {}
     failures_counts = Counter()
+    created_files = {}
     post_type_counter = Counter()
+    posts_per_tag = Counter()
     tag_counts = Counter()
     post_type_to_file = {}
     for k, v in POST_TYPE_TO_STR.items():
+        if k == 'questions':
+            continue
         post_type_to_file[k] = out_dir.joinpath(
             f"{v}.jsonl"
         ).open('w', encoding='utf-8')
     line_number = 0
     last_update = datetime.utcnow()
     start_time = datetime.utcnow()
+    buffer = defaultdict(list)
+    buffer_size = 0
+    no_tags = 0
+
     update_freq = 2500 if debug else 250000
     for line in dump_path.open('r', encoding='utf-8', errors='replace'):
         parsed = parse_line(line_number, line)
@@ -158,18 +194,38 @@ def initial_parse_dump(dump_path: Path, out_dir: Path, debug):
             continue
 
         post_type_counter[POST_TYPE_TO_STR[parsed['type']]] += 1
-        post_type_to_file[parsed['type']].write(json.dumps(parsed) + '\n')
         if parsed['type'] == 1:
+
+            for t in parsed['tags']:
+                tag_counts[t] += 1
+
+            tag_to_use = get_file_name_from_tag(parsed.get('tags', []))
+            if tag_to_use == 'NO_TAG':
+                no_tags += 1
+            posts_per_tag[tag_to_use] += 1
             question_overview_data[parsed['id']] = {
                 'tags'           : parsed['tags'],
                 'score'          : parsed['score'],
                 'views'          : parsed['views'],
                 'answer_count'   : parsed['answer_count'],
                 'accepted_answer': parsed['accepted_answer'],
+                'tag_to_use'     : tag_to_use
 
             }
-            for t in parsed['tags']:
-                tag_counts[t] += 1
+
+            buffer[tag_to_use].append(parsed)
+            buffer_size += 1
+
+            if buffer_size >= max_buffer_size:
+                ram_pct = f"{psutil.virtual_memory()[2]:0.2f}%"
+                logger.info(f"Emptying Buffer of {len(buffer)} files using {ram_pct} RAM")
+                created_files = empty_buffer(buffer, tmp_dir, created_files)
+                del buffer
+                buffer = defaultdict(list)
+                buffer_size=0
+
+        else:
+            post_type_to_file[parsed['type']].write(json.dumps(parsed) + '\n')
         if line_number % update_freq == 0:
             hours, minutes, seconds = get_estimated_time_remaining(
                 last_update,
@@ -186,6 +242,8 @@ def initial_parse_dump(dump_path: Path, out_dir: Path, debug):
             cpu_pct = f"{psutil.getloadavg()[-1] / os.cpu_count() * 100:0.2f}%"
             logger.debug(f"RAM Used={ram_pct:<6} | CPU Used={cpu_pct:<6}")
 
+    empty_buffer(buffer, tmp_dir, created_files)
+
     logger.info("Closing files")
     for k in post_type_to_file:
         post_type_to_file[k].close()
@@ -200,7 +258,7 @@ def initial_parse_dump(dump_path: Path, out_dir: Path, debug):
         logger.info(f"\t{fail:>16} = {c}")
 
     logger.info(f"Saving Stats to {out_dir.joinpath('stats.json')}")
-
+    logger.info(f"{no_tags} had no tags")
     logger.info(f"Saving dump stats to {out_dir.joinpath('stats.json')}")
     dump_stats = {
         'post_types': post_type_counter,
@@ -208,14 +266,7 @@ def initial_parse_dump(dump_path: Path, out_dir: Path, debug):
         'tag_counts': tag_counts
     }
 
-    return question_overview_data, tag_counts, dump_stats
-
-
-def get_file_name_from_tag(tags):
-    if not tags:
-        return 'NO_TAG'
-    else:
-        return '_'.join(tags[:2])
+    return question_overview_data, posts_per_tag, tag_counts, dump_stats
 
 
 def parse_post_lines(
@@ -237,19 +288,6 @@ def parse_post_lines(
     buffer = defaultdict(list)
     buffer_size = 0
     num_buffer_empties = 0
-
-    def empty_buffer(buffer_dict):
-        for tag_name, items in buffer_dict.items():
-            # if tag_name not in tag_file_descriptors:
-            if tag_name not in created_files:
-                created_files[tag_name] = tmp_dir.joinpath(f'{tag_name}.jsonl')
-                tag_file_descriptor = created_files[tag_name].open('w')
-            else:
-                tag_file_descriptor = created_files[tag_name].open('a')
-
-            for post in items:
-                tag_file_descriptor.write(json.dumps(post) + '\n')
-            tag_file_descriptor.close()
 
     start_time = datetime.utcnow()
     for line_num, line in enumerate(posts_path.open('r')):
@@ -274,7 +312,7 @@ def parse_post_lines(
         if buffer_size >= max_buffer_size:
             ram_pct = f"{psutil.virtual_memory()[2]:0.2f}%"
             logger.info(f"Emptying Buffer of {len(buffer)} files using {ram_pct} RAM")
-            empty_buffer(buffer)
+            created_files = empty_buffer(buffer, tmp_dir, created_files)
             del buffer
             buffer = defaultdict(list)
             buffer_size = 0
@@ -296,7 +334,7 @@ def parse_post_lines(
             ram_pct = f"{psutil.virtual_memory()[2]:0.2f}%"
             cpu_pct = f"{psutil.getloadavg()[-1] / os.cpu_count() * 100:0.2f}%"
             logger.debug(f"RAM Used={ram_pct:<6} | CPU Used={cpu_pct:<6}")
-    empty_buffer(buffer)
+    empty_buffer(buffer, tmp_dir, created_files)
     logger.info(f"{failed} failed to get tags")
     logger.debug(f"{num_buffer_empties} total buffer empties")
 
@@ -411,10 +449,18 @@ def parse_so_dump(
         debug,
         buffer_size
 ):
-    question_overview_data, tag_counts, dump_stats = initial_parse_dump(
+    tmp_question_dir = out_dir.joinpath(f'tmp_questions')
+    if not tmp_question_dir.exists():
+        tmp_question_dir.mkdir(parents=True)
+    else:
+        shutil.rmtree(tmp_question_dir)
+        tmp_question_dir.mkdir()
+    question_overview_data, question_posts_per_tag, tag_counts, dump_stats = initial_parse_dump(
         posts_path,
+        tmp_dir=tmp_question_dir,
         out_dir=out_dir,
-        debug=debug
+        debug=debug,
+        max_buffer_size=buffer_size
     )
 
     if posts_path.parent.joinpath('Tags.xml').exists():
@@ -427,13 +473,6 @@ def parse_so_dump(
 
             tag_counts[post_dict['TagName']] = post_dict['Count']
 
-    tmp_question_dir, question_posts_per_tag, question_overview_data = create_question_tag_files(
-        out_dir.joinpath('questions.jsonl'),
-        out_dir,
-        question_overview_data=question_overview_data,
-        buffer_size=buffer_size,
-        debug=debug
-    )
     tmp_answer_dir, answer_posts_per_tag = create_answer_tag_files(
         out_dir.joinpath('answers.jsonl'),
         out_dir,
