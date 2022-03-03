@@ -1,6 +1,6 @@
 {%- set pretrain_jid= "pretrain_jid"+ idx|string -%}
 echo "Submitting Jobs for {{ name }}"
-tensorize_jid{{idx}}=$(sbatch --parsable --job-name={{ name }}_tensorize {{ PreTrain.path }})
+tensorize_jid{{idx}}=$(sbatch --parsable --job-name={{ name }}_tensorize tensorize.sbatch {{ PreTrain.path }})
 echo "Submitted Tensorize (id=$tensorize_jid{{idx}})"
 echo "scancel $tensorize_jid{{idx}}" >> generated_experiments/cancel_jobs.sh
 {{ pretrain_jid }}=$(sbatch --parsable --job-name={{ name }}_pretrain \
