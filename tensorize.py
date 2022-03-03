@@ -92,6 +92,8 @@ def tensorize_data(
               help='The path to save the results.')
 @click.pass_context
 def main(ctx, debug, output_path, debug_samples):
+
+    ctx.ensure_object(dict)
     ctx.obj['DEBUG'] = debug
     ctx.obj['OUT_PATH'] = output_path
     ctx.obj['DEBUG_SAMPLES'] = debug_samples
