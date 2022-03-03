@@ -113,29 +113,33 @@ class TensorizedTask(IterableDataset):
             yield json.loads(line)
 
     def __iter__(self):
-        buffer = []
         data_iter = iter(self.get_samples())
         more_examples = True
         total_yielded = 0
 
         while more_examples:
+            buffer = []
+            buffer_size = 0
             while len(buffer) < self.buffer_size:
                 try:
                     current_instance = next(data_iter)
-                    buffer.extend(
-                        current_instance['labels']
+                    buffer.append(
+                        current_instance['input_ids']
                         + self.lm_concat_delim
-                        + current_instance["input_ids"]
+                        + current_instance["labels"]
                         + [self.tokenizer.eos_token_id]
                     )
+                    buffer_size += len(buffer[-1])
                 except StopIteration:
                     more_examples = False
                     break
 
             self.rng.shuffle(buffer)
+            all_tokens = [t for s in buffer for t in s]
+
             overflow = []
-            for i in range(0, len(buffer), self.sequence_length):
-                input_ids = buffer[i: i + self.sequence_length]
+            for i in range(0, len(all_tokens), self.sequence_length):
+                input_ids = all_tokens[i: i + self.sequence_length]
                 if len(input_ids) == self.sequence_length:
                     total_yielded += 1
                     yield {
@@ -143,13 +147,6 @@ class TensorizedTask(IterableDataset):
                         'attention_mask': torch.tensor([1] * len(input_ids)),
                         'labels'        : torch.tensor(input_ids),
                     }
-                else:
-                    overflow.extend(copy(input_ids))
-                # if total_yielded >= self.length:
-                #     more_examples = False
-                #     break
-            del buffer
-            buffer = overflow
 
     def __len__(self):
         return self.length
