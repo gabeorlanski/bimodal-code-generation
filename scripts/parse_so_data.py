@@ -22,8 +22,8 @@ if str(Path(__file__).parents[1]) not in sys.path:
     sys.path.insert(0, str(Path(__file__).parents[1]))
 from src.common import PROJECT_ROOT, setup_global_logging
 from src.common.file_util import validate_files_exist
-from src.data.parse_so import parse_so_dump, filter_and_parse_so_posts, QuestionFilter
-from src.data.parse_so.filtering import create_filter_for_so_data
+from src.data.parse_so import parse_so_dump
+from src.data.parse_so.filtering import create_filter_for_so_data, consolidate_so_data
 
 
 # Here just to allow the grouping.
@@ -38,94 +38,6 @@ def main(ctx, debug, output_path):
         PROJECT_ROOT.joinpath(output_path).mkdir(parents=True)
     ctx.obj['DEBUG'] = debug
     ctx.obj['OUT_PATH'] = output_path
-
-
-def consolidate_so_data(
-        name,
-        filter_file,
-        dump_path,
-        max_buffer_size,
-        seed,
-        debug,
-        output_path
-):
-    setup_global_logging(f"consolidate", str(PROJECT_ROOT.joinpath('logs')),
-                         debug=debug)
-    logger = logging.getLogger('consolidate')
-    logger.info("Starting Consolidate")
-
-    if output_path == 'data/stack_exchange':
-        output_path = PROJECT_ROOT.joinpath("data", "dumps")
-    else:
-        output_path = Path(output_path)
-
-    logger.info(f"Writing to {output_path}")
-    if not output_path.exists():
-        output_path.mkdir()
-
-    filter_dict = json.loads(
-        PROJECT_ROOT.joinpath(filter_file).read_text()
-    )
-
-    all_questions = [qid for t in filter_dict.values() for qid in t]
-    logger.info(f"Total questions={len(all_questions)}")
-
-    val_questions = min(2500, int(.1 * len(all_questions)))
-    logger.info(f"{val_questions} questions will be used for validation set")
-    val_set_mask = {qid: False for qid in all_questions}
-    logger.info("Creating mask")
-    rng = np.random.default_rng(seed)
-    val_question_indices = rng.choice(len(all_questions), (val_questions,), replace=False)
-    for q_idx in val_question_indices:
-        val_set_mask[all_questions[q_idx]] = True
-
-    question_path = PROJECT_ROOT.joinpath(dump_path, 'questions')
-    train_file = output_path.joinpath(f"{name}.jsonl").open('w')
-    val_file = output_path.joinpath(f"{name}_val.jsonl").open('w')
-
-    update_freq = 1000 if debug else 25000
-
-    train_buffer = []
-
-    def empty_buffer(buffer):
-        logger.info(f"Emptying Buffer of size {len(buffer)}")
-        rng.shuffle(buffer)
-        for instance in buffer:
-            train_file.write(instance.strip() + '\n')
-
-    for tag_name, questions in filter_dict.items():
-        logger.info(f"Handling tag {tag_name}")
-        line_num = 0
-        found = 0
-
-        # Use a dict to check if they exist because searching dict O(1)
-        questions_looking_for = {k: True for k in questions}
-
-        for line in tqdm(question_path.joinpath(f"{tag_name}.jsonl").open()):
-            parsed = json.loads(line)
-            line_num += 1
-            if parsed['id'] in questions_looking_for:
-                questions_looking_for.pop(parsed['id'])
-                if val_set_mask[parsed['id']]:
-                    val_file.write(line.strip() + "\n")
-                else:
-                    train_buffer.append(line)
-                found += 1
-
-                if len(train_buffer) >= max_buffer_size:
-                    empty_buffer(train_buffer)
-                    del train_buffer
-                    train_buffer = []
-
-            if line_num % update_freq == 0:
-                logger.info(f"Finished {line_num}, found {found:>8}/{len(questions)}")
-
-            if not questions_looking_for:
-                logger.info(f"Found all looking for")
-                break
-    empty_buffer(train_buffer)
-    train_file.close()
-    val_file.close()
 
 
 @main.command('consolidate')
@@ -156,6 +68,11 @@ def consolidate_so_data_from_cli(
     Wrapper that allows me to unittest the underlying consolidate function w/o
     needing to simulate the command line.
     """
+
+    setup_global_logging(f"consolidate", str(PROJECT_ROOT.joinpath('logs')),
+                         debug=ctx.obj['DEBUG'])
+    logger = logging.getLogger('consolidate')
+    logger.info("Starting Consolidate")
     consolidate_so_data(
         name=name,
         filter_file=filter_file,
@@ -234,9 +151,9 @@ def filter_tags(ctx, parsed_path, tag_filter_file, out_path, blacklist, seed):
     logger = logging.getLogger('filter')
     logger.info("Starting filter")
     tag_files_to_get = create_filter_for_so_data(
-        parsed_path=parsed_path,
+        parsed_path=PROJECT_ROOT.joinpath(parsed_path, 'question_overview.json'),
         tag_filter_file=tag_filter_file,
-        blacklist=blacklist,
+        blacklist=blacklist if blacklist else None,
         debug=debug,
         seed=seed
     )

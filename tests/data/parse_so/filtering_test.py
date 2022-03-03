@@ -7,8 +7,7 @@ from pathlib import Path
 import numpy as np
 import pytest
 from unittest.mock import patch, MagicMock
-from click.testing import CliRunner
-from scripts import parse_so_data
+from src.data.parse_so.filtering import *
 
 
 @pytest.mark.parametrize('buffer_size', [1, 10000])
@@ -52,11 +51,11 @@ def test_consolidate_so_data(
             else:
                 expected_train[qid] = question_keep
 
-    with patch('scripts.parse_so_data.np.random.default_rng') as rng_mock:
+    with patch('src.data.parse_so.filtering.np.random.default_rng') as rng_mock:
         rng_mock.return_value = MagicMock()
         rng_mock.return_value.choice = lambda *args, **kwargs: np.array([0, 2, 4])
         rng_mock.return_value.shuffle = lambda elements: elements
-        parse_so_data.consolidate_so_data(
+        consolidate_so_data(
             name='TEST',
             filter_file=str(filter_path.absolute()),
             dump_path=str(parsed_arduino_dump.absolute()),

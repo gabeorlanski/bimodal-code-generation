@@ -5,24 +5,36 @@ from collections import defaultdict, Counter
 import numpy as np
 from tqdm import tqdm
 import ujson
-
+from pathlib import Path
 from src.common import PROJECT_ROOT
 
+__all__ = [
+    "create_filter_for_so_data",
+    "consolidate_so_data"
+]
 logger = logging.getLogger(__name__)
 
 
 def create_filter_for_so_data(parsed_path, tag_filter_file, blacklist, debug, seed):
-    parsed_path = PROJECT_ROOT.joinpath(parsed_path, 'question_overview.json')
     tag_filters = defaultdict(lambda: False)
 
+    logger.info("Loading the parsed question overview")
+    question_overview = ujson.load(parsed_path.open())
+    logger.info("Removing blacklisted questions")
     if blacklist is not None:
         blacklist = PROJECT_ROOT.joinpath(blacklist).read_text().splitlines(False)
         logger.info(f"{len(blacklist)} total questions in the blacklist")
+        logger.debug(f"{len(question_overview)} prior to removing")
+        blacklist_found = 0
+        for qid in blacklist:
+            if question_overview.pop(qid, None) is not None:
+                blacklist_found += 1
+        logger.debug(f"{blacklist_found} blacklisted questions found")
+        logger.debug(f"{len(question_overview)} after removing blacklisted")
+
     else:
         logger.info("No Blacklist passed")
         blacklist = []
-    logger.info("Loading the parsed question overview")
-    question_overview = ujson.load(parsed_path.open())
 
     if tag_filter_file == "RANDOM":
         logger.info("Using a random selection for the filter")
@@ -70,3 +82,88 @@ def create_filter_for_so_data(parsed_path, tag_filter_file, blacklist, debug, se
     logger.info(f"{questions_passing_filter} passed the filter")
 
     return tag_files_to_get
+
+
+def consolidate_so_data(
+        name,
+        filter_file,
+        dump_path,
+        max_buffer_size,
+        seed,
+        debug,
+        output_path
+):
+    logger.info("Starting Consolidate")
+
+    if output_path == 'data/stack_exchange':
+        output_path = PROJECT_ROOT.joinpath("data", "dumps")
+    else:
+        output_path = Path(output_path)
+
+    logger.info(f"Writing to {output_path}")
+    if not output_path.exists():
+        output_path.mkdir()
+
+    filter_dict = json.loads(
+        PROJECT_ROOT.joinpath(filter_file).read_text()
+    )
+
+    all_questions = [qid for t in filter_dict.values() for qid in t]
+    logger.info(f"Total questions={len(all_questions)}")
+
+    val_questions = min(2500, int(.1 * len(all_questions)))
+    logger.info(f"{val_questions} questions will be used for validation set")
+    val_set_mask = {qid: False for qid in all_questions}
+    logger.info("Creating mask")
+    rng = np.random.default_rng(seed)
+    val_question_indices = rng.choice(len(all_questions), (val_questions,), replace=False)
+    for q_idx in val_question_indices:
+        val_set_mask[all_questions[q_idx]] = True
+
+    question_path = PROJECT_ROOT.joinpath(dump_path, 'questions')
+    train_file = output_path.joinpath(f"{name}.jsonl").open('w')
+    val_file = output_path.joinpath(f"{name}_val.jsonl").open('w')
+
+    update_freq = 1000 if debug else 25000
+
+    train_buffer = []
+
+    def empty_buffer(buffer):
+        logger.info(f"Emptying Buffer of size {len(buffer)}")
+        rng.shuffle(buffer)
+        for instance in buffer:
+            train_file.write(instance.strip() + '\n')
+
+    for tag_name, questions in filter_dict.items():
+        logger.info(f"Handling tag {tag_name}")
+        line_num = 0
+        found = 0
+
+        # Use a dict to check if they exist because searching dict O(1)
+        questions_looking_for = {k: True for k in questions}
+
+        for line in tqdm(question_path.joinpath(f"{tag_name}.jsonl").open()):
+            parsed = json.loads(line)
+            line_num += 1
+            if parsed['id'] in questions_looking_for:
+                questions_looking_for.pop(parsed['id'])
+                if val_set_mask[parsed['id']]:
+                    val_file.write(line.strip() + "\n")
+                else:
+                    train_buffer.append(line)
+                found += 1
+
+                if len(train_buffer) >= max_buffer_size:
+                    empty_buffer(train_buffer)
+                    del train_buffer
+                    train_buffer = []
+
+            if line_num % update_freq == 0:
+                logger.info(f"Finished {line_num}, found {found:>8}/{len(questions)}")
+
+            if not questions_looking_for:
+                logger.info(f"Found all looking for")
+                break
+    empty_buffer(train_buffer)
+    train_file.close()
+    val_file.close()
