@@ -141,10 +141,13 @@ def parse_dump(
     '--blacklist', default=None, help="Blacklist of questions to not include."
 )
 @click.option(
+    '--tag-blacklist', default=None, help='Tag blacklist'
+)
+@click.option(
     '--seed', type=int, default=1, help="Seed to use"
 )
 @click.pass_context
-def filter_tags(ctx, parsed_path, tag_filter_file, out_path, blacklist, seed):
+def filter_tags(ctx, parsed_path, tag_filter_file, out_path, blacklist, tag_blacklist, seed):
     debug = ctx.obj['DEBUG']
     setup_global_logging(f"filter", str(PROJECT_ROOT.joinpath('logs')),
                          debug=debug)
@@ -154,6 +157,7 @@ def filter_tags(ctx, parsed_path, tag_filter_file, out_path, blacklist, seed):
         parsed_path=PROJECT_ROOT.joinpath(parsed_path, 'question_overview.json'),
         tag_filter_file=tag_filter_file,
         blacklist=blacklist if blacklist else None,
+        tag_blacklist=tag_blacklist,
         debug=debug,
         seed=seed
     )

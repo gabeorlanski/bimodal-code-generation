@@ -17,7 +17,14 @@ __all__ = [
 logger = logging.getLogger(__name__)
 
 
-def create_filter_for_so_data(parsed_path, tag_filter_file, blacklist, debug, seed):
+def create_filter_for_so_data(
+        parsed_path,
+        tag_filter_file,
+        blacklist,
+        tag_blacklist,
+        debug,
+        seed
+):
     tag_filters = defaultdict(lambda: False)
 
     logger.info("Loading the parsed question overview")
@@ -37,6 +44,25 @@ def create_filter_for_so_data(parsed_path, tag_filter_file, blacklist, debug, se
     else:
         logger.info("No Blacklist passed")
         blacklist = []
+
+    if tag_blacklist is not None:
+        logger.info(f"Loading tag blacklist from {tag_blacklist}")
+        tag_blacklist = defaultdict(lambda: False)
+        for t in PROJECT_ROOT.joinpath(tag_blacklist).read_text().splitlines(False):
+            tag_blacklist[t] = True
+        logger.info(f"Removing all questions with any of the {tag_blacklist} "
+                    f"tags in the tag blacklist")
+
+        removed = 0
+        # Need to cast the keys to a list so we can remove them during the
+        # iteration.
+        for qid in tqdm(list(question_overview), desc='Removing'):
+            question = question_overview[qid]
+            if any(tag_blacklist[t] for t in question['tags']):
+                removed += 1
+                question_overview.pop(qid)
+
+        logger.info(f"Removed {removed} total questions")
 
     if tag_filter_file == "RANDOM":
         logger.info("Using a random selection for the filter")
