@@ -64,7 +64,9 @@ experiments:
           task: mbpp
           ++is_checkpoint: True
           ++model_path: best_models/${..__META__.previous_step.save_name}
-          training:
+          ++training:
+            batch_size: 32
+            gradient_accumulation_steps: 1
             learning_rate: 5e-5
       - name: Eval
         base: eval_config
