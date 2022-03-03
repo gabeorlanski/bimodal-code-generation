@@ -153,7 +153,6 @@ def consolidate_so_data(
     train_file = output_path.joinpath(f"{name}.jsonl").open('w')
     val_file = output_path.joinpath(f"{name}_val.jsonl").open('w')
 
-
     train_buffer = []
 
     def empty_buffer(buffer):
@@ -165,7 +164,8 @@ def consolidate_so_data(
     logger.info(f"Using buffer of {max_buffer_size}")
     tags_to_get = list(filter_dict)
     rng.shuffle(tags_to_get)
-    for tag_name in tqdm(tags_to_get):
+    pbar = tqdm(total=len(all_questions), desc='Consolidating')
+    for tag_name in tags_to_get:
         logger.info(f"Handling tag {tag_name}")
         line_num = 0
         found = 0
@@ -189,6 +189,7 @@ def consolidate_so_data(
                 else:
                     train_buffer.append(line)
                 found += 1
+                pbar.update(1)
 
                 if len(train_buffer) >= max_buffer_size:
                     empty_buffer(train_buffer)
@@ -199,7 +200,7 @@ def consolidate_so_data(
                 ram_pct = f"{psutil.virtual_memory()[2]:0.2f}%"
                 logger.info(f"Found {found:>8}/{len(filter_dict[tag_name])} "
                             f"| RAM Used={ram_pct:<6}")
-                last_logged=found
+                last_logged = found
 
             if not questions_looking_for:
                 ram_pct = f"{psutil.virtual_memory()[2]:0.2f}%"
@@ -209,5 +210,6 @@ def consolidate_so_data(
 
         logger.info(f"{len(train_buffer)} elements in the buffer")
     empty_buffer(train_buffer)
+    pbar.close()
     train_file.close()
     val_file.close()
