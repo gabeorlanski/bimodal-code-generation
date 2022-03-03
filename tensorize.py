@@ -168,7 +168,7 @@ def tensorize_from_config(ctx, config,num_workers):
         num_workers=num_workers,
         processor_name=cfg.processor.name,
         model_name=cfg.model,
-        data_path=cfg.dump_path,
+        data_path=cfg.raw_dump_path,
         out_path=cfg.tensorized_path,
         validation_file_name=None,
         cfg=cfg,
