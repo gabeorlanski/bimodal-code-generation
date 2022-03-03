@@ -90,6 +90,7 @@ def tensorize_data(
               help='The path to save the results.')
 @click.option('--debug-samples', default=-1, type=int,
               help='The path to save the results.')
+@click.pass_context
 def main(ctx, debug, output_path, debug_samples):
     ctx.obj['DEBUG'] = debug
     ctx.obj['OUT_PATH'] = output_path
