@@ -54,6 +54,7 @@ experiments:
           +tensorize_batch_size: 64
           tracking:
             log_model: true
+          ++task.sequence_length: 1024
       - name: FineTune
         base: greene_config
         group: MBPP
