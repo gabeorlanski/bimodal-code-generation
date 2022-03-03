@@ -50,7 +50,7 @@ def create_filter_for_so_data(
         tag_blacklist = defaultdict(lambda: False)
         for t in PROJECT_ROOT.joinpath(tag_blacklist_path).read_text().splitlines(False):
             tag_blacklist[t] = True
-        logger.info(f"Removing all questions with any of the {tag_blacklist} "
+        logger.info(f"Removing all questions with any of the {len(tag_blacklist)} "
                     f"tags in the tag blacklist")
 
         removed = 0
