@@ -54,6 +54,8 @@ experiments:
           +tensorize_batch_size: 64
           tracking:
             log_model: true
+          ++training:
+            deepspeed: ds_config.json
           ++task.sequence_length: 1024
       - name: FineTune
         base: greene_config

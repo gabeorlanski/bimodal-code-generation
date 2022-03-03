@@ -204,12 +204,18 @@ def tensorize(
 
     tensorized_data = TensorizedDatasetCFG(out_path.stem)
     out_file_path = out_path.joinpath(f"{output_name}.jsonl")
+    finished = 0
     with out_file_path.open('w') as out_file:
         with mp.Pool(num_workers) as pool:
             for result in tqdm(pool.imap(map_fn, batches), total=len(batches), desc='Tokenizing'):
                 for instance in result:
                     out_file.write(json.dumps(instance) + '\n')
                     tensorized_data.add_instance(instance)
+                    finished += 1
+                    if finished % 50000 == 0:
+                        ram_pct = f"{psutil.virtual_memory()[2]:0.2f}%"
+                        logger.debug(f"Found {finished:>8}"
+                                     f"| RAM Used={ram_pct:<6}")
 
     logger.info(f"{tensorized_data.total_tokens:e} total tokens found")
     logger.info(f"{tensorized_data.input_token_count:e} input tokens found")
