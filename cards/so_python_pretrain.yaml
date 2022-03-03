@@ -4,16 +4,6 @@ experiments:
     overrides:
       ++device: 0
       ++model: 'lvwerra/codeparrot-small'
-      ++training:
-        batch_size: 16
-        gradient_accumulation_steps: 4
-        learning_rate: 1e-4
-        save_steps: 2500
-        eval_steps: 500
-        max_steps: 10000
-        warmup_steps: 500
-        logging_steps: 25
-        lr_scheduler_type: linear
       task: so
       +processor: stackoverflow
       ++raw_dump_path: data/dumps
@@ -55,6 +45,15 @@ experiments:
           tracking:
             log_model: true
           ++training:
+            batch_size: 16
+            gradient_accumulation_steps: 4
+            learning_rate: 1e-4
+            save_steps: 2500
+            eval_steps: 500
+            max_steps: 10000
+            warmup_steps: 500
+            logging_steps: 25
+            lr_scheduler_type: linear
             deepspeed: ds_config.json
           ++task.sequence_length: 1024
       - name: FineTune
