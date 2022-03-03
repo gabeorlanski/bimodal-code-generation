@@ -53,6 +53,14 @@ def main(ctx, debug, output_path):
     default=2500000
 )
 @click.option(
+    '--max-val-size',
+    '-val',
+    'max_val_size',
+    type=int,
+    help='Maximum Validation Set Size',
+    default=2500000
+)
+@click.option(
     '--seed', type=int, default=1, help="Seed to use"
 )
 @click.pass_context
@@ -62,7 +70,8 @@ def consolidate_so_data_from_cli(
         filter_file,
         dump_path,
         max_buffer_size,
-        seed
+        seed,
+        max_val_size
 ):
     """
     Wrapper that allows me to unittest the underlying consolidate function w/o
@@ -80,7 +89,8 @@ def consolidate_so_data_from_cli(
         max_buffer_size=max_buffer_size,
         seed=seed,
         debug=ctx.obj['DEBUG'],
-        output_path=ctx.obj['OUT_PATH']
+        output_path=ctx.obj['OUT_PATH'],
+        max_val_size=max_val_size
     )
 
 

@@ -119,7 +119,8 @@ def consolidate_so_data(
         max_buffer_size,
         seed,
         debug,
-        output_path
+        output_path,
+        max_val_size
 ):
     logger.info("Starting Consolidate")
 
@@ -139,7 +140,7 @@ def consolidate_so_data(
     all_questions = [qid for t in filter_dict.values() for qid in t]
     logger.info(f"Total questions={len(all_questions)}")
 
-    val_questions = min(2500, int(.1 * len(all_questions)))
+    val_questions = min(max_val_size, int(.1 * len(all_questions)))
     logger.info(f"{val_questions} questions will be used for validation set")
     val_set_mask = {qid: False for qid in all_questions}
     logger.info("Creating mask")

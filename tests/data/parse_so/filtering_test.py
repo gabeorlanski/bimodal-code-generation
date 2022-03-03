@@ -62,7 +62,8 @@ def test_consolidate_so_data(
             max_buffer_size=buffer_size,
             seed=1,
             debug=True,
-            output_path=str(tmpdir_path.absolute())
+            output_path=str(tmpdir_path.absolute()),
+            max_val_size=1000
         )
     train_path = tmpdir_path.joinpath('TEST.jsonl')
     val_path = tmpdir_path.joinpath('TEST_val.jsonl')
