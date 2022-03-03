@@ -153,7 +153,7 @@ def consolidate_so_data(
     train_file = output_path.joinpath(f"{name}.jsonl").open('w')
     val_file = output_path.joinpath(f"{name}_val.jsonl").open('w')
 
-    update_freq = 1000 if debug else 25000
+    update_freq = 100 if debug else 1000
 
     train_buffer = []
 
