@@ -272,6 +272,7 @@ def train_model(cfg: DictConfig):
     # lr_scheduler = get_lr_scheduler(train_args, optimizer, total_steps, warmup_steps)
 
     device = train_args.device
+    model = model.to(device)
     logger.info(f"Using device {device}")
     logger.info(f"Model Is On {model.device}")
     trainer = CustomTrainer(
