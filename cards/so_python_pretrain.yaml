@@ -11,7 +11,7 @@ experiments:
         gradient_accumulation_steps: 4
         learning_rate: 1e-4
         save_steps: 2500
-        evaluate_steps: 500
+        eval_steps: 500
         max_steps: 10000
         warmup_steps: 500
         logging_steps: 25
