@@ -21,7 +21,7 @@ def create_filter_for_so_data(
         parsed_path,
         tag_filter_file,
         blacklist,
-        tag_blacklist,
+        tag_blacklist_path,
         debug,
         seed
 ):
@@ -45,10 +45,10 @@ def create_filter_for_so_data(
         logger.info("No Blacklist passed")
         blacklist = []
 
-    if tag_blacklist is not None:
-        logger.info(f"Loading tag blacklist from {tag_blacklist}")
+    if tag_blacklist_path is not None:
+        logger.info(f"Loading tag blacklist from {tag_blacklist_path}")
         tag_blacklist = defaultdict(lambda: False)
-        for t in PROJECT_ROOT.joinpath(tag_blacklist).read_text().splitlines(False):
+        for t in PROJECT_ROOT.joinpath(tag_blacklist_path).read_text().splitlines(False):
             tag_blacklist[t] = True
         logger.info(f"Removing all questions with any of the {tag_blacklist} "
                     f"tags in the tag blacklist")

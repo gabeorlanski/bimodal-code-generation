@@ -157,7 +157,7 @@ def filter_tags(ctx, parsed_path, tag_filter_file, out_path, blacklist, tag_blac
         parsed_path=PROJECT_ROOT.joinpath(parsed_path, 'question_overview.json'),
         tag_filter_file=tag_filter_file,
         blacklist=blacklist if blacklist else None,
-        tag_blacklist=tag_blacklist,
+        tag_blacklist_path=tag_blacklist,
         debug=debug,
         seed=seed
     )
