@@ -50,7 +50,7 @@ def main(ctx, debug, output_path):
     'max_buffer_size',
     type=int,
     help='Buffer Size',
-    default=2500000
+    default=10000000
 )
 @click.option(
     '--max-val-size',
@@ -58,7 +58,7 @@ def main(ctx, debug, output_path):
     'max_val_size',
     type=int,
     help='Maximum Validation Set Size',
-    default=2500000
+    default=2500
 )
 @click.option(
     '--seed', type=int, default=1, help="Seed to use"
