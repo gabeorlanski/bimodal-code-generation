@@ -154,8 +154,9 @@ def tensorize_data_from_cli(
 
 @main.command('cfg')
 @click.argument('config')
+@click.argument('num_workers', type=int, metavar='<Number Of Workers>')
 @click.pass_context
-def tensorize_from_config(ctx, config):
+def tensorize_from_config(ctx, config,num_workers):
     cfg = OmegaConf.create(yaml.load(
         PROJECT_ROOT.joinpath(config).open(),
         yaml.Loader
@@ -164,7 +165,7 @@ def tensorize_from_config(ctx, config):
     tensorize_data(
         name=cfg.raw_dump_name,
         output_name=cfg.tensorized_name,
-        num_workers=cfg.num_proc,
+        num_workers=num_workers,
         processor_name=cfg.processor.name,
         model_name=cfg.model,
         data_path=cfg.dump_path,
