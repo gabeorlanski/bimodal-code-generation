@@ -28,7 +28,7 @@ preprocessors: [ ]
 postprocessors: [ ]
 tracking:
   log_model: true
-  entity: so-code-gen
+  entity: nyu-code-research
 
 data_args:
   seq_length: 1024

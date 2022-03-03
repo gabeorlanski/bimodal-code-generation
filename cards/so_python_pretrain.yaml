@@ -3,8 +3,6 @@ experiments:
   FinetuneSO.ParrotSmall:
     overrides:
       ++device: 0
-      ++tracking:
-        log_model: True
       ++model: 'lvwerra/codeparrot-small'
       ++training:
         batch_size: 16

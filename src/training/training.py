@@ -132,34 +132,21 @@ def setup_pretrain(cfg, tokenizer, train_args):
 
     # For the HF Trainer, we need the eval set to have a size, so we split up
     # the initialization so one is in streaming mode and the other is not.
-    # train_dataset = TensorizedTask(
-    #     name=cfg.task.dump_name,
-    #     data_path=PROJECT_ROOT.joinpath(cfg.task.data_path),
-    #     objective=cfg.objective,
-    #     tokenizer=tokenizer,
-    #     sequence_length=cfg.task.sequence_length,
-    #     effective_batch_size=(
-    #             train_args.train_batch_size
-    #             * train_args.gradient_accumulation_steps
-    #             * train_args.world_size
-    #     ),
-    #     max_samples=cfg.task.get('debug_max_samples', -1),
-    #     seed=cfg.seed,
-    #     buffer_size=cfg.get('buffer_size', 25)
-    # )
-    # train_dataset = load_dataset(
-    #     'json',
-    #     data_files={'train': str(PROJECT_ROOT.joinpath(cfg.task.train_path))},
-    #     streaming=True
-    # )['train']
-    train_dataset = iterable_dataset(
-        map(json.loads, PROJECT_ROOT.joinpath(cfg.task.train_path).open()),
-
+    train_dataset = TensorizedTask(
+        name=cfg.task.dump_name,
+        data_path=PROJECT_ROOT.joinpath(cfg.task.data_path),
+        objective=cfg.objective,
+        tokenizer=tokenizer,
+        sequence_length=cfg.task.sequence_length,
+        effective_batch_size=(
+                train_args.train_batch_size
+                * train_args.gradient_accumulation_steps
+                * train_args.world_size
+        ),
+        max_samples=cfg.task.get('debug_max_samples', -1),
+        seed=cfg.seed,
+        buffer_size=cfg.get('buffer_size', 25)
     )
-    train_dataset = train_dataset.map(
-        group_texts,
-        batched=True
-    ).with_format("torch").shuffle(buffer_size=50_000, seed=cfg.seed)
 
     eval_dataset = load_dataset(
         'json',
@@ -170,7 +157,7 @@ def setup_pretrain(cfg, tokenizer, train_args):
         group_texts,
         batched=True,
         remove_columns=['attention_mask']
-    )
+    ).shuffle(seed=cfg.seed)
     return train_dataset, eval_dataset, None
 
 
