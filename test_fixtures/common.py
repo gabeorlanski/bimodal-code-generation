@@ -1,3 +1,5 @@
+import json
+
 import pytest
 import yaml
 from src.common import FIXTURES_ROOT
@@ -37,5 +39,20 @@ def code_preds_dir():
 
 
 @pytest.fixture()
-def sample_parsed_so():
-    yield FIXTURES_ROOT.joinpath('so_dumps', 'sample.jsonl')
+def parsed_arduino_dump():
+    yield FIXTURES_ROOT.joinpath('so_dumps')
+
+
+@pytest.fixture()
+def sample_parsed_so(parsed_arduino_dump):
+    yield parsed_arduino_dump.joinpath('sample.jsonl')
+
+
+@pytest.fixture()
+def arduino_questions(parsed_arduino_dump):
+    out = {}
+    for question_file in parsed_arduino_dump.joinpath('questions').glob('*.jsonl'):
+        out[question_file.stem] = {
+            d['id']: d for d in map(json.loads, question_file.read_text().splitlines(False))
+        }
+    yield out

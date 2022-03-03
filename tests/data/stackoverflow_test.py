@@ -10,8 +10,8 @@ from src.data import stackoverflow
 
 class TestStackOverflowProcessor:
 
-    @pytest.mark.parametrize('repeat_mode', ['title', 'full'],
-                             ids=['Title', 'Full'])
+    @pytest.mark.parametrize('repeat_mode', ['title', 'full', 'none'],
+                             ids=['Title', 'Full', 'None'])
     @pytest.mark.parametrize('answer_prompt', [True, False], ids=['APrompt', 'NoAPrompt'])
     @pytest.mark.parametrize('question_prompt', [True, False], ids=['QPrompt', 'NoQPrompt'])
     def test_make_instances_from_question(
@@ -64,8 +64,8 @@ class TestStackOverflowProcessor:
             question_prompt_template = None
             title_prompt = None
 
-            expected_title_str = "Title"
-            expected_question_str = f"{expected_title_str}\nBody"
+            expected_title_str = "Question Title: Title"
+            expected_question_str = f"{expected_title_str}\nBody: Body"
 
         processor = stackoverflow.StackOverflowProcessor(
             answer_prompt=answer_prompt_template,
@@ -81,12 +81,16 @@ class TestStackOverflowProcessor:
                 {'input': expected_question_str, 'target': expected_answer_strs[1]},
                 {'input': expected_question_str, 'target': expected_answer_strs[2]}
             ]
-        else:
+        elif repeat_mode == 'title':
             expected = [
                 {'input': expected_question_str, 'target': expected_answer_strs[0]},
                 {'input': expected_title_str, 'target': expected_answer_strs[1]},
                 {'input': expected_title_str, 'target': expected_answer_strs[2]}
             ]
+        else:
+            expected = [{
+                "input": expected_question_str, 'target': '\n'.join(expected_answer_strs)
+            }]
 
         assert result == expected
 
@@ -100,7 +104,7 @@ class TestStackOverflowProcessor:
 
         result = processor.make_instances_from_question(sample)
 
-        expected_input = "Title 3\nQuestion Body 3"
+        expected_input = "Question Title: Title 3\nBody: Question Body 3"
         if answer_sorting == "ascending":
             expected_answer = "Answer 16"
         elif answer_sorting == "descending":
@@ -135,7 +139,9 @@ class TestStackOverflowProcessor:
         }
         tokenizer = AutoTokenizer.from_pretrained('gpt2')
 
-        processor = stackoverflow.StackOverflowProcessor()
+        processor = stackoverflow.StackOverflowProcessor(
+            repeat_question_for_each_answer='full'
+        )
 
         result = processor([sample], tokenizer)
         expected_answer_strs = [

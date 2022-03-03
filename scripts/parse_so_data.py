@@ -40,28 +40,26 @@ def main(ctx, debug, output_path):
     ctx.obj['OUT_PATH'] = output_path
 
 
-@main.command('consolidate')
-@click.argument("name")
-@click.argument("filter_file")
-@click.argument("dump_path")
-@click.option(
-    '--seed', type=int, default=1, help="Seed to use"
-)
-@click.pass_context
 def consolidate_so_data(
-        ctx,
         name,
         filter_file,
         dump_path,
-        seed
+        max_buffer_size,
+        seed,
+        debug,
+        output_path
 ):
-    debug = ctx.obj['DEBUG']
     setup_global_logging(f"consolidate", str(PROJECT_ROOT.joinpath('logs')),
                          debug=debug)
     logger = logging.getLogger('consolidate')
     logger.info("Starting Consolidate")
 
-    output_path = PROJECT_ROOT.joinpath("data", "dumps")
+    if output_path == 'data/stack_exchange':
+        output_path = PROJECT_ROOT.joinpath("data", "dumps")
+    else:
+        output_path = Path(output_path)
+
+    logger.info(f"Writing to {output_path}")
     if not output_path.exists():
         output_path.mkdir()
 
@@ -72,22 +70,29 @@ def consolidate_so_data(
     all_questions = [qid for t in filter_dict.values() for qid in t]
     logger.info(f"Total questions={len(all_questions)}")
 
-    val_questions = min(1000, int(.1 * len(all_questions)))
+    val_questions = min(2500, int(.1 * len(all_questions)))
     logger.info(f"{val_questions} questions will be used for validation set")
-    sample_mask = np.zeros((len(all_questions),), dtype=bool)
-    rng = np.random.default_rng(seed)
-    sample_mask[rng.choice(len(all_questions), (val_questions,), replace=False)] = True
-
+    val_set_mask = {qid: False for qid in all_questions}
     logger.info("Creating mask")
-    is_in_val = {}
-    for in_val, qid in zip(sample_mask, all_questions):
-        is_in_val[qid] = in_val
+    rng = np.random.default_rng(seed)
+    val_question_indices = rng.choice(len(all_questions), (val_questions,), replace=False)
+    for q_idx in val_question_indices:
+        val_set_mask[all_questions[q_idx]] = True
 
     question_path = PROJECT_ROOT.joinpath(dump_path, 'questions')
     train_file = output_path.joinpath(f"{name}.jsonl").open('w')
     val_file = output_path.joinpath(f"{name}_val.jsonl").open('w')
 
     update_freq = 1000 if debug else 25000
+
+    train_buffer = []
+
+    def empty_buffer(buffer):
+        logger.info(f"Emptying Buffer of size {len(buffer)}")
+        rng.shuffle(buffer)
+        for instance in buffer:
+            train_file.write(instance.strip() + '\n')
+
     for tag_name, questions in filter_dict.items():
         logger.info(f"Handling tag {tag_name}")
         line_num = 0
@@ -101,11 +106,16 @@ def consolidate_so_data(
             line_num += 1
             if parsed['id'] in questions_looking_for:
                 questions_looking_for.pop(parsed['id'])
-                if is_in_val[parsed['id']]:
+                if val_set_mask[parsed['id']]:
                     val_file.write(line.strip() + "\n")
                 else:
-                    train_file.write(line.strip() + '\n')
+                    train_buffer.append(line)
                 found += 1
+
+                if len(train_buffer) >= max_buffer_size:
+                    empty_buffer(train_buffer)
+                    del train_buffer
+                    train_buffer = []
 
             if line_num % update_freq == 0:
                 logger.info(f"Finished {line_num}, found {found:>8}/{len(questions)}")
@@ -113,8 +123,48 @@ def consolidate_so_data(
             if not questions_looking_for:
                 logger.info(f"Found all looking for")
                 break
+    empty_buffer(train_buffer)
     train_file.close()
     val_file.close()
+
+
+@main.command('consolidate')
+@click.argument("name")
+@click.argument("filter_file")
+@click.argument("dump_path")
+@click.option(
+    '--buffer-size',
+    '-buffer',
+    'max_buffer_size',
+    type=int,
+    help='Buffer Size',
+    default=2500000
+)
+@click.option(
+    '--seed', type=int, default=1, help="Seed to use"
+)
+@click.pass_context
+def consolidate_so_data_from_cli(
+        ctx,
+        name,
+        filter_file,
+        dump_path,
+        max_buffer_size,
+        seed
+):
+    """
+    Wrapper that allows me to unittest the underlying consolidate function w/o
+    needing to simulate the command line.
+    """
+    consolidate_so_data(
+        name=name,
+        filter_file=filter_file,
+        dump_path=dump_path,
+        max_buffer_size=max_buffer_size,
+        seed=seed,
+        debug=ctx.obj['DEBUG'],
+        output_path=ctx.obj['OUT_PATH']
+    )
 
 
 @main.command('parse')
