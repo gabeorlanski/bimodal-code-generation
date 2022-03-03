@@ -9,7 +9,7 @@ defaults:
 model: ???
 model_path: null
 is_checkpoint: false
-project: "adversarial-code"
+project: so-code-gen
 
 tracking:
   log_model: true

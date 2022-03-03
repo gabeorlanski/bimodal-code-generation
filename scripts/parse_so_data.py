@@ -78,9 +78,9 @@ def consolidate_so_data_from_cli(
     needing to simulate the command line.
     """
 
-    setup_global_logging(f"consolidate", str(PROJECT_ROOT.joinpath('logs')),
+    setup_global_logging(f"consolidate_{name}", str(PROJECT_ROOT.joinpath('logs')),
                          debug=ctx.obj['DEBUG'])
-    logger = logging.getLogger('consolidate')
+    logger = logging.getLogger(f"consolidate_{name}")
     logger.info("Starting Consolidate")
     consolidate_so_data(
         name=name,

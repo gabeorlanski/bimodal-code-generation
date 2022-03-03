@@ -4,7 +4,7 @@ defaults:
   - override hydra/job_logging: custom
 
 debug: False
-project: "adversarial-code"
+project: so-code-gen
 name: ???
 group: ???
 tracking:

@@ -13,4 +13,4 @@ generation:
 device: 0
 tracking:
   log_model: true
-  entity: nyu-code-research
+  entity: so-code-gen

@@ -7,6 +7,7 @@ model_path: ???
 seq_per_sample: 100
 remove_input_ids: False
 splits: ${task.eval_splits}
+project: so-code-gen
 batch_size: 1
 generation:
   max_new_tokens: 256

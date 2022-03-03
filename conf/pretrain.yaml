@@ -15,7 +15,7 @@ tracking:
   watch: all
   project: adversarial-code
   log_model: false
-  entity: nyu-code-research
+  entity: so-code-gen
 
 
 # General Arguments

@@ -1,5 +1,5 @@
 debug: false
-project: adversarial-code
+project: so-code-gen
 name: ZeroShot
 group: MBPP
 tracking: false
