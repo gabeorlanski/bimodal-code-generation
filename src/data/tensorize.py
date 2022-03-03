@@ -142,9 +142,9 @@ class TensorizedTask(IterableDataset):
                 if len(input_ids) == self.sequence_length:
                     total_yielded += 1
                     yield {
-                        'input_ids'     : torch.tensor(input_ids),
+                        'input_ids'     : input_ids,
                         # 'attention_mask': torch.tensor([1] * len(input_ids)),
-                        'labels'        : torch.tensor(input_ids),
+                        'labels'        : input_ids,
                     }
 
     def __len__(self):
