@@ -153,7 +153,6 @@ def consolidate_so_data(
     train_file = output_path.joinpath(f"{name}.jsonl").open('w')
     val_file = output_path.joinpath(f"{name}_val.jsonl").open('w')
 
-    update_freq = 100 if debug else 1000
 
     train_buffer = []
 
@@ -171,6 +170,11 @@ def consolidate_so_data(
         line_num = 0
         found = 0
         last_logged = -1
+
+        update_freq = 100 if debug else 1000
+
+        if len(filter_dict[tag_name]) > 100000:
+            update_freq = 50000 if len(filter_dict) > 500000 else 25000
 
         # Use a dict to check if they exist because searching dict O(1)
         questions_looking_for = {k: True for k in filter_dict[tag_name]}
