@@ -223,5 +223,4 @@ def tensorize(
 
     logger.info(
         f"Size of {tensorized_data.name} is {human_readable_size(out_file_path.stat().st_size)}")
-    with out_path.joinpath(f"{output_name}.cfg.json").open('w') as f:
-        json.dump(asdict(tensorized_data), f, indent=True)
+    return tensorized_data

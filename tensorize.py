@@ -1,4 +1,6 @@
+import json
 import logging
+from dataclasses import asdict
 from typing import Optional, List
 
 import transformers.utils.logging
@@ -62,7 +64,8 @@ def tensorize_data(
         )
     else:
         raise ValueError(f'Unknown processor {cfg.processor.name}')
-    tensorize(
+    logger.info(f"Saving tensorized config")
+    train_cfg = tensorize(
         data_path.joinpath(train_file_name),
         out_path,
         output_name,
@@ -72,6 +75,8 @@ def tensorize_data(
         cfg.tensorize_batch_size,
         debug_max_samples=debug_samples
     )
+    with out_path.joinpath(f"{output_name}.cfg.json").open('w') as f:
+        json.dump(asdict(train_cfg), f, indent=True)
     tensorize(
         data_path.joinpath(validation_file),
         out_path,
