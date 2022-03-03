@@ -76,7 +76,6 @@ experiments:
           remove_input_ids: true
           ++generation:
             max_new_tokens: 256
-          ++device: 0
           task: mbpp
           remove_input_ids: true
           ++model_path: best_models/${..__META__.previous_step.save_name}

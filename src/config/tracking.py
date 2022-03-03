@@ -180,12 +180,6 @@ class TrackingCallback(TrainerCallback):
             self.setup(args, state, model)
         if state.is_world_process_zero:
             logs = rewrite_logs(logs)
-
-            if isinstance(kwargs['train_dataloader'].dataset, TensorizedTask):
-                train_ds = kwargs['train_dataloader'].dataset
-                logs['train/ds_epoch'] = train_ds.epoch
-                logs['train/samples_seen'] = train_ds.samples_seen
-                logs['train/tokens_seen'] = train_ds.tokens_seen
             self._wandb.log(logs, step=state.global_step)
 
 
