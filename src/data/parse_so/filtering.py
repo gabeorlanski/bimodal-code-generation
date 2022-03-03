@@ -164,14 +164,15 @@ def consolidate_so_data(
             train_file.write(instance.strip() + '\n')
 
     logger.info(f"Using buffer of {max_buffer_size}")
-
-    for tag_name, questions in filter_dict.items():
+    tags_to_get = list(filter_dict)
+    rng.shuffle(tags_to_get)
+    for tag_name in tags_to_get:
         logger.info(f"Handling tag {tag_name}")
         line_num = 0
         found = 0
 
         # Use a dict to check if they exist because searching dict O(1)
-        questions_looking_for = {k: True for k in questions}
+        questions_looking_for = {k: True for k in filter_dict[tag_name]}
 
         for line in tqdm(question_path.joinpath(f"{tag_name}.jsonl").open()):
             parsed = json.loads(line)
@@ -190,10 +191,10 @@ def consolidate_so_data(
                     train_buffer = []
 
             if line_num % update_freq == 0:
-                logger.info(f"Finished {line_num}, found {found:>8}/{len(questions)}")
                 ram_pct = f"{psutil.virtual_memory()[2]:0.2f}%"
-                cpu_pct = f"{psutil.getloadavg()[-1] / os.cpu_count() * 100:0.2f}%"
-                logger.info(f"RAM Used={ram_pct:<6} | CPU Used={cpu_pct:<6}")
+                logger.info(f"Finished {line_num}, found "
+                            f"{found:>8}/{len(filter_dict[tag_name])} "
+                            f"| RAM Used={ram_pct:<6}")
 
             if not questions_looking_for:
                 logger.info(f"Found all looking for")
