@@ -5,39 +5,69 @@ experiments:
       ++device: 0
       ++tracking:
         log_model: True
-      model: 'lvwerra/codeparrot-small'
-      train_batch_size: 16
-      eval_batch_size: 16
-      gradient_accumulation_steps: 4
-      seq_length: 1024
-      processor: stackoverflow
-      lr: 1e-4
-      save_steps: 2500
-      evaluate_steps: 500
-      max_steps: 10000
-      warmup_steps: 500
+      ++model: 'lvwerra/codeparrot-small'
+      ++training:
+        batch_size: 16
+        gradient_accumulation_steps: 4
+        learning_rate: 1e-4
+        save_steps: 2500
+        evaluate_steps: 500
+        max_steps: 10000
+        warmup_steps: 500
+        logging_steps: 25
+        lr_scheduler_type: linear
+      task: so
+      +processor: stackoverflow
+      ++raw_dump_path: data/dumps
     ablations:
       - DumpName:
           Python:
-            dump_name: python
-            ++processor.params.clean: false
-          RandomClean:
-            dump_name: random_clean
-            ++processor.params.clean: True
-          PythonClean:
-            dump_name: python_clean
-            ++processor.params.clean: True
+            ++task.dump_name: python
+            ++raw_dump_name: python
+            ++tensorized_name: python
           Random:
-            dump_name: random
-            ++processor.params.clean: False
+            ++task.dump_name: random
+            ++raw_dump_name: random
+            ++tensorized_name: random
+          DB:
+            ++task.dump_name: db
+            ++raw_dump_name: db
+            ++tensorized_name: db
     steps:
       - name: PreTrain
         add_name: False
-        base: pretrain
+        base: pretrain_with_tensorized
         group: SO
         overrides:
+          ++tensorized_path: data/tensorized
+          ++task.data_path: data/tensorized
+          ++processor.params.clean: True
+          objective: lm
+          +tensorize_batch_size: 64
           tracking:
             log_model: true
+      - name: FineTune
+        base: greene_config
+        group: MBPP
+        overrides:
+          objective: 'lm'
+          task: mbpp
+          ++is_checkpoint: True
+          ++model_path: best_models/${..__META__.previous_step.save_name}
+          training:
+            learning_rate: 5e-5
+      - name: Eval
+        base: eval_config
+        group: MBPP
+        overrides:
+          batch_size: 200
+          remove_input_ids: true
+          ++generation:
+            max_new_tokens: 256
+          ++device: 0
+          task: mbpp
+          remove_input_ids: true
+          ++model_path: best_models/${..__META__.previous_step.save_name}
     command:
       file: command_templates/deepspeed_pretrain.txt
       fields:

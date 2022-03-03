@@ -2,6 +2,11 @@ defaults:
   - train_config@_global_
   - _self_
 
+# Tensorized Arguments
+raw_dump_name: ???
+tensorized_name: ???
+raw_dump_path: ???
+
 
 training:
   batch_size: 1

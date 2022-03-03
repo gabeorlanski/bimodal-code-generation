@@ -64,8 +64,8 @@ class TestStackOverflowProcessor:
             question_prompt_template = None
             title_prompt = None
 
-            expected_title_str = "Question Title: Title"
-            expected_question_str = f"{expected_title_str}\nBody: Body"
+            expected_title_str = "Title"
+            expected_question_str = f"{expected_title_str}\nBody"
 
         processor = stackoverflow.StackOverflowProcessor(
             answer_prompt=answer_prompt_template,
@@ -104,7 +104,7 @@ class TestStackOverflowProcessor:
 
         result = processor.make_instances_from_question(sample)
 
-        expected_input = "Question Title: Title 3\nBody: Question Body 3"
+        expected_input = "Title 3\nQuestion Body 3"
         if answer_sorting == "ascending":
             expected_answer = "Answer 16"
         elif answer_sorting == "descending":
@@ -152,5 +152,5 @@ class TestStackOverflowProcessor:
         assert len(result) == 3
         for i, v in enumerate(expected_answer_strs):
             assert tokenizer.decode(result[i]['input_ids']) == 'Title\nBody'
-            assert tokenizer.decode(result[i]['label']) == v
+            assert tokenizer.decode(result[i]['labels']) == v
             assert len(result[i]['input_ids']) == sum(result[i]['attention_mask'])

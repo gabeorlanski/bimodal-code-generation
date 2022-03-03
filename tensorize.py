@@ -13,70 +13,19 @@ from src.data.tensorize import tensorize
 from src.data.stackoverflow import StackOverflowProcessor
 
 
-@click.command()
-@click.argument('name', metavar="<Name of this dataset>")
-@click.argument('output_name', metavar="<Name of the output file>")
-@click.argument('processor_name', metavar='<Processor to use>')
-@click.argument('model_name', metavar='<Model to use>')
-@click.argument('num_workers', type=int, metavar='<Number Of Workers>')
-@click.option(
-    '--debug',
-    is_flag=True,
-    default=False,
-    help="Debug Mode"
-)
-@click.option(
-    '--data-path', '-I',
-    help='Path to the input data',
-    default='data/dumps'
-)
-@click.option(
-    '--out-path', '-O',
-    help='Path for saving the data',
-    default='data/tensorized'
-)
-@click.option(
-    '--validation-file-name', '-val', default=None,
-    help='Name of the validation raw data, if not provided, will use the {name}_val')
-@click.option(
-    '--config', 'config_file', default=None, help='Path to config file.')
-@click.option(
-    '--debug-samples', 'debug_samples', default=-1, help='Debug Samples to use.')
-@click.option(
-    '--override-str',
-    help='Bash does not like lists of variable args. so pass as seperated list of overrides, seperated by spaces.',
-    default=''
-)
 def tensorize_data(
-        name: str,
-        output_name: str,
-        processor_name: str,
-        model_name: str,
-        num_workers: int,
-        override_str: str,
-        debug: bool,
+        name,
+        output_name,
+        num_workers,
+        processor_name,
+        model_name,
         data_path,
-        validation_file_name,
-        config_file,
         out_path,
-        debug_samples
+        validation_file_name,
+        cfg,
+        debug,
+        debug_samples,
 ):
-    if config_file is None:
-        override_list = [
-            f"name={name}",
-            f"processor={processor_name}"
-        ]
-        override_list.extend(override_str.split(' ') if override_str else [])
-        initialize(config_path="conf", job_name="train")
-        cfg = compose(config_name="tensorize", overrides=override_list)
-    else:
-        cfg = OmegaConf.create(yaml.load(
-            PROJECT_ROOT.joinpath(config_file).open(),
-            yaml.Loader
-        ))
-        with open_dict(cfg):
-            cfg.name = name
-
     setup_global_logging(
         f'{output_name}_tensorize',
         PROJECT_ROOT.joinpath('logs'),
@@ -89,7 +38,6 @@ def tensorize_data(
     logger.info(f"Starting tensorize of {name}")
     logger.info(f"Using processor {processor_name}")
     logger.info(f"Using model {model_name}")
-    logger.debug(f"Override string is {override_str}")
     logger.debug(f"Using {num_workers} workers")
 
     data_path = PROJECT_ROOT.joinpath(data_path)
@@ -136,5 +84,94 @@ def tensorize_data(
     )
 
 
+@click.group()
+@click.option('--debug', is_flag=True, default=False, help='Enable Debug Mode')
+@click.option('--output-path', '-out', 'output_path', default='data/tensorized',
+              help='The path to save the results.')
+@click.option('--debug-samples', default=-1, type=int,
+              help='The path to save the results.')
+def main(ctx, debug, output_path, debug_samples):
+    ctx.obj['DEBUG'] = debug
+    ctx.obj['OUT_PATH'] = output_path
+    ctx.obj['DEBUG_SAMPLES'] = debug_samples
+
+
+@main.command('cli')
+@click.argument('name', metavar="<Name of this dataset>")
+@click.argument('output_name', metavar="<Name of the output file>")
+@click.argument('processor_name', metavar='<Processor to use>')
+@click.argument('model_name', metavar='<Model to use>')
+@click.argument('num_workers', type=int, metavar='<Number Of Workers>')
+@click.option(
+    '--data-path', '-I',
+    help='Path to the input data',
+    default='data/dumps'
+)
+@click.option(
+    '--validation-file-name', '-val', default=None,
+    help='Name of the validation raw data, if not provided, will use the {name}_val')
+@click.option(
+    '--override-str',
+    help='Bash does not like lists of variable args. so pass as seperated list of overrides, seperated by spaces.',
+    default=''
+)
+@click.pass_context
+def tensorize_data_from_cli(
+        ctx,
+        name: str,
+        output_name: str,
+        processor_name: str,
+        model_name: str,
+        num_workers: int,
+        override_str: str,
+        data_path,
+        validation_file_name,
+):
+    override_list = [
+        f"name={name}",
+        f"processor={processor_name}"
+    ]
+    override_list.extend(override_str.split(' ') if override_str else [])
+    initialize(config_path="conf", job_name="train")
+    cfg = compose(config_name="tensorize", overrides=override_list)
+    tensorize_data(
+        name=name,
+        output_name=output_name,
+        num_workers=num_workers,
+        processor_name=processor_name,
+        model_name=model_name,
+        data_path=data_path,
+        out_path=ctx.obj['OUT_PATH'],
+        validation_file_name=validation_file_name,
+        cfg=cfg,
+        debug=ctx.obj['DEBUG'],
+        debug_samples=ctx.obj['DEBUG_SAMPLES'],
+    )
+
+
+@main.command('cfg')
+@click.argument('config')
+@click.pass_context
+def tensorize_from_config(ctx, config):
+    cfg = OmegaConf.create(yaml.load(
+        PROJECT_ROOT.joinpath(config).open(),
+        yaml.Loader
+    ))
+
+    tensorize_data(
+        name=cfg.raw_dump_name,
+        output_name=cfg.tensorized_name,
+        num_workers=cfg.num_proc,
+        processor_name=cfg.processor.name,
+        model_name=cfg.model,
+        data_path=cfg.dump_path,
+        out_path=cfg.tensorized_path,
+        validation_file_name=None,
+        cfg=cfg,
+        debug=ctx.obj['DEBUG'],
+        debug_samples=ctx.obj['DEBUG_SAMPLES'],
+    )
+
+
 if __name__ == "__main__":
-    tensorize_data()
+    main()

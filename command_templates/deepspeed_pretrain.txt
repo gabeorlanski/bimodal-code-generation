@@ -1,5 +1,8 @@
 {%- set pretrain_jid= "pretrain_jid"+ idx|string -%}
 echo "Submitting Jobs for {{ name }}"
+tensorize_jid{{idx}}=$(sbatch --parsable --job-name={{ name }}_pretrain \
+	deepspeed_multi_gpu.sbatch {{ PreTrain.path }})
+echo "Submitted Tensorize (id=$tensorize_jid{{idx}})"
 {{ pretrain_jid }}=$(sbatch --parsable --job-name={{ name }}_pretrain \
 	deepspeed_multi_gpu.sbatch {{ PreTrain.path }})
 echo "Submitted PreTrain (id=${{ pretrain_jid }})"
