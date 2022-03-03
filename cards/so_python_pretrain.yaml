@@ -29,12 +29,12 @@ experiments:
             ++task.dump_name: python_title
             ++raw_dump_name: python
             ++tensorized_name: python_title
-            ++processor.repeat_question_for_each_answer: 'title'
+            ++processor.params.repeat_question_for_each_answer: 'title'
           PythonFullRepeat:
             ++task.dump_name: python_full
             ++raw_dump_name: python
             ++tensorized_name: python_full
-            ++processor.repeat_question_for_each_answer: 'full'
+            ++processor.params.repeat_question_for_each_answer: 'full'
           Random:
             ++task.dump_name: random
             ++raw_dump_name: random
