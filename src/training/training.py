@@ -273,6 +273,7 @@ def train_model(cfg: DictConfig):
 
     device = train_args.device
     logger.info(f"Using device {device}")
+    logger.info(f"Model Is On {model.device}")
     trainer = CustomTrainer(
         cfg,
         model=model,

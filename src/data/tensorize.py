@@ -137,14 +137,13 @@ class TensorizedTask(IterableDataset):
             self.rng.shuffle(buffer)
             all_tokens = [t for s in buffer for t in s]
 
-            overflow = []
             for i in range(0, len(all_tokens), self.sequence_length):
                 input_ids = all_tokens[i: i + self.sequence_length]
                 if len(input_ids) == self.sequence_length:
                     total_yielded += 1
                     yield {
                         'input_ids'     : torch.tensor(input_ids),
-                        'attention_mask': torch.tensor([1] * len(input_ids)),
+                        # 'attention_mask': torch.tensor([1] * len(input_ids)),
                         'labels'        : torch.tensor(input_ids),
                     }
 
