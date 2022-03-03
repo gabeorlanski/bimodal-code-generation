@@ -1,6 +1,6 @@
 starting_commands: command_templates/sbatch_experiment.txt
 experiments:
-  Pretrain.ParrotSmall:
+  FinetuneSO.ParrotSmall:
     overrides:
       ++device: 0
       ++tracking:
@@ -25,6 +25,16 @@ experiments:
             ++task.dump_name: python
             ++raw_dump_name: python
             ++tensorized_name: python
+          PythonTitleRepeat:
+            ++task.dump_name: python_title
+            ++raw_dump_name: python
+            ++tensorized_name: python_title
+            ++processor.repeat_question_for_each_answer: 'title'
+          PythonFullRepeat:
+            ++task.dump_name: python_full
+            ++raw_dump_name: python
+            ++tensorized_name: python_full
+            ++processor.repeat_question_for_each_answer: 'full'
           Random:
             ++task.dump_name: random
             ++raw_dump_name: random
@@ -70,5 +80,9 @@ experiments:
           ++model_path: best_models/${..__META__.previous_step.save_name}
     command:
       file: command_templates/deepspeed_pretrain.txt
+      kwargs:
+        num_return_sequences: 200
+        task_name: MBPP
+        train_sbatch: train_single_gpu
       fields:
         - model_path
