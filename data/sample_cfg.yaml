@@ -1,0 +1,98 @@
+debug: false
+project: so-code-gen
+name: Pretrain.ParrotSmall.DB
+group: SO
+tracking: false
+task:
+  name: so
+  data_path: data/tensorized
+  dump_name: serial
+  train_path: data/tensorized/serial.jsonl
+  validation_path: data/tensorized/serial.val.jsonl
+  max_samples: null
+  answer_sorting: accepted
+  answers_per_sample: -1
+  repeat_question_for_each_answer: null
+  good_answer_cutoff: 3
+  bad_answer_cutoff: -1
+  answer_prompt: null
+  question_prompt: null
+  join_answers_with_eos_token: false
+  sequence_length: 512
+  seed: 1
+objective: lm
+data_args:
+  seq_length: 1024
+model: lvwerra/codeparrot-small
+model_path: null
+is_checkpoint: false
+data_path: data
+device: 0
+seed: 1
+numpy_seed: 2
+pytorch_seed: 3
+generation:
+  max_length: 1024
+  do_sample: true
+  temperature: 0.5
+  num_return_sequences: 25
+  min_length: 75
+  top_p: 0.95
+  top_k: 50
+training:
+  batch_size: 4
+  output_dir: models
+  learning_rate: 0.0001
+  logging_steps: 25
+  warmup_ratio: 0.01
+  weight_decay: 0.1
+  gradient_accumulation_steps: 2
+  lr_scheduler_type: linear
+  eval_accumulation_steps: 1
+  metric_for_best_model: eval_loss
+  load_best_model_at_end: false
+  save_total_limit: 2
+  num_train_epochs: 1
+  greater_is_better: false
+  evaluation_strategy: steps
+  save_strategy: steps
+  group_by_length: true
+  logging_first_step: true
+  xpu_backend: ccl
+  fp16: true
+  disable_tqdm: true
+  max_grad_norm: 1.0
+  ddp_find_unused_parameters: false
+  max_steps: 10000
+  save_steps: 2500
+  eval_steps: 500
+  warmup_steps: 500
+  deepspeed: ds_config.json
+metrics:
+- exact-match
+- bleu
+preprocessors: []
+raw_dump_name: db
+tensorized_name: db
+raw_dump_path: data/dumps
+postprocessors: []
+processor:
+  name: stackoverflow
+  params:
+    answer_sorting: accepted
+    answers_per_sample: -1
+    repeat_question_for_each_answer: none
+    good_answer_cutoff: 3
+    bad_answer_cutoff: -1
+    answer_prompt: null
+    question_prompt: null
+    title_prompt: null
+    clean: true
+tensorized_path: data/tensorized
+tensorize_batch_size: 64
+meta:
+  ablation: DB
+  step: PreTrain
+  card_name: Pretrain.ParrotSmall
+  ablation_vals:
+    DumpName: DB
