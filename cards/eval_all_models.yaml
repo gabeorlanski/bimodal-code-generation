@@ -1,7 +1,6 @@
 starting_commands: command_templates/sbatch_experiment.txt
 experiments:
-  HumanEval:
-    add_name: False
+  FinetuneSOParrotSmall:
     overrides:
       batch_size: 200
       remove_input_ids: true
@@ -10,6 +9,8 @@ experiments:
       ++device: 0
       +splits:
         - validation
+      is_checkpoint: True
+      model: 'lvwerra/codeparrot-small'
     ablations:
       - DumpName:
           CodeParrotSmall:
@@ -38,13 +39,12 @@ experiments:
       - name: HumanEval
         add_name: False
         base: eval_config
-        group: Baseline
+        group: SO
         overrides:
           is_checkpoint: false
           task: human_eval
           ++tracking:
             force_name: true
-          ++model: 'lvwerra/codeparrot-small'
       - name: Eval
         add_name: False
         base: eval_config

@@ -1,0 +1,26 @@
+defaults:
+  - _self_
+
+seed: 1
+is_checkpoint: true
+model_path: ???
+seq_per_sample: 200
+remove_input_ids: False
+splits:
+  - test
+project: so-code-gen
+batch_size: 1
+generation:
+  max_new_tokens: 256
+  do_sample: true
+  temperature: 0.5
+  top_p: 0.95
+  top_k: 50
+tracking:
+  watch: "gradients"
+  project: ${..project}
+  log_model: false
+  entity: nyu-code-research
+
+postprocessors:
+  - strip: { }

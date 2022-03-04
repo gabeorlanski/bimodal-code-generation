@@ -5,5 +5,7 @@ eval_jid{{idx}}=$(sbatch --parsable --job-name={{ name }}_eval \
 	--dependency=afterok:$train_jid{{ idx}} eval.sbatch \
 	{{ Eval.model_path }} {{ num_return_sequences }} {{ Eval.path }})
 echo "Submitted Eval $eval_jid{{idx}} to run after $1(id=$train_jid{{ idx}})"
-sbatch --job-name='{{ name }}_execute' --dependency=afterok:$eval_jid{{idx}} eval_code.sbatch eval_results/{{ task_name }} {{ Eval.save_name }}
+sbatch --job-name='{{ name }}_execute' --dependency=afterok:$eval_jid{{idx}} eval_code.sbatch eval_results/{{ task_name }} {{ Eval.path }}
+sbatch --job-name='{{ name }}_human_eval' run_human_eval.sbatch {{ HumanEval.path }}
+sbatch --job-name='{{ name }}_finetune_human_eval' --dependency=afterok:train_jid{{idx}} run_human_eval.sbatch {{ HEFineTune.path }}
 echo ""

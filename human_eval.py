@@ -27,8 +27,10 @@ from transformers import (
 )
 
 from src.common import PROJECT_ROOT, setup_global_logging, flatten
-from src.config import load_model_from_cfg, setup_tracking_env_from_cfg, get_config_for_tracking, \
-    get_run_base_name_from_cfg
+from src.config import (
+    load_model_from_cfg, setup_tracking_env_from_cfg, get_config_for_tracking,
+    get_run_base_name_from_cfg, merge_configs
+)
 from src.evaluation.code_eval import evaluate_code
 
 EOF_STRINGS = ["\nclass", "\ndef", "\n#", "\n@", "\nprint", "\nif"]
@@ -133,6 +135,14 @@ def main(
         PROJECT_ROOT.joinpath(cfg).open('r'),
         yaml.Loader
     ))
+
+    if cfg.is_checkpoint:
+        train_cfg = OmegaConf.create(yaml.load(
+            PROJECT_ROOT.joinpath(cfg.model_path, 'config.yaml').open('r'),
+            yaml.Loader
+        ))
+        cfg = merge_configs(cfg, train_cfg)
+
     with open_dict(cfg):
         if sequences_per_sample is not None:
             cfg.seq_per_sample = sequences_per_sample
@@ -151,9 +161,16 @@ def main(
         if top_p is not None:
             cfg.generation.top_p = top_p
 
+        cfg.group = 'HUMAN_EVAL'
+        if 'task' not in cfg or 'name' not in cfg.task:
+            cfg.task = OmegaConf.create(yaml.load(
+                PROJECT_ROOT.joinpath('conf', 'task', 'human_eval.yaml'),
+                yaml.Loader
+            ))
+
     working_dir = PROJECT_ROOT.joinpath(
         'eval_results', "HUMAN_EVAL",
-        f"{cfg.group}.{cfg.name}"
+        f"{cfg.task.name.upper()}.{cfg.name}"
     )
 
     if not working_dir.exists():
@@ -191,7 +208,11 @@ def main(
     gen_kwargs = {
         "stopping_criteria": StoppingCriteriaList(
             [EndOfFunctionCriteria(0, EOF_STRINGS, tokenizer)]),
-        **OmegaConf.to_object(cfg.generation)
+        "do_sample"        : cfg.generation.do_sample,
+        "temperature"      : cfg.generation.temperature,
+        "max_new_tokens"   : cfg.generation.max_new_tokens,
+        "top_p"            : cfg.generation.top_p,
+        "top_k"            : cfg.generation.top_k,
     }
 
     logger.info("Generation Parameters:")

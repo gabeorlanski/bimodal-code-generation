@@ -57,8 +57,6 @@ def train_from_cfg(cfg):
     logger.info("Starting Train")
 
     os.chdir(new_cwd)
-    with open('config.yaml', 'w') as f:
-        f.write(OmegaConf.to_yaml(cfg,resolve=True,sort_keys=True))
 
     os.environ["CUBLAS_WORKSPACE_CONFIG"] = ":4096:8"
     torch.use_deterministic_algorithms(True)
@@ -105,7 +103,7 @@ def train_from_cfg(cfg):
                 f"Saving best model to {best_models_path.absolute().resolve()}")
             model.save_pretrained(best_models_path)
             with best_models_path.joinpath('config.yaml').open('w', encoding='utf-8') as f:
-                f.write(OmegaConf.to_yaml(cfg, resolve=True,sort_keys=True))
+                f.write(OmegaConf.to_yaml(cfg, resolve=True, sort_keys=True))
         else:
             logger.error(f"Could not save best model, {best_models_path} exists"
                          f" and force is not enabled.")

@@ -18,4 +18,5 @@ echo "Submitted Eval $eval_jid{{idx}} to run after $1(id=$train_jid{{ idx}})"
 echo "scancel $eval_jid{{idx}}" >> generated_experiments/cancel_jobs.sh
 exec_jid{{idx}}=$(sbatch --parsable --job-name='{{ name }}_execute' --dependency=afterok:$eval_jid{{idx}} eval_code.sbatch eval_results/{{ task_name }} {{ Eval.save_name }})
 echo "scancel $exec_jid{{idx}}" >> generated_experiments/cancel_jobs.sh
+sbatch --job-name='{{ name }}_human_eval' --dependency=afterok:${{pretrain_jid}} run_human_eval.sbatch {{ HumanEval.path }}
 echo ""

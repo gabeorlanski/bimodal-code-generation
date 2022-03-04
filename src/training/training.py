@@ -291,6 +291,8 @@ def train_model(cfg: DictConfig):
     )
     trainer.train()
 
+    with Path('config.yaml').open('w') as f:
+        f.write(OmegaConf.to_yaml(trainer.cfg, resolve=True, sort_keys=True))
     return trainer.model
 
 

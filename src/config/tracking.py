@@ -71,6 +71,7 @@ class TrackingCallback(TrainerCallback):
         # log outputs
         self._log_model = os.environ.get("WANDB_LOG_MODEL",
                                          "FALSE").upper() == "TRUE"
+        logger.info(f"Log Model={self._log_model}")
         self.cfg = cfg
         self.job_type = job_type
 
@@ -114,9 +115,11 @@ class TrackingCallback(TrainerCallback):
                     name=os.getenv('WANDB_RUN_NAME'),
                     entity=os.getenv('WANDB_ENTITY'),
                     config=combined_dict,
-                    id=os.getenv('WANDB_RUN_NAME'),
+                    id=os.getenv('WANDB_RUN_ID'),
                     **init_args,
                 )
+                with open_dict(self.cfg):
+                    self.cfg.run_id = os.getenv('WANDB_RUN_ID')
 
             # keep track of model topology and gradients, unsupported on TPU
             if os.getenv("WANDB_WATCH") != "false":

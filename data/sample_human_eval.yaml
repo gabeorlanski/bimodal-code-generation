@@ -1,0 +1,49 @@
+batch_size: 1
+device: 0
+generation:
+  do_sample: true
+  max_new_tokens: 256
+  temperature: 0.5
+  top_k: 50
+  top_p: 0.95
+group: HUMAN_EVAL
+is_checkpoint: true
+meta:
+  ablation: DB
+  ablation_vals:
+    DumpName: DB
+  card_name: FinetuneSO.ParrotSmall
+  step: HumanEval
+model: lvwerra/codeparrot-small
+model_path: best_models/SO.TestSOData
+name: FinetuneSO.ParrotSmall.DB
+postprocessors:
+- strip: {}
+processor:
+  name: stackoverflow
+  params:
+    answer_prompt: null
+    answer_sorting: accepted
+    answers_per_sample: -1
+    bad_answer_cutoff: -1
+    clean: false
+    good_answer_cutoff: 3
+    question_prompt: null
+    repeat_question_for_each_answer: none
+    title_prompt: null
+project: so-code-gen
+raw_dump_name: db
+raw_dump_path: data/dumps
+remove_input_ids: false
+seed: 1
+seq_per_sample: 200
+splits:
+- test
+task:
+  dump_name: db
+tensorized_name: db
+tracking:
+  entity: nyu-code-research
+  log_model: false
+  project: so-code-gen
+  watch: gradients
