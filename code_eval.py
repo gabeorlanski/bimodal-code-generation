@@ -7,7 +7,7 @@ import os
 import yaml
 import wandb
 from src.common import setup_global_logging
-from src.evaluation.code_eval import evaluate_code, BASE_ERROR_TYPES
+from src.evaluation.code_eval import evaluate_code_from_file, BASE_ERROR_TYPES
 from src.config import setup_tracking_env_from_cfg, get_config_for_tracking
 from src.common.util import flatten
 
@@ -46,7 +46,7 @@ def run(pred_dir, num_workers, disable_tracking, input_artifact_name, timeout):
     for split_file in path_to_dir.glob('*.jsonl'):
         split = split_file.stem
         logger.info(f"Executing code from {split_file}")
-        results = evaluate_code(
+        results = evaluate_code_from_file(
             str(split_file),
             samples_per_problem=cfg.seq_per_sample,
             num_workers=num_workers,

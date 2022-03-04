@@ -37,12 +37,9 @@ def get_metrics_from_list(name, list_of_values):
     return {f"{name + '/' if name else ''}{k}": float(v) for k, v in metrics_dict.items()}
 
 
-def get_samples(file_path, samples_per_problem) -> Tuple[List[Sample], List, Dict, Dict, Dict]:
-    logger.info(f"Reading {file_path}")
-    total_lines = len(file_path.read_text().splitlines(False))
-    lines = map(json.loads, file_path.read_text().splitlines(False))
+def get_samples(code_items, samples_per_problem) -> Tuple[List[Sample], List, Dict, Dict, Dict]:
     failed = 0
-    line_num = 0
+    sample_num = 0
     total_valid_preds = []
     metrics = {
         "preds_total": 0,
@@ -51,17 +48,17 @@ def get_samples(file_path, samples_per_problem) -> Tuple[List[Sample], List, Dic
     invalid_syntax = {}
     all_samples = {}
     pred_count = {}
-    for sample_dict in tqdm(lines, total=total_lines, desc='Reading Preds'):
-        line_num += 1
+    for sample_dict in tqdm(code_items, desc='Reading Preds'):
+        sample_num += 1
 
         if any(k not in sample_dict for k in ['prediction', 'tests']):
-            logger.error(f"Line {line_num} is missing either 'prediction' or 'tests' keys")
+            logger.error(f"Sample {sample_num} is missing either 'prediction' or 'tests' keys")
             failed += 1
             continue
 
         idx = sample_dict.get('task_id', sample_dict.get('idx'))
         if idx is None:
-            logger.error(f"Line {line_num} is missing an idx key")
+            logger.error(f"Sample {sample_num} is missing an idx key")
             failed += 1
             continue
 
@@ -75,8 +72,8 @@ def get_samples(file_path, samples_per_problem) -> Tuple[List[Sample], List, Dic
             except SyntaxError:
                 continue
             except Exception as e:
-                logger.error(f"Could not parse prediction {i} on line "
-                             f"{line_num} due to {type(e).__name__}:{str(e)}")
+                logger.error(f"Could not parse prediction {i} for {idx=} "
+                             f"due to {type(e).__name__}:{str(e)}")
                 continue
             valid_predictions.append(pred)
 
@@ -89,7 +86,7 @@ def get_samples(file_path, samples_per_problem) -> Tuple[List[Sample], List, Dic
         all_samples[idx] = Sample(idx, valid_predictions, sample_dict['tests'])
 
     if failed > 0:
-        logger.error(f"{failed}/{line_num} had failures.")
+        logger.error(f"{failed}/{sample_num} had failures.")
 
     metrics["valid_syntax_pct_mean"] = np.mean(
         np.array(total_valid_preds) / samples_per_problem * 100
@@ -104,22 +101,9 @@ def get_samples(file_path, samples_per_problem) -> Tuple[List[Sample], List, Dic
     return list(all_samples.values()), all_invalid, pred_count, invalid_syntax, metrics
 
 
-def evaluate_code(
-        predictions_file: Union[str, Path, os.PathLike],
-        samples_per_problem: int,
-        num_workers: int,
-        timeout: float = 3.0,
-):
-    predictions_file = Path(predictions_file)
-    logger.info(
-        f"Starting Code Evaluation with predictions in {predictions_file.resolve().absolute()}")
-
-    if not predictions_file.exists():
-        logger.error(f"{predictions_file.resolve().absolute()} is missing 'predictions.jsonl")
-        raise FileExistsError(f"The predictions directory must have a predictions.jsonl")
-
+def evaluate_code(code_dicts, samples_per_problem, num_workers, timeout):
     samples, all_invalid, pred_count, invalid_syntax_by_idx, overview_metrics = get_samples(
-        predictions_file,
+        code_dicts,
         samples_per_problem
     )
 
@@ -137,7 +121,7 @@ def evaluate_code(
 
     # Calculate the pass @ k metric across multiple k values.
     all_correct = np.array(correct)
-    all_total = np.array([samples_per_problem] * len(correct))
+    all_total = np.array([samples_per_problem] * len(results_by_task_id))
     total = int(sum(all_total))
     for k in [1, 5, 10, 25, 50, 100]:
         if (all_total < k).all():
@@ -176,6 +160,26 @@ def evaluate_code(
     }
 
     return result_metrics
+
+
+def evaluate_code_from_file(
+        predictions_file: Union[str, Path, os.PathLike],
+        samples_per_problem: int,
+        num_workers: int,
+        timeout: float = 3.0,
+):
+    predictions_file = Path(predictions_file)
+    logger.info(
+        f"Starting Code Evaluation with predictions in {predictions_file.resolve().absolute()}")
+
+    if not predictions_file.exists():
+        logger.error(f"{predictions_file.resolve().absolute()} is missing 'predictions.jsonl")
+        raise FileExistsError(f"The predictions directory must have a predictions.jsonl")
+
+    logger.info(f"Reading {predictions_file}")
+    code_dicts = list(map(json.loads, predictions_file.read_text().splitlines(False)))
+
+    return evaluate_code(code_dicts, samples_per_problem, num_workers, timeout)
 
 
 def parse_results(results, pred_count, invalid_syntax_by_idx, all_invalid, samples_per_problem):

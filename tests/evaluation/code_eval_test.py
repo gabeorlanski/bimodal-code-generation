@@ -1,12 +1,12 @@
 import numpy as np
 
 from src.evaluation.code_eval import (
-    evaluate_code, estimate_pass_at_k, BASE_ERROR_TYPES, get_metrics_from_list
+    evaluate_code_from_file, estimate_pass_at_k, BASE_ERROR_TYPES, get_metrics_from_list
 )
 
 
 def test_evaluate_code(code_preds_dir):
-    results = evaluate_code(
+    results = evaluate_code_from_file(
         code_preds_dir.joinpath('split_predictions.jsonl'),
         4,
         2,

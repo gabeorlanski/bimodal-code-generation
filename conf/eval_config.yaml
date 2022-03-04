@@ -4,7 +4,7 @@ defaults:
 seed: 1
 is_checkpoint: true
 model_path: ???
-seq_per_sample: 100
+seq_per_sample: 200
 remove_input_ids: False
 splits: ${task.eval_splits}
 project: so-code-gen
@@ -15,7 +15,10 @@ generation:
   temperature: 0.5
   top_p: 0.95
   top_k: 50
-
+tracking:
+  watch: "gradients"
+  project: ${..project}
+  log_model: false
 
 postprocessors:
   - strip: { }

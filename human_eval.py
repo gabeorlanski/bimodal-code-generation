@@ -1,4 +1,5 @@
 import json
+import logging
 import multiprocessing
 import os
 import random
@@ -6,8 +7,11 @@ import re
 
 import numpy as np
 import torch
+import yaml
 from datasets import load_dataset, load_metric
+from omegaconf import OmegaConf, open_dict
 from tqdm import tqdm
+import click
 
 import transformers
 from arguments import HumanEvalArguments
@@ -21,6 +25,9 @@ from transformers import (
     set_seed,
 )
 
+from src.common import PROJECT_ROOT, setup_global_logging
+from src.config.model import load_model_from_cfg
+from src.evaluation.code_eval import evaluate_code
 
 EOF_STRINGS = ["\nclass", "\ndef", "\n#", "\n@", "\nprint", "\nif"]
 
@@ -35,10 +42,11 @@ class EndOfFunctionCriteria(StoppingCriteria):
 
     def __call__(self, input_ids, scores, **kwargs):
         """Returns true if all generated sequences contain any of the end-of-function strings."""
-        decoded_generations = self.tokenizer.batch_decode(input_ids[:, self.start_length :])
+        decoded_generations = self.tokenizer.batch_decode(input_ids[:, self.start_length:])
         done = []
         for decoded_generation in decoded_generations:
-            done.append(any([stop_string in decoded_generation for stop_string in self.eof_strings]))
+            done.append(
+                any([stop_string in decoded_generation for stop_string in self.eof_strings]))
         return all(done)
 
 
@@ -51,79 +59,192 @@ def complete_code(pipe, prompt, num_completions=1, **gen_kwargs):
     """Complete prompt with text generation pipeline and return num_completions."""
     prompt = pipe.tokenizer.eos_token + prompt
     code_gens = pipe(prompt, num_return_sequences=num_completions, **gen_kwargs)
-    return [first_block(code_gen["generated_text"][len(prompt) :]) for code_gen in code_gens]
+    return [first_block(code_gen["generated_text"][len(prompt):]) for code_gen in code_gens]
 
 
-def main():
+@click.command()
+@click.argument('cfg', metavar='<Path To Config>')
+@click.argument('objective', metavar='<Path To Config>')
+@click.option(
+    '--debug',
+    is_flag=True,
+    default=False,
+    help="Debug Mode"
+)
+@click.option(
+    '--notrack', 'disable_tracking',
+    is_flag=True,
+    default=False,
+    help="Disable Tracking"
+)
+@click.option(
+    '--no-code-eval',
+    is_flag=True,
+    default=False,
+    help="Do Not Run Code"
+)
+@click.option(
+    '--debug-tasks', '-tasks',
+    default=None,
+    type=int,
+    help="# Tasks for Debugging"
+)
+@click.option(
+    '--seq-per-sample', '-seqs', 'sequences_per_sample',
+    default=None, type=int, help='Number of sequences per sample to generate.'
+)
+@click.option(
+    '--batch-size', '-B', 'batch_size',
+    default=None, type=int, help='Number of sequences per batch to generate.')
+@click.option(
+    '--num-workers', '-n', 'num_workers',
+    default=None, type=int, help='Number of workers to use.'
+)
+@click.option(
+    '--temperature', '-temp',
+    default=None, type=float, help='Temperature to use'
+)
+@click.option(
+    '--top-k', '-topk', 'top_k',
+    default=None, type=int, help='Top-K value to use'
+)
+@click.option(
+    '--top_p', '-topp', 'top_p',
+    default=None, type=int, help='Top-P value to use'
+)
+def main(
+        cfg,
+        objective,
+        debug,
+        disable_tracking,
+        no_code_eval,
+        debug_tasks,
+        batch_size,
+        sequences_per_sample,
+        num_workers,
+        temperature,
+        top_k,
+        top_p
+):
     # Setup configuration
-    parser = HfArgumentParser(HumanEvalArguments)
-    args = parser.parse_args()
+    cfg = OmegaConf.create(yaml.load(
+        PROJECT_ROOT.joinpath(cfg).open('r'),
+        yaml.Loader
+    ))
+    with open_dict(cfg):
+        if sequences_per_sample is not None:
+            cfg.seq_per_sample = sequences_per_sample
+        if batch_size is not None:
+            cfg.batch_size = batch_size
+        cfg.objective = objective
+        cfg.debug = debug
+        if disable_tracking:
+            cfg.tracking = False
+        cfg.num_workers = num_workers or max(multiprocessing.cpu_count() // 2, 1)
+
+        if temperature is not None:
+            cfg.generation.temperature = temperature
+        if top_k is not None:
+            cfg.generation.top_k = top_k
+        if top_p is not None:
+            cfg.generation.top_p = top_p
+
+    working_dir = PROJECT_ROOT.joinpath(
+        'eval_results', "HUMAN_EVAL",
+        f"{cfg.group}.{cfg.name}"
+    )
+
+    if not working_dir.exists():
+        working_dir.mkdir(parents=True)
+
+    setup_global_logging(
+        'evaluate',
+        working_dir,
+        rank=int(os.environ.get('LOCAL_RANK', '-1')),
+        world_size=int(os.environ.get("WORLD_SIZE", 1)),
+        debug=debug,
+        disable_issues_file=True
+    )
+    logger = logging.getLogger("evaluate")
+    logger.info("Starting Evaluate")
+    logger.info(f"Working directory is {working_dir}")
+    logger.debug(f"{cfg.seq_per_sample} sequences to be generated per sample.")
 
     transformers.logging.set_verbosity_error()
     # enables code execution in code_eval metric
-    os.environ["HF_ALLOW_CODE_EVAL"] = args.HF_ALLOW_CODE_EVAL
+    os.environ["HF_ALLOW_CODE_EVAL"] = '0' if no_code_eval else '1'
     # make sure tokenizer plays nice with multiprocessing
     os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
-    if args.num_workers is None:
-        args.num_workers = multiprocessing.cpu_count()
-    random.seed(1)
-    np.random.seed(2)
-    torch.manual_seed(3)
-    torch.cuda.manual_seed_all(3)
+    set_seed(cfg.seed)
 
     # Load model and tokenizer
-    tokenizer = AutoTokenizer.from_pretrained(args.model_ckpt)
-    model = AutoModelForCausalLM.from_pretrained(args.model_ckpt)
-    pipe = pipeline("text-generation", model=model, tokenizer=tokenizer, device=args.device_int)
+    tokenizer = AutoTokenizer.from_pretrained(cfg.model)
+    _, model = load_model_from_cfg(cfg)
+    pipe = pipeline("text-generation", model=model, tokenizer=tokenizer, device=cfg.device)
 
     # Generation settings
     gen_kwargs = {
-        "do_sample": args.do_sample,
-        "temperature": args.temperature,
-        "max_new_tokens": args.max_new_tokens,
-        "top_p": args.top_p,
-        "top_k": args.top_k,
-        "stopping_criteria": StoppingCriteriaList([EndOfFunctionCriteria(0, EOF_STRINGS, tokenizer)]),
+        "stopping_criteria": StoppingCriteriaList(
+            [EndOfFunctionCriteria(0, EOF_STRINGS, tokenizer)]),
+        **OmegaConf.to_object(cfg.generation)
     }
 
+    logger.info("Generation Parameters:")
+    for k, v in cfg.generation.items():
+        logger.info(f"\t{k:>16}={v}")
     # Load evaluation dataset and metric
-    human_eval = load_dataset("openai_humaneval")
+    logger.info(f"Loading the dataset")
+    human_eval = load_dataset("openai_humaneval")['test']
     code_eval_metric = load_metric("code_eval")
 
-    # Run a quick test to see if code evaluation is enabled
-    try:
-        _ = code_eval_metric.compute(references=[""], predictions=[[""]])
-    except ValueError as exception:
-        print(
-            'Code evaluation not enabled. Read the warning below carefully and then use `--HF_ALLOW_CODE_EVAL="1"` flag to enable code evaluation.'
-        )
-        raise exception
-
     # Generate completions for evaluation set
-    n_tasks = args.num_tasks if args.num_tasks is not None else len(human_eval["test"])
-    generations, references = [], []
+    logger.info(f"Starting Generation")
+
+    n_tasks = debug_tasks if debug_tasks is not None else len(human_eval["test"])
+    predictions = []
     for task in tqdm(range(n_tasks)):
         task_generations = []
-        prompt = human_eval["test"][task]["prompt"].strip()
+        prompt = human_eval[task]["prompt"].strip()
         gen_kwargs["stopping_criteria"][0].start_length = len(tokenizer(prompt)["input_ids"])
-        for batch in range(args.n_samples // args.batch_size):
-            task_generations.extend(complete_code(pipe, prompt, num_completions=args.batch_size, **gen_kwargs))
-        generations.append([prompt + gen for gen in task_generations])
-        test_func = human_eval["test"][task]["test"]
-        entry_point = f"check({human_eval['test'][task]['entry_point']})"
-        references.append("\n" + test_func + "\n" + entry_point)
+        for batch in range(cfg.seq_per_sample // cfg.batch_size):
+            task_generations.extend(
+                complete_code(pipe, prompt, num_completions=cfg.batch_size, **gen_kwargs))
 
-    print("Done")
+        test_func = human_eval[task]["test"]
+        entry_point = f"check({human_eval[task]['entry_point']})"
+        predictions.append({
+            "task_id"   : task,
+            "prediction": [prompt + gen for gen in task_generations],
+            "tests"     : ["\n" + test_func + "\n" + entry_point]
+        })
+
+    logger.info(
+        f"Finished generating predictions, saving to {working_dir.joinpath('predictions.jsonl')}")
+    with working_dir.joinpath('predictions.jsonl').open('w') as f:
+        for pred in predictions:
+            f.write(json.dumps(pred) + '\n')
+
     # Evaluate completions with "code_eval" metric
-    pass_at_k, _ = code_eval_metric.compute(
-        references=references, predictions=generations, num_workers=args.num_workers
-    )
-    print(f"Results: {pass_at_k}")
+    if not no_code_eval:
+        logger.info(f"Evaluating {len(predictions)} Code Predictions")
+        results = evaluate_code(
+            predictions,
+            cfg.seq_per_sample,
+            cfg.num_workers,
+            3.0
+        )
+        logger.info(f"Saving results to {working_dir.joinpath('execution_results.json')}")
+        with working_dir.joinpath('execution_results.json').open('w') as f:
+            json.dump(
+                results,
+                f,
+                indent=True
+            )
 
-    # Save results to json file
-    with open(args.output_file, "w") as fp:
-        json.dump(pass_at_k, fp)
+    # # Save results to json file
+    # with working_dir.joinpath('out.json').open('w') as fp:
+    #     json.dump(pass_at_k, fp)
 
 
 # For some reason the folliwng seems to be necessary sometimes for code_eval to work nice with multiprocessing

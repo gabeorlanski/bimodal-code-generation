@@ -46,7 +46,7 @@ def train_from_cfg(cfg):
 
     setup_global_logging(
         'train',
-        new_cwd.joinpath('logs'),
+        new_cwd,
         debug=cfg.debug,
         rank=int(os.environ.get('LOCAL_RANK', '-1')),
         world_size=int(os.environ.get("WORLD_SIZE", 1)),

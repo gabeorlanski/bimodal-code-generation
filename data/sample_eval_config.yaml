@@ -1,0 +1,62 @@
+seed: 1
+is_checkpoint: false
+model_path: best_models/MBPP.FinetuneSO.ParrotSmall.PythonTitleRepeat.FineTune
+seq_per_sample: 100
+remove_input_ids: true
+splits:
+- test
+- validation
+project: so-code-gen
+batch_size: 200
+generation:
+  max_new_tokens: 256
+  do_sample: true
+  temperature: 0.5
+  top_p: 0.95
+  top_k: 50
+postprocessors:
+- strip: {}
+task:
+  name: mbpp
+  postprocessors:
+  - split:
+      split_phrase: '#Solution:'
+  eval_splits:
+  - test
+  - validation
+  dump_name: python_title
+processor:
+  name: stackoverflow
+  params:
+    answer_sorting: accepted
+    answers_per_sample: -1
+    repeat_question_for_each_answer: title
+    good_answer_cutoff: 3
+    bad_answer_cutoff: -1
+    answer_prompt: null
+    question_prompt: null
+    title_prompt: null
+    clean: false
+device: 0
+model: lvwerra/codeparrot-small
+training:
+  batch_size: 16
+  gradient_accumulation_steps: 4
+  learning_rate: 0.0001
+  save_steps: 2500
+  eval_steps: 500
+  max_steps: 10000
+  warmup_steps: 500
+  logging_steps: 25
+  lr_scheduler_type: linear
+raw_dump_path: data/dumps
+raw_dump_name: python
+tensorized_name: python_title
+meta:
+  ablation: PythonTitleRepeat
+  step: Eval
+  card_name: FinetuneSO.ParrotSmall
+  ablation_vals:
+    DumpName: PythonTitleRepeat
+name: FinetuneSO.ParrotSmall.PythonTitleRepeat.Eval
+group: MBPP
