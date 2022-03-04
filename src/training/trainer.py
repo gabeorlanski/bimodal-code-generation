@@ -160,7 +160,6 @@ class CustomTrainer(Seq2SeqTrainer):
             **kwargs,
     ):
         self.time_last_log = self.start_time = datetime.utcnow()
-        print(self.model.device)
         super(CustomTrainer, self).train(
             resume_from_checkpoint,
             trial,
@@ -180,7 +179,6 @@ class CustomTrainer(Seq2SeqTrainer):
             logger.debug(f"Eval Loop is called for {len(dataloader.dataset)} samples")
         else:
             logger.debug(f"Eval loop is called")
-        print(self.model.device)
         return super(CustomTrainer, self).evaluation_loop(
             dataloader,
             description,
