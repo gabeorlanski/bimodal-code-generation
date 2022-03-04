@@ -69,7 +69,7 @@ def make_experiment_card(
         step_dict: Dict,
         ablation: AblationCombination,
         card_overrides: Dict,
-        previous_step: Dict,
+        previous_steps: Dict,
         add_group_name: bool
 ) -> ExperimentCard:
     """
@@ -83,7 +83,7 @@ def make_experiment_card(
         ablation (Tuple): The ablation tuple. If there are no ablations, then
             the ablation name is "DOES_NOT_HAVE_ABLATIONS"
         card_overrides (Dict): The dict of card overrides to use.
-        previous_step (Dict): The dict of the previous step.
+        previous_steps (Dict): The dict of the previous step.
         add_group_name (bool): Add the group name to the experiment or not.
 
     Returns:
@@ -127,10 +127,11 @@ def make_experiment_card(
 
     # Create this metadata dict for allowing interpolation
     experiment_meta = {
+        "ablation"     : asdict(ablation),
+
         # Previous step is only in here so the current step can
         # use interpolation on it.
-        "previous_step": previous_step,
-        "ablation"     : asdict(ablation)
+        **previous_steps
     }
 
     # Make it into a dict config so we can use interpolation.
@@ -140,7 +141,7 @@ def make_experiment_card(
         "group"     : step_group,
         "base"      : step_base,
         "overrides" : deepcopy(card_overrides),
-        "depends_on": previous_step.get('save_name')
+        "depends_on": previous_steps.get('save_name')
     })
     OmegaConf.resolve(cfg)
 
@@ -241,7 +242,7 @@ def get_experiment_card_cfg_from_dict(
             command_fields = []
 
         for ablation_combo in ablations:
-            previous_step = {}
+            previous_steps = {}
             composed_experiments = ComposedExperiments(
                 name=f"{name}_{ablation_combo.name}" if has_ablations else name,
                 step_cards={},
@@ -259,12 +260,12 @@ def get_experiment_card_cfg_from_dict(
                     step_dict=step_dict,
                     ablation=ablation_combo,
                     card_overrides=deepcopy(experiment_overrides),
-                    previous_step=previous_step,
+                    previous_steps=previous_steps,
                     add_group_name=experiment_card_dict.get('add_name', True)
                 )
 
                 composed_experiments.step_cards[step_dict.get('name')] = card
-                previous_step = {'save_name': card.save_name, **asdict(card)}
+                previous_steps[step_dict.get('name')] = {'save_name': card.save_name, **asdict(card)}
             yield composed_experiments
 
 

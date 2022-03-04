@@ -71,7 +71,7 @@ experiments:
             temperature: 0.5
             top_p: 0.95
             top_k: 50
-          model_path: best_models/${..__META__.previous_step.save_name}
+          model_path: best_models/${..__META__.PreTrain.save_name}
       - name: FineTune
         base: greene_config
         group: MBPP
@@ -79,7 +79,7 @@ experiments:
           objective: 'lm'
           task: mbpp
           ++is_checkpoint: True
-          ++model_path: best_models/${..__META__.previous_step.save_name}
+          ++model_path: best_models/${..__META__.PreTrain.save_name}
           ++training:
             batch_size: 32
             gradient_accumulation_steps: 1
@@ -95,7 +95,7 @@ experiments:
             temperature: 0.5
             top_p: 0.95
             top_k: 50
-          model_path: best_models/${..__META__.previous_step.save_name}
+          model_path: best_models/${..__META__.FineTune.save_name}
       - name: Eval
         base: eval_config
         group: MBPP
@@ -106,7 +106,7 @@ experiments:
             max_new_tokens: 256
           task: mbpp
           remove_input_ids: true
-          ++model_path: best_models/${..__META__.previous_step.save_name}
+          ++model_path: best_models/${..__META__.FineTune.save_name}
     command:
       file: command_templates/finetune.txt
       kwargs:
