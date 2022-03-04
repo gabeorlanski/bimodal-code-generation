@@ -72,6 +72,7 @@ experiments:
             top_p: 0.95
             top_k: 50
           model_path: best_models/${..__META__.PreTrain.save_name}
+          batch_size: 200
       - name: FineTune
         base: greene_config
         group: MBPP
@@ -96,6 +97,7 @@ experiments:
             top_p: 0.95
             top_k: 50
           model_path: best_models/${..__META__.FineTune.save_name}
+          batch_size: 200
       - name: Eval
         base: eval_config
         group: MBPP
