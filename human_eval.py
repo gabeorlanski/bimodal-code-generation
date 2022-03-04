@@ -203,6 +203,7 @@ def main(
     tokenizer = AutoTokenizer.from_pretrained(cfg.model)
     _, model = load_model_from_cfg(cfg)
     pipe = pipeline("text-generation", model=model, tokenizer=tokenizer, device=cfg.device)
+    logger.info(f"Using {model.device}")
 
     # Generation settings
     gen_kwargs = {
