@@ -145,7 +145,7 @@ def setup_pretrain(cfg, tokenizer, train_args):
         ),
         max_samples=cfg.task.get('debug_max_samples', -1),
         seed=cfg.seed,
-        buffer_size=cfg.get('buffer_size', 25)
+        buffer_size=cfg.get('buffer_size', 1)
     )
 
     eval_dataset = load_dataset(

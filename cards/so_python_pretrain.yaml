@@ -37,6 +37,7 @@ experiments:
         base: pretrain_with_tensorized
         group: SO
         overrides:
+          ++buffer_size: 4
           ++tensorized_path: data/tensorized
           ++task.data_path: data/tensorized
           ++processor.params.clean: True

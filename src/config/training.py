@@ -55,8 +55,10 @@ def get_training_args_from_cfg(cfg: DictConfig) -> TrainingArguments:
 
     batch_size = training_args.pop("batch_size", None)
     if batch_size:
-        training_args["per_device_train_batch_size"] = batch_size
-        training_args["per_device_eval_batch_size"] = batch_size
+        if 'per_device_train_batch_size' not in training_args:
+            training_args["per_device_train_batch_size"] = batch_size
+        if 'per_device_eval_batch_size' not in training_args:
+            training_args["per_device_eval_batch_size"] = batch_size
     return TrainingArguments(**training_args)
 
 
