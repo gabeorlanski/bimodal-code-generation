@@ -204,6 +204,7 @@ def main(
     _, model = load_model_from_cfg(cfg)
     pipe = pipeline("text-generation", model=model, tokenizer=tokenizer, device=cfg.device)
     logger.info(f"Using {model.device}")
+    logger.info(f"Using {cfg.device=}")
 
     # Generation settings
     gen_kwargs = {
@@ -228,6 +229,10 @@ def main(
 
     n_tasks = debug_tasks if debug_tasks is not None else len(human_eval["test"])
     predictions = []
+    logger.info(f"{n_tasks=}")
+    logger.info(f"{cfg.batch_size=}")
+    logger.info(f"{cfg.seq_per_sample=}")
+
     for task in tqdm(range(n_tasks)):
         task_generations = []
         prompt = human_eval[task]["prompt"].strip()
