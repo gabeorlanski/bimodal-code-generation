@@ -3,7 +3,10 @@ from pathlib import Path
 from typing import Dict, Optional, Union, Tuple, List, Any
 import logging
 
+import psutil
+import torch
 from datasets import Dataset
+import datasets
 from omegaconf import DictConfig, OmegaConf
 from torch.utils.data import DataLoader
 from transformers import TrainerCallback, ProgressCallback
@@ -12,6 +15,8 @@ from transformers.integrations import WandbCallback
 from tqdm import tqdm
 import collections
 from datetime import datetime, timedelta
+from transformers.file_utils import is_datasets_available
+from transformers.trainer_pt_utils import IterableDatasetShard
 
 from src.config import TrackingCallback, is_tracking_enabled
 
@@ -131,6 +136,8 @@ class CustomTrainer(Seq2SeqTrainer):
                 self.state.global_step / elapsed_start, 3
             )
 
+            logs['train_ram_pct'] = psutil.virtual_memory()[2]
+
             self.last_runtime_step = self.state.global_step
             self.time_last_log = datetime.utcnow()
             print_dict.update(logs)
@@ -146,7 +153,11 @@ class CustomTrainer(Seq2SeqTrainer):
         if print_dict:
             logger.info(f"Step {self.state.global_step}:")
             for k, v in print_dict.items():
-                logger.info(f"\t{k:>32}={v:0.3f}")
+                if k == 'learning_rate':
+                    log_value_str = f"{v:.3e}"
+                else:
+                    log_value_str = f"{v:0.3f}"
+                logger.info(f"\t{k:>32}={log_value_str}")
 
         if self.control.should_save:
             self._save_checkpoint(model, trial, metrics=metrics)
@@ -179,6 +190,9 @@ class CustomTrainer(Seq2SeqTrainer):
             logger.debug(f"Eval Loop is called for {len(dataloader.dataset)} samples")
         else:
             logger.debug(f"Eval loop is called")
+
+        ram_pct = f"{psutil.virtual_memory()[2]:0.2f}%"
+        logger.info(f"RAM Used={ram_pct:<6}")
         return super(CustomTrainer, self).evaluation_loop(
             dataloader,
             description,
@@ -197,6 +211,10 @@ class CustomTrainer(Seq2SeqTrainer):
             logger.debug(f"{isinstance(self.eval_dataset, collections.abc.Sized)=}")
 
         return super(CustomTrainer, self).get_eval_dataloader(eval_dataset)
+
+    def training_step(self, model, inputs: Dict[str, Union[torch.Tensor, Any]]):
+        print(f"{self.args.world_size=} {self.args.process_index=}: {inputs['input_ids'][0, :5]}")
+        return super(CustomTrainer, self).training_step(model, inputs)
 
 
 def create_log_metric_message(

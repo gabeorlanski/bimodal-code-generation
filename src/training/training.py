@@ -144,9 +144,11 @@ def setup_pretrain(cfg, tokenizer, train_args):
                 * train_args.world_size
         ),
         max_samples=cfg.task.get('debug_max_samples', -1),
-        seed=cfg.seed,
         buffer_size=cfg.get('buffer_size', 1)
     )
+    logger.info("Tensorized Task Params:")
+    for k, v in train_dataset.params.items():
+        logger.info(f"\t{k:>24}={v}")
 
     eval_dataset = load_dataset(
         'json',

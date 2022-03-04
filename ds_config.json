@@ -36,7 +36,8 @@
         "contiguous_gradients": true,
         "round_robin_gradients": true,
         "offload_optimizer": {
-            "device": "cpu"
+            "device": "cpu",
+            "pin_memory": true
         }
 
     },

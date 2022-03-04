@@ -8,6 +8,6 @@ project: so-code-gen
 name: ???
 group: ???
 tracking:
-  watch: "all"
+  watch: "gradients"
   project: ${..project}
   log_model: false

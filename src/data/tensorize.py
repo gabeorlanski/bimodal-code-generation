@@ -70,8 +70,7 @@ class TensorizedTask(IterableDataset):
             sequence_length=1024,
             effective_batch_size: int = 16,
             max_samples: int = -1,
-            seed=1,
-            buffer_size=25,
+            buffer_size=1,
     ):
         self.name = name
         self.data_file_path = data_path.joinpath(f'{name}.jsonl')
@@ -80,7 +79,6 @@ class TensorizedTask(IterableDataset):
         self.sequence_length = sequence_length
         self.tokenizer = tokenizer
         self.buffer_size = effective_batch_size * self.sequence_length * buffer_size
-        self.rng = np.random.default_rng(seed)
         self.lm_concat_delim = self.tokenizer.encode('\n')
         self.length = self._get_length(data_path, max_instances=max_samples)
 
@@ -119,36 +117,46 @@ class TensorizedTask(IterableDataset):
 
         while more_examples:
             buffer = []
-            buffer_size = 0
             while len(buffer) < self.buffer_size:
                 try:
                     current_instance = next(data_iter)
-                    buffer.append(
+                    buffer.extend(
                         current_instance['input_ids']
                         + self.lm_concat_delim
                         + current_instance["labels"]
                         + [self.tokenizer.eos_token_id]
                     )
-                    buffer_size += len(buffer[-1])
                 except StopIteration:
                     more_examples = False
                     break
-
-            self.rng.shuffle(buffer)
-            all_tokens = [t for s in buffer for t in s]
-
-            for i in range(0, len(all_tokens), self.sequence_length):
-                input_ids = all_tokens[i: i + self.sequence_length]
+            for i in range(0, len(buffer), self.sequence_length):
+                input_ids = buffer[i: i + self.sequence_length]
                 if len(input_ids) == self.sequence_length:
                     total_yielded += 1
                     yield {
-                        'input_ids'     : input_ids,
+                        'input_ids': input_ids,
                         # 'attention_mask': torch.tensor([1] * len(input_ids)),
-                        'labels'        : input_ids,
+                        'labels'   : input_ids,
                     }
+            # Memory Management
+            del buffer
 
     def __len__(self):
         return self.length
+
+    @property
+    def params(self):
+        return dict(
+            name=self.name,
+            data_file_path=self.data_file_path,
+            objective=self.objective,
+            concat_token_id=self.concat_token_id,
+            sequence_length=self.sequence_length,
+            tokenizer=self.tokenizer.name_or_path,
+            buffer_size=self.buffer_size,
+            lm_concat_delim=self.lm_concat_delim,
+            length=self.length,
+        )
 
 
 def tensorize(
