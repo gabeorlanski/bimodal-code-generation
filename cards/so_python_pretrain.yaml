@@ -6,6 +6,7 @@ experiments:
       ++model: 'lvwerra/codeparrot-small'
       +processor: stackoverflow
       ++raw_dump_path: data/dumps
+      is_checkpoint: true
     ablations:
       - DumpName:
           Python:
