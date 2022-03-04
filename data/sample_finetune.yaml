@@ -1,0 +1,93 @@
+data_args:
+  seq_length: 512
+data_path: data
+debug: false
+device: 0
+generation:
+  do_sample: true
+  max_length: 1024
+  min_length: 75
+  num_return_sequences: 25
+  temperature: 0.5
+  top_k: 50
+  top_p: 0.95
+group: MBPP
+is_checkpoint: true
+meta:
+  ablation: Random
+  ablation_vals:
+    DumpName: Random
+  card_name: FinetuneSO.ParrotSmall
+  step: FineTune
+metrics:
+- exact-match
+- bleu
+model: lvwerra/codeparrot-small
+model_path: best_models/SO.TestSOData
+name: FinetuneSO.ParrotSmall.Random.FineTune
+numpy_seed: 2
+objective: lm
+preprocessors:
+- add-prefix:
+    prefix: 'You are an expert Python programmer, and here is your task: '
+- add-suffix:
+    key: input_sequence
+    suffix: '#Solution:
+
+      '
+processor:
+  name: stackoverflow
+  params:
+    answer_prompt: null
+    answer_sorting: accepted
+    answers_per_sample: -1
+    bad_answer_cutoff: -1
+    clean: false
+    good_answer_cutoff: 3
+    question_prompt: null
+    repeat_question_for_each_answer: none
+    title_prompt: null
+project: so-code-gen
+pytorch_seed: 3
+raw_dump_name: random
+raw_dump_path: data/dumps
+seed: 1
+task:
+  dump_name: random
+  eval_splits:
+  - test
+  - validation
+  name: mbpp
+  postprocessors:
+  - split:
+      split_phrase: '#Solution:'
+tensorized_name: random
+tracking:
+  entity: nyu-code-research
+  log_model: true
+  project: so-code-gen
+  watch: gradients
+training:
+  batch_size: 2
+  ddp_find_unused_parameters: false
+  disable_tqdm: true
+  eval_accumulation_steps: 1
+  evaluation_strategy: epoch
+  fp16: true
+  gradient_accumulation_steps: 1
+  greater_is_better: false
+  group_by_length: true
+  learning_rate: 5.0e-05
+  load_best_model_at_end: true
+  logging_first_step: true
+  logging_steps: 10
+  lr_scheduler_type: linear
+  max_grad_norm: 1.0
+  metric_for_best_model: eval_loss
+  num_train_epochs: 5
+  output_dir: models
+  save_strategy: epoch
+  save_total_limit: 2
+  warmup_ratio: 0.05
+  weight_decay: 0.1
+  xpu_backend: ccl
