@@ -243,7 +243,7 @@ def evaluate(
         cfg.eval_run_name = os.getenv('WANDB_RUN_NAME')
 
     with out_path.joinpath(f'eval_config.yaml').open('w') as f:
-        f.write(OmegaConf.to_yaml(cfg))
+        f.write(OmegaConf.to_yaml(cfg,resolve=True,sort_keys=True))
     #####################################################################
     # TRACKING CODE TO REMOVE ON RELEASE                                #
     #####################################################################

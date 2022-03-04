@@ -110,7 +110,7 @@ class CustomTrainer(Seq2SeqTrainer):
         if self.args.should_save:
             cfg_path = Path(output_dir).joinpath('config.yaml')
             with cfg_path.open('w', encoding='utf-8') as f:
-                f.write(OmegaConf.to_yaml(self.cfg, resolve=True))
+                f.write(OmegaConf.to_yaml(self.cfg, resolve=True,sort_keys=True))
 
     def _maybe_log_save_evaluate(self, tr_loss, model, trial, epoch, ignore_keys_for_eval):
         print_dict = {}
@@ -211,10 +211,6 @@ class CustomTrainer(Seq2SeqTrainer):
             logger.debug(f"{isinstance(self.eval_dataset, collections.abc.Sized)=}")
 
         return super(CustomTrainer, self).get_eval_dataloader(eval_dataset)
-
-    def training_step(self, model, inputs: Dict[str, Union[torch.Tensor, Any]]):
-        print(f"{self.args.world_size=} {self.args.process_index=}: {inputs['input_ids'][0, :5]}")
-        return super(CustomTrainer, self).training_step(model, inputs)
 
 
 def create_log_metric_message(

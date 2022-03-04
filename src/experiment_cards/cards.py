@@ -135,7 +135,7 @@ class ComposedExperiments:
                         cfg['name'] = experiment.name
                         cfg['group'] = experiment.group
                     self._cfg[name] = OmegaConf.to_object(cfg)
-                    f.write(OmegaConf.to_yaml(cfg, resolve=True))
+                    f.write(OmegaConf.to_yaml(cfg, resolve=True,sort_keys=True))
 
     def get_command(self, idx: int, output_path: Path):
         if not self.command_template:

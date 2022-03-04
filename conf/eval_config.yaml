@@ -19,6 +19,7 @@ tracking:
   watch: "gradients"
   project: ${..project}
   log_model: false
+  entity: nyu-code-research
 
 postprocessors:
   - strip: { }

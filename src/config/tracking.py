@@ -149,7 +149,7 @@ class TrackingCallback(TrainerCallback):
                     fake_trainer.save_model(temp_dir)
                 else:
                     with Path(temp_dir).joinpath('config.yaml').open('w', encoding='utf-8') as f:
-                        f.write(OmegaConf.to_yaml(self.cfg, resolve=True))
+                        f.write(OmegaConf.to_yaml(self.cfg, resolve=True, sort_keys=True))
 
                 metadata = (
                     {
@@ -211,7 +211,7 @@ def setup_tracking_env_from_cfg(cfg: DictConfig):
 
     if cfg.get('old_name'):
         run_name = cfg.get('old_name')
-    elif cfg.group != cfg.task.name.upper():
+    elif not cfg.tracking.get('force_name', False) and cfg.group != cfg.task.name.upper():
         run_name = f"{cfg.task.name.upper()}.{run_name}"
 
     if cfg.debug:

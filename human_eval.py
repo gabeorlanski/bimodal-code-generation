@@ -7,9 +7,10 @@ import re
 
 import numpy as np
 import torch
+import wandb
 import yaml
 from datasets import load_dataset, load_metric
-from omegaconf import OmegaConf, open_dict
+from omegaconf import OmegaConf, open_dict, DictConfig
 from tqdm import tqdm
 import click
 
@@ -25,8 +26,9 @@ from transformers import (
     set_seed,
 )
 
-from src.common import PROJECT_ROOT, setup_global_logging
-from src.config.model import load_model_from_cfg
+from src.common import PROJECT_ROOT, setup_global_logging, flatten
+from src.config import load_model_from_cfg, setup_tracking_env_from_cfg, get_config_for_tracking, \
+    get_run_base_name_from_cfg
 from src.evaluation.code_eval import evaluate_code
 
 EOF_STRINGS = ["\nclass", "\ndef", "\n#", "\n@", "\nprint", "\nif"]
@@ -170,6 +172,8 @@ def main(
     logger.info(f"Working directory is {working_dir}")
     logger.debug(f"{cfg.seq_per_sample} sequences to be generated per sample.")
 
+    setup_tracking_env_from_cfg(cfg)
+
     transformers.logging.set_verbosity_error()
     # enables code execution in code_eval metric
     os.environ["HF_ALLOW_CODE_EVAL"] = '0' if no_code_eval else '1'
@@ -196,7 +200,6 @@ def main(
     # Load evaluation dataset and metric
     logger.info(f"Loading the dataset")
     human_eval = load_dataset("openai_humaneval")['test']
-    code_eval_metric = load_metric("code_eval")
 
     # Generate completions for evaluation set
     logger.info(f"Starting Generation")
@@ -221,7 +224,7 @@ def main(
 
     logger.info(
         f"Finished generating predictions, saving to {working_dir.joinpath('predictions.jsonl')}")
-    with working_dir.joinpath('predictions.jsonl').open('w') as f:
+    with working_dir.joinpath('test.jsonl').open('w') as f:
         for pred in predictions:
             f.write(json.dumps(pred) + '\n')
 
@@ -241,10 +244,55 @@ def main(
                 f,
                 indent=True
             )
+    else:
+        results = {}
 
-    # # Save results to json file
-    # with working_dir.joinpath('out.json').open('w') as fp:
-    #     json.dump(pass_at_k, fp)
+    with working_dir.joinpath('eval_config.yaml').open('w') as f:
+        f.write(OmegaConf.to_yaml(cfg, resolve=True, sort_keys=True))
+
+    if isinstance(cfg.tracking, (dict, DictConfig)) and not no_code_eval:
+        os.environ["WANDB_API_KEY"] = open('wandb_secret.txt').read().strip()
+        wandb_run = wandb.init(
+            job_type='code_eval',
+            name=os.getenv('WANDB_RUN_NAME'),
+            id=os.getenv('WANDB_RUN_ID'),
+            project=os.getenv('WANDB_PROJECT'),
+            group=f"HUMAN_EVAL[execution]",
+            config=get_config_for_tracking(cfg),
+            entity=os.getenv('WANDB_ENTITY'),
+            # id=run_id
+        )
+        metrics_to_log_dict = {
+            'test': {
+                "outcome_pcts": results['outcome_pcts'],
+                **results['overview']
+            }
+        }
+
+        # WandB does not like logging things from the same step at different
+        # times. Hence the ugly dict.
+        wandb_run.log(flatten(metrics_to_log_dict, sep='/'), step=1)
+
+        preds_artifact = wandb.Artifact(
+            f"{get_run_base_name_from_cfg(cfg, 'preds')}-{os.getenv('WANDB_RUN_ID')}",
+            type='predictions')
+
+        preds_artifact.add_file(str(
+            working_dir.joinpath('test.jsonl').resolve().absolute()
+        ))
+        preds_artifact.add_file(
+            str(working_dir.joinpath(f'eval_config.yaml').resolve().absolute()))
+        wandb_run.log_artifact(preds_artifact)
+
+        metric_artifact = wandb.Artifact(
+            f"{get_run_base_name_from_cfg(cfg, 'execution')}-{os.getenv('WANDB_RUN_ID')}",
+            type='execution_metrics')
+        metric_artifact.add_file(str(
+            working_dir.joinpath('execution_results.json').resolve().absolute()
+        ))
+        wandb_run.log_artifact(metric_artifact)
+
+        wandb_run.finish()
 
 
 # For some reason the folliwng seems to be necessary sometimes for code_eval to work nice with multiprocessing

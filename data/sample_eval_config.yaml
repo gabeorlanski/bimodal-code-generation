@@ -8,6 +8,11 @@ splits:
 - validation
 project: so-code-gen
 batch_size: 200
+tracking:
+  watch: all
+  project: so-code-gen
+  log_model: true
+  entity: nyu-code-research
 generation:
   max_new_tokens: 256
   do_sample: true

@@ -2,7 +2,11 @@ debug: false
 project: so-code-gen
 name: Pretrain.ParrotSmall.DB
 group: SO
-tracking: false
+tracking:
+  watch: all
+  project: so-code-gen
+  log_model: true
+  entity: nyu-code-research
 task:
   name: so
   data_path: data/tensorized
@@ -18,7 +22,7 @@ task:
   answer_prompt: null
   question_prompt: null
   join_answers_with_eos_token: false
-  sequence_length: 512
+  sequence_length: 1024
   seed: 1
 objective: lm
 data_args:
@@ -40,13 +44,13 @@ generation:
   top_p: 0.95
   top_k: 50
 training:
-  batch_size: 4
+  batch_size: 1
   output_dir: models
   learning_rate: 0.0001
   logging_steps: 25
   warmup_ratio: 0.01
   weight_decay: 0.1
-  gradient_accumulation_steps: 2
+  gradient_accumulation_steps: 5
   lr_scheduler_type: linear
   eval_accumulation_steps: 1
   metric_for_best_model: eval_loss
@@ -63,11 +67,12 @@ training:
   disable_tqdm: true
   max_grad_norm: 1.0
   ddp_find_unused_parameters: false
-  max_steps: 10000
-  save_steps: 2500
-  eval_steps: 500
-  warmup_steps: 500
+  max_steps: 100
+  save_steps: 750
+  eval_steps: 750
+  warmup_steps: 25
   deepspeed: ds_config.json
+  dataloader_pin_memory: true
 metrics:
 - exact-match
 - bleu
