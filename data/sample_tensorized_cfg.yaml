@@ -10,9 +10,9 @@ tracking:
 task:
   name: so
   data_path: data/tensorized
-  dump_name: serial
-  train_path: data/tensorized/serial.jsonl
-  validation_path: data/tensorized/serial.val.jsonl
+  dump_name: python
+  train_path: data/tensorized/python.jsonl
+  validation_path: data/tensorized/python.val.jsonl
   max_samples: null
   answer_sorting: accepted
   answers_per_sample: -1
@@ -27,7 +27,7 @@ task:
 objective: lm
 data_args:
   seq_length: 1024
-model: lvwerra/codeparrot-small
+model: lvwerra/codeparrot
 model_path: null
 is_checkpoint: false
 data_path: data
@@ -74,13 +74,13 @@ training:
   deepspeed: ds_config.json
   dataloader_pin_memory: true
 metrics:
-- exact-match
-- bleu
-preprocessors: []
+  - exact-match
+  - bleu
+preprocessors: [ ]
 raw_dump_name: db
 tensorized_name: db
 raw_dump_path: data/dumps
-postprocessors: []
+postprocessors: [ ]
 processor:
   name: stackoverflow
   params:
