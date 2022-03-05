@@ -154,3 +154,28 @@ class TestStackOverflowProcessor:
             assert tokenizer.decode(result[i]['input_ids']) == 'Title\nBody'
             assert tokenizer.decode(result[i]['labels']) == v
             assert len(result[i]['input_ids']) == sum(result[i]['attention_mask'])
+
+    @pytest.mark.parametrize('remove_modality', [None, "CODE", "NL"])
+    @pytest.mark.parametrize('clean', [True, False], ids=['Clean', 'Dirty'])
+    def test_clean(self, remove_modality, clean):
+        processor = stackoverflow.StackOverflowProcessor(
+            clean=clean,
+            remove_modality=remove_modality
+        )
+
+        input_text = "<p>NL <code> Inline Code</code></p>\n<pre><code>CodeBlock</code></pre>"
+        result = processor._clean_html_body(input_text)
+        if not clean:
+            if remove_modality is None:
+                assert result == input_text
+            elif remove_modality == 'CODE':
+                assert result == "<p>NL <code> Inline Code</code></p>"
+            else:
+                assert result == "<pre><code>CodeBlock</code></pre>"
+        else:
+            if remove_modality is None:
+                assert result == "NL  Inline Code\nCodeBlock"
+            elif remove_modality == "CODE":
+                assert result == "NL  Inline Code"
+            else:
+                assert result == "CodeBlock"

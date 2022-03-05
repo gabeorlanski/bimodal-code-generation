@@ -5,32 +5,25 @@ experiments:
       ++device: 0
       ++model: 'lvwerra/codeparrot-small'
       +processor: stackoverflow
+      ++processor.params.repeat_question_for_each_answer: 'title'
       ++raw_dump_path: data/dumps
       is_checkpoint: true
     ablations:
       - DumpName:
-          Python:
-            ++task.dump_name: python
-            ++raw_dump_name: python
-            ++tensorized_name: python
-          PythonTitleRepeat:
+          PythonTitleShuffle:
             ++task.dump_name: python_title
             ++raw_dump_name: python
             ++tensorized_name: python_title
-            ++processor.params.repeat_question_for_each_answer: 'title'
-          PythonFullRepeat:
-            ++task.dump_name: python_full
+          PythonNoCode:
+            ++task.dump_name: python_no_code
             ++raw_dump_name: python
-            ++tensorized_name: python_full
-            ++processor.params.repeat_question_for_each_answer: 'full'
-          Random:
-            ++task.dump_name: random
-            ++raw_dump_name: random
-            ++tensorized_name: random
-          DB:
-            ++task.dump_name: db
-            ++raw_dump_name: db
-            ++tensorized_name: db
+            ++tensorized_name: python_no_code
+            ++processor.params.remove_modality: CODE
+          PythonNoNL:
+            ++task.dump_name: python_no_nl
+            ++raw_dump_name: python
+            ++tensorized_name: python_no_nl
+            ++processor.params.remove_modality: NL
     steps:
       - name: PreTrain
         add_name: False
@@ -110,7 +103,7 @@ experiments:
           remove_input_ids: true
           ++model_path: best_models/${..__META__.FineTune.save_name}
     command:
-      file: command_templates/finetune.txt
+      file: command_templates/deepspeed_pretrain.txt
       kwargs:
         num_return_sequences: 200
         task_name: MBPP

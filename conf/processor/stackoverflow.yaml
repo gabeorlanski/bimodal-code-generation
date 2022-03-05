@@ -11,3 +11,4 @@ params:
   question_prompt: null
   title_prompt: null
   clean: false
+  remove_modality: none

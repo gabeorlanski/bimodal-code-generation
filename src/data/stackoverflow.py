@@ -20,7 +20,9 @@ class StackOverflowProcessor:
             answer_prompt: str = None,
             question_prompt: str = None,
             title_prompt: str = None,
-            clean: bool = False
+            clean: bool = True,
+            remove_modality: str = None
+
     ):
         self.answer_sorting = answer_sorting.lower()
         if self.answer_sorting not in ['ascending', 'descending', 'accepted']:
@@ -38,6 +40,31 @@ class StackOverflowProcessor:
         self.answers_per_sample = answers_per_sample
         self.lm_concat_delim = '\n'
         self.clean = clean
+        self.remove_modality = remove_modality.upper() if remove_modality else None
+        if self.remove_modality not in ['CODE', 'NL']:
+            self.remove_modality = None
+
+    def _clean_html_body(self, body):
+        if not self.clean and self.remove_modality is None:
+            return body
+
+        soup = BeautifulSoup(body, 'lxml').find('body')
+
+        if self.remove_modality is None and self.clean:
+            return soup.text.strip()
+
+        tag_name = 'pre' if self.remove_modality == "CODE" else 'p'
+
+        # Remove the tags from the BS4 doc
+        for t in soup.find_all(tag_name):
+            t.extract()
+
+        if self.clean:
+            return soup.text.strip()
+
+        # Do not want to clean the doc, but do not want the <body> tag. So need
+        # to manually construct.
+        return '\n'.join(map(repr, soup.find_all(recursive=False))).strip()
 
     def make_instances_from_question(self, sample: Dict) -> List[Dict]:
         """
@@ -46,13 +73,9 @@ class StackOverflowProcessor:
         # Set to -1 if there is no accepted answer because it is impossible.
         accepted_answer_id = sample['accepted_answer'] or "-1"
 
-        if self.clean:
-            soup = BeautifulSoup(sample['body'], 'lxml')
-            sample['body'] = soup.text
-
-            for k in sample['answers'].keys():
-                soup = BeautifulSoup(sample['answers'][k]['body'], 'lxml')
-                sample['answers'][k]['body'] = soup.text
+        sample['body'] = self._clean_html_body(sample['body'])
+        for k in sample['answers'].keys():
+            sample['answers'][k]['body'] = self._clean_html_body(sample['answers'][k]['body'])
 
         # Do a list comprehension to eliminate the accepted answer
         accepted_answer = None

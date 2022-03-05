@@ -8,14 +8,9 @@ from copy import deepcopy, copy
 from dataclasses import dataclass, field, asdict
 from functools import partial
 from pathlib import Path
-from typing import List, Dict, Callable
 import multiprocessing as mp
-import numpy as np
-
-import torch
 from torch.utils.data import IterableDataset
 from transformers import AutoTokenizer, PreTrainedTokenizer
-from src.data.parse_so.util import log_process
 from tqdm import tqdm
 from src.common.file_util import human_readable_size
 import psutil
