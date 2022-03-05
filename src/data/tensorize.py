@@ -1,14 +1,14 @@
 import json
 import logging
+import math
 import os
-import pickle
-import random
-import threading
 from copy import deepcopy, copy
 from dataclasses import dataclass, field, asdict
 from functools import partial
 from pathlib import Path
 import multiprocessing as mp
+
+import torch
 from torch.utils.data import IterableDataset
 from transformers import AutoTokenizer, PreTrainedTokenizer
 from tqdm import tqdm
@@ -110,6 +110,8 @@ class TensorizedTask(IterableDataset):
         more_examples = True
         total_yielded = 0
 
+        worker_info = torch.utils.data.get_worker_info()
+
         while more_examples:
             buffer = []
             while len(buffer) < self.buffer_size:
@@ -124,14 +126,27 @@ class TensorizedTask(IterableDataset):
                 except StopIteration:
                     more_examples = False
                     break
-            for i in range(0, len(buffer), self.sequence_length):
-                input_ids = buffer[i: i + self.sequence_length]
+
+            total_buffer_slices = len(buffer) // self.sequence_length
+            if worker_info is None:
+                start = 0
+                end = total_buffer_slices
+            else:
+                slices_per_worker = int(math.ceil(total_buffer_slices / worker_info.num_workers))
+                worker_id = worker_info.id
+                start = worker_id * slices_per_worker
+                end = min(total_buffer_slices, start + slices_per_worker)
+                print(f"{len(buffer)=} {total_buffer_slices=} {worker_id=} {start=} {end=}")
+            for i in range(start, end):
+                token_start = i * self.sequence_length
+                token_end = (i + 1) * self.sequence_length
+                input_ids = buffer[token_start:token_end]
                 if len(input_ids) == self.sequence_length:
                     total_yielded += 1
                     yield {
-                        'input_ids': input_ids,
+                        'input_ids': torch.tensor(input_ids),
                         # 'attention_mask': torch.tensor([1] * len(input_ids)),
-                        'labels'   : input_ids,
+                        'labels'   : torch.tensor(input_ids),
                     }
             # Memory Management
             del buffer
@@ -166,59 +181,74 @@ def tensorize(
 ):
     logger.info(f"Tensorizing {raw_data_path}")
     # Setup the queues
-
+    max_batches_in_memory = 50000
+    more_examples = True
     logger.info(f"Reading {raw_data_path}")
     lines = 0
     buffer = []
     batches = []
     batches_found = 0
     last_logged_batch = 0
-    for line in map(json.loads, raw_data_path.open('r')):
-        lines += 1
-        buffer.append(line)
-        if len(buffer) == batch_size:
-            batches.append(deepcopy(buffer))
-            del buffer
-            buffer = []
-            batches_found += 1
-
-        if lines % 50000 == 0:
-            logger.info(f"Read {lines} lines. ")
-
-        if batches_found != last_logged_batch and batches_found % 1000 == 0:
-            logger.info(f"Found {batches_found} batches")
-            last_logged_batch = batches_found
-            logger.info(f"RAM Used={psutil.virtual_memory()[2]}%")
-            logger.info(f"CPU Used={psutil.getloadavg()[-1] / os.cpu_count() * 100:0.2f}%")
-        if debug_max_samples != -1 and lines >= debug_max_samples:
-            logger.warning(f"Stopping at {lines} for debugging")
-            break
-
-    logger.info(f"Read {lines} lines")
-    logger.info(f"Yielded {batches_found} batches")
-
-    tokenizer = AutoTokenizer.from_pretrained(model_name, use_fast=False)
-    map_fn = partial(
-        batch_process,
-        processor=data_processor,
-        tokenizer=tokenizer
-    )
+    raw_lines_iter = iter(raw_data_path.open('r').readlines())
 
     tensorized_data = TensorizedDatasetCFG(out_path.stem)
     out_file_path = out_path.joinpath(f"{output_name}.jsonl")
     finished = 0
-    with out_file_path.open('w') as out_file:
+    out_fd = out_file_path.open('w')
+    while more_examples:
+        while len(batches) < max_batches_in_memory:
+            try:
+                line = json.loads(next(raw_lines_iter))
+            except StopIteration:
+                more_examples = False
+                break
+            lines += 1
+            buffer.append(line)
+            if len(buffer) == batch_size:
+                batches.append(deepcopy(buffer))
+                del buffer
+                buffer = []
+                batches_found += 1
+
+            if lines % 50000 == 0:
+                logger.info(f"Read {lines} lines. ")
+
+            if batches_found != last_logged_batch and batches_found % 1000 == 0:
+                logger.info(f"Found {batches_found} batches")
+                last_logged_batch = batches_found
+                logger.info(f"RAM Used={psutil.virtual_memory()[2]}%")
+                logger.info(f"CPU Used={psutil.getloadavg()[-1] / os.cpu_count() * 100:0.2f}%")
+            if debug_max_samples != -1 and lines >= debug_max_samples:
+                logger.warning(f"Stopping at {lines} for debugging")
+                more_examples = False
+                break
+        if buffer:
+            batches.append(buffer)
+            batches_found += 1
+        logger.info(f"Read {lines} lines")
+        logger.info(f"Yielded {batches_found} batches")
+
+        tokenizer = AutoTokenizer.from_pretrained(model_name, use_fast=False)
+        map_fn = partial(
+            batch_process,
+            processor=data_processor,
+            tokenizer=tokenizer
+        )
+
         with mp.Pool(num_workers) as pool:
             for result in tqdm(pool.imap(map_fn, batches), total=len(batches), desc='Tokenizing'):
                 for instance in result:
-                    out_file.write(json.dumps(instance) + '\n')
+                    out_fd.write(json.dumps(instance) + '\n')
                     tensorized_data.add_instance(instance)
                     finished += 1
                     if finished % 50000 == 0:
                         ram_pct = f"{psutil.virtual_memory()[2]:0.2f}%"
                         logger.debug(f"Found {finished:>8}"
                                      f"| RAM Used={ram_pct:<6}")
+        del batches
+        batches = []
 
+    out_fd.close()
     logger.info(f"{tensorized_data.total_tokens:e} total tokens found")
     logger.info(f"{tensorized_data.input_token_count:e} input tokens found")
     logger.info(f"{tensorized_data.target_token_count:e} target tokens found")

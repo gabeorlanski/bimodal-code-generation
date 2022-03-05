@@ -27,7 +27,7 @@ task:
 objective: lm
 data_args:
   seq_length: 1024
-model: lvwerra/codeparrot
+model: lvwerra/codeparrot-small
 model_path: null
 is_checkpoint: false
 data_path: data
@@ -67,6 +67,7 @@ training:
   disable_tqdm: true
   max_grad_norm: 1.0
   ddp_find_unused_parameters: false
+  dataloader_num_workers: 4
   max_steps: 100
   save_steps: 750
   eval_steps: 750

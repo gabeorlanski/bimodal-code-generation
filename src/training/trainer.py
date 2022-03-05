@@ -177,6 +177,8 @@ class CustomTrainer(Seq2SeqTrainer):
             ignore_keys_for_eval,
             **kwargs
         )
+    def training_step(self, model, inputs) -> torch.Tensor:
+        return super(CustomTrainer, self).training_step(model, inputs)
 
     def evaluation_loop(
             self,

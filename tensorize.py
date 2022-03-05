@@ -41,6 +41,7 @@ def tensorize_data(
     logger.info(f"Using processor {processor_name}")
     logger.info(f"Using model {model_name}")
     logger.debug(f"Using {num_workers} workers")
+    logger.info(f"{output_name=}")
 
     data_path = PROJECT_ROOT.joinpath(data_path)
     logger.info(f"Data path is {data_path}")
