@@ -126,8 +126,11 @@ def make_experiment_card(
     ))
 
     # Create this metadata dict for allowing interpolation
+    ablation_as_dict = asdict(ablation)
+    ablation_as_dict.update(ablation_as_dict.pop("ablation_values"))
+    ablation_as_dict['overrides'] = {k.replace('+',''):v for k,v in ablation_as_dict['overrides'].items()}
     experiment_meta = {
-        "ablation"     : asdict(ablation),
+        "ablation": ablation_as_dict,
 
         # Previous step is only in here so the current step can
         # use interpolation on it.
@@ -265,7 +268,9 @@ def get_experiment_card_cfg_from_dict(
                 )
 
                 composed_experiments.step_cards[step_dict.get('name')] = card
-                previous_steps[step_dict.get('name')] = {'save_name': card.save_name, **asdict(card)}
+                previous_steps[step_dict.get('name')] = {
+                    'save_name': card.save_name, **asdict(card)
+                }
             yield composed_experiments
 
 

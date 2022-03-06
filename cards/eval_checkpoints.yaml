@@ -1,0 +1,168 @@
+starting_commands: command_templates/sbatch_experiment.txt
+experiments:
+  FinetuneSO.ParrotSmall:
+    overrides:
+      ++device: 0
+      +disable_cache: True
+      ++tracking:
+        log_model: false
+      ++model: 'lvwerra/codeparrot-small'
+      ++num_proc: 4
+      ++training:
+        batch_size: 32
+        gradient_accumulation_steps: 1
+      is_checkpoint: true
+
+    ablations:
+      - DumpName:
+          PythonTitleShuffle:
+            ++task.dump_name: python_title
+            ++raw_dump_name: python
+            ++tensorized_name: python_title
+          PythonNoCode:
+            ++task.dump_name: python_no_code
+            ++raw_dump_name: python
+            ++tensorized_name: python_no_code
+            ++processor.params.remove_modality: CODE
+          PythonNoNL:
+            ++task.dump_name: python_no_nl
+            ++raw_dump_name: python
+            ++tensorized_name: python_no_nl
+            ++processor.params.remove_modality: NL
+      - Checkpoint:
+          Chk2.5K:
+            ++checkpoint: 2500
+          Chk5K:
+            ++checkpoint: 5000
+          Chk7.5K:
+            ++checkpoint: 7500
+    steps:
+      - name: HumanEval
+        add_name: False
+        base: human_eval
+        group: HUMAN_EVAL
+        overrides:
+          ++is_checkpoint: true
+          ++generation:
+            max_new_tokens: 256
+            do_sample: true
+            temperature: 0.5
+            top_p: 0.95
+            top_k: 50
+          batch_size: 200
+          model_path: outputs/so/FinetuneSO.ParrotSmall.${..__META__.ablation.DumpName}/models/checkpoint-${..__META__.ablation.overrides.checkpoint}
+      - name: FineTune
+        base: greene_config
+        group: MBPP
+        overrides:
+          objective: 'lm'
+          task: mbpp
+          ++is_checkpoint: True
+          ++model_path: outputs/so/FinetuneSO.ParrotSmall.${..__META__.ablation.DumpName}/models/checkpoint-${..__META__.ablation.overrides.checkpoint}
+          ++training:
+            batch_size: 32
+            gradient_accumulation_steps: 1
+            learning_rate: 5e-5
+      - name: HEFineTune
+        base: human_eval
+        group: HUMAN_EVAL
+        overrides:
+          is_checkpoint: true
+          ++generation:
+            max_new_tokens: 256
+            do_sample: true
+            temperature: 0.5
+            top_p: 0.95
+            top_k: 50
+          model_path: best_models/${..__META__.FineTune.save_name}
+          batch_size: 200
+      - name: Eval
+        base: eval_config
+        group: MBPP
+        overrides:
+          batch_size: 200
+          remove_input_ids: true
+          ++generation:
+            max_new_tokens: 256
+          task: mbpp
+          remove_input_ids: true
+          ++model_path: best_models/${..__META__.FineTune.save_name}
+    command:
+      file: command_templates/finetune.txt
+      kwargs:
+        num_return_sequences: 200
+        task_name: MBPP
+        train_sbatch: train_single_gpu
+      fields:
+        - model_path
+  GPTNeo:
+    overrides:
+      ++device: 0
+      +disable_cache: True
+      ++tracking:
+        log_model: false
+      ++model: 'EleutherAI/gpt-neo-125M'
+      ++num_proc: 4
+      ++training:
+        batch_size: 32
+        gradient_accumulation_steps: 1
+      is_checkpoint: true
+    steps:
+      - name: HumanEval
+        add_name: False
+        base: human_eval
+        group: HUMAN_EVAL
+        overrides:
+          ++is_checkpoint: false
+          ++generation:
+            max_new_tokens: 256
+            do_sample: true
+            temperature: 0.5
+            top_p: 0.95
+            top_k: 50
+          batch_size: 200
+          model_path: null
+      - name: FineTune
+        base: greene_config
+        group: MBPP
+        overrides:
+          objective: 'lm'
+          task: mbpp
+          model_path: null
+          ++is_checkpoint: false
+          ++training:
+            batch_size: 32
+            gradient_accumulation_steps: 1
+            learning_rate: 5e-5
+      - name: HEFineTune
+        base: human_eval
+        group: HUMAN_EVAL
+        overrides:
+          is_checkpoint: true
+          ++generation:
+            max_new_tokens: 256
+            do_sample: true
+            temperature: 0.5
+            top_p: 0.95
+            top_k: 50
+          model_path: best_models/${..__META__.FineTune.save_name}
+          batch_size: 200
+      - name: Eval
+        base: eval_config
+        group: MBPP
+        overrides:
+          batch_size: 200
+          remove_input_ids: true
+          ++generation:
+            max_new_tokens: 256
+          task: mbpp
+          remove_input_ids: true
+          ++model_path: best_models/${..__META__.FineTune.save_name}
+    command:
+      file: command_templates/finetune.txt
+      kwargs:
+        num_return_sequences: 200
+        task_name: MBPP
+        train_sbatch: train_single_gpu
+      fields:
+        - model_path
