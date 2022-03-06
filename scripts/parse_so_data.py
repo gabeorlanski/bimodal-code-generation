@@ -10,6 +10,8 @@ from collections import defaultdict, Counter
 from pathlib import Path
 import sys
 from dataclasses import asdict
+from lxml import etree
+
 import click
 import numpy as np
 from tqdm import tqdm
@@ -228,6 +230,97 @@ def make_kg(ctx, parsed_path):
             'tag_counts'      : tag_counts,
             'knowledge_graph' : knowledge_graph
         }, kg_file, indent=True)
+
+
+@main.command('make_tag_info')
+@click.argument('parsed_path', metavar='<Parsed Data Path>')
+@click.argument('tag_xml_path', metavar='<Tag XML File Path>')
+@click.pass_context
+def make_tag_info(ctx, parsed_path, tag_xml_path):
+    print(f"Making tag info from {parsed_path}")
+    parsed_path = PROJECT_ROOT.joinpath(parsed_path)
+    tag_xml_path = PROJECT_ROOT.joinpath(tag_xml_path)
+    print(f"{parsed_path=}")
+    print(f"{tag_xml_path=}")
+
+    print("Reading tag data")
+    tag_information = {}
+    excerpt_id_mapping = {}
+    wiki_id_mapping = {}
+    for line in tqdm(tag_xml_path.open('r')):
+        try:
+            tag_dict = etree.XML(line).attrib
+        except Exception as e:
+            continue
+
+        tag_name = tag_dict['TagName']
+        if tag_name in tag_information:
+            raise KeyError(f"{tag_dict['TagName']} is duplicated")
+        tag_information[tag_name] = {
+            'count'       : tag_dict['Count'],
+            'id'          : tag_dict['Id'],
+            'wiki'        : None,
+            'wiki_date'   : None,
+            'wiki_id'     : tag_dict.get('WikiPostId'),
+            'excerpt'     : None,
+            'excerpt_date': None,
+            'excerpt_id'  : tag_dict.get('ExcerptPostId')
+        }
+
+        if 'ExcerptPostId' in tag_dict:
+            excerpt_id_mapping[tag_dict['ExcerptPostId']] = tag_name
+
+        if 'WikiPostId' in tag_dict:
+            wiki_id_mapping[tag_dict['WikiPostId']] = tag_name
+
+    print(f"{len(tag_information)} unique tags found")
+    print(f"{len(excerpt_id_mapping)} excerpts to get")
+    print(f"{len(wiki_id_mapping)} wiki items to get")
+
+    excerpt_file = parsed_path.joinpath('wiki_excerpts.jsonl')
+    print(f"Reading excerpts file {excerpt_file}")
+
+    if excerpt_file.exists():
+        orphaned_excerpts = 0
+        with excerpt_file.open() as f:
+            for excerpt in tqdm(map(json.loads, f.readlines())):
+                try:
+                    tag_name = excerpt_id_mapping[excerpt['id']]
+                except KeyError:
+                    orphaned_excerpts += 1
+                    continue
+
+                tag_information[tag_name]['excerpt'] = excerpt['body']
+                tag_information[tag_name]['excerpt_date'] = excerpt['date']
+        print(f"{orphaned_excerpts} orphaned excerpts")
+
+    else:
+        print(f"Could not find {excerpt_file}")
+
+    wiki_file = parsed_path.joinpath('wiki.jsonl')
+    print(f"Reading wiki file {wiki_file}")
+
+    if wiki_file.exists():
+        orphaned_wiki = 0
+        with wiki_file.open() as f:
+            for wiki in tqdm(map(json.loads, f.readlines())):
+                try:
+                    tag_name = excerpt_id_mapping[wiki['id']]
+                except KeyError:
+                    orphaned_wiki += 1
+                    continue
+
+                tag_information[tag_name]['wiki'] = wiki['body']
+                tag_information[tag_name]['wiki_body'] = wiki['date']
+        print(f"{orphaned_wiki} orphaned wiki pages")
+
+    else:
+        print(f"Could not find {wiki_file}")
+
+    save_path = parsed_path.joinpath('tags.json')
+    print(f"Saving to {save_path}")
+    with save_path.open('w') as f:
+        json.dump(tag_information, f, indent=True)
 
 
 if __name__ == "__main__":
