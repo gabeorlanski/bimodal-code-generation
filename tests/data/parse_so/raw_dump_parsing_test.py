@@ -7,7 +7,7 @@ import shutil
 from unittest.mock import patch
 
 from src.common import FIXTURES_ROOT
-from src.data.parse_so.dump_parsing import initial_parse_dump, parse_so_dump
+from src.data.parse_so.raw_dump_parsing import initial_parse_dump, parse_so_dump
 
 
 def test_initial_pass(tmpdir):

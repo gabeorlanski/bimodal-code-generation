@@ -15,6 +15,7 @@ from lxml import etree
 import click
 import numpy as np
 from tqdm import tqdm
+import csv
 
 import ujson
 
@@ -24,8 +25,7 @@ if str(Path(__file__).parents[1]) not in sys.path:
     sys.path.insert(0, str(Path(__file__).parents[1]))
 from src.common import PROJECT_ROOT, setup_global_logging
 from src.common.file_util import validate_files_exist
-from src.data.parse_so import parse_so_dump
-from src.data.parse_so.filtering import create_filter_for_so_data, consolidate_so_data
+from src.data.parse_so import *
 
 
 # Here just to allow the grouping.
@@ -79,8 +79,9 @@ def consolidate_so_data_from_cli(
     Wrapper that allows me to unittest the underlying consolidate function w/o
     needing to simulate the command line.
     """
-
-    setup_global_logging(f"consolidate_{name}", str(PROJECT_ROOT.joinpath('logs')),
+    if not PROJECT_ROOT.joinpath('logs', 'consolidate').exists():
+        PROJECT_ROOT.joinpath('logs', 'consolidate').mkdir(parents=True)
+    setup_global_logging(f"consolidate_{name}", str(PROJECT_ROOT.joinpath('logs', 'consolidate')),
                          debug=ctx.obj['DEBUG'])
     logger = logging.getLogger(f"consolidate_{name}")
     logger.info("Starting Consolidate")
@@ -194,133 +195,20 @@ def make_kg(ctx, parsed_path):
                          debug=debug)
     logger = logging.getLogger('make_kg')
     logger.info(f"Making the KG for {parsed_path}")
-    parsed_path = PROJECT_ROOT.joinpath(parsed_path)
-    question_path = parsed_path.joinpath('question_overview.json')
-    logger.info("Loading the parsed question overview")
-    question_overview = ujson.load(question_path.open())
-
-    logger.info(f"{len(question_overview)} questions found")
-    knowledge_graph = defaultdict(Counter)
-    total_questions = 0
-    first_tag_counts = Counter()
-    tag_counts = Counter()
-    for question_id, question_dict in tqdm(question_overview.items(), total=len(question_overview)):
-
-        tags = question_dict.get('tags', [])
-        if not tags:
-            continue
-        first_tag, *rem_tags = tags
-        first_tag_counts[first_tag] += 1
-        tag_counts[first_tag] += 1
-        for t in rem_tags:
-            knowledge_graph[first_tag][t] += 1
-            tag_counts[t] += 1
-        total_questions += 1
-
-    logger.info(f"{len(knowledge_graph)} unique tags")
-    kg_path = PROJECT_ROOT.joinpath('data', 'knowledge_graph')
-    if not kg_path.exists():
-        kg_path.mkdir()
-
-    with kg_path.joinpath(f"{parsed_path.stem}_kg.json").open('w') as kg_file:
-        json.dump({
-            'total_questions' : total_questions,
-            'total_tags'      : len(knowledge_graph),
-            'first_tag_counts': first_tag_counts,
-            'tag_counts'      : tag_counts,
-            'knowledge_graph' : knowledge_graph
-        }, kg_file, indent=True)
+    create_tag_knowledge_graph(parsed_path)
 
 
 @main.command('make_tag_info')
 @click.argument('parsed_path', metavar='<Parsed Data Path>')
-@click.argument('tag_xml_path', metavar='<Tag XML File Path>')
+@click.argument('dump_path', metavar='<Dump Path>')
+@click.argument('tag_synonyms_path', metavar='<Tag Synonyms Path>')
 @click.pass_context
-def make_tag_info(ctx, parsed_path, tag_xml_path):
-    print(f"Making tag info from {parsed_path}")
-    parsed_path = PROJECT_ROOT.joinpath(parsed_path)
-    tag_xml_path = PROJECT_ROOT.joinpath(tag_xml_path)
-    print(f"{parsed_path=}")
-    print(f"{tag_xml_path=}")
-
-    print("Reading tag data")
-    tag_information = {}
-    excerpt_id_mapping = {}
-    wiki_id_mapping = {}
-    for line in tqdm(tag_xml_path.open('r')):
-        try:
-            tag_dict = etree.XML(line).attrib
-        except Exception as e:
-            continue
-
-        tag_name = tag_dict['TagName']
-        if tag_name in tag_information:
-            raise KeyError(f"{tag_dict['TagName']} is duplicated")
-        tag_information[tag_name] = {
-            'count'       : tag_dict['Count'],
-            'id'          : tag_dict['Id'],
-            'wiki'        : None,
-            'wiki_date'   : None,
-            'wiki_id'     : tag_dict.get('WikiPostId'),
-            'excerpt'     : None,
-            'excerpt_date': None,
-            'excerpt_id'  : tag_dict.get('ExcerptPostId')
-        }
-
-        if 'ExcerptPostId' in tag_dict:
-            excerpt_id_mapping[tag_dict['ExcerptPostId']] = tag_name
-
-        if 'WikiPostId' in tag_dict:
-            wiki_id_mapping[tag_dict['WikiPostId']] = tag_name
-
-    print(f"{len(tag_information)} unique tags found")
-    print(f"{len(excerpt_id_mapping)} excerpts to get")
-    print(f"{len(wiki_id_mapping)} wiki items to get")
-
-    excerpt_file = parsed_path.joinpath('wiki_excerpts.jsonl')
-    print(f"Reading excerpts file {excerpt_file}")
-
-    if excerpt_file.exists():
-        orphaned_excerpts = 0
-        with excerpt_file.open() as f:
-            for excerpt in tqdm(map(json.loads, f.readlines())):
-                try:
-                    tag_name = excerpt_id_mapping[excerpt['id']]
-                except KeyError:
-                    orphaned_excerpts += 1
-                    continue
-
-                tag_information[tag_name]['excerpt'] = excerpt['body']
-                tag_information[tag_name]['excerpt_date'] = excerpt['date']
-        print(f"{orphaned_excerpts} orphaned excerpts")
-
-    else:
-        print(f"Could not find {excerpt_file}")
-
-    wiki_file = parsed_path.joinpath('wiki.jsonl')
-    print(f"Reading wiki file {wiki_file}")
-
-    if wiki_file.exists():
-        orphaned_wiki = 0
-        with wiki_file.open() as f:
-            for wiki in tqdm(map(json.loads, f.readlines())):
-                try:
-                    tag_name = excerpt_id_mapping[wiki['id']]
-                except KeyError:
-                    orphaned_wiki += 1
-                    continue
-
-                tag_information[tag_name]['wiki'] = wiki['body']
-                tag_information[tag_name]['wiki_body'] = wiki['date']
-        print(f"{orphaned_wiki} orphaned wiki pages")
-
-    else:
-        print(f"Could not find {wiki_file}")
-
-    save_path = parsed_path.joinpath('tags.json')
-    print(f"Saving to {save_path}")
-    with save_path.open('w') as f:
-        json.dump(tag_information, f, indent=True)
+def make_tag_info(ctx, parsed_path, dump_path, tag_synonyms_path):
+    setup_global_logging(f"make_tag_info", str(PROJECT_ROOT.joinpath('logs')),
+                         debug=ctx.obj['DEBUG'])
+    logger = logging.getLogger('make_tag_info')
+    logger.info("Starting make_tag_info")
+    create_tag_info_file(parsed_path, dump_path, tag_synonyms_path)
 
 
 if __name__ == "__main__":

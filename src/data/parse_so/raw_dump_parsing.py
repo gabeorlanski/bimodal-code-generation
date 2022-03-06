@@ -46,7 +46,7 @@ def parse_line(line_number, line):
         return result
 
     # If the post is neither a question nor an answer, skip
-    if post_type not in [1, 2, 4, 5]:
+    if post_type not in [1, 2,3, 4, 5]:
         result['result'] = "NOT_VALID_TYPE"
         return result
 
