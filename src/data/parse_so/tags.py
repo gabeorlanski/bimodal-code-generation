@@ -195,8 +195,8 @@ def create_tag_knowledge_graph(parsed_path):
             for t2 in tags[i + 1:]:
                 edge_name = f"({t1},{t2})"
                 co_occurrences_kg[edge_name] += 1
-                co_occurrences_edges['start'][t1].add(edge_name)
-                co_occurrences_edges['end'][t2].add(edge_name)
+                co_occurrences_edges['start'][t1].add(t2)
+                co_occurrences_edges['end'][t2].add(t1)
 
         # Make another KG that stores the number of times a tag is first in the
         # list of tags and what other tags are included.

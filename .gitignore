@@ -166,3 +166,5 @@ pretrain_outputs/
 data/dumps/
 
 data/knowledge_graph/
+
+data/so_tags.json
