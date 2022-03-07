@@ -258,7 +258,7 @@ def get_urls(batch):
 @click.argument('num_workers', type=int)
 @click.pass_context
 def get_urls_from_dump(ctx, dump_path, num_workers):
-    batch_size = 64
+    batch_size = 32
     buffer_size = 25000
     more_examples = True
     batches = []
