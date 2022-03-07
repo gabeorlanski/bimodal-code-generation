@@ -4,7 +4,7 @@
 #SBATCH --account=cds
 #SBATCH --time=1:00:00
 #SBATCH --gres=gpu:rtx8000:1
-#SBATCH --mem=180G
+#SBATCH --mem=64G
 #SBATCH -c 16
 
 export WORLD_SIZE=2
