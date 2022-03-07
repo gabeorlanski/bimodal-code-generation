@@ -12,7 +12,7 @@ echo "NODELIST="${SLURM_NODELIST}
 master_addr=$(scontrol show hostnames "$SLURM_JOB_NODELIST" | head -n 1)
 export MASTER_ADDR="$(master_addr).hpc.nyu.edu"
 echo "MASTER_ADDR="$MASTER_ADDR
-
+port=$(shuf -i 10000-65500 -n 1)
 
 srun $(which singularity) exec --nv \
 	--overlay $SCRATCH/overlay-50G-10M.ext3:ro \
@@ -23,6 +23,6 @@ conda activate adversarial-code
 #python scripts/prepare_train_environment.py $1 -force
 torchrun --nnodes=2 --nproc_per_node=1 --rdzv_id=$SLURM_JOB_ID \
     --rdzv_backend=c10d \
-    --rdzv_endpoint=$master_addr \
+    --rdzv_endpoint=$(master_addr):$(port) \
     train.py --debug from_config data/sample_tensorized_cfg.yaml
 "
