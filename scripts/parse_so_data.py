@@ -13,6 +13,7 @@ import sys
 from dataclasses import asdict
 from urllib.parse import urlparse
 
+import psutil
 from lxml import etree
 import multiprocessing as mp
 
@@ -292,12 +293,16 @@ def get_urls_from_dump(ctx, dump_path, num_workers):
             batches.append(buffer)
         print(f"Read {lines} lines")
         print(f"Yielded {len(batches)} batches")
-
+        finished = 0
         with mp.Pool(num_workers) as pool:
             for result in tqdm(pool.imap(get_urls, batches), total=len(batches), desc='Tokenizing'):
                 for domain, paths in result.items():
                     for path, v in paths.items():
                         urls_found[domain][path] += v
+                    finished += 1
+                    if finished % 10000 == 0:
+                        ram_pct = f"{psutil.virtual_memory()[2]:0.2f}%"
+                        tqdm.write(f"Finished {finished}| RAM Used={ram_pct:<6}")
         del batches
         batches = []
 
