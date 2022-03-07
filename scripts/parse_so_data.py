@@ -11,6 +11,8 @@ from copy import deepcopy
 from pathlib import Path
 import sys
 from dataclasses import asdict
+from urllib.parse import urlparse
+
 from lxml import etree
 import multiprocessing as mp
 
@@ -19,7 +21,7 @@ import click
 import numpy as np
 from tqdm import tqdm
 import csv
-
+import tldextract
 import ujson
 
 # If this file is called by itself (for creating the splits) then it will
@@ -228,14 +230,23 @@ def make_tag_info(ctx, parsed_path, dump_path, tag_synonyms_path):
 
 
 def get_urls(batch):
-    out = []
+    out = defaultdict(Counter)
     for b in batch:
         soup = BeautifulSoup(b['body'], 'lxml')
         a_tags = soup.find_all('a', href=True)
         for answer in b['answers'].values():
             soup = BeautifulSoup(answer['body'], 'lxml')
             a_tags.extend(soup.find_all('a', href=True))
-        out.extend(map(lambda t: t.get('href'), a_tags))
+        for link in a_tags:
+            url_parsed = urlparse(link.get('href'))
+
+            subdomain, domain, suffix = tldextract.extract(url_parsed.netloc)
+            url = f"{domain}.{suffix}"
+            if subdomain.strip() and subdomain != 'www':
+                url = f"{subdomain.strip()}.{url}"
+            if not url or url == '.':
+                continue
+            out[url][url_parsed.path] += 1
     return out
 
 
@@ -254,7 +265,7 @@ def get_urls_from_dump(ctx, dump_path, num_workers):
     if not out_path.exists():
         out_path.mkdir()
 
-    out_path = out_path.joinpath(f'{dump_path.stem}.txt').open('w')
+    urls_found = defaultdict(Counter)
 
     raw_lines_iter = iter(dump_path.open('r').readlines())
     while more_examples:
@@ -281,12 +292,15 @@ def get_urls_from_dump(ctx, dump_path, num_workers):
 
         with mp.Pool(num_workers) as pool:
             for result in tqdm(pool.imap(get_urls, batches), total=len(batches), desc='Tokenizing'):
-                for instance in result:
-                    out_path.write(instance + '\n')
+                for domain, paths in result.items():
+                    for path, v in paths.items():
+                        urls_found[domain][path] += v
         del batches
         batches = []
 
-    out_path.close()
+    print(f"{len(urls_found)} unique urls found")
+    with out_path.joinpath(f'{dump_path.stem}.json').open('w') as f:
+        json.dump(urls_found, f, indent=True, sort_keys=True)
 
 
 if __name__ == "__main__":
