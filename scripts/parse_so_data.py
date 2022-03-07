@@ -238,13 +238,16 @@ def get_urls(batch):
             soup = BeautifulSoup(answer['body'], 'lxml')
             a_tags.extend(soup.find_all('a', href=True))
         for link in a_tags:
-            url_parsed = urlparse(link.get('href'))
+            try:
+                url_parsed = urlparse(link.get('href'))
 
-            subdomain, domain, suffix = tldextract.extract(url_parsed.netloc)
-            url = f"{domain}.{suffix}"
-            if subdomain.strip() and subdomain != 'www':
-                url = f"{subdomain.strip()}.{url}"
-            if not url or url == '.':
+                subdomain, domain, suffix = tldextract.extract(url_parsed.netloc)
+                url = f"{domain}.{suffix}"
+                if subdomain.strip() and subdomain != 'www':
+                    url = f"{subdomain.strip()}.{url}"
+                if not url or url == '.':
+                    continue
+            except:
                 continue
             out[url][url_parsed.path] += 1
     return out
