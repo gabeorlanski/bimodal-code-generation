@@ -160,10 +160,22 @@ def parse_dump(
     '--tag-blacklist', default=None, help='Tag blacklist'
 )
 @click.option(
+    '--random-size', type=int, default=5e6, help='Tag blacklist'
+)
+@click.option(
     '--seed', type=int, default=1, help="Seed to use"
 )
 @click.pass_context
-def filter_tags(ctx, parsed_path, tag_filter_file, out_path, blacklist, tag_blacklist, seed):
+def filter_tags(
+        ctx,
+        parsed_path,
+        tag_filter_file,
+        out_path,
+        blacklist,
+        tag_blacklist,
+        random_size,
+        seed
+):
     debug = ctx.obj['DEBUG']
     setup_global_logging(f"filter", str(PROJECT_ROOT.joinpath('logs')),
                          debug=debug)
@@ -175,6 +187,7 @@ def filter_tags(ctx, parsed_path, tag_filter_file, out_path, blacklist, tag_blac
         blacklist=blacklist if blacklist else None,
         tag_blacklist_path=tag_blacklist,
         debug=debug,
+        random_size=random_size,
         seed=seed
     )
 
@@ -269,7 +282,7 @@ def get_urls_from_dump(ctx, dump_path, num_workers):
         with mp.Pool(num_workers) as pool:
             for result in tqdm(pool.imap(get_urls, batches), total=len(batches), desc='Tokenizing'):
                 for instance in result:
-                    out_path.write(instance+'\n')
+                    out_path.write(instance + '\n')
         del batches
         batches = []
 

@@ -23,6 +23,7 @@ def create_filter_for_so_data(
         blacklist,
         tag_blacklist_path,
         debug,
+        random_size,
         seed
 ):
     tag_filters = defaultdict(lambda: False)
@@ -70,7 +71,7 @@ def create_filter_for_so_data(
         total = len(question_overview)
         sample_mask = np.zeros((total,), dtype=bool)
         rng = np.random.default_rng(seed)
-        sample_mask[rng.choice(total, (5000 if debug else 5000000,), replace=False)] = True
+        sample_mask[rng.choice(total, (5000 if debug else random_size,), replace=False)] = True
     else:
         logger.info(f"Using the filter file {tag_filter_file}")
         use_random_selection = False
