@@ -142,7 +142,7 @@ experiments:
             log_model: True
           is_checkpoint: False
           ++training:
-            batch_size: 16
+            batch_size: 32
             gradient_accumulation_steps: 4
             learning_rate: 1e-4
             save_steps: 2500
@@ -153,8 +153,10 @@ experiments:
             lr_scheduler_type: linear
             deepspeed: ds_config.json
             save_total_limit: 5
-          ++task.sequence_length: 1024
+          ++task.sequence_length: 512
+          ++data_args.seq_length: 512
           task: so
+
       - name: HumanEval
         add_name: False
         base: human_eval

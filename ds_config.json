@@ -29,7 +29,7 @@
     "zero_optimization": {
         "stage": 2,
         "allgather_partitions": true,
-        "allgather_bucket_size": 1e8,
+        "allgather_bucket_size": 1e9,
         "round_robin_gradients": true,
         "reduce_scatter": false,
         "offload_optimizer": {
