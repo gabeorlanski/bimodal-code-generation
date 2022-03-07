@@ -1,9 +1,9 @@
 starting_commands: command_templates/sbatch_experiment.txt
 experiments:
-  FinetuneSO.ParrotSmall:
+  FineTuneSO.Neo:
     overrides:
       ++device: 0
-      ++model: 'lvwerra/codeparrot-small'
+      ++model: 'EleutherAI/gpt-neo-125M'
       +processor: stackoverflow
       ++processor.params.repeat_question_for_each_answer: 'title'
       ++raw_dump_path: data/dumps
@@ -14,16 +14,16 @@ experiments:
             ++task.dump_name: python_title
             ++raw_dump_name: python
             ++tensorized_name: python_title
-          PythonNoCode:
-            ++task.dump_name: python_no_code
-            ++raw_dump_name: python
-            ++tensorized_name: python_no_code
-            ++processor.params.remove_modality: CODE
-          PythonNoNL:
-            ++task.dump_name: python_no_nl
-            ++raw_dump_name: python
-            ++tensorized_name: python_no_nl
-            ++processor.params.remove_modality: NL
+#          PythonNoCode:
+#            ++task.dump_name: python_no_code
+#            ++raw_dump_name: python
+#            ++tensorized_name: python_no_code
+#            ++processor.params.remove_modality: CODE
+#          PythonNoNL:
+#            ++task.dump_name: python_no_nl
+#            ++raw_dump_name: python
+#            ++tensorized_name: python_no_nl
+#            ++processor.params.remove_modality: NL
     steps:
       - name: PreTrain
         add_name: False
