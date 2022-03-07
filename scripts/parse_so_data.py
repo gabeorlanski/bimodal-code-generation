@@ -260,7 +260,7 @@ def get_urls(batch):
 @click.pass_context
 def get_urls_from_dump(ctx, dump_path, num_workers):
     batch_size = 32
-    buffer_size = 25000
+    buffer_size = 50000
     more_examples = True
     batches = []
     lines = 0
@@ -299,10 +299,10 @@ def get_urls_from_dump(ctx, dump_path, num_workers):
                 for domain, paths in result.items():
                     for path, v in paths.items():
                         urls_found[domain][path] += v
-                    finished += 1
-                    if finished % 10000 == 0:
-                        ram_pct = f"{psutil.virtual_memory()[2]:0.2f}%"
-                        tqdm.write(f"Finished {finished}| RAM Used={ram_pct:<6}")
+                finished += 1
+                if finished % 10000 == 0:
+                    ram_pct = f"{psutil.virtual_memory()[2]:0.2f}%"
+                    tqdm.write(f"Finished {finished}| RAM Used={ram_pct:<6}")
         del batches
         batches = []
 
