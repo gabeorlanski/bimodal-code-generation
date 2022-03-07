@@ -15,6 +15,7 @@ import os
 import logging
 from src.common import flatten, ENV_VARS_TRUE_VALUES
 from src.data.tensorize import TensorizedTask
+from datetime import datetime
 
 logger = logging.getLogger(__name__)
 
@@ -135,8 +136,10 @@ class TrackingCallback(TrainerCallback):
         if hp_search:
             self._wandb.finish()
             self._initialized = False
+
         if not self._initialized:
             self.setup(args, state, model, **kwargs)
+            state.start_time = datetime.utcnow()
 
     def on_train_end(self, args, state, control, model=None, tokenizer=None, **kwargs):
         if self._wandb is None:

@@ -2,11 +2,13 @@ import json
 import logging
 import math
 import os
+from collections import Counter
 from copy import deepcopy, copy
 from dataclasses import dataclass, field, asdict
 from functools import partial
 from pathlib import Path
 import multiprocessing as mp
+from typing import Dict, List
 
 import torch
 from torch.utils.data import IterableDataset
@@ -14,6 +16,9 @@ from transformers import AutoTokenizer, PreTrainedTokenizer
 from tqdm import tqdm
 from src.common.file_util import human_readable_size
 import psutil
+import ujson
+
+from src.data.stackoverflow import StackOverflowProcessor
 
 logger = logging.getLogger(__name__)
 __all__ = [
@@ -26,22 +31,31 @@ __all__ = [
 @dataclass
 class TensorizedDatasetCFG:
     name: str
-    input_token_count: int = 0
-    target_token_count: int = 0
+    token_counts: Dict = field(default_factory=Counter)
     num_instances: int = 0
 
     def add_instance(self, instance):
         self.num_instances += 1
-        self.input_token_count += len(instance['input_ids'])
-        self.target_token_count += len(instance['labels'])
+        for c, v in instance.items():
+            self.token_counts[c] += v
 
     @property
     def total_tokens(self):
-        return self.input_token_count + self.target_token_count
+        return sum(self.token_counts.values())
+
+    def to_dict(self):
+        return {
+            "name"         : self.name,
+            "token_counts" : dict(self.token_counts),
+            "num_instances": self.num_instances
+        }
 
 
 def batch_process(batch, processor, tokenizer):
     return processor(batch, tokenizer)
+
+
+PLACEHOLDER_STR = "_PLACEHOLDER_"
 
 
 class TensorizedTask(IterableDataset):
@@ -59,27 +73,39 @@ class TensorizedTask(IterableDataset):
     def __init__(
             self,
             name,
-            data_path,
+            dump_path,
+            cfg_path,
             objective,
+            processor,
             tokenizer: PreTrainedTokenizer,
             sequence_length=1024,
             effective_batch_size: int = 16,
-            max_samples: int = -1,
             buffer_size=1,
     ):
         self.name = name
-        self.data_file_path = data_path.joinpath(f'{name}.jsonl')
+        self.data_file_path = dump_path.joinpath(f'{name}.jsonl')
         self.objective = objective
+        if self.objective not in ['lm']:
+            raise ValueError(f"Unsupported Objective {self.objective}")
+        self.processor = processor
+        self.task_name = None
+        if isinstance(self.processor, StackOverflowProcessor):
+            self.task_name = "SO"
+        self.tokenizer_name = tokenizer.name_or_path
         self.concat_token_id = tokenizer.bos_token_id or tokenizer.eos_token_id
         self.sequence_length = sequence_length
-        self.tokenizer = tokenizer
-        self.buffer_size = effective_batch_size * self.sequence_length * buffer_size
-        self.lm_concat_delim = self.tokenizer.encode('\n')
-        self.length = self._get_length(data_path, max_instances=max_samples)
+        # self.tokenizer = tokenizer
+        # self.buffer_size = effective_batch_size * self.sequence_length * buffer_size
+        self.buffer_size = buffer_size * 1000
+        self.lm_concat_delim = tokenizer.encode('\n')
+        self.length = self._get_length(cfg_path)
+        self.placeholder_token_count = len(
+            tokenizer.tokenize(PLACEHOLDER_STR, add_special_tokens=False)
+        )
 
         logger.info(f"{self.length} total samples with a buffer of {self.buffer_size}")
 
-    def _get_length(self, data_path, max_instances):
+    def _get_length(self, data_path):
         logger.info(f"Loading tensorized dataset from {data_path}")
 
         tensorized_cfg = TensorizedDatasetCFG(**json.loads(
@@ -87,58 +113,74 @@ class TensorizedTask(IterableDataset):
         ))
 
         logger.info(f"{tensorized_cfg.total_tokens:e} total tokens found")
-        logger.info(f"{tensorized_cfg.input_token_count:e} input tokens found")
-        logger.info(f"{tensorized_cfg.target_token_count:e} target tokens found")
         logger.info(f"{tensorized_cfg.num_instances:e} instances found")
-        if max_instances != -1:
-            return max_instances
 
-        if self.objective == 'lm':
-            return (
-                           tensorized_cfg.total_tokens
-                           + ((len(self.lm_concat_delim) + 1)
-                              * tensorized_cfg.num_instances)
-                   ) // self.sequence_length
-        return tensorized_cfg.num_instances
+        if self.objective == 'seq2seq':
+            return tensorized_cfg.num_instances
 
-    def get_samples(self):
-        for line in self.data_file_path.open():
-            yield json.loads(line)
+        logger.info(f"Reading token counts from {data_path.joinpath(self.name + '.jsonl')}")
+
+        total_tokens = tensorized_cfg.total_tokens + tensorized_cfg.num_instances * (
+                len(self.lm_concat_delim) + 1
+        )
+        length = total_tokens // self.sequence_length
+        logger.info(f"{length} total elements to return")
+        return length
 
     def __iter__(self):
-        data_iter = iter(self.get_samples())
+        data_iter = iter(self.data_file_path.open())
         more_examples = True
         total_yielded = 0
+        lines_seen = 0
+        tokenizer = AutoTokenizer.from_pretrained(self.tokenizer_name, use_fast=True)
 
         worker_info = torch.utils.data.get_worker_info()
+        if worker_info is None:
+            slices_per_worker = self.buffer_size
+            worker_id = None
+        else:
+            slices_per_worker = int(math.ceil(self.buffer_size / worker_info.num_workers))
+            worker_id = worker_info.id
 
         while more_examples:
-            buffer = []
-            while len(buffer) < self.buffer_size:
+            # Read the file and add the lines to the line buffer. This buffer
+            # will then be split by each process.
+            lines = []
+            logger.debug(f"Starting Read on line {lines_seen}")
+            while len(lines) < self.buffer_size:
                 try:
-                    current_instance = next(data_iter)
-                    buffer.extend(
-                        current_instance['input_ids']
-                        + self.lm_concat_delim
-                        + current_instance["labels"]
-                        + [self.tokenizer.eos_token_id]
-                    )
+                    lines.append(next(data_iter))
+                    lines_seen+=1
                 except StopIteration:
                     more_examples = False
                     break
 
-            total_buffer_slices = len(buffer) // self.sequence_length
             if worker_info is None:
                 start = 0
-                end = total_buffer_slices
+                end = self.buffer_size
             else:
-                slices_per_worker = int(math.ceil(total_buffer_slices / worker_info.num_workers))
-                worker_id = worker_info.id
                 start = worker_id * slices_per_worker
-                end = min(total_buffer_slices, start + slices_per_worker)
-            for i in range(start, end):
-                token_start = i * self.sequence_length
-                token_end = (i + 1) * self.sequence_length
+                end = min(self.buffer_size, start + slices_per_worker)
+
+            processed = self.processor(map(ujson.loads, lines[start:end]))
+            inputs_tokenized = tokenizer(processed['inputs'])['input_ids']
+            labels_tokenized = tokenizer(processed['labels'])['input_ids']
+
+            buffer = []
+            for input_ids, labels in zip(inputs_tokenized, labels_tokenized):
+                if self.objective == 'lm':
+                    buffer.extend(
+                        input_ids
+                        + self.lm_concat_delim
+                        + labels
+                        + [self.concat_token_id]
+                    )
+                else:
+                    raise NotImplementedError()
+
+            for i in range(0, len(buffer), self.sequence_length):
+                token_start = i
+                token_end = i + self.sequence_length
                 input_ids = buffer[token_start:token_end]
                 if len(input_ids) == self.sequence_length:
                     total_yielded += 1
@@ -161,11 +203,58 @@ class TensorizedTask(IterableDataset):
             objective=self.objective,
             concat_token_id=self.concat_token_id,
             sequence_length=self.sequence_length,
-            tokenizer=self.tokenizer.name_or_path,
+            tokenizer=self.tokenizer_name,
             buffer_size=self.buffer_size,
             lm_concat_delim=self.lm_concat_delim,
             length=self.length,
         )
+
+
+def get_token_counts_stackoverflow(sample, processor, tokenizer):
+    processed = processor(sample)
+    return {
+        "input_ids": len(tokenizer.tokenize(
+            processed['input'],
+            add_special_tokens=False)
+        ),
+        "labels"   : len(tokenizer.tokenize(
+            processed['labels'],
+            add_special_tokens=False)
+        )
+    }
+
+
+def get_token_counts_callable(sample, processor, tokenizer):
+    out = {}
+    token_counts = {}
+    for k, v in processor(sample).items():
+        if isinstance(k, str):
+            out[k] = len(tokenizer.encode(v, add_special_tokens=False))
+            token_counts[k] = out[k]
+
+        else:
+            out[k] = v
+    return token_counts
+
+
+def batch_get_tokens(batch, processor, tokenizer):
+    if isinstance(processor, StackOverflowProcessor):
+        out = []
+        processed = processor(batch)
+        for input_ids, labels in zip(processed['inputs'], processed['labels']):
+            out.append({
+                "inputs": len(tokenizer.tokenize(input_ids, add_special_tokens=False)),
+                "labels": len(tokenizer.tokenize(labels, add_special_tokens=False)),
+            })
+        return out
+    elif callable(processor):
+
+        return list(map(
+            lambda b: processor(b, processor, tokenizer),
+            batch
+        ))
+
+    raise ValueError(f"Unsupported Task")
 
 
 def tensorize(
@@ -174,7 +263,7 @@ def tensorize(
         output_name: str,
         num_workers: int,
         model_name: str,
-        data_processor,
+        processor,
         batch_size,
         debug_max_samples
 ):
@@ -193,18 +282,26 @@ def tensorize(
     tensorized_data = TensorizedDatasetCFG(out_path.stem)
     out_file_path = out_path.joinpath(f"{output_name}.jsonl")
     finished = 0
-    out_fd = out_file_path.open('w')
+
+    os.environ['TOKENIZERS_PARALLELISM'] = 'true'
+    tokenizer = AutoTokenizer.from_pretrained(model_name, use_fast=False)
+    map_fn = partial(
+        batch_get_tokens,
+        tokenizer=tokenizer,
+        processor=processor
+    )
+
     while more_examples:
         while len(batches) < max_batches_in_memory:
             try:
-                line = json.loads(next(raw_lines_iter))
+                line = next(raw_lines_iter)
             except StopIteration:
                 more_examples = False
                 break
             lines += 1
             buffer.append(line)
             if len(buffer) == batch_size:
-                batches.append(deepcopy(buffer))
+                batches.append(list(map(ujson.loads, buffer)))
                 del buffer
                 buffer = []
                 batches_found += 1
@@ -222,23 +319,15 @@ def tensorize(
                 more_examples = False
                 break
         if buffer:
-            batches.append(buffer)
+            batches.append(list(map(ujson.loads, buffer)))
             batches_found += 1
         logger.info(f"Read {lines} lines")
         logger.info(f"Yielded {batches_found} batches")
 
-        tokenizer = AutoTokenizer.from_pretrained(model_name, use_fast=False)
-        map_fn = partial(
-            batch_process,
-            processor=data_processor,
-            tokenizer=tokenizer
-        )
-
         with mp.Pool(num_workers) as pool:
             for result in tqdm(pool.imap(map_fn, batches), total=len(batches), desc='Tokenizing'):
-                for instance in result:
-                    out_fd.write(json.dumps(instance) + '\n')
-                    tensorized_data.add_instance(instance)
+                for token_counts in result:
+                    tensorized_data.add_instance(token_counts)
                     finished += 1
                     if finished % 50000 == 0:
                         ram_pct = f"{psutil.virtual_memory()[2]:0.2f}%"
@@ -246,12 +335,9 @@ def tensorize(
                                      f"| RAM Used={ram_pct:<6}")
         del batches
         batches = []
-
-    out_fd.close()
-    logger.info(f"{tensorized_data.total_tokens:e} total tokens found")
-    logger.info(f"{tensorized_data.input_token_count:e} input tokens found")
-    logger.info(f"{tensorized_data.target_token_count:e} target tokens found")
-    logger.info(f"{tensorized_data.num_instances:e} instances found")
+    logger.info(f"{tensorized_data.total_tokens:.3e} total tokens found")
+    for k, v in tensorized_data.token_counts.items():
+        logger.info(f"{v:.3e} tokens for {k.replace('_', ' ')} found")
 
     logger.info(f"Saved to {out_file_path}")
 

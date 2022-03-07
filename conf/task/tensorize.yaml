@@ -3,3 +3,4 @@ data_name: ???
 sequence_length: 1024
 streaming: False
 max_instances: -1
+buffer_size: 10

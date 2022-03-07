@@ -4,6 +4,8 @@ from itertools import chain
 from pathlib import Path
 
 import logging
+
+import ujson
 from omegaconf import OmegaConf, DictConfig, open_dict
 from transformers import (
     DataCollatorForSeq2Seq, EvalPrediction, AdamW
@@ -16,9 +18,11 @@ from tio import Task
 from src import config
 from src.common import get_stats_from_list, PROJECT_ROOT, set_global_logging_level
 from src.data import langauge_modeling, NON_REGISTERED_TASKS
+from src.data.stackoverflow import StackOverflowProcessor
 from src.training.trainer import CustomTrainer
 from src.config import get_steps_from_training_args, get_lr_scheduler
 from src.data.tensorize import TensorizedTask
+from tqdm import tqdm
 
 logger = logging.getLogger(__name__)
 
@@ -112,6 +116,10 @@ def setup_pretrain(cfg, tokenizer, train_args):
     concat_delim = tokenizer('\n')['input_ids']
     block_size = cfg.task.sequence_length
 
+    processor = StackOverflowProcessor(
+        **OmegaConf.to_object(cfg.processor.params)
+    )
+
     def group_texts(examples):
         # Concatenate all texts.
         concatenated = []
@@ -130,12 +138,17 @@ def setup_pretrain(cfg, tokenizer, train_args):
             "labels"   : blocks.copy()
         }
 
+    dump_path = PROJECT_ROOT.joinpath('data', 'dumps')
+    cfg_path = PROJECT_ROOT.joinpath('data', 'tensorized')
+
     # For the HF Trainer, we need the eval set to have a size, so we split up
     # the initialization so one is in streaming mode and the other is not.
     train_dataset = TensorizedTask(
         name=cfg.task.dump_name,
-        data_path=PROJECT_ROOT.joinpath(cfg.task.data_path),
+        dump_path=dump_path,
+        cfg_path=cfg_path,
         objective=cfg.objective,
+        processor=processor,
         tokenizer=tokenizer,
         sequence_length=cfg.task.sequence_length,
         effective_batch_size=(
@@ -143,22 +156,24 @@ def setup_pretrain(cfg, tokenizer, train_args):
                 * train_args.gradient_accumulation_steps
                 * train_args.world_size
         ),
-        max_samples=cfg.task.get('debug_max_samples', -1),
-        buffer_size=cfg.get('buffer_size', 1)
+        buffer_size=cfg.task.get('buffer_size', 1)
     )
     logger.info("Tensorized Task Params:")
     for k, v in train_dataset.params.items():
         logger.info(f"\t{k:>24}={v}")
 
-    eval_dataset = load_dataset(
-        'json',
-        data_files={'validation': str(PROJECT_ROOT.joinpath(cfg.task.validation_path))},
-        streaming=False
-    )['validation']
-    eval_dataset = eval_dataset.map(
+    logger.info(f"Creating Eval Dataset")
+    new_eval_dataset = {'input_ids': [], 'labels': []}
+    eval_file = dump_path.joinpath(f"{train_dataset.name}_val.jsonl")
+    for line in tqdm(eval_file.open('r')):
+        sample = ujson.loads(line)
+        for instance in processor.make_instances_from_question(sample):
+            new_eval_dataset['input_ids'].append(tokenizer(instance['input'])['input_ids'])
+            new_eval_dataset['labels'].append(tokenizer(instance['labels'])['input_ids'])
+
+    eval_dataset = Dataset.from_dict(new_eval_dataset).map(
         group_texts,
         batched=True,
-        remove_columns=['attention_mask']
     ).shuffle(seed=cfg.seed)
     return train_dataset, eval_dataset, None
 

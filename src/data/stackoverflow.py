@@ -21,7 +21,8 @@ class StackOverflowProcessor:
             question_prompt: str = None,
             title_prompt: str = None,
             clean: bool = True,
-            remove_modality: str = None
+            remove_modality: str = None,
+            no_answer_str: str = "There is not an answer"
 
     ):
         self.answer_sorting = answer_sorting.lower()
@@ -34,17 +35,18 @@ class StackOverflowProcessor:
 
         self.good_answer_cutoff = good_answer_cutoff
         self.bad_answer_cutoff = bad_answer_cutoff
-        self.answer_prompt = answer_prompt
+        self.answer_prompt = answer_prompt if answer_prompt else '__ANSWER__'
         self.question_prompt = question_prompt if question_prompt else '__BODY__'
         self.title_prompt = title_prompt if title_prompt else '__TITLE__'
         self.answers_per_sample = answers_per_sample
         self.lm_concat_delim = '\n'
         self.clean = clean
         self.remove_modality = remove_modality.upper() if remove_modality else None
+        self.no_answer_str = no_answer_str
         if self.remove_modality not in ['CODE', 'NL']:
             self.remove_modality = None
 
-    def _clean_html_body(self, body):
+    def clean_html_body(self, body):
         if not self.clean and self.remove_modality is None:
             return body
 
@@ -66,6 +68,27 @@ class StackOverflowProcessor:
         # to manually construct.
         return '\n'.join(map(repr, soup.find_all(recursive=False))).strip()
 
+    def apply_question_prompt(self, title, body, score, views, is_first_answer):
+        title_str = self.title_prompt.replace('__TITLE__', title)
+        body_str = self.question_prompt.replace("__BODY__", body)
+        if is_first_answer:
+            return f"{title_str}\n{body_str}"
+        if self.repeat_question_for_each_answer == 'title':
+            return title_str
+        elif self.repeat_question_for_each_answer == 'full':
+            return f"{title_str}\n{body_str}"
+        return ''
+
+    def apply_answer_prompt(self, answer, score):
+        if score >= self.good_answer_cutoff:
+            quality_str = "good"
+        elif score <= self.bad_answer_cutoff:
+            quality_str = "bad"
+        else:
+            quality_str = "ok"
+        answer_str = self.answer_prompt.replace('__ANSWER__', answer)
+        return answer_str.replace('__QUALITY__', quality_str)
+
     def make_instances_from_question(self, sample: Dict) -> List[Dict]:
         """
         Get the text string from the sample.
@@ -73,9 +96,9 @@ class StackOverflowProcessor:
         # Set to -1 if there is no accepted answer because it is impossible.
         accepted_answer_id = sample['accepted_answer'] or "-1"
 
-        sample['body'] = self._clean_html_body(sample['body'])
+        sample['body'] = self.clean_html_body(sample['body'])
         for k in sample['answers'].keys():
-            sample['answers'][k]['body'] = self._clean_html_body(sample['answers'][k]['body'])
+            sample['answers'][k]['body'] = self.clean_html_body(sample['answers'][k]['body'])
 
         # Do a list comprehension to eliminate the accepted answer
         accepted_answer = None
@@ -97,9 +120,21 @@ class StackOverflowProcessor:
         if accepted_answer is not None and self.answer_sorting == "accepted":
             answers = [accepted_answer, *answers]
 
-        title_str = self.title_prompt.replace('__TITLE__', sample['title'])
-        body_str = self.question_prompt.replace("__BODY__", sample['body'])
-        question_str = f"{title_str}\n{body_str}"
+        question_str = self.apply_question_prompt(
+            sample['title'],
+            sample['body'],
+            sample['score'],
+            sample['views'],
+            True
+        )
+
+        repeat_answer_input_str = self.apply_question_prompt(
+            sample['title'],
+            sample['body'],
+            sample['score'],
+            sample['views'],
+            False
+        )
 
         if self.answers_per_sample == -1:
             answers_keep = len(answers)
@@ -109,57 +144,28 @@ class StackOverflowProcessor:
         # Add the quality information to the answer.
         out = []
         if not answers:
-            return [{'input': question_str, 'target': ''}]
+            return [{'input': question_str, 'labels': self.no_answer_str}]
+
         for i, answer in enumerate(answers[:answers_keep]):
-
-            if self.answer_prompt:
-                if answer['score'] >= self.good_answer_cutoff:
-                    quality_str = "good"
-                elif answer['score'] <= self.bad_answer_cutoff:
-                    quality_str = "bad"
-                else:
-                    quality_str = "ok"
-                answer_str = f"{self.answer_prompt.replace('__QUALITY__', quality_str)}\n{answer['body']}"
-            else:
-                answer_str = answer['body']
-
+            answer_str = self.apply_answer_prompt(answer['body'], answer['score'])
             if i > 0:
-                if self.repeat_question_for_each_answer == 'title':
-                    input_str = title_str
-                elif self.repeat_question_for_each_answer == 'full':
-                    input_str = question_str
-                else:
-                    input_str = ''
+                input_str = repeat_answer_input_str
             else:
                 input_str = question_str
 
-            out.append({'input': input_str, 'target': answer_str})
+            out.append({'input': input_str, 'labels': answer_str})
 
         if self.repeat_question_for_each_answer == 'none' and out:
-            out = [{'input': out[0]['input'], 'target': '\n'.join(d['target'] for d in out)}]
+            out = [{'input': out[0]['input'], 'labels': '\n'.join(d['labels'] for d in out)}]
         return out
 
-    def __call__(self, samples, tokenizer):
-        instances = list(map(self.make_instances_from_question, samples))
+    def __call__(self, samples):
         inputs = []
         targets = []
 
-        for instance_list in instances:
+        for instance_list in map(self.make_instances_from_question, samples):
             for d in instance_list:
                 inputs.append(d['input'])
-                targets.append(d['target'])
+                targets.append(d['labels'])
 
-        inputs_tokenized = tokenizer(inputs)
-        if targets:
-            targets_tokenized = tokenizer(targets)['input_ids']
-        else:
-            targets_tokenized = [[] for _ in range(len(inputs))]
-
-        out = []
-        for i, label in enumerate(targets_tokenized):
-            out.append({
-                'labels'        : label,
-                'input_ids'     : inputs_tokenized['input_ids'][i],
-                'attention_mask': inputs_tokenized['attention_mask'][i]
-            })
-        return out
+        return {'inputs': inputs, 'labels': targets}

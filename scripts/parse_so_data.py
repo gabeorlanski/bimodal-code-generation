@@ -23,7 +23,6 @@ import numpy as np
 from tqdm import tqdm
 import csv
 import tldextract
-import ujson
 
 # If this file is called by itself (for creating the splits) then it will
 # have import issues.

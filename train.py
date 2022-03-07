@@ -76,8 +76,12 @@ def train_from_cfg(cfg):
     np.random.seed(cfg["numpy_seed"])
     torch.manual_seed(torch_seed)
 
-    if os.environ.get("LOCAL_RANK", '-1') != '-1' or os.environ['WANDB_DISABLED'] != 'true':
-        os.environ['DISABLE_FAST_TOK'] = 'true'
+    if (
+            os.environ.get("LOCAL_RANK", '-1') != '-1'
+            or os.environ['WANDB_DISABLED'] != 'true'
+            or cfg.training.get('dataloader_num_workers', 0) > 0
+    ):
+        os.environ["DISABLE_FAST_TOK"] = "true"
 
     with open_dict(cfg):
         cfg.training.local_rank = int(os.environ.get('LOCAL_RANK', '-1'))

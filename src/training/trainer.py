@@ -23,68 +23,6 @@ from src.config import TrackingCallback, is_tracking_enabled
 logger = logging.getLogger(__name__)
 
 
-class BetterProgress(TrainerCallback):
-    """
-    A [`TrainerCallback`] that displays the progress of training or evaluation.
-    """
-
-    def __init__(self):
-        self.training_bar = None
-        self.prediction_bar = None
-        self.start_time = None
-
-    def on_train_begin(self, args, state, control, **kwargs):
-        self.start_time = datetime.utcnow()
-
-    def on_step_end(self, args, state, control, **kwargs):
-        # if state.is_local_process_zero:
-        #     self.training_bar.update(state.global_step - self.current_step)
-        self.current_step = state.global_step
-        if self.current_step % 100 == 0:
-            elapsed = datetime.utcnow() - self.start_time
-            try:
-                elapsed_str, _ = str(elapsed).split(".")
-            except ValueError:
-                elapsed_str = str(elapsed)
-
-            logger.info(
-                f"Finished {self.current_step}/{state.max_steps} Steps in {elapsed_str}"
-            )
-            current_rate = self.current_step / elapsed.total_seconds()
-            estimated_rem = timedelta(
-                seconds=(state.max_steps - self.current_step) / current_rate
-            )
-            try:
-                estimated_rem, _ = str(estimated_rem).split(".")
-            except ValueError:
-                estimated_rem = str(estimated_rem)
-            logger.info(f"Estimated time remaining: {estimated_rem}")
-
-    def on_prediction_step(self, args, state, control, eval_dataloader=None, **kwargs):
-        if state.is_local_process_zero and isinstance(
-                eval_dataloader.dataset, collections.abc.Sized
-        ):
-            if self.prediction_bar is None:
-                self.prediction_bar = tqdm(total=len(eval_dataloader))
-            self.prediction_bar.update(1)
-        pass
-
-    def on_evaluate(self, args, state, control, **kwargs):
-        if state.is_local_process_zero:
-            if self.prediction_bar is not None:
-                self.prediction_bar.close()
-            self.prediction_bar = None
-        pass
-
-    def on_log(self, args, state, control, logs=None, **kwargs):
-        if logs:
-            logger.info(f"Metrics For {state.global_step}:")
-            for k in sorted(logs):
-                train_value = logs.get(k)
-                logger.info(f"\t{create_log_metric_message(k, train_value)}")
-        pass
-
-
 class CustomTrainer(Seq2SeqTrainer):
     def __init__(self, cfg: DictConfig, *args, **kwargs):
         # Initialize the variables to supress warnings
@@ -94,7 +32,6 @@ class CustomTrainer(Seq2SeqTrainer):
 
         super(CustomTrainer, self).__init__(*args, **kwargs)
         self.callback_handler.pop_callback(ProgressCallback)
-        # self.callback_handler.add_callback(BetterProgress)
 
         if is_tracking_enabled(cfg):
             self.callback_handler.pop_callback(WandbCallback)
@@ -102,18 +39,24 @@ class CustomTrainer(Seq2SeqTrainer):
 
         self.cfg = cfg
         self.start_time = None
-        self.time_last_log = None
         self.last_runtime_step = 0
+        self.total_time_spent_in_eval = 0
 
     def save_model(self, output_dir: Optional[str] = None):
         super(CustomTrainer, self).save_model(output_dir)
         if self.args.should_save:
             cfg_path = Path(output_dir).joinpath('config.yaml')
             with cfg_path.open('w', encoding='utf-8') as f:
-                f.write(OmegaConf.to_yaml(self.cfg, resolve=True,sort_keys=True))
+                f.write(OmegaConf.to_yaml(self.cfg, resolve=True, sort_keys=True))
 
     def _maybe_log_save_evaluate(self, tr_loss, model, trial, epoch, ignore_keys_for_eval):
         print_dict = {}
+        if self.start_time is None:
+            if hasattr(self.state, 'start_time'):
+                self.start_time = self.state.start_time
+            else:
+                self.start_time = datetime.utcnow()
+
         if self.control.should_log:
             logs: Dict[str, float] = {}
             # all_gather + mean() to get average loss over all processes
@@ -131,6 +74,7 @@ class CustomTrainer(Seq2SeqTrainer):
             self.store_flos()
             current = datetime.utcnow()
             elapsed_start = (current - self.start_time).total_seconds()
+            elapsed_start -= self.total_time_spent_in_eval
             logs['train_runtime_total'] = round(elapsed_start, 4)
             logs['train_steps_per_second_total'] = round(
                 self.state.global_step / elapsed_start, 3
@@ -146,8 +90,10 @@ class CustomTrainer(Seq2SeqTrainer):
 
         metrics = None
         if self.control.should_evaluate:
+            eval_start = datetime.utcnow()
             metrics = self.evaluate(ignore_keys=ignore_keys_for_eval)
             self._report_to_hp_search(trial, epoch, metrics)
+            self.total_time_spent_in_eval += (datetime.utcnow() - eval_start).total_seconds()
             print_dict.update(metrics)
 
         if print_dict:
@@ -170,13 +116,13 @@ class CustomTrainer(Seq2SeqTrainer):
             ignore_keys_for_eval=None,
             **kwargs,
     ):
-        self.time_last_log = self.start_time = datetime.utcnow()
         super(CustomTrainer, self).train(
             resume_from_checkpoint,
             trial,
             ignore_keys_for_eval,
             **kwargs
         )
+
     def training_step(self, model, inputs) -> torch.Tensor:
         return super(CustomTrainer, self).training_step(model, inputs)
 

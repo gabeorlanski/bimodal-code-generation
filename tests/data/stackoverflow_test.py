@@ -42,7 +42,7 @@ class TestStackOverflowProcessor:
         }
 
         if answer_prompt:
-            answer_prompt_template = "__QUALITY__"
+            answer_prompt_template = "__QUALITY__\n__ANSWER__"
             expected_answer_strs = [
                 "good\nAnswer 3",
                 "ok\nAnswer 2",
@@ -77,19 +77,19 @@ class TestStackOverflowProcessor:
         result = processor.make_instances_from_question(sample)
         if repeat_mode == "full":
             expected = [
-                {'input': expected_question_str, 'target': expected_answer_strs[0]},
-                {'input': expected_question_str, 'target': expected_answer_strs[1]},
-                {'input': expected_question_str, 'target': expected_answer_strs[2]}
+                {'input': expected_question_str, 'labels': expected_answer_strs[0]},
+                {'input': expected_question_str, 'labels': expected_answer_strs[1]},
+                {'input': expected_question_str, 'labels': expected_answer_strs[2]}
             ]
         elif repeat_mode == 'title':
             expected = [
-                {'input': expected_question_str, 'target': expected_answer_strs[0]},
-                {'input': expected_title_str, 'target': expected_answer_strs[1]},
-                {'input': expected_title_str, 'target': expected_answer_strs[2]}
+                {'input': expected_question_str, 'labels': expected_answer_strs[0]},
+                {'input': expected_title_str, 'labels': expected_answer_strs[1]},
+                {'input': expected_title_str, 'labels': expected_answer_strs[2]}
             ]
         else:
             expected = [{
-                "input": expected_question_str, 'target': '\n'.join(expected_answer_strs)
+                "input": expected_question_str, 'labels': '\n'.join(expected_answer_strs)
             }]
 
         assert result == expected
@@ -114,7 +114,7 @@ class TestStackOverflowProcessor:
 
         assert len(result) == 1
         assert result[0]['input'] == expected_input
-        assert result[0]['target'] == expected_answer
+        assert result[0]['labels'] == expected_answer
 
     def test_call(self):
         sample = {
@@ -137,23 +137,20 @@ class TestStackOverflowProcessor:
                 }
             }
         }
-        tokenizer = AutoTokenizer.from_pretrained('gpt2')
-
         processor = stackoverflow.StackOverflowProcessor(
             repeat_question_for_each_answer='full'
         )
 
-        result = processor([sample], tokenizer)
+        result = processor([sample])
         expected_answer_strs = [
             "Answer 3",
             "Answer 2",
             "Answer 1"
         ]
-        assert len(result) == 3
+        assert len(result['inputs']) == len(result['labels']) == 3
         for i, v in enumerate(expected_answer_strs):
-            assert tokenizer.decode(result[i]['input_ids']) == 'Title\nBody'
-            assert tokenizer.decode(result[i]['labels']) == v
-            assert len(result[i]['input_ids']) == sum(result[i]['attention_mask'])
+            assert result['inputs'][i] == 'Title\nBody'
+            assert result['labels'][i] == v
 
     @pytest.mark.parametrize('remove_modality', [None, "CODE", "NL"])
     @pytest.mark.parametrize('clean', [True, False], ids=['Clean', 'Dirty'])
@@ -164,7 +161,7 @@ class TestStackOverflowProcessor:
         )
 
         input_text = "<p>NL <code> Inline Code</code></p>\n<pre><code>CodeBlock</code></pre>"
-        result = processor._clean_html_body(input_text)
+        result = processor.clean_html_body(input_text)
         if not clean:
             if remove_modality is None:
                 assert result == input_text

@@ -15,7 +15,7 @@ from src.data.tensorize import tensorize
 from src.data.stackoverflow import StackOverflowProcessor
 
 
-def tensorize_data(
+def get_large_dataset_info(
         name,
         output_name,
         num_workers,
@@ -60,8 +60,10 @@ def tensorize_data(
     for k, v in cfg.processor.params.items():
         logger.info(f"{k:>32} = {v}")
     if cfg.processor.name == 'stackoverflow':
+        processor_args = OmegaConf.to_object(cfg.processor.params)
+
         processor = StackOverflowProcessor(
-            **OmegaConf.to_object(cfg.processor.params)
+            **processor_args
         )
     else:
         raise ValueError(f'Unknown processor {cfg.processor.name}')
@@ -77,28 +79,27 @@ def tensorize_data(
         debug_max_samples=debug_samples
     )
     with out_path.joinpath(f"{output_name}.cfg.json").open('w') as f:
-        json.dump(asdict(train_cfg), f, indent=True)
-    tensorize(
-        data_path.joinpath(validation_file),
-        out_path,
-        f"{output_name}.val",
-        num_workers,
-        model_name,
-        processor,
-        cfg.tensorize_batch_size,
-        debug_max_samples=debug_samples
-    )
+        json.dump(train_cfg.to_dict(), f, indent=True)
+    # tensorize(
+    #     data_path.joinpath(validation_file),
+    #     out_path,
+    #     f"{output_name}.val",
+    #     num_workers,
+    #     model_name,
+    #     processor,
+    #     cfg.tensorize_batch_size,
+    #     debug_max_samples=debug_samples
+    # )
 
 
 @click.group()
 @click.option('--debug', is_flag=True, default=False, help='Enable Debug Mode')
-@click.option('--output-path', '-out', 'output_path', default='data/tensorized',
+@click.option('--output-path', '-out', 'output_path', default='data/ds_info',
               help='The path to save the results.')
 @click.option('--debug-samples', default=-1, type=int,
               help='The path to save the results.')
 @click.pass_context
 def main(ctx, debug, output_path, debug_samples):
-
     ctx.ensure_object(dict)
     ctx.obj['DEBUG'] = debug
     ctx.obj['OUT_PATH'] = output_path
@@ -125,7 +126,7 @@ def main(ctx, debug, output_path, debug_samples):
     default=''
 )
 @click.pass_context
-def tensorize_data_from_cli(
+def get_large_dataset_info_from_cli(
         ctx,
         name: str,
         output_name: str,
@@ -143,7 +144,7 @@ def tensorize_data_from_cli(
     override_list.extend(override_str.split(' ') if override_str else [])
     initialize(config_path="conf", job_name="train")
     cfg = compose(config_name="tensorize", overrides=override_list)
-    tensorize_data(
+    get_large_dataset_info(
         name=name,
         output_name=output_name,
         num_workers=num_workers,
@@ -162,13 +163,13 @@ def tensorize_data_from_cli(
 @click.argument('config')
 @click.argument('num_workers', type=int, metavar='<Number Of Workers>')
 @click.pass_context
-def tensorize_from_config(ctx, config,num_workers):
+def get_large_dataset_info_from_config(ctx, config, num_workers):
     cfg = OmegaConf.create(yaml.load(
         PROJECT_ROOT.joinpath(config).open(),
         yaml.Loader
     ))
 
-    tensorize_data(
+    get_large_dataset_info(
         name=cfg.raw_dump_name,
         output_name=cfg.tensorized_name,
         num_workers=num_workers,

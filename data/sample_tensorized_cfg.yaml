@@ -5,12 +5,12 @@ group: SO
 tracking:
   watch: all
   project: so-code-gen
-  log_model: true
+  log_model: false
   entity: nyu-code-research
 task:
   name: so
   data_path: data/tensorized
-  dump_name: python
+  dump_name: random
   train_path: data/tensorized/python.jsonl
   validation_path: data/tensorized/python.val.jsonl
   max_samples: null
@@ -22,11 +22,12 @@ task:
   answer_prompt: null
   question_prompt: null
   join_answers_with_eos_token: false
-  sequence_length: 1024
+  sequence_length: 512
   seed: 1
+  buffer_size: 2
 objective: lm
 data_args:
-  seq_length: 1024
+  seq_length: 512
 model: lvwerra/codeparrot-small
 model_path: null
 is_checkpoint: false
@@ -36,7 +37,7 @@ seed: 1
 numpy_seed: 2
 pytorch_seed: 3
 generation:
-  max_length: 1024
+  max_length: 512
   do_sample: true
   temperature: 0.5
   num_return_sequences: 25
@@ -50,7 +51,7 @@ training:
   logging_steps: 25
   warmup_ratio: 0.01
   weight_decay: 0.1
-  gradient_accumulation_steps: 5
+  gradient_accumulation_steps: 2
   lr_scheduler_type: linear
   eval_accumulation_steps: 1
   metric_for_best_model: eval_loss
@@ -67,21 +68,22 @@ training:
   disable_tqdm: true
   max_grad_norm: 1.0
   ddp_find_unused_parameters: false
-  dataloader_num_workers: 4
-  max_steps: 100
-  save_steps: 750
-  eval_steps: 750
-  warmup_steps: 25
-  deepspeed: ds_config.json
-  dataloader_pin_memory: true
+  dataloader_num_workers: 1
+  max_steps: 500
+  save_steps: 100
+  eval_steps: 100
+  warmup_steps: 50
+  per_device_eval_batch_size: 2
+  dataloader_pin_memory: True
 metrics:
   - exact-match
   - bleu
 preprocessors: [ ]
-raw_dump_name: db
-tensorized_name: db
+raw_dump_name: random
+tensorized_name: random
 raw_dump_path: data/dumps
 postprocessors: [ ]
+disable_cache: True
 processor:
   name: stackoverflow
   params:
