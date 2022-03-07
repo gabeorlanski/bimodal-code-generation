@@ -136,7 +136,6 @@ class TensorizedTask(IterableDataset):
                 worker_id = worker_info.id
                 start = worker_id * slices_per_worker
                 end = min(total_buffer_slices, start + slices_per_worker)
-                print(f"{len(buffer)=} {total_buffer_slices=} {worker_id=} {start=} {end=}")
             for i in range(start, end):
                 token_start = i * self.sequence_length
                 token_end = (i + 1) * self.sequence_length
