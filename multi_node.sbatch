@@ -2,7 +2,7 @@
 #SBATCH --output=./sbatch_logs/%x_train.out
 #SBATCH --nodes=2
 #SBATCH --account=cds
-#SBATCH --time=48:00:00
+#SBATCH --time=1:00:00
 #SBATCH --gres=gpu:rtx8000:1
 #SBATCH --mem=180G
 #SBATCH -c 16
