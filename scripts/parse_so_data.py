@@ -7,11 +7,14 @@ import argparse
 import logging
 import random
 from collections import defaultdict, Counter
+from copy import deepcopy
 from pathlib import Path
 import sys
 from dataclasses import asdict
 from lxml import etree
+import multiprocessing as mp
 
+from bs4 import BeautifulSoup
 import click
 import numpy as np
 from tqdm import tqdm
@@ -209,6 +212,68 @@ def make_tag_info(ctx, parsed_path, dump_path, tag_synonyms_path):
     logger = logging.getLogger('make_tag_info')
     logger.info("Starting make_tag_info")
     create_tag_info_file(parsed_path, dump_path, tag_synonyms_path)
+
+
+def get_urls(batch):
+    out = []
+    for b in batch:
+        soup = BeautifulSoup(b['body'], 'lxml')
+        a_tags = soup.find_all('a', href=True)
+        for answer in b['answers'].values():
+            soup = BeautifulSoup(answer['body'], 'lxml')
+            a_tags.extend(soup.find_all('a', href=True))
+        out.extend(map(lambda t: t.get('href'), a_tags))
+    return out
+
+
+@main.command('get_urls')
+@click.argument('dump_path')
+@click.argument('num_workers', type=int)
+@click.pass_context
+def get_urls_from_dump(ctx, dump_path, num_workers):
+    batch_size = 64
+    buffer_size = 5e7
+    more_examples = True
+    batches = []
+    lines = 0
+    dump_path = PROJECT_ROOT.joinpath(dump_path)
+    out_path = PROJECT_ROOT.joinpath('data', 'urls')
+    if not out_path.exists():
+        out_path.mkdir()
+
+    out_path = out_path.joinpath(f'{dump_path.stem}.txt').open('w')
+
+    raw_lines_iter = iter(dump_path.open('r').readlines())
+    while more_examples:
+        buffer = []
+        while len(batches) < buffer_size:
+            try:
+                line = json.loads(next(raw_lines_iter))
+            except StopIteration:
+                more_examples = False
+                break
+            lines += 1
+            buffer.append(line)
+            if len(buffer) == batch_size:
+                batches.append(deepcopy(buffer))
+                del buffer
+                buffer = []
+
+            if lines % 50000 == 0:
+                print(f"Read {lines} lines. ")
+        if buffer:
+            batches.append(buffer)
+        print(f"Read {lines} lines")
+        print(f"Yielded {len(batches)} batches")
+
+        with mp.Pool(num_workers) as pool:
+            for result in tqdm(pool.imap(get_urls, batches), total=len(batches), desc='Tokenizing'):
+                for instance in result:
+                    out_path.write(instance+'\n')
+        del batches
+        batches = []
+
+    out_path.close()
 
 
 if __name__ == "__main__":
