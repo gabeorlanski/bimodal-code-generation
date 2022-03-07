@@ -151,7 +151,7 @@ experiments:
             warmup_steps: 500
             logging_steps: 25
             lr_scheduler_type: linear
-            deepspeed: ds_config.json
+            deepspeed: ds_512.json
             save_total_limit: 5
           ++task.sequence_length: 512
           ++data_args.seq_length: 512
