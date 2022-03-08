@@ -77,6 +77,7 @@ experiments:
             batch_size: 32
             gradient_accumulation_steps: 1
             learning_rate: 5e-5
+            metric_for_best_model: "eval_bleu"
       - name: HEFineTune
         base: human_eval
         group: HUMAN_EVAL

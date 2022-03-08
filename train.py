@@ -157,7 +157,7 @@ def train_from_config_file(ctx, config):
     train_from_cfg(cfg)
 
 
-@cli.command()
+@cli.command('cli')
 @click.argument("name", metavar="<Name of the Run>")
 @click.argument("task", metavar="<Task to use>")
 @click.option("--config", "config_name", help="Name of the base config file to use.",

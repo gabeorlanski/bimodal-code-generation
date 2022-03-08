@@ -32,9 +32,19 @@ set_global_logging_level(logging.ERROR,
 
 def evaluate_seq2seq(eval_predictions: EvalPrediction, task: Task):
     preds, targets = eval_predictions
+    preds = task.tokenizer.batch_decode(
+        preds,
+        skip_special_tokens=True,
+        clean_up_tokenization_spaces=True
+    )
+    targets = task.tokenizer.batch_decode(
+        targets,
+        skip_special_tokens=True,
+        clean_up_tokenization_spaces=True
+    )
     return task.evaluate(
-        [[p] for p in task.postprocess(preds)],
-        task.postprocess(targets)
+        [[p] for p in map(task.postprocess, preds)],
+        list(map(task.postprocess, targets))
     )
 
 
@@ -209,6 +219,10 @@ def train_model(cfg: DictConfig):
         tokenizer = config.load_tokenizer_from_cfg(cfg)
         task = None  # type: ignore
     else:
+        # if cfg.objective == 'seq2seq':
+        #     with open_dict(cfg):
+        #         for i in cfg.postprocessors:
+        #             if 'split' in cfg.postprocessors[i]
         task: Task = config.load_task_from_cfg(cfg)
         tokenizer = task.tokenizer
 

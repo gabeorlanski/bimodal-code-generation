@@ -27,7 +27,7 @@ def download_wandb_runs():
     print(f"Downloading runs")
 
     # Project is specified by <entity/project-name>
-    runs = api.runs("nyu-code-research/adversarial-code")
+    runs = api.runs("nyu-code-research/so-code-gen")
     print(f"{len(runs)} runs found")
     summary_keys = set()
     records = defaultdict(list)

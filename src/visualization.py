@@ -7,6 +7,9 @@ import numpy as np
 import re
 import plotly.graph_objects as go
 import matplotlib.pyplot as plt
+import plotly.express as px
+from plotly.subplots import make_subplots
+
 import sys
 
 try:
@@ -43,10 +46,73 @@ def multi_figure_bar_graph(
     return bars
 
 
-if __name__ == '__main__':
+def multi_line_plot(
+        df,
+        filter_fn,
+        name_col,
+        value_columns,
+        x_values,
+        name_remap_dict=None,
+        ordering=None,
+        dashed=None,
+        line_dict=None,
+        color_palette=None
+):
+    traces = []
+
+    global_line_dict = line_dict or {}
+    dashed = dashed or []
+    color_palette=color_palette or px.colors.qualitative.T10
+
+    filter_mask = df.apply(filter_fn, axis=1)
+    filtered_df = df[filter_mask]
+    if ordering is None:
+        ordering = sorted(filtered_df[name_col].values.tolist())
+
+    for i, value in enumerate(ordering):
+        row = filtered_df[filtered_df[name_col] == value].iloc[0]
+        y_values = row[value_columns].values.tolist()
+        name_use = row[name_col]
+        if name_remap_dict is not None:
+            name_use = name_remap_dict.get(name_use, name_use)
+
+        color = color_palette[i]
+
+        line_dict = {
+            "color": color,
+            **global_line_dict
+        }
+
+        if value in dashed:
+            line_dict['dash'] = 'dash'
+
+        traces.append(go.Scatter(
+            x=x_values,
+            y=y_values,
+            name=name_use,
+            mode='lines',
+            line=line_dict,
+            showlegend=True
+        ))
+        traces.append(go.Scatter(
+            x=x_values,
+            y=y_values,
+            name=name_use,
+            mode='markers',
+            marker={
+                "color": color,
+            },
+            showlegend=False
+        ))
+    return traces
+
+
+def main():
     import plotly.express as px
 
     main_df = pd.read_json(PROJECT_ROOT.joinpath('data', 'run_data', 'MBPP[execution].jsonl'))
+    main_df['full_name'] = main_df.name.copy()
+    main_df['name'] = main_df['name'].apply(lambda n: n.split('-')[0])
     print(f"Testing Visualization with {len(main_df)} elements")
 
     met_name_map = {
@@ -69,42 +135,30 @@ if __name__ == '__main__':
     }
     if not PROJECT_ROOT.joinpath('imgs').exists():
         PROJECT_ROOT.joinpath('imgs').mkdir(parents=True)
+    pass_at_k_vals = [1, 5, 10, 25, 50, 100]
+    runs_to_keep = [
+        'PythonNoNL',
+        'PythonNoCode',
+        'PythonTitleShuffle'
+    ]
+    x = multi_line_plot(
+        main_df,
+        filter_fn=lambda r: (
+                (r['meta.ablation'] in runs_to_keep and '512' not in r['name'])
+                or r['name'] == "CodeParrotSmall"
+        ),
+        name_col='meta.ablation',
+        value_columns=[f'test/pass@{k}' for k in pass_at_k_vals],
+        x_values=pass_at_k_vals
+    )
+    fig = make_subplots(1,2,subplot_titles=("TEST","TEST"))
+    for t in x:
+        fig.add_trace(t,row=1,col=1)
+    for anno in fig['layout']['annotations']:
+        print("?")
+    fig.show()
+    print("???")
 
-    run_colors = px.colors.qualitative.Set2
-    for dump in main_df['meta.ablation_vals.DumpName'].unique():
-        print(dump)
-        if dump == "Baseline":
-            continue
 
-        plot_df = main_df[main_df.name.str.contains(f"FullData.ParrotSmall.{dump}")][
-            ["name", 'meta.ablation_vals.AnswerCount', *OVR_PCT_COLUMNS]]
-        plot_df = plot_df.rename(columns={"meta.ablation_vals.AnswerCount": "answer_count"})
-        runs = plot_df['answer_count'].tolist()
-        runs = list(
-            sorted(
-                runs,
-                key=lambda f: int(f) if f != 'All' else float('inf')
-            )
-        )
-        col_graphs = defaultdict(dict)
-        for i, r in plot_df.iterrows():
-            col_graphs[r['answer_count']] = {}
-            for met in OVR_PCT_COLUMNS:
-                col_graphs[r['answer_count']][met_name_map[met]['name']] = r[met]
-
-        fig = go.Figure(data=multi_figure_bar_graph(
-            col_graphs,
-            color_mapping={k: run_colors[i] for i, k in enumerate(runs)},
-            ordering=runs
-        ))
-        fig.update_layout(
-            title=f"{dump} Filtered Data",
-            title_x=0.5,
-            xaxis_title="Error Type",
-            yaxis_title="% Of Total Predictions",
-            height=400,
-            width=720,
-            legend_title_text="# Answers"
-        )
-        fig.write_image(str(PROJECT_ROOT.joinpath('imgs', f"{dump}_errors.png")))
-        # fig.show()
+if __name__ == '__main__':
+    main()

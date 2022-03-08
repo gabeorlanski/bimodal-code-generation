@@ -11,13 +11,16 @@ echo "Submitted PreTrain (id=${{ pretrain_jid }})"
 
 
 # Human Eval After PreTrain
-he_so{{idx}}=$(sbatch --job-name='{{ name }}_human_eval' --parsable --dependency=afterok:${{pretrain_jid}} run_human_eval.sbatch {{ HumanEval.path }})
+he_so{{idx}}=$(sbatch --job-name='{{ name }}_human_eval' --parsable \
+	--dependency=afterok:${{pretrain_jid}} \
+	run_human_eval.sbatch {{ HumanEval.path }})
 echo "Submitted HumanEval (id=$he_so{{idx}})"
 echo "scancel $he_so{{idx}}" >> generated_experiments/cancel_jobs.sh
 
 # Finetuning
 echo "scancel ${{ pretrain_jid }}" >> generated_experiments/cancel_jobs.sh
-train_jid{{ idx}}=$(sbatch --parsable --dependency=afterok:${{pretrain_jid}} \
+train_jid{{ idx}}=$(sbatch --parsable \
+	--dependency=afterok:${{pretrain_jid}} \
 	--job-name={{ name }}_finetune {{ train_sbatch }}.sbatch {{ FineTune.path}})
 echo "Submitted Train (id=$train_jid{{ idx}})"
 echo "scancel $train_jid{{idx}}" >> generated_experiments/cancel_jobs.sh
