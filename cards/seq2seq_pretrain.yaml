@@ -1,6 +1,6 @@
 starting_commands: command_templates/sbatch_experiment.txt
 experiments:
-  CodeT5.SO:
+  CodeT5.FT:
     overrides:
       ++device: 0
       ++model: 'EleutherAI/gpt-neo-125M'
@@ -11,15 +11,25 @@ experiments:
       ++task.dump_name: python_full
       ++task.raw_dump_name: python
       ++tensorized_name: python_full
-      ++model: Salesforce/codet5-small
       objective: seq2seq
+    ablations:
+      - Model:
+          Small:
+            ++model: Salesforce/codet5-small
+            ++training.batch_size: 48
+            ++training.gradient_accumulation_steps: 2
+          Base:
+            ++model: Salesforce/codet5-base
+            ++training.batch_size: 16
+            ++training.gradient_accumulation_steps: 3
+
     steps:
       - name: PreTrain
         add_name: False
         base: pretrain_with_tensorized
         group: SO
         overrides:
-          ++buffer_size: 4
+          ++task.buffer_size: 25
           ++tensorized_path: data/ds_info
           ++task.data_path: data/ds_info
           ++processor.params.clean: True
@@ -28,17 +38,17 @@ experiments:
             log_model: True
           is_checkpoint: False
           ++training:
-            batch_size: 10
-            gradient_accumulation_steps: 8
+            batch_size: 32
+            gradient_accumulation_steps: 2
             learning_rate: 1e-4
-            save_steps: 2500
+            save_steps: 1000
             eval_steps: 500
             max_steps: 10000
             warmup_steps: 500
             logging_steps: 25
             lr_scheduler_type: linear
             deepspeed: ds_config.json
-            save_total_limit: 5
+            save_total_limit: 10
           ++task.sequence_length: 512
           task: so
       - name: HumanEval
