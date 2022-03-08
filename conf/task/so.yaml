@@ -3,6 +3,7 @@ defaults:
 name: so
 data_path: data/tensorized
 dump_name: ???
+raw_data: ???
 train_path: ${.data_path}/${.dump_name}.jsonl
 validation_path: ${.data_path}/${.dump_name}.val.jsonl
 max_samples: null

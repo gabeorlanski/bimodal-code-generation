@@ -73,6 +73,7 @@ class TensorizedTask(IterableDataset):
     def __init__(
             self,
             name,
+            raw_data_name,
             dump_path,
             cfg_path,
             objective,
@@ -82,7 +83,7 @@ class TensorizedTask(IterableDataset):
             buffer_size=1,
     ):
         self.name = name
-        self.data_file_path = dump_path.joinpath(f'{name}.jsonl')
+        self.data_file_path = dump_path.joinpath(f'{raw_data_name}.jsonl')
         self.objective = objective
         if self.objective not in ['lm', 'seq2seq']:
             raise ValueError(f"Unsupported Objective {self.objective}")
