@@ -146,14 +146,14 @@ experiments:
             batch_size: 10
             gradient_accumulation_steps: 4
             learning_rate: 1e-4
-            save_steps: 2500
+            save_steps: 1000
             eval_steps: 500
             max_steps: 10000
             warmup_steps: 500
             logging_steps: 25
             lr_scheduler_type: linear
             deepspeed: ds_config.json
-            save_total_limit: 5
+            save_total_limit: 10
           ++task.sequence_length: 1024
           task: so
       - name: HumanEval
