@@ -25,10 +25,10 @@ task:
   sequence_length: 512
   seed: 1
   buffer_size: 2
-objective: lm
+objective: seq2seq
 data_args:
   seq_length: 512
-model: lvwerra/codeparrot-small
+model: uclanlp/plbart-base
 model_path: null
 is_checkpoint: false
 data_path: data
@@ -61,7 +61,7 @@ training:
   greater_is_better: false
   evaluation_strategy: steps
   save_strategy: steps
-  group_by_length: true
+  group_by_length: false
   logging_first_step: true
   xpu_backend: ccl
   fp16: true

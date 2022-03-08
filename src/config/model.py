@@ -6,7 +6,9 @@ from typing import Callable, Tuple
 
 import torch
 import logging
-from transformers import (AutoModelForSeq2SeqLM, AutoModelForCausalLM, AutoConfig, PreTrainedModel)
+from transformers import (
+    AutoModelForSeq2SeqLM, AutoModelForCausalLM, AutoConfig, PreTrainedModel
+)
 from omegaconf import DictConfig
 
 from src.common import PROJECT_ROOT

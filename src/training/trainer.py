@@ -42,8 +42,8 @@ class CustomTrainer(Seq2SeqTrainer):
         self.last_runtime_step = 0
         self.total_time_spent_in_eval = 0
 
-    def save_model(self, output_dir: Optional[str] = None):
-        super(CustomTrainer, self).save_model(output_dir)
+    def save_model(self, output_dir: Optional[str] = None, _internal_call=False):
+        super(CustomTrainer, self).save_model(output_dir, _internal_call)
         if self.args.should_save:
             cfg_path = Path(output_dir).joinpath('config.yaml')
             with cfg_path.open('w', encoding='utf-8') as f:

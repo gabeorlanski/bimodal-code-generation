@@ -59,16 +59,19 @@ def first_block(string):
     return re.split("|".join(EOF_STRINGS), string)[0].rstrip()
 
 
-def complete_code(pipe, prompt, num_completions=1, **gen_kwargs):
+def complete_code(pipe, prompt, remove_prompt=False, num_completions=1, **gen_kwargs):
     """Complete prompt with text generation pipeline and return num_completions."""
     prompt = pipe.tokenizer.eos_token + prompt
     code_gens = pipe(prompt, num_return_sequences=num_completions, **gen_kwargs)
-    return [first_block(code_gen["generated_text"][len(prompt):]) for code_gen in code_gens]
+    if remove_prompt:
+        return [first_block(code_gen["generated_text"][len(prompt):]) for code_gen in code_gens]
+    else:
+        return [first_block(code_gen["generated_text"]) for code_gen in code_gens]
 
 
 @click.command()
 @click.argument('cfg', metavar='<Path To Config>')
-@click.argument('objective', metavar='<Path To Config>')
+@click.option('--objective', default=None, help='<Objective>')
 @click.option(
     '--debug',
     is_flag=True,
@@ -148,7 +151,8 @@ def main(
             cfg.seq_per_sample = sequences_per_sample
         if batch_size is not None:
             cfg.batch_size = batch_size
-        cfg.objective = objective
+        if objective is not None:
+            cfg.objective = objective
         cfg.debug = debug
         if disable_tracking:
             cfg.tracking = False
@@ -164,7 +168,7 @@ def main(
         cfg.group = 'HUMAN_EVAL'
         if 'task' not in cfg or 'name' not in cfg.task:
             cfg.task = OmegaConf.create(yaml.load(
-                PROJECT_ROOT.joinpath('conf', 'task', 'human_eval.yaml'),
+                PROJECT_ROOT.joinpath('conf', 'task', 'human_eval.yaml').open('r'),
                 yaml.Loader
             ))
 
@@ -202,7 +206,12 @@ def main(
     # Load model and tokenizer
     tokenizer = AutoTokenizer.from_pretrained(cfg.model)
     _, model = load_model_from_cfg(cfg)
-    pipe = pipeline("text-generation", model=model, tokenizer=tokenizer, device=cfg.device)
+    pipe = pipeline(
+        "text-generation" if objective == 'lm' else 'text2text-generation',
+        model=model,
+        tokenizer=tokenizer,
+        device=cfg.device
+    )
     logger.info(f"Using {model.device}")
     logger.info(f"Using {cfg.device=}")
 
@@ -212,10 +221,16 @@ def main(
             [EndOfFunctionCriteria(0, EOF_STRINGS, tokenizer)]),
         "do_sample"        : cfg.generation.do_sample,
         "temperature"      : cfg.generation.temperature,
-        "max_new_tokens"   : cfg.generation.max_new_tokens,
         "top_p"            : cfg.generation.top_p,
         "top_k"            : cfg.generation.top_k,
+
     }
+    if cfg.generation.get('max_length'):
+        gen_kwargs['max_length'] = cfg.generation.max_length
+    else:
+        gen_kwargs["max_new_tokens"] = cfg.generation.max_new_tokens
+    if cfg.generation.get('min_length'):
+        gen_kwargs['min_length'] = cfg.generation.min_length
 
     logger.info("Generation Parameters:")
     for k, v in cfg.generation.items():
@@ -239,13 +254,24 @@ def main(
         gen_kwargs["stopping_criteria"][0].start_length = len(tokenizer(prompt)["input_ids"])
         for batch in range(cfg.seq_per_sample // cfg.batch_size):
             task_generations.extend(
-                complete_code(pipe, prompt, num_completions=cfg.batch_size, **gen_kwargs))
+                complete_code(
+                    pipe,
+                    prompt,
+                    remove_prompt=objective == 'lm',
+                    num_completions=cfg.batch_size,
+                    **gen_kwargs
+                )
+            )
 
         test_func = human_eval[task]["test"]
         entry_point = f"check({human_eval[task]['entry_point']})"
+        if objective == 'lm':
+            preds = [prompt + gen for gen in task_generations]
+        else:
+            preds=task_generations
         predictions.append({
             "task_id"   : task,
-            "prediction": [prompt + gen for gen in task_generations],
+            "prediction": preds,
             "tests"     : ["\n" + test_func + "\n" + entry_point]
         })
 

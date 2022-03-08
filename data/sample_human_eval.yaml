@@ -1,21 +1,22 @@
-batch_size: 1
+batch_size: 50
 device: 0
 generation:
   do_sample: true
-  max_new_tokens: 256
   temperature: 0.5
   top_k: 50
   top_p: 0.95
+  max_length: 512
 group: HUMAN_EVAL
-is_checkpoint: true
+is_checkpoint: false
 meta:
   ablation: DB
   ablation_vals:
     DumpName: DB
   card_name: FinetuneSO.ParrotSmall
   step: HumanEval
-model: lvwerra/codeparrot-small
-model_path: best_models/SO.TestSOData
+model: Salesforce/codet5-small
+objective: seq2seq
+model_path: best_models/SO.Pretrain.ParrotSmall.DB
 name: FinetuneSO.ParrotSmall.DB
 postprocessors:
 - strip: {}

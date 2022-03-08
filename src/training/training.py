@@ -151,11 +151,6 @@ def setup_pretrain(cfg, tokenizer, train_args):
         processor=processor,
         tokenizer=tokenizer,
         sequence_length=cfg.task.sequence_length,
-        effective_batch_size=(
-                train_args.train_batch_size
-                * train_args.gradient_accumulation_steps
-                * train_args.world_size
-        ),
         buffer_size=cfg.task.get('buffer_size', 1)
     )
     logger.info("Tensorized Task Params:")
@@ -163,18 +158,33 @@ def setup_pretrain(cfg, tokenizer, train_args):
         logger.info(f"\t{k:>24}={v}")
 
     logger.info(f"Creating Eval Dataset")
-    new_eval_dataset = {'input_ids': [], 'labels': []}
+    eval_dataset = {'input_ids': [], 'labels': []}
     eval_file = dump_path.joinpath(f"{train_dataset.name}_val.jsonl")
     for line in tqdm(eval_file.open('r')):
         sample = ujson.loads(line)
         for instance in processor.make_instances_from_question(sample):
-            new_eval_dataset['input_ids'].append(tokenizer(instance['input'])['input_ids'])
-            new_eval_dataset['labels'].append(tokenizer(instance['labels'])['input_ids'])
+            eval_dataset['input_ids'].append(
+                tokenizer(
+                    instance['input'],
+                    max_length=train_dataset.sequence_length,
+                    truncation=cfg.objective != 'seq2seq'
+                )['input_ids'],
+            )
+            eval_dataset['labels'].append(
+                tokenizer(
+                    instance['labels'],
+                    max_length=train_dataset.sequence_length,
+                    truncation=cfg.objective != 'seq2seq'
+                )['input_ids']
+            )
 
-    eval_dataset = Dataset.from_dict(new_eval_dataset).map(
-        group_texts,
-        batched=True,
-    ).shuffle(seed=cfg.seed)
+    eval_dataset = Dataset.from_dict(eval_dataset).shuffle(seed=cfg.seed)
+
+    if cfg.objective == 'lm':
+        eval_dataset = eval_dataset.map(
+            group_texts,
+            batched=True,
+        )
     return train_dataset, eval_dataset, None
 
 
@@ -207,11 +217,19 @@ def train_model(cfg: DictConfig):
         model.config.pad_token_id = tokenizer.pad_token_id
 
     if cfg.objective == 'seq2seq':
-        logger.info(f"Setting Up Seq2Seq Objective")
-        train_data, validation_data, evaluate_fn = setup_seq2seq(
-            cfg,
-            task
-        )
+        if cfg.task.name in NON_REGISTERED_TASKS:
+            logger.info(f"Setting up the SO pretrain objective")
+            train_data, validation_data, evaluate_fn = setup_pretrain(
+                cfg,
+                tokenizer,
+                train_args
+            )
+        else:
+            logger.info(f"Setting Up Seq2Seq Objective")
+            train_data, validation_data, evaluate_fn = setup_seq2seq(
+                cfg,
+                task
+            )
         collator = DataCollatorForSeq2Seq(
             tokenizer=tokenizer,
             padding='longest',

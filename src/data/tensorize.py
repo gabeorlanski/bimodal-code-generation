@@ -79,13 +79,12 @@ class TensorizedTask(IterableDataset):
             processor,
             tokenizer: PreTrainedTokenizer,
             sequence_length=1024,
-            effective_batch_size: int = 16,
             buffer_size=1,
     ):
         self.name = name
         self.data_file_path = dump_path.joinpath(f'{name}.jsonl')
         self.objective = objective
-        if self.objective not in ['lm']:
+        if self.objective not in ['lm', 'seq2seq']:
             raise ValueError(f"Unsupported Objective {self.objective}")
         self.processor = processor
         self.task_name = None
@@ -150,7 +149,7 @@ class TensorizedTask(IterableDataset):
             while len(lines) < self.buffer_size:
                 try:
                     lines.append(next(data_iter))
-                    lines_seen+=1
+                    lines_seen += 1
                 except StopIteration:
                     more_examples = False
                     break
@@ -163,31 +162,42 @@ class TensorizedTask(IterableDataset):
                 end = min(self.buffer_size, start + slices_per_worker)
 
             processed = self.processor(map(ujson.loads, lines[start:end]))
-            inputs_tokenized = tokenizer(processed['inputs'])['input_ids']
-            labels_tokenized = tokenizer(processed['labels'])['input_ids']
+            inputs_tokenized = tokenizer(
+                processed['inputs'],
+                max_length=self.sequence_length,
+                truncation=True
+            )['input_ids']
+            labels_tokenized = tokenizer(
+                processed['labels'],
+                max_length=self.sequence_length,
+                truncation=True
+            )['input_ids']
 
             buffer = []
-            for input_ids, labels in zip(inputs_tokenized, labels_tokenized):
-                if self.objective == 'lm':
+            if self.objective == 'lm':
+                for input_ids, labels in zip(inputs_tokenized, labels_tokenized):
                     buffer.extend(
                         input_ids
                         + self.lm_concat_delim
                         + labels
                         + [self.concat_token_id]
                     )
-                else:
-                    raise NotImplementedError()
-
-            for i in range(0, len(buffer), self.sequence_length):
-                token_start = i
-                token_end = i + self.sequence_length
-                input_ids = buffer[token_start:token_end]
-                if len(input_ids) == self.sequence_length:
-                    total_yielded += 1
+                for i in range(0, len(buffer), self.sequence_length):
+                    token_start = i
+                    token_end = i + self.sequence_length
+                    input_ids = buffer[token_start:token_end]
+                    if len(input_ids) == self.sequence_length:
+                        total_yielded += 1
+                        yield {
+                            'input_ids': torch.tensor(input_ids),
+                            # 'attention_mask': torch.tensor([1] * len(input_ids)),
+                            'labels'   : torch.tensor(input_ids),
+                        }
+            else:
+                for input_ids, labels in zip(inputs_tokenized, labels_tokenized):
                     yield {
-                        'input_ids': torch.tensor(input_ids),
-                        # 'attention_mask': torch.tensor([1] * len(input_ids)),
-                        'labels'   : torch.tensor(input_ids),
+                        "input_ids": input_ids,
+                        "labels"   : labels
                     }
             # Memory Management
             del buffer
