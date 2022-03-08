@@ -27,10 +27,8 @@ task:
   sequence_length: 1024
   train_path: data/tensorized/python.jsonl
   validation_path: data/tensorized/python.val.jsonl
-objective: seq2seq
-data_args:
-  seq_length: 512
-model: Salesforce/codet5-small
+objective: lm
+model: 'EleutherAI/gpt-neo-125M'
 model_path: null
 is_checkpoint: false
 data_path: data
@@ -47,7 +45,7 @@ generation:
   top_p: 0.95
   top_k: 50
 training:
-  batch_size: 1
+  batch_size: 16
   output_dir: models
   learning_rate: 0.0001
   logging_steps: 25
