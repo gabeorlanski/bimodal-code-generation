@@ -250,6 +250,10 @@ def train_model(cfg: DictConfig):
                 v_use = v
             setattr(model.config, k, v_use)
     elif cfg.objective == 'lm':
+
+        model.config.eos_token_id = tokenizer.eos_token_id
+        model.config.pad_token_id = tokenizer.pad_token_id
+        model.config.bos_token_id = tokenizer.bos_token_id or tokenizer.eos_token
         if cfg.task.name in NON_REGISTERED_TASKS:
             logger.info(f"Setting up the SO pretrain objective")
             train_data, validation_data, evaluate_fn = setup_pretrain(
@@ -268,9 +272,6 @@ def train_model(cfg: DictConfig):
                 task
             )
 
-        model.config.eos_token_id = tokenizer.eos_token_id
-        model.config.pad_token_id = tokenizer.pad_token_id
-        model.config.bos_token_id = tokenizer.bos_token_id or tokenizer.eos_token
         collator = DataCollatorForSeq2Seq(
             tokenizer=tokenizer,
             padding='longest',
