@@ -121,9 +121,9 @@ experiments:
       ++raw_dump_path: data/dumps
       is_checkpoint: true
       objective: lm
-      ++task.dump_name: python_title
+      ++task.dump_name: neo_python_title
       ++task.raw_dump_name: python
-      ++tensorized_name: python_title
+      ++tensorized_name: neo_python_title
     ablations:
       - Model:
           Small:

@@ -22,14 +22,14 @@ from src.data.stackoverflow import StackOverflowProcessor
 
 logger = logging.getLogger(__name__)
 __all__ = [
-    "TensorizedDatasetCFG",
-    "tensorize",
+    "TensorizedDatasetInfo",
+    "get_dataset_info_with_processor",
     "TensorizedTask"
 ]
 
 
 @dataclass
-class TensorizedDatasetCFG:
+class TensorizedDatasetInfo:
     name: str
     token_counts: Dict = field(default_factory=Counter)
     num_instances: int = 0
@@ -108,7 +108,7 @@ class TensorizedTask(IterableDataset):
     def _get_length(self, data_path):
         logger.info(f"Loading tensorized dataset from {data_path}")
 
-        tensorized_cfg = TensorizedDatasetCFG(**json.loads(
+        tensorized_cfg = TensorizedDatasetInfo(**json.loads(
             data_path.joinpath(f"{self.name}.cfg.json").read_text()
         ))
 
@@ -254,8 +254,8 @@ def batch_get_tokens(batch, processor, tokenizer):
         processed = processor(batch)
         for input_ids, labels in zip(processed['inputs'], processed['labels']):
             out.append({
-                "inputs": len(tokenizer.tokenize(input_ids, add_special_tokens=False)),
-                "labels": len(tokenizer.tokenize(labels, add_special_tokens=False)),
+                "inputs": len(tokenizer.tokenize(input_ids)),
+                "labels": len(tokenizer.tokenize(labels)),
             })
         return out
     elif callable(processor):
@@ -268,9 +268,8 @@ def batch_get_tokens(batch, processor, tokenizer):
     raise ValueError(f"Unsupported Task")
 
 
-def tensorize(
+def get_dataset_info_with_processor(
         raw_data_path: Path,
-        out_path: Path,
         output_name: str,
         num_workers: int,
         model_name: str,
@@ -290,8 +289,7 @@ def tensorize(
     last_logged_batch = 0
     raw_lines_iter = iter(raw_data_path.open('r').readlines())
 
-    tensorized_data = TensorizedDatasetCFG(out_path.stem)
-    out_file_path = out_path.joinpath(f"{output_name}.jsonl")
+    tensorized_data = TensorizedDatasetInfo(output_name)
     finished = 0
 
     os.environ['TOKENIZERS_PARALLELISM'] = 'true'

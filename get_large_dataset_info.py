@@ -11,7 +11,7 @@ import os
 import click
 
 from src.common import setup_global_logging, PROJECT_ROOT
-from src.data.tensorize import tensorize
+from src.data.tensorize import get_dataset_info_with_processor
 from src.data.stackoverflow import StackOverflowProcessor
 
 
@@ -67,9 +67,8 @@ def get_large_dataset_info(
     else:
         raise ValueError(f'Unknown processor {cfg.processor.name}')
     logger.info(f"Saving tensorized config")
-    train_cfg = tensorize(
+    train_cfg = get_dataset_info_with_processor(
         data_path.joinpath(train_file_name),
-        out_path,
         output_name,
         num_workers,
         model_name,
@@ -79,16 +78,6 @@ def get_large_dataset_info(
     )
     with out_path.joinpath(f"{output_name}.cfg.json").open('w') as f:
         json.dump(train_cfg.to_dict(), f, indent=True)
-    # tensorize(
-    #     data_path.joinpath(validation_file),
-    #     out_path,
-    #     f"{output_name}.val",
-    #     num_workers,
-    #     model_name,
-    #     processor,
-    #     cfg.tensorize_batch_size,
-    #     debug_max_samples=debug_samples
-    # )
 
 
 @click.group()
