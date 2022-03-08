@@ -350,8 +350,4 @@ def tensorize(
     for k, v in tensorized_data.token_counts.items():
         logger.info(f"{v:.3e} tokens for {k.replace('_', ' ')} found")
 
-    logger.info(f"Saved to {out_file_path}")
-
-    logger.info(
-        f"Size of {tensorized_data.name} is {human_readable_size(out_file_path.stat().st_size)}")
     return tensorized_data
