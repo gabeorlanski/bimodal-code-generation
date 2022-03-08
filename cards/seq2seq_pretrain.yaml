@@ -20,8 +20,8 @@ experiments:
         group: SO
         overrides:
           ++buffer_size: 4
-          ++tensorized_path: data/tensorized
-          ++task.data_path: data/tensorized
+          ++tensorized_path: data/ds_info
+          ++task.data_path: data/ds_info
           ++processor.params.clean: True
           +tensorize_batch_size: 64
           tracking:

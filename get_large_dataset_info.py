@@ -49,7 +49,6 @@ def get_large_dataset_info(
     logger.info(f"Output path is {out_path}")
 
     train_file_name = f"{name}.jsonl"
-    validation_file = f"{validation_file_name or name + '_val'}.jsonl"
 
     if not out_path.exists():
         out_path.mkdir(parents=True)

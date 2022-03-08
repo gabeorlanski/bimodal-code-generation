@@ -13,8 +13,8 @@ task:
   answers_per_sample: -1
   bad_answer_cutoff: -1
   buffer_size: 10
-  data_path: data/tensorized
-  dump_name: python
+  data_path: data/ds_info
+  dump_name: python_full
   eval_splits: [ ]
   good_answer_cutoff: 3
   join_answers_with_eos_token: false
