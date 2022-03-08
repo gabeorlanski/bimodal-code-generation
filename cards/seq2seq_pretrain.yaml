@@ -49,6 +49,7 @@ experiments:
             lr_scheduler_type: linear
             deepspeed: ds_config.json
             save_total_limit: 10
+            group_by_length: False
           ++task.sequence_length: 512
           task: so
       - name: HumanEval
