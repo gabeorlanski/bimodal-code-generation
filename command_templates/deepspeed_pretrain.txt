@@ -5,11 +5,7 @@
 ##############################################################################################
 
 echo "Submitting Jobs for {{ name }}"
-{{ get_info_jid }}=$(sbatch --parsable --job-name={{ name }}_ds_info get_ds_info.sbatch {{ PreTrain.path }})
-echo "Submitted Get Info (id=${{ get_info_jid }})"
-echo "scancel ${{ get_info_jid }}" >> generated_experiments/cancel_jobs.sh
 {{ pretrain_jid }}=$(sbatch --parsable --job-name={{ name }}_pretrain \
-	--dependency=afterok:${{ get_info_jid }} \
 	deepspeed_multi_gpu.sbatch {{ PreTrain.path }})
 echo "Submitted PreTrain (id=${{ pretrain_jid }})"
 
