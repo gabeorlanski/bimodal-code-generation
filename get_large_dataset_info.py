@@ -76,6 +76,7 @@ def get_large_dataset_info(
         cfg.tensorize_batch_size,
         debug_max_samples=debug_samples
     )
+    logger.info(f"Saving {output_name}.cfg.json to {out_path}")
     with out_path.joinpath(f"{output_name}.cfg.json").open('w') as f:
         json.dump(train_cfg.to_dict(), f, indent=True)
 
