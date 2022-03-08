@@ -1,6 +1,6 @@
 #!/bin/bash
 #SBATCH --account=cds
-#SBATCH --output=./sbatch_logs/%x_tensorsize.log
+#SBATCH --output=./sbatch_logs/%x.log
 #SBATCH --time=24:00:00
 #SBATCH --mem=180G
 #SBATCH -c 24
