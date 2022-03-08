@@ -4,7 +4,6 @@ defaults:
   - _self_
 
 # Tensorized Arguments
-raw_dump_name: ???
 tensorized_name: ???
 raw_dump_path: ???
 

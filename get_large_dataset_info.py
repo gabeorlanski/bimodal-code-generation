@@ -170,7 +170,7 @@ def get_large_dataset_info_from_config(ctx, config, num_workers):
     ))
 
     get_large_dataset_info(
-        name=cfg.raw_dump_name,
+        name=cfg.task.raw_dump_name,
         output_name=cfg.tensorized_name,
         num_workers=num_workers,
         processor_name=cfg.processor.name,

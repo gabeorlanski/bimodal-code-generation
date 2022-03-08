@@ -145,7 +145,7 @@ def setup_pretrain(cfg, tokenizer, train_args):
     # the initialization so one is in streaming mode and the other is not.
     train_dataset = TensorizedTask(
         name=cfg.task.dump_name,
-        raw_data_name=cfg.task.raw_data,
+        raw_data_name=cfg.task.raw_dump_name,
         dump_path=dump_path,
         cfg_path=cfg_path,
         objective=cfg.objective,
