@@ -139,7 +139,7 @@ def setup_pretrain(cfg, tokenizer, train_args):
         }
 
     dump_path = PROJECT_ROOT.joinpath('data', 'dumps')
-    cfg_path = PROJECT_ROOT.joinpath('data', 'tensorized')
+    cfg_path = PROJECT_ROOT.joinpath('data', 'ds_info')
 
     # For the HF Trainer, we need the eval set to have a size, so we split up
     # the initialization so one is in streaming mode and the other is not.
