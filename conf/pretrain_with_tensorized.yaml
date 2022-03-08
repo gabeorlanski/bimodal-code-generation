@@ -1,4 +1,5 @@
 defaults:
+  - objective: ???
   - train_config@_global_
   - _self_
 

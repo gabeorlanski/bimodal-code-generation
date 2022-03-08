@@ -1,4 +1,5 @@
 defaults:
+  - objective: ???
   - _self_
 
 seed: 1
