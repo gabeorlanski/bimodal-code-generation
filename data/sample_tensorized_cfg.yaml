@@ -8,27 +8,29 @@ tracking:
   log_model: false
   entity: nyu-code-research
 task:
-  name: so
-  data_path: data/tensorized
-  dump_name: random
-  train_path: data/tensorized/python.jsonl
-  validation_path: data/tensorized/python.val.jsonl
-  max_samples: null
+  answer_prompt: null
   answer_sorting: accepted
   answers_per_sample: -1
-  repeat_question_for_each_answer: null
-  good_answer_cutoff: 3
   bad_answer_cutoff: -1
-  answer_prompt: null
-  question_prompt: null
+  buffer_size: 10
+  data_path: data/tensorized
+  dump_name: python
+  eval_splits: [ ]
+  good_answer_cutoff: 3
   join_answers_with_eos_token: false
-  sequence_length: 512
+  max_samples: null
+  name: so
+  question_prompt: null
+  raw_dump_name: python
+  repeat_question_for_each_answer: null
   seed: 1
-  buffer_size: 2
+  sequence_length: 1024
+  train_path: data/tensorized/python.jsonl
+  validation_path: data/tensorized/python.val.jsonl
 objective: seq2seq
 data_args:
   seq_length: 512
-model: uclanlp/plbart-base
+model: Salesforce/codet5-small
 model_path: null
 is_checkpoint: false
 data_path: data
@@ -75,6 +77,7 @@ training:
   warmup_steps: 50
   per_device_eval_batch_size: 2
   dataloader_pin_memory: True
+  deepspeed: ds_config.json
 metrics:
   - exact-match
   - bleu
