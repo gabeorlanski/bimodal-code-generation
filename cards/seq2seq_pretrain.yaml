@@ -39,7 +39,7 @@ experiments:
             lr_scheduler_type: linear
             deepspeed: ds_config.json
             save_total_limit: 5
-          ++task.sequence_length: 1024
+          ++task.sequence_length: 512
           task: so
       - name: HumanEval
         add_name: False
@@ -48,7 +48,7 @@ experiments:
         overrides:
           is_checkpoint: true
           ++generation:
-            max_new_tokens: 256
+            max_length: 512
             do_sample: true
             temperature: 0.5
             top_p: 0.95
@@ -72,7 +72,7 @@ experiments:
         overrides:
           is_checkpoint: true
           ++generation:
-            max_new_tokens: 256
+            max_length: 512
             do_sample: true
             temperature: 0.5
             top_p: 0.95
@@ -86,7 +86,11 @@ experiments:
           batch_size: 200
           remove_input_ids: true
           ++generation:
-            max_new_tokens: 256
+            max_length: 512
+            do_sample: true
+            temperature: 0.5
+            top_p: 0.95
+            top_k: 50
           task: mbpp
           remove_input_ids: false
           ++model_path: best_models/${..__META__.FineTune.save_name}
