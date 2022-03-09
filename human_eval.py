@@ -387,7 +387,7 @@ def main(
         wandb_run.log(flatten(metrics_to_log_dict, sep='/'), step=1)
 
         preds_artifact = wandb.Artifact(
-            f"{get_run_base_name_from_cfg(cfg, 'preds')}-{os.getenv('WANDB_RUN_ID')}",
+            f"{get_run_base_name_from_cfg(cfg, 'preds')}",
             type='predictions')
 
         preds_artifact.add_file(str(
