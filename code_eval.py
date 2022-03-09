@@ -46,7 +46,7 @@ def run(path_to_preds, num_workers, debug, disable_tracking, input_artifact_name
     print(f"{path_to_preds}")
     print(f"{path_to_preds.suffix}")
 
-    if path_to_preds.suffix == 'jsonl':
+    if path_to_preds.suffix == '.jsonl':
         preds_file = path_to_preds
         path_to_preds = path_to_preds.parent
     else:
