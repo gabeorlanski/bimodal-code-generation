@@ -25,6 +25,7 @@ logger = logging.getLogger(__name__)
 
 def generate_code_predictions(
         model,
+        objective,
         dataset: Union[List[dict], Dataset],
         tokenizer,
         batch_size,
@@ -57,6 +58,9 @@ def generate_code_predictions(
     generation_kwargs['num_return_sequences'] = batch_size
 
     max_new_tokens = generation_kwargs.pop('max_new_tokens', 256)
+    if objective != 'lm':
+        generation_kwargs['max_length'] = generation_kwargs.get('max_length', 256)
+        remove_input_ids_from_output = False
     num_steps_needed = generate_steps_per_sample * len(dataset)
     logger.info(f"{num_steps_needed} total steps needed")
 
@@ -70,15 +74,20 @@ def generate_code_predictions(
             local_inputs = sample_tokenized["input_ids"].to(device)
             input_len = sample_tokenized['attention_mask'].sum().item()
 
-            if max_new_tokens + input_len > tokenizer.model_max_length:
-                logger.warning(
-                    f"Sample {sample['idx']} has more than the "
-                    f"models max length of {tokenizer.model_max_length}."
-                )
-                max_length_for_gen = tokenizer.model_max_length
-            else:
-                max_length_for_gen = input_len + max_new_tokens
-            generation_kwargs['max_length'] = max_length_for_gen
+            # Language modeling will return the prompt with the generated text,
+            # so we need to calculate how many new tokens besides the prompt
+            # we should return.
+            if objective == "lm":
+
+                if max_new_tokens + input_len > tokenizer.model_max_length:
+                    logger.warning(
+                        f"Sample {sample['idx']} has more than the "
+                        f"models max length of {tokenizer.model_max_length}."
+                    )
+                    max_length_for_gen = tokenizer.model_max_length
+                else:
+                    max_length_for_gen = input_len + max_new_tokens
+                generation_kwargs['max_length'] = max_length_for_gen
 
             for i in range(generate_steps_per_sample):
                 generated_from_batch = model.generate(
@@ -145,6 +154,8 @@ def evaluate_model(
 
     device = get_device_from_cfg(cfg)
     logger.info(f"Using device {device}")
+    model = model.to(device)
+    logger.info(f"Model is on {model.device}")
 
     logger.info(f"Getting the data for split {cfg.split}")
     dataset = task.preprocess(cfg.split)
@@ -155,7 +166,8 @@ def evaluate_model(
         dataset = dataset.select(list(range(debug_num_samples)))
 
     generation_results = generate_code_predictions(
-        model.to(device),
+        model,
+        objective=cfg.objective,
         dataset=dataset,
         tokenizer=task.tokenizer,
         batch_size=cfg.batch_size,
@@ -243,7 +255,7 @@ def evaluate(
         cfg.eval_run_name = os.getenv('WANDB_RUN_NAME')
 
     with out_path.joinpath(f'eval_config.yaml').open('w') as f:
-        f.write(OmegaConf.to_yaml(cfg,resolve=True,sort_keys=True))
+        f.write(OmegaConf.to_yaml(cfg, resolve=True, sort_keys=True))
     #####################################################################
     # TRACKING CODE TO REMOVE ON RELEASE                                #
     #####################################################################

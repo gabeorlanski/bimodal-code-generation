@@ -22,7 +22,8 @@ class StackOverflowProcessor:
             title_prompt: str = None,
             clean: bool = True,
             remove_modality: str = None,
-            no_answer_str: str = "There is not an answer"
+            no_answer_str: str = "There is not an answer",
+            force_include_title: bool = False
 
     ):
         self.answer_sorting = answer_sorting.lower()
@@ -42,6 +43,7 @@ class StackOverflowProcessor:
         self.lm_concat_delim = '\n'
         self.clean = clean
         self.remove_modality = remove_modality.upper() if remove_modality else None
+        self.force_include_title = force_include_title
         self.no_answer_str = no_answer_str
         if self.remove_modality not in ['CODE', 'NL']:
             self.remove_modality = None
