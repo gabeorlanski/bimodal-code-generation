@@ -51,7 +51,8 @@ def run(path_to_preds, num_workers, debug, disable_tracking, input_artifact_name
         path_to_preds = path_to_preds.parent
     else:
         preds_file = None
-        path_to_preds = path_to_preds.joinpath('predictions')
+        if path_to_preds.stem != 'predictions':
+            path_to_preds = path_to_preds.joinpath('predictions')
     if not path_to_preds.exists():
         raise FileExistsError(f"{path_to_preds.resolve().absolute()} does not exist.")
 

@@ -19,6 +19,7 @@ import logging
 from tqdm import tqdm
 from src.config import get_device_from_cfg, load_task_from_cfg, get_config_for_tracking, \
     get_run_base_name_from_cfg
+from apex import amp
 
 logger = logging.getLogger(__name__)
 
@@ -165,8 +166,6 @@ def evaluate_model(
 
             task.preprocessors.append(prepend_token)
 
-    if cfg.training.fp16:
-        model = model.half()
 
     logger.info(f"Getting the data for split {cfg.split}")
     dataset = task.preprocess(cfg.split)
@@ -182,6 +181,7 @@ def evaluate_model(
         tokenizer=task.tokenizer,
         device=cfg.device
     )
+    model = amp.initialize(model)
     logger.info(f"Model is on {model.device}")
     logger.info(f"{type(dataset)=}")
 
