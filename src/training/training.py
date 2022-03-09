@@ -219,10 +219,6 @@ def train_model(cfg: DictConfig):
         tokenizer = config.load_tokenizer_from_cfg(cfg)
         task = None  # type: ignore
     else:
-        # if cfg.objective == 'seq2seq':
-        #     with open_dict(cfg):
-        #         for i in cfg.postprocessors:
-        #             if 'split' in cfg.postprocessors[i]
         task: Task = config.load_task_from_cfg(cfg)
         tokenizer = task.tokenizer
 

@@ -87,11 +87,13 @@ experiments:
             ++training.batch_size: 16
             ++training.gradient_accumulation_steps: 2
             ++batch_size: 100
+            ++training.deepspeed: ds_config.json
           Large:
             ++model: gpt2-large
             ++training.batch_size: 8
             ++training.gradient_accumulation_steps: 4
             ++batch_size: 100
+            ++training.deepspeed: deepspeed_configs/mbpp_finetune.json
     steps:
       - name: HumanEval
         add_name: False
@@ -115,7 +117,6 @@ experiments:
           ++model_path: null
           ++training:
             learning_rate: 5e-5
-            deepspeed: ds_config.json
           ++data_args.seq_length: 512
       - name: HEFineTune
         base: human_eval

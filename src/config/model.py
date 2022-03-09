@@ -65,4 +65,9 @@ def load_model_from_cfg(
     else:
         logger.info('NOT USING CHECKPOINT')
         model = model_cls.from_pretrained(cfg['model'])
+
+    if 'generation' in cfg:
+        for k, v in cfg.generation.items():
+            if hasattr(model.config, k):
+                setattr(model.config, k, v)
     return model_cls, model

@@ -240,7 +240,7 @@ def main(
     tokenizer = AutoTokenizer.from_pretrained(cfg.model)
     _, model = load_model_from_cfg(cfg)
     pipe = pipeline(
-        "text-generation" if objective == 'lm' else 'text2text-generation',
+        "text-generation" if cfg.objective == 'lm' else 'text2text-generation',
         model=model,
         tokenizer=tokenizer,
         device=cfg.device
@@ -258,16 +258,21 @@ def main(
         "top_k"            : cfg.generation.top_k,
 
     }
-    if cfg.generation.get('max_length'):
-        gen_kwargs['max_length'] = cfg.generation.max_length
+    if cfg.objective!='lm':
+        gen_kwargs['max_length'] = cfg.generation.get("max_length",256)
     else:
-        gen_kwargs["max_new_tokens"] = cfg.generation.max_new_tokens
+        gen_kwargs["max_new_tokens"] = cfg.generation.get("max_new_tokens",256)
+        gen_kwargs['max_length'] = None
+
     if cfg.generation.get('min_length'):
         gen_kwargs['min_length'] = cfg.generation.min_length
 
     logger.info("Generation Parameters:")
     for k, v in cfg.generation.items():
         logger.info(f"\t{k:>16}={v}")
+        if k != "stopping_criteria":
+            if hasattr(model.config, k):
+                setattr(model.config, k, v)
     # Load evaluation dataset and metric
     logger.info(f"Loading the dataset")
     human_eval = load_dataset("openai_humaneval")['test']
