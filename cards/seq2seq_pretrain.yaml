@@ -3,7 +3,7 @@ experiments:
   CodeT5.FT:
     overrides:
       ++device: 0
-      ++model: 'EleutherAI/gpt-neo-125M'
+      ++model: 'Salesforce/codet5-small'
       +processor: stackoverflow
       ++processor.params.repeat_question_for_each_answer: 'full'
       ++raw_dump_path: data/dumps
