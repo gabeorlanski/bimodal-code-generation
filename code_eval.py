@@ -44,7 +44,7 @@ def run(path_to_preds, num_workers, debug, disable_tracking, input_artifact_name
     # I just needed a way to get the parent directory.
     path_to_preds = Path(path_to_preds)
 
-    if path_to_preds.is_file():
+    if path_to_preds.suffix == 'jsonl':
         preds_file = path_to_preds
         path_to_preds = path_to_preds.parent
     else:
