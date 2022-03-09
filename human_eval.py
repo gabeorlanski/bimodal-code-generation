@@ -1,9 +1,16 @@
+"""
+This script originally came from https://github.com/huggingface/transformers/blob/master/examples/research_projects/codeparrot/scripts/human_eval.py
+"""
+
 import json
 import logging
 import multiprocessing
 import os
 import random
 import re
+from collections import defaultdict
+from datetime import datetime
+from functools import partial
 
 import numpy as np
 import torch
@@ -13,6 +20,9 @@ from datasets import load_dataset, load_metric
 from omegaconf import OmegaConf, open_dict, DictConfig
 from tqdm import tqdm
 import click
+import multiprocessing as mp
+import re
+from tio.metrics import BLEU, ExactMatch
 
 import transformers
 from arguments import HumanEvalArguments
@@ -57,6 +67,29 @@ class EndOfFunctionCriteria(StoppingCriteria):
 def first_block(string):
     """Split off first block of code by scanning for class, def etc. on newlines."""
     return re.split("|".join(EOF_STRINGS), string)[0].rstrip()
+
+
+def oracle(instance, clean_regex, metric_list):
+    # Remove the block comments from the prompt.
+    cleaned_target = clean_regex.sub('', instance['target'])
+
+    # To get the oracle score, we need to repeat target for every prediction
+
+    oracle_values = {}
+
+    cleaned_prediction = None
+
+    for p in instance['prediction']:
+
+        cleaned_p = clean_regex.sub('', p)
+        if cleaned_prediction is None:
+            cleaned_prediction = cleaned_p
+
+        for res in map(lambda m: m([cleaned_p], [cleaned_target]), metric_list):
+            for name, value in res.items():
+                oracle_values[name] = max(oracle_values.get(name, float('-inf')), value)
+
+    return cleaned_prediction, cleaned_target, oracle_values
 
 
 def complete_code(pipe, prompt, remove_prompt=False, num_completions=1, **gen_kwargs):
@@ -248,6 +281,8 @@ def main(
     logger.info(f"{cfg.batch_size=}")
     logger.info(f"{cfg.seq_per_sample=}")
 
+    start_time = datetime.utcnow()
+
     for task in tqdm(range(n_tasks)):
         task_generations = []
         prompt = human_eval[task]["prompt"].strip()
@@ -268,37 +303,54 @@ def main(
         if objective == 'lm':
             preds = [prompt + gen for gen in task_generations]
         else:
-            preds=task_generations
+            preds = task_generations
         predictions.append({
             "task_id"   : task,
             "prediction": preds,
+            "target"    : prompt + human_eval[task]['canonical_solution'],
             "tests"     : ["\n" + test_func + "\n" + entry_point]
         })
 
+    total_time = (datetime.utcnow() - start_time)
+
     logger.info(
-        f"Finished generating predictions, saving to {working_dir.joinpath('predictions.jsonl')}")
+        f"Finished generating predictions, saving to {working_dir.joinpath('test.jsonl')}")
     with working_dir.joinpath('test.jsonl').open('w') as f:
         for pred in predictions:
             f.write(json.dumps(pred) + '\n')
 
-    # Evaluate completions with "code_eval" metric
-    if not no_code_eval:
-        logger.info(f"Evaluating {len(predictions)} Code Predictions")
-        results = evaluate_code(
-            predictions,
-            cfg.seq_per_sample,
-            cfg.num_workers,
-            3.0
-        )
-        logger.info(f"Saving results to {working_dir.joinpath('execution_results.json')}")
-        with working_dir.joinpath('execution_results.json').open('w') as f:
-            json.dump(
-                results,
-                f,
-                indent=True
-            )
-    else:
-        results = {}
+    logger.info(f"Calculating BLEU")
+    em = ExactMatch()
+    bleu = BLEU()
+    remove_comment_regex = re.compile(r'""".*"""', flags=re.DOTALL)
+
+    map_fn = partial(
+        oracle,
+        clean_regex=remove_comment_regex,
+        metric_list=[em, bleu]
+    )
+
+    global_preds, global_targets = [], []
+    global_oracle = defaultdict(list)
+    logger.info(f"Calculating the Oracle Scores")
+    with mp.Pool(num_workers) as pool:
+        for p_cleaned, t_cleaned, oracle_scores in tqdm(
+                pool.imap_unordered(map_fn, predictions), total=len(predictions)):
+            global_preds.append(p_cleaned)
+            global_targets.append(t_cleaned)
+            for k, v in oracle_scores.items():
+                global_oracle[k] = v
+
+    metrics = {}
+    metrics.update(em(global_preds, global_targets))
+    metrics.update(bleu(global_preds, global_targets))
+
+    for k, v in global_oracle.items():
+        metrics[f"oracle_{k}"] = np.mean(v)
+
+    logger.info(f"Evaluation Metrics:")
+    for k, v in metrics.items():
+        logger.info(f"\t{k:>16}={v:0.2f}")
 
     with working_dir.joinpath('eval_config.yaml').open('w') as f:
         f.write(OmegaConf.to_yaml(cfg, resolve=True, sort_keys=True))
@@ -310,15 +362,14 @@ def main(
             name=os.getenv('WANDB_RUN_NAME'),
             id=os.getenv('WANDB_RUN_ID'),
             project=os.getenv('WANDB_PROJECT'),
-            group=f"HUMAN_EVAL[execution]",
+            group=f"HUMAN_EVAL[eval]",
             config=get_config_for_tracking(cfg),
             entity=os.getenv('WANDB_ENTITY'),
-            # id=run_id
         )
         metrics_to_log_dict = {
             'test': {
-                "outcome_pcts": results['outcome_pcts'],
-                **results['overview']
+                "runtime": total_time.total_seconds(),
+                **metrics
             }
         }
 
@@ -337,18 +388,8 @@ def main(
             str(working_dir.joinpath(f'eval_config.yaml').resolve().absolute()))
         wandb_run.log_artifact(preds_artifact)
 
-        metric_artifact = wandb.Artifact(
-            f"{get_run_base_name_from_cfg(cfg, 'execution')}-{os.getenv('WANDB_RUN_ID')}",
-            type='execution_metrics')
-        metric_artifact.add_file(str(
-            working_dir.joinpath('execution_results.json').resolve().absolute()
-        ))
-        wandb_run.log_artifact(metric_artifact)
-
         wandb_run.finish()
 
 
-# For some reason the folliwng seems to be necessary sometimes for code_eval to work nice with multiprocessing
-# https://stackoverflow.com/questions/60804599/python-multiprocessing-keeps-spawning-the-whole-script
 if __name__ == "__main__":
     main()

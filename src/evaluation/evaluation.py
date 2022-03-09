@@ -3,7 +3,6 @@ import json
 import math
 import os
 from collections import defaultdict
-
 from datetime import datetime
 from pathlib import Path
 import random
@@ -13,7 +12,7 @@ import numpy as np
 import wandb
 from datasets import set_caching_enabled, Dataset
 from omegaconf import DictConfig, open_dict, OmegaConf
-from transformers import PreTrainedModel, DataCollatorForSeq2Seq
+from transformers import PreTrainedModel, DataCollatorForSeq2Seq, pipeline
 import torch
 import logging
 from tqdm import tqdm
@@ -26,13 +25,14 @@ logger = logging.getLogger(__name__)
 def generate_code_predictions(
         model,
         objective,
+        pipe,
         dataset: Union[List[dict], Dataset],
         tokenizer,
         batch_size,
-        device,
         generation_kwargs,
         seq_per_sample,
         remove_input_ids_from_output,
+        num_proc=1
 ):
     logger.info("Starting Generation")
 
@@ -63,51 +63,46 @@ def generate_code_predictions(
         logger.info(
             f"Not in language modeling, using a max length of {generation_kwargs['max_length']}")
         remove_input_ids_from_output = False
+        generation_kwargs.pop('max_new_tokens', None)
+    else:
+
+        generation_kwargs['max_new_tokens'] = max_new_tokens
+        generation_kwargs.pop('max_length', None)
     num_steps_needed = generate_steps_per_sample * len(dataset)
     logger.info(f"{num_steps_needed} total steps needed")
+
+    def prep_col(ex):
+        if objective == 'lm':
+            ex['input_sequence'] = tokenizer.eos_token + ex['input_sequence']
+        else:
+            ex['input_sequence'] = tokenizer.bos_token + ex['input_sequence'] + tokenizer.eos_token
+        return ex
+
+    logger.info(f"Prepping the dataset")
+    dataset = dataset.map(
+        prep_col,
+        num_proc=num_proc
+    )
 
     model.eval()
     with torch.inference_mode():
         progress_bar = tqdm(total=num_steps_needed, desc='Generating')
+
         for sample in dataset:
 
             generated_for_current_sample = []
-            sample_tokenized = tokenizer(sample['input_sequence'], return_tensors='pt')
-            local_inputs = sample_tokenized["input_ids"].to(device)
-            input_len = sample_tokenized['attention_mask'].sum().item()
-
-            # Language modeling will return the prompt with the generated text,
-            # so we need to calculate how many new tokens besides the prompt
-            # we should return.
-            if objective == "lm":
-
-                if max_new_tokens + input_len > tokenizer.model_max_length:
-                    logger.warning(
-                        f"Sample {sample['idx']} has more than the "
-                        f"models max length of {tokenizer.model_max_length}."
-                    )
-                    max_length_for_gen = tokenizer.model_max_length
-                else:
-                    max_length_for_gen = input_len + max_new_tokens
-                generation_kwargs['max_length'] = max_length_for_gen
 
             for i in range(generate_steps_per_sample):
-                generated_from_batch = model.generate(
-                    input_ids=local_inputs,
-                    **generation_kwargs
-                )
-                if not remove_input_ids_from_output:
-                    generated_results = generated_from_batch.tolist()
-                else:
+                generated_from_batch = pipe(sample['input_sequence'], **generation_kwargs)
+                if remove_input_ids_from_output:
                     # Can chop all in the results from the generation as they
                     # all have the same prompt length.
-                    generated_results = generated_from_batch[:, input_len:]
+                    generated_from_batch = [
+                        g[len(sample['input_sequence']):] for g in generated_from_batch
+                    ]
 
                 generated_for_current_sample.extend(
-                    tokenizer.batch_decode(
-                        generated_results,
-                        skip_special_tokens=True
-                    )
+                    generated_from_batch
                 )
 
                 progress_bar.update(1)
@@ -154,10 +149,8 @@ def evaluate_model(
 
             task.preprocessors.append(prepend_token)
 
-    device = get_device_from_cfg(cfg)
-    logger.info(f"Using device {device}")
-    model = model.to(device)
-    logger.info(f"Model is on {model.device}")
+    if cfg.training.fp16:
+        model=model.half()
 
     logger.info(f"Getting the data for split {cfg.split}")
     dataset = task.preprocess(cfg.split)
@@ -167,16 +160,26 @@ def evaluate_model(
         logger.warning(f"DEBUG NUMBER OF SAMPLES={debug_num_samples}")
         dataset = dataset.select(list(range(debug_num_samples)))
 
+    pipe = pipeline(
+        "text-generation" if cfg.objective == 'lm' else 'text2text-generation',
+        model=model,
+        tokenizer=task.tokenizer,
+        device=cfg.device
+    )
+    logger.info(f"Model is on {model.device}")
+    logger.info(f"{type(dataset)=}")
+
     generation_results = generate_code_predictions(
         model,
+        pipe=pipe,
         objective=cfg.objective,
         dataset=dataset,
         tokenizer=task.tokenizer,
         batch_size=cfg.batch_size,
-        device=device,
         generation_kwargs=gen_kwargs,
         seq_per_sample=cfg.seq_per_sample,
         remove_input_ids_from_output=cfg.get("remove_input_ids", False),
+        num_proc=cfg.get('num_proc', 1)
     )
 
     labels = list(map(task.postprocess, generation_results['labels']))

@@ -146,8 +146,7 @@ def eval_from_checkpoint(
         exclude_keys=[
             'preprocessors',
             'postprocessors',
-            'generation',
-            'training'
+            'generation'
         ]
     )
     dir_name = output_dir_name or f"{cfg.group}.{cfg.name}"

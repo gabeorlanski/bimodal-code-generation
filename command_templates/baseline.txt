@@ -1,4 +1,20 @@
 ##############################################################################################
+
+# Human Eval Zero Shot
+he_so{{idx}}=$(sbatch --job-name='{{ name }}_human_eval' --parsable \
+	run_human_eval.sbatch {{ HumanEval.path }})
+echo "Submitted HumanEval (id=$he_so{{idx}})"
+echo "scancel $he_so{{idx}}" >> generated_experiments/cancel_jobs.sh
+
+# Human Eval Code Execute Zero Shot
+he_exec{{idx}}=$(sbatch --parsable --job-name='{{ name }}_hef_execute' \
+	--dependency=afterok:$he_so{{idx}} \
+	eval_code.sbatch \
+	eval_results/{{ task_name }} {{ HumanEval.save_name }} test.jsonl
+)
+echo "Submitted CodeEval(id=$he_exec{{idx}})"
+echo "scancel $he_exec{{idx}}" >> generated_experiments/cancel_jobs.sh
+
 # Finetuning
 train_jid{{ idx}}=$(sbatch --parsable \
 	--job-name={{ name }}_finetune {{ train_sbatch }}.sbatch {{ FineTune.path}})
@@ -17,15 +33,14 @@ echo "scancel $hef_so{{idx}}" >> generated_experiments/cancel_jobs.sh
 hef_exec{{idx}}=$(sbatch --parsable --job-name='{{ name }}_hef_execute' \
 	--dependency=afterok:$hef_so{{idx}} \
 	eval_code.sbatch \
-	eval_results/{{ task_name }}/test.jsonl {{ HEFineTune.save_name }} test.jsonl
+	eval_results/{{ task_name }} {{ HEFineTune.save_name }} test.jsonl
 )
 echo "Submitted CodeEval(id=$hef_exec{{idx}})"
 echo "scancel $hef_exec{{idx}}" >> generated_experiments/cancel_jobs.sh
 
 # Normal Eval
 eval_jid{{idx}}=$(sbatch --parsable --job-name={{ name }}_eval \
-	--dependency=afterok:$train_jid{{ idx}} \
-	eval.sbatch \
+	--dependency=afterok:$train_jid{{ idx}} eval.sbatch \
 	{{ Eval.model_path }} {{ num_return_sequences }} {{ Eval.path }})
 echo "Submitted Eval $eval_jid{{idx}} to run after $1(id=$train_jid{{ idx}})"
 echo "scancel $eval_jid{{idx}}" >> generated_experiments/cancel_jobs.sh

@@ -1,6 +1,8 @@
 import argparse
 import json
 import logging
+
+import click
 from omegaconf import OmegaConf, open_dict
 from pathlib import Path
 import os
@@ -12,26 +14,64 @@ from src.config import setup_tracking_env_from_cfg, get_config_for_tracking
 from src.common.util import flatten
 
 
-def run(pred_dir, num_workers, disable_tracking, input_artifact_name, timeout):
+@click.command()
+@click.argument('path_to_preds', metavar="<predictions dir>")
+@click.argument('num_workers', type=int, metavar="<Number of workers>")
+@click.option(
+    '--debug',
+    is_flag=True,
+    default=False,
+    help="Debug Mode"
+)
+@click.option(
+    '--notrack', 'disable_tracking',
+    is_flag=True,
+    default=False,
+    help="Disable Tracking"
+)
+@click.option(
+    '--artifact-name', '-artifact', 'input_artifact_name',
+    default=None,
+    help="The artifact to register as input, only for WandB"
+)
+@click.option(
+    '--timeout',
+    default=3.0,
+    type=float,
+    help="The amount to use for timeout"
+)
+def run(path_to_preds, num_workers, debug, disable_tracking, input_artifact_name, timeout):
     # I just needed a way to get the parent directory.
-    path_to_dir = Path(pred_dir)
-    if not path_to_dir.exists():
-        raise FileExistsError(f"{path_to_dir.resolve().absolute()} does not exist.")
+    path_to_preds = Path(path_to_preds)
+
+    if path_to_preds.is_file():
+        preds_file = path_to_preds
+        path_to_preds = path_to_preds.parent
+    else:
+        preds_file = None
+        path_to_preds = path_to_preds.joinpath('predictions')
+    if not path_to_preds.exists():
+        raise FileExistsError(f"{path_to_preds.resolve().absolute()} does not exist.")
+
+
     setup_global_logging(
-        'code_eval',
-        path_to_dir.joinpath('logs'),
+        f'execution',
+        path_to_preds,
         rank=int(os.environ.get('LOCAL_RANK', '-1')),
-        world_size=int(os.environ.get("WORLD_SIZE", 1))
+        world_size=int(os.environ.get("WORLD_SIZE", 1)),
+        disable_issues_file=True
     )
     logger = logging.getLogger('code_eval')
     logger.info("Starting...")
-    logger.info(f"Loading eval config from {path_to_dir}")
+    logger.info(f"Loading eval config from {path_to_preds}")
+    if preds_file is not None:
+        logger.info(f"Using single preds file {preds_file}")
 
     # In the case this script is not called from an artifact.
-    if path_to_dir.stem == 'predictions':
-        path_to_cfg = path_to_dir.parent.joinpath('eval_config.yaml')
+    if path_to_preds.stem == 'predictions':
+        path_to_cfg = path_to_preds.parent.joinpath('eval_config.yaml')
     else:
-        path_to_cfg = path_to_dir.joinpath('eval_config.yaml')
+        path_to_cfg = path_to_preds.joinpath('eval_config.yaml')
     cfg = yaml.load(
         path_to_cfg.open('r', encoding='utf-8'),
         yaml.Loader
@@ -39,11 +79,22 @@ def run(pred_dir, num_workers, disable_tracking, input_artifact_name, timeout):
     cfg = OmegaConf.create(
         cfg
     )
+    with open_dict(cfg):
+        cfg.debug = debug
+        if disable_tracking:
+            cfg.tracking = False
+
     setup_tracking_env_from_cfg(cfg)
 
     all_results = {}
 
-    for split_file in path_to_dir.glob('*.jsonl'):
+    if preds_file:
+        found_files = [preds_file]
+    else:
+        found_files = list(path_to_preds.glob('*.jsonl'))
+        logger.info(f"{len(found_files)} prediction file found")
+
+    for split_file in found_files:
         split = split_file.stem
         logger.info(f"Executing code from {split_file}")
         results = evaluate_code_from_file(
@@ -54,7 +105,7 @@ def run(pred_dir, num_workers, disable_tracking, input_artifact_name, timeout):
         )
         all_results[split] = results
 
-    save_path = path_to_dir.joinpath(f'execution_metrics.json')
+    save_path = path_to_preds.joinpath(f'execution_metrics.json')
     logger.info(f"Saving {save_path}")
     with save_path.open('w', encoding='utf-8') as f:
         json.dump(all_results, f, indent=True)
@@ -68,11 +119,10 @@ def run(pred_dir, num_workers, disable_tracking, input_artifact_name, timeout):
             job_type='code_eval',
             name=os.getenv('WANDB_RUN_NAME'),
             id=os.getenv('WANDB_RUN_ID'),
-            project=cfg.project,
+            project=os.getenv('WANDB_PROJECT'),
             group=f"{cfg.group}[execution]",
             config=get_config_for_tracking(cfg),
-            entity=cfg.tracking.entity
-            # id=run_id
+            entity=os.getenv('WANDB_ENTITY'),
         )
         metrics_to_log_dict = {}
         for split, split_dict in all_results.items():
@@ -100,21 +150,4 @@ def run(pred_dir, num_workers, disable_tracking, input_artifact_name, timeout):
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument("file_name", metavar="<Name of the file with the preds>")
-    parser.add_argument("workers", metavar="<Num Workers>", type=int)
-
-    parser.add_argument('--disable-tracking', '-notrack',
-                        action="store_true",
-                        default=False,
-                        help="Disable Tracking")
-    parser.add_argument('--artifact-name', default=None, help='Input artifact name for linking')
-    parser.add_argument('--timeout', default=3.0, type=float, help='Timeout for executing code')
-    argv, _ = parser.parse_known_args()
-    run(
-        argv.file_name,
-        argv.workers,
-        argv.disable_tracking,
-        argv.artifact_name,
-        argv.timeout
-    )
+    run()

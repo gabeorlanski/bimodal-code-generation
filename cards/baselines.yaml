@@ -1,0 +1,81 @@
+starting_commands: command_templates/sbatch_experiment.txt
+experiments:
+  CodeT5.Baseline:
+    overrides:
+      ++device: 0
+      ++model: 'EleutherAI/gpt-neo-125M'
+      +processor: stackoverflow
+      ++processor.params.repeat_question_for_each_answer: 'full'
+      ++raw_dump_path: data/dumps
+      is_checkpoint: true
+      ++task.dump_name: python_full
+      ++task.raw_dump_name: python
+      ++tensorized_name: python_full
+      objective: seq2seq
+      ++model: Salesforce/codet5-base
+      ++training.batch_size: 16
+      ++training.gradient_accumulation_steps: 6
+
+    steps:
+      - name: HumanEval
+        add_name: False
+        base: human_eval
+        group: HUMAN_EVAL
+        overrides:
+          is_checkpoint: false
+          ++generation:
+            max_length: 256
+            do_sample: true
+            temperature: 0.5
+            top_p: 0.95
+            top_k: 50
+          ++model_path: null
+          batch_size: 200
+      - name: FineTune
+        base: greene_config
+        group: MBPP
+        overrides:
+          task: mbpp
+          ++is_checkpoint: false
+          ++model_path: null
+          ++training:
+            batch_size: 32
+            gradient_accumulation_steps: 1
+            learning_rate: 5e-5
+            metric_for_best_model: "eval_bleu"
+      - name: HEFineTune
+        base: human_eval
+        group: HUMAN_EVAL
+        overrides:
+          is_checkpoint: true
+          ++generation:
+            max_length: 256
+            do_sample: true
+            temperature: 0.5
+            top_p: 0.95
+            top_k: 50
+          model_path: best_models/${..__META__.FineTune.save_name}
+          batch_size: 200
+      - name: Eval
+        base: eval_config
+        group: MBPP
+        overrides:
+          batch_size: 200
+          remove_input_ids: true
+          ++generation:
+            max_length: 256
+            do_sample: true
+            temperature: 0.5
+            top_p: 0.95
+            top_k: 50
+          task: mbpp
+          remove_input_ids: false
+          ++model_path: best_models/${..__META__.FineTune.save_name}
+    command:
+      file: command_templates/baseline.txt
+      kwargs:
+        num_return_sequences: 200
+        task_name: MBPP
+        train_sbatch: train_single_gpu
+      fields:
+        - model_path
