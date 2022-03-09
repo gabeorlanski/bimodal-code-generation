@@ -96,7 +96,7 @@ experiments:
               HEFineTune:
                 ++batch_size: 100
           Large:
-            overrides
+            overrides:
               ++model: gpt2-large
               ++training.batch_size: 8
               ++training.gradient_accumulation_steps: 4
