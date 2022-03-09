@@ -60,6 +60,8 @@ def generate_code_predictions(
     max_new_tokens = generation_kwargs.pop('max_new_tokens', 256)
     if objective != 'lm':
         generation_kwargs['max_length'] = generation_kwargs.get('max_length', 256)
+        logger.info(
+            f"Not in language modeling, using a max length of {generation_kwargs['max_length']}")
         remove_input_ids_from_output = False
     num_steps_needed = generate_steps_per_sample * len(dataset)
     logger.info(f"{num_steps_needed} total steps needed")
