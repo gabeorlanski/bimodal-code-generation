@@ -87,7 +87,7 @@ experiments:
             ++training.batch_size: 16
             ++training.gradient_accumulation_steps: 2
             ++batch_size: 100
-            ++training.deepspeed: ds_config.json
+            ++training.deepspeed: deepspeed_configs/mbpp_finetune.json
           Large:
             ++model: gpt2-large
             ++training.batch_size: 8
