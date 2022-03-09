@@ -102,6 +102,7 @@ def complete_code(pipe, prompt, remove_prompt=False, num_completions=1, **gen_kw
         return [first_block(code_gen["generated_text"]) for code_gen in code_gens]
 
 
+
 @click.command()
 @click.argument('cfg', metavar='<Path To Config>')
 @click.option('--objective', default=None, help='<Objective>')
@@ -239,14 +240,6 @@ def main(
     # Load model and tokenizer
     tokenizer = AutoTokenizer.from_pretrained(cfg.model)
     _, model = load_model_from_cfg(cfg)
-    pipe = pipeline(
-        "text-generation" if cfg.objective == 'lm' else 'text2text-generation',
-        model=model,
-        tokenizer=tokenizer,
-        device=cfg.device
-    )
-    logger.info(f"Using {model.device}")
-    logger.info(f"Using {cfg.device=}")
 
     # Generation settings
     gen_kwargs = {
@@ -258,10 +251,10 @@ def main(
         "top_k"            : cfg.generation.top_k,
 
     }
-    if cfg.objective!='lm':
-        gen_kwargs['max_length'] = cfg.generation.get("max_length",256)
+    if cfg.objective != 'lm':
+        gen_kwargs['max_length'] = cfg.generation.get("max_length", 256)
     else:
-        gen_kwargs["max_new_tokens"] = cfg.generation.get("max_new_tokens",256)
+        gen_kwargs["max_new_tokens"] = cfg.generation.get("max_new_tokens", 256)
         gen_kwargs['max_length'] = None
 
     if cfg.generation.get('min_length'):
@@ -286,8 +279,20 @@ def main(
     logger.info(f"{cfg.batch_size=}")
     logger.info(f"{cfg.seq_per_sample=}")
 
-    start_time = datetime.utcnow()
+    # num_gpus = torch.cuda.device_count()
+    # slice_size = len(human_eval) // num_gpus
+    # logger.info(
+    #     f"Using {num_gpus} gpu{'s' if num_gpus > 1 else ''} with a slice size of {slice_size}")
 
+    start_time = datetime.utcnow()
+    pipe = pipeline(
+        "text-generation" if cfg.objective == 'lm' else 'text2text-generation',
+        model=model,
+        tokenizer=tokenizer,
+        device=cfg.device
+    )
+    logger.info(f"Using {model.device}")
+    logger.info(f"Using {cfg.device=}")
     for task in tqdm(range(n_tasks)):
         task_generations = []
         prompt = human_eval[task]["prompt"].strip()
@@ -297,7 +302,7 @@ def main(
                 complete_code(
                     pipe,
                     prompt,
-                    remove_prompt=objective == 'lm',
+                    remove_prompt=cfg.objective == 'lm',
                     num_completions=cfg.batch_size,
                     **gen_kwargs
                 )
@@ -305,7 +310,7 @@ def main(
 
         test_func = human_eval[task]["test"]
         entry_point = f"check({human_eval[task]['entry_point']})"
-        if objective == 'lm':
+        if cfg.objective == 'lm':
             preds = [prompt + gen for gen in task_generations]
         else:
             preds = task_generations
@@ -315,7 +320,6 @@ def main(
             "target"    : prompt + human_eval[task]['canonical_solution'],
             "tests"     : ["\n" + test_func + "\n" + entry_point]
         })
-
     total_time = (datetime.utcnow() - start_time)
 
     logger.info(

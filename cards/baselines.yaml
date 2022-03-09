@@ -92,7 +92,7 @@ experiments:
             ++model: gpt2-large
             ++training.batch_size: 8
             ++training.gradient_accumulation_steps: 4
-            ++batch_size: 100
+            ++batch_size: 50
             ++training.deepspeed: deepspeed_configs/mbpp_finetune.json
     steps:
       - name: HumanEval
