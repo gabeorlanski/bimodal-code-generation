@@ -43,6 +43,7 @@ from src.common.util import flatten
 def run(path_to_preds, num_workers, debug, disable_tracking, input_artifact_name, timeout):
     # I just needed a way to get the parent directory.
     path_to_preds = Path(path_to_preds)
+    print(f"{path_to_preds}")
 
     if path_to_preds.suffix == 'jsonl':
         preds_file = path_to_preds
@@ -52,7 +53,6 @@ def run(path_to_preds, num_workers, debug, disable_tracking, input_artifact_name
         path_to_preds = path_to_preds.joinpath('predictions')
     if not path_to_preds.exists():
         raise FileExistsError(f"{path_to_preds.resolve().absolute()} does not exist.")
-
 
     setup_global_logging(
         f'execution',
