@@ -53,7 +53,7 @@ experiments:
           batch_size: 200
           remove_input_ids: true
           ++generation:
-            max_length: 256
+            max_length: 512
             do_sample: true
             temperature: 0.5
             top_p: 0.95
@@ -83,17 +83,31 @@ experiments:
             ++training.gradient_accumulation_steps: 1
             ++batch_size: 200
           Medium:
-            ++model: gpt2-medium
-            ++training.batch_size: 16
-            ++training.gradient_accumulation_steps: 2
-            ++batch_size: 100
-            ++training.deepspeed: deepspeed_configs/mbpp_finetune.json
+            overrides:
+              ++model: gpt2-medium
+              ++training.batch_size: 16
+              ++training.gradient_accumulation_steps: 2
+              ++training.deepspeed: deepspeed_configs/mbpp_finetune.json
+            step_overrides:
+              Eval:
+                ++batch_size: 50
+              HumanEval:
+                ++batch_size: 100
+              HEFineTune:
+                ++batch_size: 100
           Large:
-            ++model: gpt2-large
-            ++training.batch_size: 8
-            ++training.gradient_accumulation_steps: 4
-            ++batch_size: 50
-            ++training.deepspeed: deepspeed_configs/mbpp_finetune.json
+            overrides
+              ++model: gpt2-large
+              ++training.batch_size: 8
+              ++training.gradient_accumulation_steps: 4
+              ++training.deepspeed: deepspeed_configs/mbpp_finetune.json
+            step_overrides:
+              Eval:
+                ++batch_size: 25
+              HumanEval:
+                ++batch_size: 50
+              HEFineTune:
+                ++batch_size: 50
     steps:
       - name: HumanEval
         add_name: False
@@ -136,7 +150,7 @@ experiments:
         overrides:
           remove_input_ids: true
           ++generation:
-            max_new_tokens: 256
+            max_new_tokens: 512
             do_sample: true
             temperature: 0.5
             top_p: 0.95

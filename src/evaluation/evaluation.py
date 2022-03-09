@@ -12,7 +12,8 @@ import numpy as np
 import wandb
 from datasets import set_caching_enabled, Dataset
 from omegaconf import DictConfig, open_dict, OmegaConf
-from transformers import PreTrainedModel, DataCollatorForSeq2Seq, pipeline
+from transformers import PreTrainedModel, DataCollatorForSeq2Seq, pipeline, StoppingCriteria, \
+    MaxLengthCriteria, StoppingCriteriaList
 import torch
 import logging
 from tqdm import tqdm
@@ -20,6 +21,18 @@ from src.config import get_device_from_cfg, load_task_from_cfg, get_config_for_t
     get_run_base_name_from_cfg
 
 logger = logging.getLogger(__name__)
+
+
+class EOSStoppingCriteria(StoppingCriteria):
+    """Custom `StoppingCriteria` which checks if all generated functions in the batch are completed."""
+
+    def __init__(self, tokenizer):
+        self.eos_token = tokenizer.eos_token_id
+
+    def __call__(self, input_ids, scores, **kwargs):
+        """Returns true if all generated sequences contain any of the end-of-function strings."""
+
+        return all(self.eos_token in row[1:] for row in input_ids)
 
 
 def generate_code_predictions(
@@ -43,6 +56,8 @@ def generate_code_predictions(
     for k, v in generation_kwargs.items():
         logger.info(f"\t{k:>20} = {v}")
 
+    generation_kwargs["stopping_criteria"] = StoppingCriteriaList(
+        [EOSStoppingCriteria(tokenizer)])
     indices = []
     predictions = []
     labels = []
@@ -62,7 +77,7 @@ def generate_code_predictions(
         generation_kwargs['max_length'] = generation_kwargs.get('max_length', 256)
         logger.info(
             f"Not in language modeling, using a max length of {generation_kwargs['max_length']}")
-        remove_input_ids_from_output = False
+        # remove_input_ids_from_output = False
         generation_kwargs.pop('max_new_tokens', None)
     else:
 
@@ -76,6 +91,7 @@ def generate_code_predictions(
             ex['input_sequence'] = tokenizer.eos_token + ex['input_sequence']
         else:
             ex['input_sequence'] = tokenizer.bos_token + ex['input_sequence'] + tokenizer.eos_token
+        ex['input_len'] = len(tokenizer.encode(ex['input_sequence']))
         return ex
 
     logger.info(f"Prepping the dataset")
@@ -98,7 +114,7 @@ def generate_code_predictions(
                     # Can chop all in the results from the generation as they
                     # all have the same prompt length.
                     generated_from_batch = [
-                        g[len(sample['input_sequence']):] for g in generated_from_batch
+                        g['generated_text'][sample['input_len']:] for g in generated_from_batch
                     ]
 
                 generated_for_current_sample.extend(
@@ -150,7 +166,7 @@ def evaluate_model(
             task.preprocessors.append(prepend_token)
 
     if cfg.training.fp16:
-        model=model.half()
+        model = model.half()
 
     logger.info(f"Getting the data for split {cfg.split}")
     dataset = task.preprocess(cfg.split)
