@@ -59,7 +59,7 @@ experiments:
         overrides:
           is_checkpoint: true
           ++generation:
-            max_length: 512
+            max_length: 256
             do_sample: true
             temperature: 0.5
             top_p: 0.95
@@ -84,7 +84,7 @@ experiments:
         overrides:
           is_checkpoint: true
           ++generation:
-            max_length: 512
+            max_length: 256
             do_sample: true
             temperature: 0.5
             top_p: 0.95
@@ -98,7 +98,7 @@ experiments:
           batch_size: 200
           remove_input_ids: true
           ++generation:
-            max_length: 512
+            max_length: 256
             do_sample: true
             temperature: 0.5
             top_p: 0.95
