@@ -13,6 +13,7 @@ from collections import defaultdict
 from datetime import datetime
 from functools import partial
 
+import datasets
 import numpy as np
 import torch
 import wandb
@@ -281,11 +282,12 @@ def main(
         ex['length'] = len(tokenizer.tokenize(ex['prompt']))
         return ex
 
+    datasets.set_progress_bar_enabled(False)
     human_eval = human_eval.map(
         get_len,
-        num_proc=cfg.num_workers
-    ).sort('length', reverse=True)
+        num_proc=cfg.num_workers,
 
+    ).sort('length', reverse=True)
     # Generate completions for evaluation set
     logger.info(f"Starting Generation")
 
@@ -309,7 +311,7 @@ def main(
         device=cfg.device
     )
     if not no_apex:
-        pipe.model = amp.initialize(pipe.model)
+        pipe.model = amp.initialize(pipe.model, opt_level="O3")
     logger.info(f"Using {model.device}")
     logger.info(f"Using {cfg.device=}")
     iteration_count, remainder = divmod(cfg.seq_per_sample, cfg.batch_size)
