@@ -160,12 +160,12 @@ def get_large_dataset_info_from_config(ctx, config, num_workers):
 
     get_large_dataset_info(
         name=cfg.task.raw_dump_name,
-        output_name=cfg.tensorized_name,
+        output_name=cfg.task.tensorized_name,
         num_workers=num_workers,
         processor_name=cfg.processor.name,
         model_name=cfg.model,
-        data_path=cfg.raw_dump_path,
-        out_path=cfg.tensorized_path,
+        data_path=cfg.task.raw_dump_path,
+        out_path=cfg.task.tensorized_path,
         validation_file_name=None,
         cfg=cfg,
         debug=ctx.obj['DEBUG'],

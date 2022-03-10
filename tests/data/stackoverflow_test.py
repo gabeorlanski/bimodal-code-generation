@@ -2,10 +2,13 @@
 Tests for the StackOverflow dataset
 """
 import json
+import re
 
 import pytest
 from transformers import AutoTokenizer
 from src.data import stackoverflow
+
+space_cleaner = re.compile(r'\s{2,}')
 
 
 class TestStackOverflowProcessor:
@@ -152,7 +155,7 @@ class TestStackOverflowProcessor:
             assert result['inputs'][i] == 'Title\nBody'
             assert result['labels'][i] == v
 
-    @pytest.mark.parametrize('remove_modality', [None, "CODE", "NL"])
+    @pytest.mark.parametrize('remove_modality', ["NONE", "CODE", "NL"])
     @pytest.mark.parametrize('clean', [True, False], ids=['Clean', 'Dirty'])
     def test_clean(self, remove_modality, clean):
         processor = stackoverflow.StackOverflowProcessor(
@@ -163,16 +166,116 @@ class TestStackOverflowProcessor:
         input_text = "<p>NL <code> Inline Code</code></p>\n<pre><code>CodeBlock</code></pre>"
         result = processor.clean_html_body(input_text)
         if not clean:
-            if remove_modality is None:
+            if remove_modality == "NONE":
                 assert result == input_text
             elif remove_modality == 'CODE':
                 assert result == "<p>NL <code> Inline Code</code></p>"
             else:
                 assert result == "<pre><code>CodeBlock</code></pre>"
         else:
-            if remove_modality is None:
+            if remove_modality == "NONE":
                 assert result == "NL  Inline Code\nCodeBlock"
             elif remove_modality == "CODE":
                 assert result == "NL  Inline Code"
             else:
                 assert result == "CodeBlock"
+
+    @pytest.mark.parametrize('remove_modality', ['NONE', "CODE", "NL"],
+                             ids=["Both", "OnlyNL", "OnlyCode"])
+    @pytest.mark.parametrize('repeat_mode', ['title', 'full', 'none'],
+                             ids=['Title', 'Full', 'None'])
+    @pytest.mark.parametrize('force_include_question', [True, False], ids=['ForceQ', 'NoForceQ'])
+    @pytest.mark.parametrize('force_include_title', [True, False], ids=['ForceT', 'NoForceT'])
+    def test_remove_modality_repeats(self, remove_modality, repeat_mode,
+                                     force_include_question, force_include_title):
+        processor = stackoverflow.StackOverflowProcessor(
+            remove_modality=remove_modality,
+            force_include_question=force_include_question,
+            force_include_title=force_include_title,
+            repeat_question_for_each_answer=repeat_mode
+        )
+
+        sample = {
+            "answers"     : {
+                "56537578"   : {
+                    "line"     : 44432429,
+                    "body"     : "<p>Answer 1.p1</p>\n\n<pre><code>Answer 1.c1</code></pre>\n\n<p> Answer 1.p2 <code>Answer 1.i1</code></p>",
+                    "result"   : "PASS", "type": 2, "id": "56537578",
+                    "date"     : "2019-06-11T06:16:49.870", "score": 0, "comment_count": 0,
+                    "parent_id": "56537551"
+                }, "56537596": {
+                    "line"     : 44432442,
+                    "body"     : "<p> Answer 2.p1 <code>Answer 2.i1</code></p>\n\n<pre><code>Answer 2.c1</code></pre>",
+                    "result"   : "PASS", "type": 2, "id": "56537596",
+                    "date"     : "2019-06-11T06:18:25.427", "score": -1, "comment_count": 0,
+                    "parent_id": "56537551"
+                }
+            }, "line"     : 44432410,
+            "body"        : "<p>Question Paragraph</p>\n\n<pre><code>Question Code</code></pre>\n",
+            "result"      : "PASS", "type": 1, "id": "56537551", "date": "2019-06-11T06:14:53.697",
+            "score"       : -1, "comment_count": 1, "tags": ["python", "python-2.7"],
+            "title"       : "Title",
+            "answer_count": 2, "views": 32, "accepted_answer": None
+        }
+
+        bodies_with_removed = {
+            1: {
+                "CODE": "Answer 1.p1 Answer 1.p2 Answer 1.i1",
+                "NL"  : "Answer 1.c1",
+                "NONE": "Answer 1.p1 Answer 1.c1 Answer 1.p2 Answer 1.i1",
+            },
+            2: {
+                "CODE": "Answer 2.p1 Answer 2.i1",
+                "NL"  : "Answer 2.c1",
+                "NONE": "Answer 2.p1 Answer 2.i1 Answer 2.c1",
+            },
+            0: {
+                "CODE": "Question Paragraph",
+                "NL"  : "Question Code",
+                "NONE": "Question Paragraph Question Code"
+            }
+        }
+
+        result = processor.make_instances_from_question(sample)
+        for i in range(len(result)):
+            result[i]['input'] = space_cleaner.sub(' ', result[i]['input'].replace('\n', ' '))
+            result[i]['labels'] = space_cleaner.sub(' ', result[i]['labels'].replace('\n', ' '))
+
+        expected_input = ""
+        if force_include_title or remove_modality != 'NL':
+            expected_input = sample['title'] + " "
+
+        if force_include_question:
+            expected_input += bodies_with_removed[0]['NONE']
+        else:
+            expected_input += bodies_with_removed[0][remove_modality]
+
+        if repeat_mode == 'none':
+            expected_target = bodies_with_removed[1][remove_modality]
+            expected_target += " "
+            expected_target += bodies_with_removed[2][remove_modality]
+            assert len(result) == 1
+            actual_input = result[0]['input']
+            assert actual_input == expected_input
+
+            actual_target = result[0]['labels']
+            assert actual_target == expected_target
+        else:
+            assert len(result) == 2
+
+            expected_repeat = ''
+            if remove_modality != 'NL' or force_include_title:
+                expected_repeat += sample['title']
+
+            if repeat_mode == 'full':
+                expected_repeat += " "
+                if force_include_question or remove_modality == 'NONE':
+                    expected_repeat += bodies_with_removed[0]["NONE"]
+                else:
+                    expected_repeat += bodies_with_removed[0][remove_modality]
+
+            assert result[0]['input'] == expected_input
+            assert result[0]['labels'] == bodies_with_removed[1][remove_modality]
+
+            assert result[1]['input'] == expected_repeat.strip()
+            assert result[1]['labels'] == bodies_with_removed[2][remove_modality]

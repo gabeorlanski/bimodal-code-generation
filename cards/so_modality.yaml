@@ -1,26 +1,44 @@
 starting_commands: command_templates/sbatch_experiment.txt
 experiments:
-  CodeT5.FT:
+  ParrotSmall.SO:
     overrides:
       ++device: 0
       ++model: 'Salesforce/codet5-small'
       +processor: stackoverflow
-      ++processor.params.repeat_question_for_each_answer: 'full'
-      ++raw_dump_path: data/dumps
-      ++task.dump_name: python_full
+      ++task.raw_dump_path: data/dumps
       ++task.raw_dump_name: python
-      ++tensorized_name: python_full
-      objective: seq2seq
+      ++task.tensorized_path: data/ds_info
+      ++task.data_path: data/ds_info
+      objective: lm
+      ++processor.params.remove_modality: NL
     ablations:
-      - Model:
-          Small:
-            ++model: Salesforce/codet5-small
-            ++training.batch_size: 48
-            ++training.gradient_accumulation_steps: 2
-          Base:
-            ++model: Salesforce/codet5-base
-            ++training.batch_size: 16
-            ++training.gradient_accumulation_steps: 6
+      - DumpName:
+          PyOnlyCodeNoRepeat:
+            ++task.dump_name: python_code_norepeat
+            ++task.tensorized_name: python_code_norepeat
+            ++processor.params.repeat_question_for_each_answer: 'none'
+          PyOnlyCodeFullRepeat:
+            ++task.dump_name: python_code_fullrepeat
+            ++task.tensorized_name: python_code_fullrepeat
+            ++processor.params.repeat_question_for_each_answer: 'full'
+          PyOnlyCodeFullRepeatWTitle:
+            ++task.dump_name: python_code_fullrepeat_title
+            ++task.tensorized_name: python_code_fullrepeat_title
+            ++processor.params.repeat_question_for_each_answer: 'full'
+            ++processor.params.force_include_title: True
+          PyOnlyCodeFullRepeatWBody:
+            ++task.dump_name: python_code_fullrepeat_body
+            ++task.tensorized_name: python_code_fullrepeat_body
+            ++processor.params.repeat_question_for_each_answer: 'full'
+            ++processor.params.force_include_question: True
+          PyOnlyCodeFullRepeatWQuestion:
+            ++task.dump_name: python_code_fullrepeat_question
+            ++task.tensorized_name: python_code_fullrepeat_question
+            ++processor.params.repeat_question_for_each_answer: 'full'
+            ++processor.params.force_include_question: True
+            ++processor.params.force_include_title: True
+
+
 
     steps:
       - name: PreTrain
@@ -29,16 +47,14 @@ experiments:
         group: SO
         overrides:
           ++task.buffer_size: 25
-          ++tensorized_path: data/ds_info
-          ++task.data_path: data/ds_info
           ++processor.params.clean: True
           +tensorize_batch_size: 64
           tracking:
             log_model: True
           is_checkpoint: False
           ++training:
-            batch_size: 32
-            gradient_accumulation_steps: 2
+            batch_size: 16
+            gradient_accumulation_steps: 4
             learning_rate: 1e-4
             save_steps: 1000
             eval_steps: 500
@@ -49,7 +65,7 @@ experiments:
             deepspeed: ds_config.json
             save_total_limit: 10
             group_by_length: False
-          ++task.sequence_length: 512
+          ++task.sequence_length: 1024
           task: so
       - name: HumanEval
         add_name: False
@@ -76,7 +92,6 @@ experiments:
             batch_size: 32
             gradient_accumulation_steps: 1
             learning_rate: 5e-5
-            metric_for_best_model: "eval_bleu"
       - name: HEFineTune
         base: human_eval
         group: HUMAN_EVAL
@@ -103,7 +118,7 @@ experiments:
             top_p: 0.95
             top_k: 50
           task: mbpp
-          remove_input_ids: false
+          remove_input_ids: true
           ++model_path: best_models/${..__META__.FineTune.save_name}
     command:
       file: command_templates/deepspeed_pretrain.txt

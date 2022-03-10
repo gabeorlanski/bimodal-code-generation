@@ -21,10 +21,10 @@ class StackOverflowProcessor:
             question_prompt: str = None,
             title_prompt: str = None,
             clean: bool = True,
-            remove_modality: str = None,
+            remove_modality: str = "NONE",
             no_answer_str: str = "There is not an answer",
+            force_include_question: bool = False,
             force_include_title: bool = False
-
     ):
         self.answer_sorting = answer_sorting.lower()
         if self.answer_sorting not in ['ascending', 'descending', 'accepted']:
@@ -42,19 +42,31 @@ class StackOverflowProcessor:
         self.answers_per_sample = answers_per_sample
         self.lm_concat_delim = '\n'
         self.clean = clean
-        self.remove_modality = remove_modality.upper() if remove_modality else None
+
+        self.force_include_question = force_include_question
         self.force_include_title = force_include_title
+
         self.no_answer_str = no_answer_str
-        if self.remove_modality not in ['CODE', 'NL']:
-            self.remove_modality = None
+        if remove_modality is None:
+            self.remove_modality = "NONE"
+        else:
+            self.remove_modality = remove_modality.upper()
+            if self.remove_modality not in ['CODE', 'NL', 'NONE']:
+                self.remove_modality = 'NONE'
+
+        if force_include_title:
+            if self.remove_modality is None:
+                logger.warning(f"Force include title is enabled but will have no effect.")
+        if force_include_question and self.remove_modality is None:
+            logger.warning(f"Force include question is enabled but will have no effect.")
 
     def clean_html_body(self, body):
-        if not self.clean and self.remove_modality is None:
+        if not self.clean and self.remove_modality == 'NONE':
             return body
 
         soup = BeautifulSoup(body, 'lxml').find('body')
 
-        if self.remove_modality is None and self.clean:
+        if self.clean and self.remove_modality == "NONE":
             return soup.text.strip()
 
         tag_name = 'pre' if self.remove_modality == "CODE" else 'p'
@@ -73,12 +85,16 @@ class StackOverflowProcessor:
     def apply_question_prompt(self, title, body, score, views, is_first_answer):
         title_str = self.title_prompt.replace('__TITLE__', title)
         body_str = self.question_prompt.replace("__BODY__", body)
-        if is_first_answer:
-            return f"{title_str}\n{body_str}"
+
+        if self.remove_modality == "NL" and not self.force_include_title:
+            title_str = ''
+        else:
+            title_str = f"{title_str}\n"
+
+        if is_first_answer or self.repeat_question_for_each_answer == 'full':
+            return f"{title_str}{body_str}"
         if self.repeat_question_for_each_answer == 'title':
-            return title_str
-        elif self.repeat_question_for_each_answer == 'full':
-            return f"{title_str}\n{body_str}"
+            return title_str.strip()
         return ''
 
     def apply_answer_prompt(self, answer, score):
@@ -98,7 +114,13 @@ class StackOverflowProcessor:
         # Set to -1 if there is no accepted answer because it is impossible.
         accepted_answer_id = sample['accepted_answer'] or "-1"
 
-        sample['body'] = self.clean_html_body(sample['body'])
+        if self.force_include_question:
+            if self.clean:
+                soup = BeautifulSoup(sample['body'], 'lxml').find('body')
+                sample['body'] = soup.text.strip()
+        else:
+            sample['body'] = self.clean_html_body(sample['body'])
+
         for k in sample['answers'].keys():
             sample['answers'][k]['body'] = self.clean_html_body(sample['answers'][k]['body'])
 
