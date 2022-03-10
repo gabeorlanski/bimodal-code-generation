@@ -126,10 +126,10 @@ def complete_code(pipe, prompt, remove_prompt=False, num_completions=1, **gen_kw
     help="Do Not Run Code"
 )
 @click.option(
-    '--no-apex',
+    '--move-problem',
     is_flag=True,
     default=False,
-    help="Do Not Use Apex"
+    help="Move the problem to before the signature"
 )
 @click.option(
     '--debug-tasks', '-tasks',
@@ -166,7 +166,7 @@ def main(
         debug,
         disable_tracking,
         no_code_eval,
-        no_apex,
+        move_problem,
         debug_tasks,
         batch_size,
         sequences_per_sample,
@@ -310,8 +310,6 @@ def main(
         tokenizer=tokenizer,
         device=cfg.device
     )
-    if not no_apex:
-        pipe.model = amp.initialize(pipe.model, opt_level="O3")
     logger.info(f"Using {model.device}")
     logger.info(f"Using {cfg.device=}")
     iteration_count, remainder = divmod(cfg.seq_per_sample, cfg.batch_size)
@@ -323,10 +321,11 @@ def main(
     for task_idx, task in enumerate(human_eval.select(list(range(n_tasks)))):
         task_generations = []
         prompt = task["prompt"].strip()
-        # problem_statement = remove_comment_regex.search(prompt)
-        # if problem_statement:
-        #     remove_comment_regex.sub('', prompt)
-        #     prompt = f"{problem_statement.group(1).strip()}\n{prompt}"
+        if move_problem:
+            problem_statement = remove_comment_regex.search(prompt)
+            if problem_statement:
+                remove_comment_regex.sub('', prompt)
+                prompt = f"{problem_statement.group(1).strip()}\n{prompt}"
         gen_kwargs["stopping_criteria"][0].start_length = len(tokenizer(prompt)["input_ids"])
 
         for batch in range(iteration_count):
