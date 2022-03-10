@@ -307,6 +307,7 @@ def main(
         tokenizer=tokenizer,
         device=cfg.device
     )
+    pipe.model=pipe.model.half()
     logger.info(f"Using {model.device}")
     logger.info(f"Using {cfg.device=}")
     iteration_count, remainder = divmod(cfg.seq_per_sample, cfg.batch_size)
