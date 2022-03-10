@@ -4,6 +4,7 @@ This script originally came from https://github.com/huggingface/transformers/blo
 
 import json
 import logging
+import math
 import multiprocessing
 import os
 import random
@@ -23,7 +24,7 @@ import click
 import multiprocessing as mp
 import re
 from tio.metrics import BLEU, ExactMatch
-
+from apex import amp
 import transformers
 from arguments import HumanEvalArguments
 from transformers import (
@@ -102,7 +103,6 @@ def complete_code(pipe, prompt, remove_prompt=False, num_completions=1, **gen_kw
         return [first_block(code_gen["generated_text"]) for code_gen in code_gens]
 
 
-
 @click.command()
 @click.argument('cfg', metavar='<Path To Config>')
 @click.option('--objective', default=None, help='<Objective>')
@@ -123,6 +123,12 @@ def complete_code(pipe, prompt, remove_prompt=False, num_completions=1, **gen_kw
     is_flag=True,
     default=False,
     help="Do Not Run Code"
+)
+@click.option(
+    '--no-apex',
+    is_flag=True,
+    default=False,
+    help="Do Not Use Apex"
 )
 @click.option(
     '--debug-tasks', '-tasks',
@@ -159,6 +165,7 @@ def main(
         debug,
         disable_tracking,
         no_code_eval,
+        no_apex,
         debug_tasks,
         batch_size,
         sequences_per_sample,
@@ -270,6 +277,15 @@ def main(
     logger.info(f"Loading the dataset")
     human_eval = load_dataset("openai_humaneval")['test']
 
+    def get_len(ex):
+        ex['length'] = len(tokenizer.tokenize(ex['prompt']))
+        return ex
+
+    human_eval = human_eval.map(
+        get_len,
+        num_proc=cfg.num_workers
+    ).sort('length', reverse=True)
+
     # Generate completions for evaluation set
     logger.info(f"Starting Generation")
 
@@ -284,6 +300,7 @@ def main(
     # logger.info(
     #     f"Using {num_gpus} gpu{'s' if num_gpus > 1 else ''} with a slice size of {slice_size}")
 
+    remove_comment_regex = re.compile(r'"""(.*)"""', flags=re.DOTALL)
     start_time = datetime.utcnow()
     pipe = pipeline(
         "text-generation" if cfg.objective == 'lm' else 'text2text-generation',
@@ -291,35 +308,54 @@ def main(
         tokenizer=tokenizer,
         device=cfg.device
     )
+    if not no_apex:
+        pipe.model = amp.initialize(pipe.model)
     logger.info(f"Using {model.device}")
     logger.info(f"Using {cfg.device=}")
-    for task in tqdm(range(n_tasks)):
+    iteration_count, remainder = divmod(cfg.seq_per_sample, cfg.batch_size)
+    has_remainder = remainder > 0
+    if has_remainder:
+        iteration_count += 1
+    logger.info(f"{iteration_count} total iterations per task with {remainder} remainder")
+    pbar = tqdm(total=n_tasks * math.ceil(cfg.seq_per_sample // cfg.batch_size), desc='Generating')
+    for task_idx, task in enumerate(human_eval.select(list(range(n_tasks)))):
         task_generations = []
-        prompt = human_eval[task]["prompt"].strip()
+        prompt = task["prompt"].strip()
+        # problem_statement = remove_comment_regex.search(prompt)
+        # if problem_statement:
+        #     remove_comment_regex.sub('', prompt)
+        #     prompt = f"{problem_statement.group(1).strip()}\n{prompt}"
         gen_kwargs["stopping_criteria"][0].start_length = len(tokenizer(prompt)["input_ids"])
-        for batch in range(cfg.seq_per_sample // cfg.batch_size):
+
+        for batch in range(iteration_count):
+            num_to_generate = cfg.batch_size
+            if has_remainder and batch < iteration_count - 1:
+                num_to_generate = remainder
+
             task_generations.extend(
                 complete_code(
                     pipe,
                     prompt,
                     remove_prompt=cfg.objective == 'lm',
-                    num_completions=cfg.batch_size,
+                    num_completions=num_to_generate,
                     **gen_kwargs
                 )
             )
+            pbar.update(1)
 
-        test_func = human_eval[task]["test"]
-        entry_point = f"check({human_eval[task]['entry_point']})"
+        test_func = task["test"]
+        entry_point = f"check({task['entry_point']})"
         if cfg.objective == 'lm':
             preds = [prompt + gen for gen in task_generations]
         else:
             preds = task_generations
         predictions.append({
-            "task_id"   : task,
+            "task_id"   : task_idx,
             "prediction": preds,
-            "target"    : prompt + human_eval[task]['canonical_solution'],
+            "target"    : prompt + task['canonical_solution'],
             "tests"     : ["\n" + test_func + "\n" + entry_point]
         })
+    pbar.close()
     total_time = (datetime.utcnow() - start_time)
 
     logger.info(
@@ -331,7 +367,6 @@ def main(
     logger.info(f"Calculating BLEU")
     em = ExactMatch()
     bleu = BLEU()
-    remove_comment_regex = re.compile(r'""".*"""', flags=re.DOTALL)
 
     map_fn = partial(
         oracle,
