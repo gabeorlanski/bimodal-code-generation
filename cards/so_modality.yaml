@@ -83,6 +83,8 @@ experiments:
             batch_size: 32
             gradient_accumulation_steps: 1
             learning_rate: 5e-5
+          tracking:
+            log_model: False
       - name: HEFineTune
         base: human_eval
         group: HUMAN_EVAL
