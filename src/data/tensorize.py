@@ -59,26 +59,16 @@ PLACEHOLDER_STR = "_PLACEHOLDER_"
 
 
 class TensorizedTask(IterableDataset):
-    """
-    Iterable dataset that returns constant length chunks of tokens from stream of text files.
-        Args:
-            tokenizer (Tokenizer): The processor used for processing the data.
-            dataset (dataset.Dataset): Dataset with text files.
-            infinite (bool): If True the iterator is reset after dataset reaches end else stops.
-            seq_length (int): Length of token sequences to return.
-            num_of_sequences: Number of token sequences to keep in buffer.
-            chars_per_token: Number of characters per token used to estimate number of tokens in text buffer.
-    """
 
     def __init__(
             self,
             name,
             raw_data_name,
             dump_path,
-            cfg_path,
             objective,
             processor,
             tokenizer: PreTrainedTokenizer,
+            max_samples_to_yield,
             sequence_length=1024,
             buffer_size=1,
     ):
@@ -89,6 +79,7 @@ class TensorizedTask(IterableDataset):
             raise ValueError(f"Unsupported Objective {self.objective}")
         self.processor = processor
         self.task_name = None
+        self.infinite = True
         if isinstance(self.processor, StackOverflowProcessor):
             self.task_name = "SO"
         self.tokenizer_name = tokenizer.name_or_path
@@ -96,14 +87,18 @@ class TensorizedTask(IterableDataset):
         self.sequence_length = sequence_length
         # self.tokenizer = tokenizer
         # self.buffer_size = effective_batch_size * self.sequence_length * buffer_size
-        self.buffer_size = buffer_size * 1000
+        self.buffer_size = int(buffer_size * 1000)
         self.lm_concat_delim = tokenizer.encode('\n')
-        self.length = self._get_length(cfg_path)
+        self.max_samples_to_yield = max_samples_to_yield
+        logger.debug(f"Reading lines from {self.data_file_path}")
+        self.max_num_lines_in_file = sum(1 for _ in self.data_file_path.open())
         self.placeholder_token_count = len(
             tokenizer.tokenize(PLACEHOLDER_STR, add_special_tokens=False)
         )
-
-        logger.info(f"{self.length} total samples with a buffer of {self.buffer_size}")
+        logger.info(
+            f"{self.max_num_lines_in_file} total lines in {self.data_file_path} "
+            f"with a buffer of {self.buffer_size}"
+        )
 
     def _get_length(self, data_path):
         logger.info(f"Loading tensorized dataset from {data_path}")
@@ -129,6 +124,7 @@ class TensorizedTask(IterableDataset):
 
     def __iter__(self):
         data_iter = iter(self.data_file_path.open())
+        ds_epoch = 0
         more_examples = True
         total_yielded = 0
         lines_seen = 0
@@ -137,12 +133,14 @@ class TensorizedTask(IterableDataset):
         worker_info = torch.utils.data.get_worker_info()
         if worker_info is None:
             slices_per_worker = self.buffer_size
-            worker_id = None
+            worker_id = 0
+            max_yielded_per_worker = self.max_samples_to_yield
         else:
+            max_yielded_per_worker = self.max_samples_to_yield // worker_info.num_workers
             slices_per_worker = int(math.ceil(self.buffer_size / worker_info.num_workers))
             worker_id = worker_info.id
 
-        while more_examples:
+        while more_examples and total_yielded < max_yielded_per_worker:
             # Read the file and add the lines to the line buffer. This buffer
             # will then be split by each process.
             lines = []
@@ -151,9 +149,14 @@ class TensorizedTask(IterableDataset):
                 try:
                     lines.append(next(data_iter))
                     lines_seen += 1
+                    ds_epoch = lines_seen / self.max_num_lines_in_file
                 except StopIteration:
-                    more_examples = False
-                    break
+                    if self.infinite:
+                        logger.info(f"New Dataset Epoch")
+                        data_iter = iter(self.data_file_path.open())
+                    else:
+                        more_examples = False
+                        break
 
             if worker_info is None:
                 start = 0
@@ -161,7 +164,7 @@ class TensorizedTask(IterableDataset):
             else:
                 start = worker_id * slices_per_worker
                 end = min(self.buffer_size, start + slices_per_worker)
-
+            logger.debug(f"On dataset epoch {ds_epoch}")
             processed = self.processor(map(ujson.loads, lines[start:end]))
             inputs_tokenized = tokenizer(
                 processed['inputs'],
@@ -194,17 +197,24 @@ class TensorizedTask(IterableDataset):
                             # 'attention_mask': torch.tensor([1] * len(input_ids)),
                             'labels'   : torch.tensor(input_ids),
                         }
+                    if total_yielded >= max_yielded_per_worker:
+                        logger.info(f"{worker_id} finished")
+                        break
             else:
                 for input_ids, labels in zip(inputs_tokenized, labels_tokenized):
+                    total_yielded += 1
                     yield {
                         "input_ids": input_ids,
                         "labels"   : labels
                     }
+                    if total_yielded >= max_yielded_per_worker:
+                        logger.info(f"{worker_id} finished")
+                        break
             # Memory Management
             del buffer
 
-    def __len__(self):
-        return self.length
+    # def __len__(self):
+    #     return self.length
 
     @property
     def params(self):
@@ -217,7 +227,8 @@ class TensorizedTask(IterableDataset):
             tokenizer=self.tokenizer_name,
             buffer_size=self.buffer_size,
             lm_concat_delim=self.lm_concat_delim,
-            length=self.length,
+            # length=self.length,
+            infinite=self.infinite
         )
 
 

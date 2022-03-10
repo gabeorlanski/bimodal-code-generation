@@ -19,6 +19,7 @@ from transformers.file_utils import is_datasets_available
 from transformers.trainer_pt_utils import IterableDatasetShard
 
 from src.config import TrackingCallback, is_tracking_enabled
+from src.data.tensorize import TensorizedTask
 
 logger = logging.getLogger(__name__)
 
@@ -58,6 +59,7 @@ class CustomTrainer(Seq2SeqTrainer):
                 self.start_time = datetime.utcnow()
 
         if self.control.should_log:
+            global TENSORIZED_EPOCH
             logs: Dict[str, float] = {}
             # all_gather + mean() to get average loss over all processes
             tr_loss_scalar = self._nested_gather(tr_loss).mean().item()
@@ -79,7 +81,6 @@ class CustomTrainer(Seq2SeqTrainer):
             logs['train_steps_per_second_total'] = round(
                 self.state.global_step / elapsed_start, 3
             )
-
             logs['train_ram_pct'] = psutil.virtual_memory()[2]
 
             self.last_runtime_step = self.state.global_step

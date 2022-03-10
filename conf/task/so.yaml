@@ -1,22 +1,17 @@
 defaults:
   - _self_
 name: so
-data_path: data/tensorized
-dump_name: ???
-raw_dump_name: ???
-train_path: ${.data_path}/${.raw_dump_name}.jsonl
-validation_path: ${.data_path}/${.raw_dump_name}.val.jsonl
-max_samples: null
-answer_sorting: 'accepted'
-answers_per_sample: -1
-repeat_question_for_each_answer: null
-good_answer_cutoff: 3
-bad_answer_cutoff: -1
-answer_prompt: null
-question_prompt: null
-join_answers_with_eos_token: false
-sequence_length: 512
+
 seed: 1
+
+raw_dump_name: ???
+raw_dump_path: data/dumps
+tensorized_name: ???
+
+# Parameters For The iterable Dataset
+ds_info_path: data/ds_info
+sequence_length: 512
 buffer_size: 10
 
-eval_splits: []
+# Needed parameters for a generic task
+eval_splits: [ ]

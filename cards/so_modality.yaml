@@ -3,43 +3,33 @@ experiments:
   ParrotSmall.SO:
     overrides:
       ++device: 0
-      ++model: 'Salesforce/codet5-small'
+      ++model: 'lvwerra/codeparrot-small'
       +processor: stackoverflow
       ++task.raw_dump_path: data/dumps
       ++task.raw_dump_name: python
-      ++task.tensorized_path: data/ds_info
-      ++task.data_path: data/ds_info
       objective: lm
       ++processor.params.remove_modality: NL
     ablations:
       - DumpName:
           PyOnlyCodeNoRepeat:
-            ++task.dump_name: python_code_norepeat
             ++task.tensorized_name: python_code_norepeat
             ++processor.params.repeat_question_for_each_answer: 'none'
           PyOnlyCodeFullRepeat:
-            ++task.dump_name: python_code_fullrepeat
             ++task.tensorized_name: python_code_fullrepeat
             ++processor.params.repeat_question_for_each_answer: 'full'
           PyOnlyCodeFullRepeatWTitle:
-            ++task.dump_name: python_code_fullrepeat_title
             ++task.tensorized_name: python_code_fullrepeat_title
             ++processor.params.repeat_question_for_each_answer: 'full'
             ++processor.params.force_include_title: True
           PyOnlyCodeFullRepeatWBody:
-            ++task.dump_name: python_code_fullrepeat_body
             ++task.tensorized_name: python_code_fullrepeat_body
             ++processor.params.repeat_question_for_each_answer: 'full'
             ++processor.params.force_include_question: True
           PyOnlyCodeFullRepeatWQuestion:
-            ++task.dump_name: python_code_fullrepeat_question
             ++task.tensorized_name: python_code_fullrepeat_question
             ++processor.params.repeat_question_for_each_answer: 'full'
             ++processor.params.force_include_question: True
             ++processor.params.force_include_title: True
-
-
-
     steps:
       - name: PreTrain
         add_name: False
@@ -65,6 +55,7 @@ experiments:
             deepspeed: ds_config.json
             save_total_limit: 10
             group_by_length: False
+            dataloader_num_workers: 4
           ++task.sequence_length: 1024
           task: so
       - name: HumanEval

@@ -165,7 +165,7 @@ def get_large_dataset_info_from_config(ctx, config, num_workers):
         processor_name=cfg.processor.name,
         model_name=cfg.model,
         data_path=cfg.task.raw_dump_path,
-        out_path=cfg.task.tensorized_path,
+        out_path=cfg.task.ds_info_path,
         validation_file_name=None,
         cfg=cfg,
         debug=ctx.obj['DEBUG'],

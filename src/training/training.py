@@ -148,19 +148,24 @@ def setup_pretrain(cfg, tokenizer, train_args):
             "labels"   : blocks.copy()
         }
 
-    dump_path = PROJECT_ROOT.joinpath('data', 'dumps')
-    cfg_path = PROJECT_ROOT.joinpath('data', 'ds_info')
+    dump_path = PROJECT_ROOT.joinpath(cfg.task.raw_dump_path)
+
+    effective_batch_size = (
+            train_args.train_batch_size
+            * train_args.gradient_accumulation_steps
+            * train_args.world_size
+    )
 
     # For the HF Trainer, we need the eval set to have a size, so we split up
     # the initialization so one is in streaming mode and the other is not.
     train_dataset = TensorizedTask(
-        name=cfg.task.dump_name,
+        name=cfg.task.tensorized_name,
         raw_data_name=cfg.task.raw_dump_name,
         dump_path=dump_path,
-        cfg_path=cfg_path,
         objective=cfg.objective,
         processor=processor,
         tokenizer=tokenizer,
+        max_samples_to_yield=effective_batch_size * train_args.max_steps,
         sequence_length=cfg.task.sequence_length,
         buffer_size=cfg.task.get('buffer_size', 1)
     )
