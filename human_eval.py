@@ -213,6 +213,7 @@ def main(
                 PROJECT_ROOT.joinpath('conf', 'task', 'human_eval.yaml').open('r'),
                 yaml.Loader
             ))
+        cfg.move_problem = move_problem
 
     working_dir = PROJECT_ROOT.joinpath(
         'eval_results', "HUMAN_EVAL",
@@ -296,12 +297,8 @@ def main(
     logger.info(f"{n_tasks=}")
     logger.info(f"{cfg.batch_size=}")
     logger.info(f"{cfg.seq_per_sample=}")
-
-    # num_gpus = torch.cuda.device_count()
-    # slice_size = len(human_eval) // num_gpus
-    # logger.info(
-    #     f"Using {num_gpus} gpu{'s' if num_gpus > 1 else ''} with a slice size of {slice_size}")
-
+    if move_problem:
+        logger.info("Moving problem is enabled")
     remove_comment_regex = re.compile(r'"""(.*)"""', flags=re.DOTALL)
     start_time = datetime.utcnow()
     pipe = pipeline(
