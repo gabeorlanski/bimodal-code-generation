@@ -39,14 +39,13 @@ class EOSStoppingCriteria(StoppingCriteria):
 def generate_code_predictions(
         model,
         objective,
-        pipe,
         dataset: Union[List[dict], Dataset],
         tokenizer,
         batch_size,
+        device,
         generation_kwargs,
         seq_per_sample,
-        remove_input_ids_from_output,
-        num_proc=1
+        remove_input_ids_from_output
 ):
     logger.info("Starting Generation")
 
@@ -87,20 +86,6 @@ def generate_code_predictions(
     num_steps_needed = generate_steps_per_sample * len(dataset)
     logger.info(f"{num_steps_needed} total steps needed")
 
-    def prep_col(ex):
-        if objective == 'lm':
-            ex['input_sequence'] = tokenizer.eos_token + ex['input_sequence']
-        else:
-            ex['input_sequence'] = tokenizer.bos_token + ex['input_sequence'] + tokenizer.eos_token
-        ex['input_len'] = len(tokenizer.encode(ex['input_sequence']))
-        return ex
-
-    logger.info(f"Prepping the dataset")
-    dataset = dataset.map(
-        prep_col,
-        num_proc=num_proc
-    )
-
     model.eval()
     with torch.inference_mode():
         progress_bar = tqdm(total=num_steps_needed, desc='Generating')
@@ -108,18 +93,37 @@ def generate_code_predictions(
         for sample in dataset:
 
             generated_for_current_sample = []
+            sample_tokenized = tokenizer(sample['input_sequence'], return_tensors='pt')
+            local_inputs = sample_tokenized["input_ids"].to(device)
+            input_len = sample_tokenized['attention_mask'].sum().item()
+
+            if max_new_tokens + input_len > tokenizer.model_max_length:
+                logger.warning(
+                    f"Sample {sample['idx']} has more than the "
+                    f"models max length of {tokenizer.model_max_length}."
+                )
+                max_length_for_gen = tokenizer.model_max_length
+            else:
+                max_length_for_gen = input_len + max_new_tokens
+            generation_kwargs['max_length'] = max_length_for_gen
 
             for i in range(generate_steps_per_sample):
-                generated_from_batch = pipe(sample['input_sequence'], **generation_kwargs)
-                if remove_input_ids_from_output:
+                generated_from_batch = model.generate(
+                    input_ids=local_inputs,
+                    **generation_kwargs
+                )
+                if not remove_input_ids_from_output:
+                    generated_results = generated_from_batch.tolist()
+                else:
                     # Can chop all in the results from the generation as they
                     # all have the same prompt length.
-                    generated_from_batch = [
-                        g['generated_text'][sample['input_len']:] for g in generated_from_batch
-                    ]
+                    generated_results = generated_from_batch[:, input_len:]
 
                 generated_for_current_sample.extend(
-                    generated_from_batch
+                    tokenizer.batch_decode(
+                        generated_results,
+                        skip_special_tokens=True
+                    )
                 )
 
                 progress_bar.update(1)
@@ -166,7 +170,6 @@ def evaluate_model(
 
             task.preprocessors.append(prepend_token)
 
-
     logger.info(f"Getting the data for split {cfg.split}")
     dataset = task.preprocess(cfg.split)
     logger.info(f"{len(dataset)} total samples found")
@@ -175,27 +178,22 @@ def evaluate_model(
         logger.warning(f"DEBUG NUMBER OF SAMPLES={debug_num_samples}")
         dataset = dataset.select(list(range(debug_num_samples)))
 
-    pipe = pipeline(
-        "text-generation" if cfg.objective == 'lm' else 'text2text-generation',
-        model=model,
-        tokenizer=task.tokenizer,
-        device=cfg.device
-    )
+    device = get_device_from_cfg(cfg)
+    model = model.to(device)
     model = amp.initialize(model)
     logger.info(f"Model is on {model.device}")
     logger.info(f"{type(dataset)=}")
 
     generation_results = generate_code_predictions(
         model,
-        pipe=pipe,
         objective=cfg.objective,
         dataset=dataset,
         tokenizer=task.tokenizer,
         batch_size=cfg.batch_size,
+        device=device,
         generation_kwargs=gen_kwargs,
         seq_per_sample=cfg.seq_per_sample,
         remove_input_ids_from_output=cfg.get("remove_input_ids", False),
-        num_proc=cfg.get('num_proc', 1)
     )
 
     labels = list(map(task.postprocess, generation_results['labels']))
