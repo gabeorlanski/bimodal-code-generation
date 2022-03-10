@@ -175,6 +175,7 @@ def main(
         top_k,
         top_p
 ):
+    torch.backends.cudnn.benchmark = True
     # Setup configuration
     cfg = OmegaConf.create(yaml.load(
         PROJECT_ROOT.joinpath(cfg).open('r'),
