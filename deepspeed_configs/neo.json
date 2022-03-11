@@ -32,15 +32,7 @@
         "allgather_bucket_size": 2e8,
         "round_robin_gradients": true,
         "reduce_scatter": true,
-        "reduce_bucket_size": 2e8,
-        "offload_optimizer": {
-            "device": "cpu",
-            "pin_memory": true
-        },
-        "offload_param": {
-            "device": "cpu",
-            "max_in_cpu": 1e9
-        }
+        "reduce_bucket_size": 2e8
 
     },
     "gradient_accumulation_steps": "auto",
