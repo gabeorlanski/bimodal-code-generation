@@ -28,8 +28,8 @@ experiments:
             log_model: True
           is_checkpoint: False
           ++training:
-            batch_size: 16
-            gradient_accumulation_steps: 4
+            batch_size: 8
+            gradient_accumulation_steps: 8
             learning_rate: 1e-4
             save_steps: 1000
             eval_steps: 500
