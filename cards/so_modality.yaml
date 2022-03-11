@@ -114,7 +114,7 @@ experiments:
           remove_input_ids: true
           ++model_path: best_models/${..__META__.FineTune.save_name}
     command:
-      file: command_templates/deepspeed_pretrain.txt
+      file: command_templates/code_execute.txt
       kwargs:
         num_return_sequences: 200
         task_name: MBPP

@@ -30,17 +30,12 @@ from src.common.util import flatten
     help="Disable Tracking"
 )
 @click.option(
-    '--artifact-name', '-artifact', 'input_artifact_name',
-    default=None,
-    help="The artifact to register as input, only for WandB"
-)
-@click.option(
     '--timeout',
     default=3.0,
     type=float,
     help="The amount to use for timeout"
 )
-def run(path_to_preds, num_workers, debug, disable_tracking, input_artifact_name, timeout):
+def run(path_to_preds, num_workers, debug, disable_tracking, timeout):
     # I just needed a way to get the parent directory.
     path_to_preds = Path(path_to_preds)
     print(f"{path_to_preds}")
@@ -139,13 +134,6 @@ def run(path_to_preds, num_workers, debug, disable_tracking, input_artifact_name
                                          type='execution_metrics')
         metric_artifact.add_file(str(save_path.resolve().absolute()))
         wandb_run.log_artifact(metric_artifact)
-        if input_artifact_name:
-            wandb_run.use_artifact(
-                f"{input_artifact_name}{':latest' if ':' not in input_artifact_name else ''}")
-
-        elif cfg.get('eval_run_name'):
-            wandb_run.use_artifact(f"{cfg.eval_run_name}:latest")
-
         wandb_run.finish()
 
     logger.info("Finished Code Eval")

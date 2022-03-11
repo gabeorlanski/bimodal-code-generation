@@ -1,4 +1,4 @@
-batch_size: 10
+batch_size: 20
 device: 0
 generation:
   do_sample: true
