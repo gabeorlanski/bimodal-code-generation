@@ -10,7 +10,7 @@ experiments:
       objective: lm
       ++task.dump_name: python_norepeat
       ++task.raw_dump_name: python
-      ++tensorized_name: python_norepeat
+      ++task.tensorized_name: python_norepeat
     ablations:
       - Model:
           Small:
@@ -23,7 +23,7 @@ experiments:
         overrides:
           ++task.buffer_size: 25
           ++processor.params.clean: True
-          +tensorize_batch_size: 64
+          ++tensorize_batch_size: 64
           tracking:
             log_model: True
           is_checkpoint: False
