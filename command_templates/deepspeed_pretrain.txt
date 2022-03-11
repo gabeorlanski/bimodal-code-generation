@@ -23,7 +23,7 @@ echo "scancel $he_so{{idx}}" >> generated_experiments/cancel_jobs.sh
 he_exec{{idx}}=$(sbatch --parsable --job-name='{{ name }}_he_execute' \
 	--dependency=afterok:$he_so{{idx}} \
 	eval_code.sbatch \
-	eval_results/HUMAN_EVAL {{ HumanEval.save_name }} test.jsonl
+	eval_results/HUMAN_EVAL {{ PreTrain.save_name }} test.jsonl
 )
 echo "Submitted CodeEval(id=$he_exec{{idx}})"
 echo "scancel $he_exec{{idx}}" >> generated_experiments/cancel_jobs.sh
@@ -47,7 +47,7 @@ echo "scancel $hef_so{{idx}}" >> generated_experiments/cancel_jobs.sh
 hef_exec{{idx}}=$(sbatch --parsable --job-name='{{ name }}_hef_execute' \
 	--dependency=afterok:$hef_so{{idx}} \
 	eval_code.sbatch \
-	eval_results/HUMAN_EVAL {{ HEFineTune.save_name }} test.jsonl
+	eval_results/HUMAN_EVAL {{ FineTune.save_name }} test.jsonl
 )
 echo "Submitted CodeEval(id=$hef_exec{{idx}})"
 echo "scancel $hef_exec{{idx}}" >> generated_experiments/cancel_jobs.sh
