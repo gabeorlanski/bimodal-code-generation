@@ -45,6 +45,7 @@ echo "scancel $hef_so{{idx}}" >> generated_experiments/cancel_jobs.sh
 
 # Human Eval Code Execute after FineTune
 hef_exec{{idx}}=$(sbatch --parsable --job-name='{{ job_name }}_hef_execute' \
+	--dependency=afterok:$hef_so{{idx}} \
 	eval_code.sbatch \
 	eval_results/HUMAN_EVAL MBPP.{{ name }}.{{ ablation_name }}.HEFineTune test.jsonl
 )
