@@ -61,6 +61,7 @@ class ComposedExperiments:
             to the command kwargs
     """
     name: str
+    ablation_name: str
     step_cards: Dict[str, ExperimentCard]
     command_template: Optional[str] = field(default=None)
     command_kwargs: Optional[Dict] = field(default_factory=dict)
@@ -112,7 +113,7 @@ class ComposedExperiments:
                     override_key = f"+{k.replace('+', '')}"
 
                 if isinstance(v, str) and "__" in v:
-                    value= f'"{v}"'
+                    value = f'"{v}"'
                 else:
                     value = v
                 overrides_list.append(f"{override_key}={value}")
@@ -135,15 +136,24 @@ class ComposedExperiments:
                         cfg['name'] = experiment.name
                         cfg['group'] = experiment.group
                     self._cfg[name] = OmegaConf.to_object(cfg)
-                    f.write(OmegaConf.to_yaml(cfg, resolve=True,sort_keys=True))
+                    f.write(OmegaConf.to_yaml(cfg, resolve=True, sort_keys=True))
+
+    @property
+    def job_name(self):
+        if self.ablation_name is None:
+            return self.name
+
+        return f"{self.name}_{self.ablation_name}"
 
     def get_command(self, idx: int, output_path: Path):
         if not self.command_template:
             return None
 
         template_dict = {
-            "idx" : idx,
-            "name": self.name,
+            "idx"          : idx,
+            "name"         : self.name,
+            "ablation_name": self.ablation_name,
+            "job_name"     : self.job_name,
             **self.command_kwargs
         }
         if not self._cfg:

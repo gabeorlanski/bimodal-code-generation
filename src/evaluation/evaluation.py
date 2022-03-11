@@ -8,6 +8,7 @@ from pathlib import Path
 import random
 from typing import List, Union
 
+import datasets
 import numpy as np
 import wandb
 from datasets import set_caching_enabled, Dataset
@@ -178,6 +179,17 @@ def evaluate_model(
         logger.warning(f"DEBUG NUMBER OF SAMPLES={debug_num_samples}")
         dataset = dataset.select(list(range(debug_num_samples)))
 
+    logger.info("Sorting the dataset by length")
+
+    def get_len(ex):
+        ex['length'] = len(task.tokenizer.tokenize(ex['prompt']))
+        return ex
+
+    dataset = dataset.map(
+        get_len,
+        num_proc=cfg.num_workers,
+    ).sort('length', reverse=True)
+
     device = get_device_from_cfg(cfg)
     model = model.to(device)
     model = amp.initialize(model)
@@ -222,6 +234,7 @@ def evaluate(
         out_path: Path,
         dry_run: bool,
 ):
+    datasets.set_progress_bar_enabled(False)
     seed = cfg["seed"]
     logger.debug(f"Setting the seed to {seed}")
     random.seed(seed)
