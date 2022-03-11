@@ -37,7 +37,7 @@ experiments:
             warmup_steps: 500
             logging_steps: 25
             lr_scheduler_type: linear
-            deepspeed: ds_config.json
+            deepspeed: deepspeed_configs/neo.json
             save_total_limit: 10
             group_by_length: False
             dataloader_num_workers: 4
