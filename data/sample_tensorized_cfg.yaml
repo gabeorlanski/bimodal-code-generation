@@ -22,7 +22,7 @@ meta:
 metrics:
 - exact-match
 - bleu
-model: lvwerra/codeparrot-small
+model: EleutherAI/gpt-neo-125M
 model_path: null
 name: ParrotSmall.SO.PyOnlyCodeFullRepeat
 numpy_seed: 2
@@ -67,6 +67,7 @@ tracking:
 training:
   batch_size: 1
   ddp_find_unused_parameters: false
+#  deepspeed: deepspeed_configs/large_models.json
   disable_tqdm: true
   dataloader_num_workers: 2
   eval_accumulation_steps: 1
@@ -93,4 +94,3 @@ training:
   warmup_steps: 10
   weight_decay: 0.1
   xpu_backend: ccl
-  half_precision_backend: 'apex'

@@ -1,6 +1,14 @@
 {
+    "fp16": {
+        "enabled": "auto",
+        "loss_scale": 0,
+        "loss_scale_window": 1000,
+        "initial_scale_power": 32,
+        "hysteresis": 2,
+        "min_loss_scale": 1
+    },
     "optimizer": {
-        "type": "OneBitAdam",
+        "type": "AdamW",
         "params": {
             "lr": "auto",
             "betas": "auto",
@@ -16,10 +24,6 @@
             "warmup_num_steps": "auto",
             "total_num_steps": "auto"
         }
-    },
-    "amp": {
-        "enabled": "auto",
-        "opt_level": "auto"
     },
 
     "zero_optimization": {
