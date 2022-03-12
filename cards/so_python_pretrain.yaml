@@ -109,7 +109,7 @@ experiments:
 #        - model_path
 
 
-  Neo.SO:
+  Neo1300M.SO:
     overrides:
       ++device: 0
       +processor: stackoverflow
@@ -120,10 +120,7 @@ experiments:
       ++task.dump_name: python_norepeat
       ++task.raw_dump_name: python
       ++task.tensorized_name: python_norepeat
-    ablations:
-      - Model:
-          1300M:
-            ++model: 'EleutherAI/gpt-neo-1.3B'
+      ++model: 'EleutherAI/gpt-neo-1.3B'
     steps:
       - name: PreTrain
         add_name: False
