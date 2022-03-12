@@ -2,7 +2,7 @@ defaults:
   - _self_
 
 
-name: mbpp
+name: code_search_net
 postprocessors:
   - split:
       split_phrase: "#Solution:"
@@ -13,3 +13,8 @@ eval_splits:
   - test
   - validation
 
+
+params:
+  languages:
+    - python
+  mode: "generation"

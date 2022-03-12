@@ -23,6 +23,7 @@ PROJECT_ROOT = Path.cwd()
 
 
 def train_from_cfg(cfg):
+    OmegaConf.resolve(cfg)
     task = cfg.task.name
     name = cfg.name
     group_name = cfg.group

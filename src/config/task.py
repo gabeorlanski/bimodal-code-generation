@@ -86,15 +86,19 @@ def load_task_from_cfg(
 
     Args:
         cfg (DictConfig): The config to use.
+        tokenizer_kwargs (Dict): Keyword arguments for the tokenizer.
 
     Returns:
         Task: The created task object.
     """
     logger.info(f"Initializing task registered to name '{cfg['task']['name']}'")
     preprocessors, postprocessors = load_processors_from_cfg(cfg)
-    logger.info(f"Metrics are {list(cfg.get('metrics', []))}")
     metrics = []
-    for metric in cfg.get('metrics'):
+    metrics_to_create = set(OmegaConf.to_object(cfg.get('metrics', [])))
+    metrics_to_create.update(OmegaConf.to_object(cfg.task.get('metrics', [])))
+    logger.info(f"Metrics are {list(cfg.get('metrics', []))}")
+
+    for metric in metrics_to_create:
         if isinstance(metric, dict):
             metric_name, metric_dict = list(metric.items())
         else:
@@ -104,10 +108,11 @@ def load_task_from_cfg(
 
     task_sig = set(inspect.signature(Task).parameters)
     cls_sig = set(inspect.signature(Task.by_name(cfg['task']['name'])).parameters)
-    additional_kwargs = {
+    additional_kwargs = OmegaConf.to_object(cfg.task.get('params', {}))
+    additional_kwargs.update({
         k: v for k, v in cfg.task.items()
         if k in cls_sig.difference(task_sig)
-    }
+    })
 
     return Task.get_task(
         name=cfg["task"]["name"],

@@ -8,5 +8,9 @@ postprocessors:
 override_preprocessors: True
 override_postprocessors: True
 
+metrics:
+  - exact-match
+  - bleu
+
 eval_splits:
   - test
