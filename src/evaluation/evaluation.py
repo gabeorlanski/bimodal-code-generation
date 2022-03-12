@@ -80,10 +80,6 @@ def generate_code_predictions(
             f"Not in language modeling, using a max length of {generation_kwargs['max_length']}")
         # remove_input_ids_from_output = False
         generation_kwargs.pop('max_new_tokens', None)
-    else:
-
-        generation_kwargs['max_new_tokens'] = max_new_tokens
-        generation_kwargs.pop('max_length', None)
     num_steps_needed = generate_steps_per_sample * len(dataset)
     logger.info(f"{num_steps_needed} total steps needed")
 

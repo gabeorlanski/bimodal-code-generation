@@ -108,7 +108,7 @@ experiments:
       fields:
         - model_path
         -
-  512Genlen.Parrot:
+  512Genlen:
     overrides:
       ++device: 0
       +processor: stackoverflow
