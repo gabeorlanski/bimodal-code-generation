@@ -108,135 +108,98 @@ experiments:
 #      fields:
 #        - model_path
 
-  512Genlen:
+
+  Neo.SO:
     overrides:
       ++device: 0
       +processor: stackoverflow
+      ++processor.params.repeat_question_for_each_answer: 'none'
       ++raw_dump_path: data/dumps
       is_checkpoint: true
       objective: lm
+      ++task.dump_name: python_norepeat
       ++task.raw_dump_name: python
-      ++model: lvwerra/codeparrot-small
+      ++task.tensorized_name: python_norepeat
     ablations:
-      - ModelName:
-          Python:
-            ++task.dump_name: python_norepeat
-            ++task.raw_dump_name: python
-            ++task.tensorized_name: python_norepeat
-            ++model_path: outputs/mbpp/FinetuneSO.ParrotSmall.Python.FineTune/models/checkpoint-35
-          PythonFullRepeat:
-            ++task.dump_name: python_fullrepeat
-            ++task.raw_dump_name: python
-            ++task.tensorized_name: python_fullrepeat
-            ++model_path: outputs/mbpp/FinetuneSO.ParrotSmall.PythonFullRepeat.FineTune/models/checkpoint-35
-          PythonNoNL:
-            ++task.dump_name: python_nonl_title_repeat
-            ++task.raw_dump_name: python
-            ++task.tensorized_name: python_nonl_title_repeat
-            ++model_path: outputs/mbpp/FinetuneSO.ParrotSmall.PythonNoNL.FineTune/models/checkpoint-35
-          PythonTitleShuffle:
-            ++task.dump_name: python_title_repeat
-            ++task.raw_dump_name: python
-            ++task.tensorized_name: python_title_repeat
-            ++model_path: outputs/mbpp/FinetuneSO.ParrotSmall.PythonTitleShuffle.FineTune/models/checkpoint-35
-          PyOnlyCodeFullRepeat:
-            ++task.dump_name: python_nocode_full_repeat
-            ++task.raw_dump_name: python
-            ++task.tensorized_name: python_nocode_full_repeat
-            ++model_path: outputs/mbpp/ParrotSmall.SO.PyOnlyCodeFullRepeat.FineTune/models/checkpoint-35
-          PyOnlyCodeFullRepeatWBody:
-            ++task.dump_name: python_onlycode_full_repeat_wbody
-            ++task.raw_dump_name: python
-            ++task.tensorized_name: python_nocode_full_repeat_wbody
-            ++model_path: outputs/mbpp/ParrotSmall.SO.PyOnlyCodeFullRepeatWBody.FineTune/models/checkpoint-35
-          PyOnlyCodeFullRepeatWQuestion:
-            ++task.dump_name: python_onlycode_full_repeat_wquestion
-            ++task.raw_dump_name: python
-            ++task.tensorized_name: python_onlycode_full_repeat_wquestion
-            ++model_path: outputs/mbpp/ParrotSmall.SO.PyOnlyCodeFullRepeatWQuestion.FineTune/models/checkpoint-35
-          PyOnlyCodeFullRepeatWTitle:
-            ++task.dump_name: python_onlycode_full_repeat_wtitle
-            ++task.raw_dump_name: python
-            ++task.tensorized_name: python_onlycode_full_repeat_wtitle
-            ++model_path: outputs/mbpp/ParrotSmall.SO.PyOnlyCodeFullRepeatWTitle.FineTune/models/checkpoint-35
-          PyOnlyCodeNoRepeat:
-            ++task.dump_name: python_onlycode_no_repeat
-            ++task.raw_dump_name: python
-            ++task.tensorized_name: python_onlycode_no_repeat
-            ++model_path: outputs/mbpp/ParrotSmall.SO.PyOnlyCodeNoRepeat.FineTune/models/checkpoint-35
+      - Model:
+          1300M:
+            ++model: 'EleutherAI/gpt-neo-1.3B'
     steps:
-#      - name: PreTrain
-#        add_name: False
-#        base: pretrain_with_tensorized
-#        group: SO
-#        overrides:
-#          ++task.buffer_size: 25
-#          ++processor.params.clean: True
-#          ++tensorize_batch_size: 64
-#          tracking:
-#            log_model: True
-#          is_checkpoint: False
-#          ++training:
-#            batch_size: 8
-#            gradient_accumulation_steps: 8
-#            learning_rate: 1e-4
-#            save_steps: 1000
-#            eval_steps: 500
-#            max_steps: 10000
-#            warmup_steps: 500
-#            logging_steps: 25
-#            lr_scheduler_type: linear
-#            deepspeed: deepspeed_configs/neo.json
-#            save_total_limit: 10
-#            group_by_length: False
-#            dataloader_num_workers: 4
-#            half_precision_backend: 'apex'
-#          ++task.sequence_length: 1024
-#          task: so
-#      - name: HumanEval
-#        add_name: False
-#        base: human_eval
-#        group: HUMAN_EVAL
-#        overrides:
-#          is_checkpoint: true
-#          ++generation:
-#            max_length: 256
-#            do_sample: true
-#            temperature: 0.5
-#            top_p: 0.95
-#            top_k: 50
-#          model_path: best_models/${..__META__.PreTrain.save_name}
-#          batch_size: 200
-#      - name: FineTune
-#        base: greene_config
-#        group: MBPP
-#        overrides:
-#          task: mbpp
-#          ++is_checkpoint: True
-#          ++training:
-#            batch_size: 32
-#            gradient_accumulation_steps: 1
-#            learning_rate: 5e-5
-#          tracking:
-#            log_model: False
-#      - name: HEFineTune
-#        base: human_eval
-#        group: HUMAN_EVAL
-#        overrides:
-#          is_checkpoint: true
-#          ++generation:
-#            max_length: 512
-#            do_sample: true
-#            temperature: 0.5
-#            top_p: 0.95
-#            top_k: 50
-#          model_path: best_models/${..__META__.FineTune.save_name}
-#          batch_size: 100
+      - name: PreTrain
+        add_name: False
+        base: pretrain_with_tensorized
+        group: SO
+        overrides:
+          ++task.buffer_size: 25
+          ++processor.params.clean: True
+          ++tensorize_batch_size: 64
+          tracking:
+            log_model: True
+          is_checkpoint: False
+          ++training:
+            batch_size: 8
+            gradient_accumulation_steps: 8
+            learning_rate: 1e-4
+            save_steps: 1000
+            eval_steps: 500
+            max_steps: 10000
+            warmup_steps: 500
+            logging_steps: 10
+            lr_scheduler_type: linear
+            save_total_limit: 10
+            group_by_length: False
+            dataloader_num_workers: 4
+            half_precision_backend: 'apex'
+            fp16_backend: 'apex'
+            gradient_checkpointing: true
+            fp16_opt_level: O2
+          ++task.sequence_length: 1024
+          task: so
+      - name: HumanEval
+        add_name: False
+        base: human_eval
+        group: HUMAN_EVAL
+        overrides:
+          is_checkpoint: true
+          ++generation:
+            max_new_tokens: 512
+            do_sample: true
+            temperature: 0.5
+            top_p: 0.95
+            top_k: 50
+          model_path: best_models/${..__META__.PreTrain.save_name}
+          batch_size: 50
+      - name: FineTune
+        base: greene_config
+        group: MBPP
+        overrides:
+          task: mbpp
+          ++is_checkpoint: True
+          ++model_path: best_models/${..__META__.PreTrain.save_name}
+          ++training:
+            batch_size: 4
+            gradient_accumulation_steps: 8
+            learning_rate: 5e-5
+          tracking:
+            log_model: False
+      - name: HEFineTune
+        base: human_eval
+        group: HUMAN_EVAL
+        overrides:
+          is_checkpoint: true
+          ++generation:
+            max_new_tokens: 512
+            do_sample: true
+            temperature: 0.5
+            top_p: 0.95
+            top_k: 50
+          model_path: best_models/${..__META__.FineTune.save_name}
+          batch_size: 50
       - name: Eval
         base: eval_config
         group: MBPP
         overrides:
-          batch_size: 100
+          batch_size: 50
           remove_input_ids: true
           ++generation:
             max_new_tokens: 512
@@ -246,12 +209,13 @@ experiments:
             top_k: 50
           task: mbpp
           remove_input_ids: true
-#          ++model_path: best_models/${..__META__.FineTune.save_name}
+          ++model_path: best_models/${..__META__.FineTune.save_name}
     command:
-      file: command_templates/mbpp_eval.txt
+      file: command_templates/normal_pretrain.txt
       kwargs:
         num_return_sequences: 200
         task_name: MBPP
         train_sbatch: train_single_gpu
       fields:
         - model_path
+

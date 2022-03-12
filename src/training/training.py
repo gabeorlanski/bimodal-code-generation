@@ -24,6 +24,7 @@ from src.config import get_steps_from_training_args, get_lr_scheduler
 from src.data.tensorize import TensorizedTask
 from tqdm import tqdm
 import bitsandbytes as bnb
+
 logger = logging.getLogger(__name__)
 
 set_global_logging_level(logging.ERROR,
@@ -309,20 +310,23 @@ def train_model(cfg: DictConfig):
             )
 
     logger.info(f"Setting up the optimizer")
-    # optimizer = bnb.optim.Adam8bit(
-    #     get_grouped_params(model, train_args),
-    #     lr=train_args.learning_rate,
-    #     betas=(train_args.adam_beta1, train_args.adam_beta2),
-    #     eps=train_args.adam_epsilon,
-    #     weight_decay=train_args.weight_decay
-    # )
-
     total_steps, warmup_steps = get_steps_from_training_args(train_args, train_data)
+    if not train_args.deepspeed:
+        optimizer = bnb.optim.Adam8bit(
+            get_grouped_params(model, train_args),
+            lr=train_args.learning_rate,
+            betas=(train_args.adam_beta1, train_args.adam_beta2),
+            eps=train_args.adam_epsilon,
+            weight_decay=train_args.weight_decay
+        )
+
+        lr_scheduler = get_lr_scheduler(train_args, optimizer, total_steps, warmup_steps)
+
+        optimizer_arg = (optimizer, lr_scheduler)
+    else:
+        optimizer_arg = None
 
     logger.info(f"{total_steps} total training steps and {warmup_steps} warmup")
-
-    # lr_scheduler = get_lr_scheduler(train_args, optimizer, total_steps, warmup_steps)
-
     device = train_args.device
     model = model.to(device)
     logger.info(f"Using device {device}")
@@ -336,7 +340,7 @@ def train_model(cfg: DictConfig):
         train_dataset=train_data,
         data_collator=collator,
         compute_metrics=evaluate_fn,
-        # optimizers=(optimizer, lr_scheduler)
+        optimizers=optimizer_arg
 
     )
     trainer.train()
