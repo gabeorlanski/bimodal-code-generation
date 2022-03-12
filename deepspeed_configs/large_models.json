@@ -1,4 +1,13 @@
 {
+    "optimizer": {
+        "type": "OneBitAdam",
+        "params": {
+            "lr": "auto",
+            "betas": "auto",
+            "eps": "auto",
+            "weight_decay": "auto"
+        }
+    },
     "scheduler": {
         "type": "WarmupDecayLR",
         "params": {
