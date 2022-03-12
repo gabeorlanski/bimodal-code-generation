@@ -130,9 +130,9 @@ experiments:
             ++task.tensorized_name: python_fullrepeat
             ++model_path: outputs/mbpp/FinetuneSO.ParrotSmall.PythonFullRepeat.FineTune/models/checkpoint-35
           PythonNoNL:
-            ++task.dump_name: python_nonl_repeat
+            ++task.dump_name: python_nonl_title_repeat
             ++task.raw_dump_name: python
-            ++task.tensorized_name: python_fullrepeat
+            ++task.tensorized_name: python_nonl_title_repeat
             ++model_path: outputs/mbpp/FinetuneSO.ParrotSmall.PythonNoNL.FineTune/models/checkpoint-35
     steps:
       - name: PreTrain
