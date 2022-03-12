@@ -94,8 +94,11 @@ def load_task_from_cfg(
     logger.info(f"Initializing task registered to name '{cfg['task']['name']}'")
     preprocessors, postprocessors = load_processors_from_cfg(cfg)
     metrics = []
-    metrics_to_create = set(OmegaConf.to_object(cfg.get('metrics', [])))
-    metrics_to_create.update(OmegaConf.to_object(cfg.task.get('metrics', [])))
+    metrics_to_create = []
+    if 'metrics' in cfg:
+        metrics_to_create = set(OmegaConf.to_object(cfg.get('metrics')))
+    if 'metrics' in cfg.task:
+        metrics_to_create.update(OmegaConf.to_object(cfg.task.get('metrics')))
     logger.info(f"Metrics are {list(cfg.get('metrics', []))}")
 
     for metric in metrics_to_create:
@@ -108,7 +111,7 @@ def load_task_from_cfg(
 
     task_sig = set(inspect.signature(Task).parameters)
     cls_sig = set(inspect.signature(Task.by_name(cfg['task']['name'])).parameters)
-    additional_kwargs = OmegaConf.to_object(cfg.task.get('params', {}))
+    additional_kwargs = OmegaConf.to_object(cfg.task.get('params')) if 'params' in cfg.task else {}
     additional_kwargs.update({
         k: v for k, v in cfg.task.items()
         if k in cls_sig.difference(task_sig)
