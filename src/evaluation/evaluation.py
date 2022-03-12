@@ -182,7 +182,7 @@ def evaluate_model(
     logger.info("Sorting the dataset by length")
 
     def get_len(ex):
-        ex['length'] = len(task.tokenizer.tokenize(ex['prompt']))
+        ex['length'] = len(task.tokenizer.tokenize(ex['input_sequence']))
         return ex
 
     dataset = dataset.map(

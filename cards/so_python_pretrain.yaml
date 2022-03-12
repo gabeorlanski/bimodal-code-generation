@@ -112,7 +112,6 @@ experiments:
     overrides:
       ++device: 0
       +processor: stackoverflow
-      ++processor.params.repeat_question_for_each_answer: 'none'
       ++raw_dump_path: data/dumps
       is_checkpoint: true
       objective: lm
@@ -130,6 +129,11 @@ experiments:
             ++task.raw_dump_name: python
             ++task.tensorized_name: python_fullrepeat
             ++model_path: outputs/mbpp/FinetuneSO.ParrotSmall.PythonFullRepeat.FineTune/models/checkpoint-35
+          PythonNoNL:
+            ++task.dump_name: python_nonl_repeat
+            ++task.raw_dump_name: python
+            ++task.tensorized_name: python_fullrepeat
+            ++model_path: outputs/mbpp/FinetuneSO.ParrotSmall.PythonNoNL.FineTune/models/checkpoint-35
     steps:
       - name: PreTrain
         add_name: False
