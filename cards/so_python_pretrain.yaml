@@ -107,7 +107,8 @@ experiments:
         train_sbatch: train_single_gpu
       fields:
         - model_path
-  FineTune.SO.512len:
+        -
+  512Genlen.Parrot:
     overrides:
       ++device: 0
       +processor: stackoverflow
@@ -115,14 +116,20 @@ experiments:
       ++raw_dump_path: data/dumps
       is_checkpoint: true
       objective: lm
-      ++task.dump_name: python_norepeat
       ++task.raw_dump_name: python
-      ++task.tensorized_name: python_norepeat
       ++model: lvwerra/codeparrot-small
     ablations:
       - ModelName:
           Python:
+            ++task.dump_name: python_norepeat
+            ++task.raw_dump_name: python
+            ++task.tensorized_name: python_norepeat
             ++model_path: outputs/mbpp/FinetuneSO.ParrotSmall.Python.FineTune/models/checkpoint-35
+          PythonFullRepeat:
+            ++task.dump_name: python_fullrepeat
+            ++task.raw_dump_name: python
+            ++task.tensorized_name: python_fullrepeat
+            ++model_path: outputs/mbpp/FinetuneSO.ParrotSmall.PythonFullRepeat.FineTune/models/checkpoint-35
     steps:
       - name: PreTrain
         add_name: False

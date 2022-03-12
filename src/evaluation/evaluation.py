@@ -187,7 +187,7 @@ def evaluate_model(
 
     dataset = dataset.map(
         get_len,
-        num_proc=cfg.num_workers,
+        num_proc=cfg.get('num_workers',1),
     ).sort('length', reverse=True)
 
     device = get_device_from_cfg(cfg)
