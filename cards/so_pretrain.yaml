@@ -1,0 +1,150 @@
+starting_commands: command_templates/sbatch_experiment.txt
+experiments:
+  TopLang:
+    overrides:
+      ++device: 0
+      +processor: stackoverflow
+      ++raw_dump_path: data/dumps
+      is_checkpoint: true
+      objective: lm
+      ++task.dump_name: top_lang_${..__META__.ablation.name}
+      ++task.raw_dump_name: top_languages
+      ++task.tensorized_name: top_lang_${..__META__.ablation.name}
+      ++tracking.tags:
+        - Torchrun
+        - GradientCheckpointing
+        - 8BitAdamW
+    ablations:
+      - Model:
+          Neo125M:
+            overrides:
+              ++batch_size: 200
+              ++model: 'EleutherAI/gpt-neo-125M'
+            step_overrides:
+              PreTrain:
+                ++training.batch_size: 32
+                ++training.gradient_accumulation_steps: 2
+          ParrotSmall:
+            overrides:
+              ++batch_size: 200
+              ++model: 'lvwerra/codeparrot-small'
+            step_overrides:
+              PreTrain:
+                ++training.batch_size: 32
+                ++training.gradient_accumulation_steps: 2
+      #          GPT2:
+      #            overrides:
+      #              ++batch_size: 200
+      #              ++model: 'gpt2'
+      #            step_overrides:
+      #              PreTrain:
+      #                ++training.batch_size: 32
+      #          GPT2Medium:
+      #            overrides:
+      #              ++batch_size: 150
+      #              ++model: 'gpt2-medium'
+      #            step_overrides:
+      #              PreTrain:
+      #                ++training.batch_size: 32
+      #          GPT2Large:
+      #            overrides:
+      #              ++batch_size: 100
+      #              ++model: 'gpt2-large'
+      #            step_overrides:
+      #              PreTrain:
+      #                ++training.batch_size: 16
+#      - DumpProcessing:
+#          Python:
+#            ++processor.params.repeat_question_for_each_answer: 'none'
+#          RepeatTitle:
+#            ++processor.params.repeat_question_for_each_answer: 'title'
+#          OnlyCodeWTitleRepeatBody:
+#            ++processor.params.repeat_question_for_each_answer: 'full'
+#            ++processor.params.remove_modality: "NL"
+#            ++processor.params.force_include_title: True
+#          OnlyCode:
+#            ++processor.params.remove_modality: "NL"
+
+    steps:
+      - name: PreTrain
+        add_name: False
+        base: pretrain_with_tensorized
+        group: SO
+        overrides:
+          ++task.buffer_size: 25
+          ++processor.params.clean: True
+          ++tensorize_batch_size: 64
+          tracking:
+            log_model: True
+          is_checkpoint: False
+          ++training:
+            batch_size: 16
+            gradient_accumulation_steps: 4
+            learning_rate: 1e-4
+            save_steps: 2500
+            eval_steps: 500
+            max_steps: 25000
+            warmup_steps: 500
+            logging_steps: 25
+            lr_scheduler_type: linear
+            save_total_limit: 10
+            group_by_length: False
+            dataloader_num_workers: 4
+            half_precision_backend: 'apex'
+            fp16_backend: 'apex'
+            gradient_checkpointing: true
+            fp16_opt_level: O2
+            use_8bit_adam: True
+          ++task.sequence_length: 1024
+          task: so
+      - name: HumanEval
+        add_name: False
+        base: human_eval
+        group: HUMAN_EVAL
+        overrides:
+          is_checkpoint: true
+          ++generation:
+            max_new_tokens: 256
+            do_sample: true
+            temperature: 0.5
+            top_p: 0.95
+            top_k: 50
+          model_path: best_models/${..__META__.PreTrain.save_name}
+          batch_size: 200
+      - name: FineTune
+        base: greene_config
+        group: MBPP
+        overrides:
+          task: mbpp
+          ++is_checkpoint: True
+          ++model_path: best_models/${..__META__.PreTrain.save_name}
+          ++training:
+            batch_size: 32
+            gradient_accumulation_steps: 1
+            learning_rate: 5e-5
+          tracking:
+            log_model: False
+      - name: Eval
+        base: eval_config
+        group: MBPP
+        overrides:
+          batch_size: 200
+          remove_input_ids: true
+          ++generation:
+            max_new_tokens: 512
+            do_sample: true
+            temperature: 0.5
+            top_p: 0.95
+            top_k: 50
+          task: mbpp
+          remove_input_ids: true
+          ++model_path: best_models/${..__META__.FineTune.save_name}
+    command:
+      file: command_templates/normal_pretrain.txt
+      kwargs:
+        num_return_sequences: 200
+        task_name: MBPP
+        train_sbatch: train_single_gpu
+        pretrain_time: "60:00:00"
+      fields:
+        - model_path

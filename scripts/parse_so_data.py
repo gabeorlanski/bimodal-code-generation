@@ -154,7 +154,7 @@ def parse_dump(
 @click.argument('parsed_path', metavar='<Data Path>')
 @click.argument('tag_filter_file',
                 metavar="<Path to list of tags to filter, use RANDOM for random selection>")
-@click.argument('out_path', metavar="<Path to save to>")
+@click.argument('out_name', metavar="<Path to save to>")
 @click.option(
     '--blacklist', default=None, help="Blacklist of questions to not include."
 )
@@ -172,7 +172,7 @@ def filter_tags(
         ctx,
         parsed_path,
         tag_filter_file,
-        out_path,
+        out_name,
         blacklist,
         tag_blacklist,
         random_size,
@@ -198,9 +198,9 @@ def filter_tags(
         logger.info(f"Creating {filter_path}")
         filter_path.mkdir()
 
-    logger.info(f"Saving Filter to {filter_path.joinpath(f'{out_path}.json')}")
+    logger.info(f"Saving Filter to {filter_path.joinpath(f'{out_name}.json')}")
 
-    with filter_path.joinpath(f'{out_path}.json').open('w') as filter_file:
+    with filter_path.joinpath(f'{out_name}.json').open('w') as filter_file:
         json.dump(tag_files_to_get, filter_file, indent=True)
 
 
