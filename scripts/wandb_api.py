@@ -91,4 +91,4 @@ def download_wandb_runs(ctx):
 
 
 if __name__ == '__main__':
-    download_wandb_runs()
+    cli()
