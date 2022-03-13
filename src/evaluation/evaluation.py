@@ -62,31 +62,28 @@ def generate_code_predictions(
     indices = []
     predictions = []
     labels = []
-    generate_steps_per_sample, rem = divmod(seq_per_sample, batch_size)
-    if rem > 0:
-        logger.error(f"{seq_per_sample}/{batch_size} sequences had a "
-                     f"remainder of {rem}")
-        raise ValueError(
-            "seq_per_sample must be divisible by generation_kwargs.num_return_sequences"
-        )
+    generate_steps_per_sample, remainder = divmod(seq_per_sample, batch_size)
+    has_remainder = remainder > 0
+    if has_remainder:
+        generate_steps_per_sample += 1
 
     logger.debug(f"{generate_steps_per_sample} steps per sample")
-    generation_kwargs['num_return_sequences'] = batch_size
+    # generation_kwargs['num_return_sequences'] = batch_size
 
     max_new_tokens = generation_kwargs.pop('max_new_tokens', 256)
     if objective != 'lm':
         generation_kwargs['max_length'] = generation_kwargs.get('max_length', 256)
         logger.info(
             f"Not in language modeling, using a max length of {generation_kwargs['max_length']}")
-        # remove_input_ids_from_output = False
+
         generation_kwargs.pop('max_new_tokens', None)
-    num_steps_needed = generate_steps_per_sample * len(dataset)
-    logger.info(f"{num_steps_needed} total steps needed")
+
+    total_memory = torch.cuda.mem_get_info(device)[1]
 
     model.eval()
     with torch.inference_mode():
-        progress_bar = tqdm(total=num_steps_needed, desc='Generating')
-
+        progress_bar = tqdm(total=seq_per_sample * len(dataset), desc='Generating')
+        steps = 0
         for sample in dataset:
 
             generated_for_current_sample = []
@@ -99,14 +96,19 @@ def generate_code_predictions(
                     f"Sample {sample['idx']} has more than the "
                     f"models max length of {tokenizer.model_max_length}."
                 )
-                max_length_for_gen = tokenizer.model_max_length
+                max_length_for_gen = tokenizer.model_max_length-5
             else:
                 max_length_for_gen = input_len + max_new_tokens
             generation_kwargs['max_length'] = max_length_for_gen
 
-            for i in range(generate_steps_per_sample):
+            for batch_num in range(generate_steps_per_sample):
+                if has_remainder and batch_num < generate_steps_per_sample - 1:
+                    num_to_generate = remainder
+                else:
+                    num_to_generate = batch_size
                 generated_from_batch = model.generate(
                     input_ids=local_inputs,
+                    num_return_sequences=num_to_generate,
                     **generation_kwargs
                 )
                 if not remove_input_ids_from_output:
@@ -123,7 +125,12 @@ def generate_code_predictions(
                     )
                 )
 
-                progress_bar.update(1)
+                progress_bar.update(batch_size)
+                steps += 1
+                if steps % 100 == 0:
+                    pct_allocated = torch.cuda.max_memory_allocated(device) / total_memory
+                    logger.debug(
+                        f"{pct_allocated * 100:0.2f}% allocated")
 
             assert len(generated_for_current_sample) == seq_per_sample
             predictions.append(generated_for_current_sample)
