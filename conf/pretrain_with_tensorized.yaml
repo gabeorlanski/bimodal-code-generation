@@ -17,6 +17,7 @@ training:
   warmup_ratio: 0.01
   load_best_model_at_end: False
   group_by_length: False
+  use_8bit_adam: True
 generation:
   num_return_sequences: 25
 device: 0
