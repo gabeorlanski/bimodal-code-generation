@@ -18,7 +18,7 @@ if 'scripts' in str(PROJECT_ROOT):
 @click.group()
 @click.pass_context
 def cli(ctx):
-    os.environ["WANDB_API_KEY"] = open('wandb_secret.txt').read().strip()
+    os.environ["WANDB_API_KEY"] = PROJECT_ROOT.joinpath('wandb_secret.txt').read_text().strip()
     ctx.obj = {
         'entity' : 'nyu-code-research',
         'project': 'so-code-gen'
