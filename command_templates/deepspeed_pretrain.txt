@@ -7,14 +7,13 @@
 echo "Submitting Jobs for {{ job_name }}"
 
 
-{{ pretrain_jid }}=$(sbatch --parsable --job-name={{ job_name }}_pretrain \
-	deepspeed_multi_gpu.sbatch {{ PreTrain.path }})
-echo "Submitted PreTrain (id=${{ pretrain_jid }})"
+#{{ pretrain_jid }}=$(sbatch --parsable --job-name={{ job_name }}_pretrain \
+#	deepspeed_multi_gpu.sbatch {{ PreTrain.path }})
+#echo "Submitted PreTrain (id=${{ pretrain_jid }})"
 
 
 # Human Eval After PreTrain
 he_so{{idx}}=$(sbatch --job-name='{{ job_name }}_he' --parsable \
-	--dependency=afterok:${{ pretrain_jid }} \
 	run_human_eval.sbatch {{ HumanEval.path }})
 echo "Submitted HumanEval (id=$he_so{{idx}})"
 echo "scancel $he_so{{idx}}" >> generated_experiments/cancel_jobs.sh
@@ -29,16 +28,15 @@ echo "Submitted CodeEval(id=$he_exec{{idx}})"
 echo "scancel $he_exec{{idx}}" >> generated_experiments/cancel_jobs.sh
 
 # Finetuning
-train_jid{{ idx}}=$(sbatch --parsable \
-	--dependency=afterok:${{pretrain_jid}} \
-	--job-name={{ job_name }}_finetune {{ train_sbatch }}.sbatch {{ FineTune.path}})
-echo "Submitted Train (id=$train_jid{{ idx}})"
-echo "scancel $train_jid{{idx}}" >> generated_experiments/cancel_jobs.sh
+#rain_jid{{ idx}}=$(sbatch --parsable \
+#	--dependency=afterok:${{pretrain_jid}} \
+#	--job-name={{ job_name }}_finetune {{ train_sbatch }}.sbatch {{ FineTune.path}})
+#cho "Submitted Train (id=$train_jid{{ idx}})"
+#cho "scancel $train_jid{{idx}}" >> generated_experiments/cancel_jobs.sh
 
 
 # Human Eval After Finetune
 hef_so{{idx}}=$(sbatch --job-name='{{ job_name }}_fhe_eval' --parsable \
-	--dependency=afterok:$train_jid{{ idx}} \
 	run_human_eval.sbatch {{ HEFineTune.path }})
 echo "Submitted HumanEvalFinetune (id=$hef_so{{idx}})"
 echo "scancel $hef_so{{idx}}" >> generated_experiments/cancel_jobs.sh
@@ -54,7 +52,7 @@ echo "scancel $hef_exec{{idx}}" >> generated_experiments/cancel_jobs.sh
 
 # Normal Eval
 eval_jid{{idx}}=$(sbatch --parsable --job-name={{ job_name }}_eval \
-	--dependency=afterok:$train_jid{{ idx}} eval.sbatch \
+	eval.sbatch \
 	{{ Eval.model_path }} {{ num_return_sequences }} {{ Eval.path }})
 echo "Submitted Eval $eval_jid{{idx}} to run after $1(id=$train_jid{{ idx}})"
 echo "scancel $eval_jid{{idx}}" >> generated_experiments/cancel_jobs.sh
