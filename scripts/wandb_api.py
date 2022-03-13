@@ -8,6 +8,7 @@ from tqdm import tqdm
 import shutil
 import os
 import click
+from datetime import datetime
 
 PROJECT_ROOT = Path.cwd()
 if 'scripts' in str(PROJECT_ROOT):
@@ -23,6 +24,36 @@ def cli(ctx):
         'entity' : 'nyu-code-research',
         'project': 'so-code-gen'
     }
+
+
+@cli.command('download_models')
+@click.pass_context
+def download_models(ctx):
+    out_path = PROJECT_ROOT.joinpath('best_models')
+    if not out_path.exists():
+        out_path.mkdir(parents=True)
+
+    print(f'Downloading models to {out_path}')
+    api = wandb.Api()  # type: ignore
+    runs = api.runs(f"{ctx.obj['entity']}/{ctx.obj['project']}")
+    for run in tqdm(runs, desc='Downloading'):
+        if run.group == "SO" and run.state == 'finished':
+            artifacts = run.logged_artifacts(per_page=100)
+            if len(artifacts) == 0:
+                tqdm.write(f"Could not find an artifact for {run.name}")
+                continue
+            latest_artifact = list(sorted(
+                artifacts,
+                key=lambda a: datetime.fromisoformat(a.updated_at),
+                reverse=True
+            ))[0]
+
+            artifact_download_path = out_path.joinpath(run.config['meta.base_name'])
+            tqdm.write(f"Saving {latest_artifact.name} for {run.name} to {artifact_download_path}")
+            latest_artifact.download(str(artifact_download_path.resolve().absolute()))
+
+            # if artifacts:
+            #     tqdm.write(f"Downloading {artifacts[0]} to {out_path.joinpath(run.config['meta.base_name'])}")
 
 
 @cli.command('upload_model')
@@ -47,7 +78,7 @@ def upload_model(ctx, model_directory, run_id):
     run.finish()
 
 
-@cli.command('download')
+@cli.command('download_runs')
 @click.pass_context
 def download_wandb_runs(ctx):
     out_path = PROJECT_ROOT.joinpath('data/run_data')
