@@ -64,6 +64,8 @@ tracking:
   log_model: true
   project: so-code-gen
   watch: gradients
+  tags:
+    - Testing
 training:
   batch_size: 1
   ddp_find_unused_parameters: false

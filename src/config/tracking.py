@@ -117,6 +117,7 @@ class TrackingCallback(TrainerCallback):
                     entity=os.getenv('WANDB_ENTITY'),
                     config=combined_dict,
                     id=os.getenv('WANDB_RUN_ID'),
+                    tags=os.getenv('WANDB_RUNS_TAGS').split(','),
                     **init_args,
                 )
                 with open_dict(self.cfg):
@@ -234,6 +235,7 @@ def setup_tracking_env_from_cfg(cfg: DictConfig):
     os.environ['WANDB_RUN_NAME'] = f"{run_name}-{os.environ['WANDB_RUN_ID']}"
     os.environ['WANDB_LOG_MODEL'] = 'true' if cfg['tracking'].get('log_model') else 'false'
     os.environ['DISABLE_FAST_TOK'] = 'true'
+    os.environ['WANDB_RUNS_TAGS'] = ','.join(cfg.tracking.tags if 'tags' in cfg.tracking else [])
 
 
 def get_run_base_name_from_cfg(cfg: DictConfig, suffix=None) -> str:

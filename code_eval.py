@@ -120,6 +120,7 @@ def run(path_to_preds, num_workers, debug, disable_tracking, timeout):
             group=f"{cfg.group}[execution]",
             config=get_config_for_tracking(cfg),
             entity=os.getenv('WANDB_ENTITY'),
+            tags=os.getenv('WANDB_RUNS_TAGS').split(',')
         )
         metrics_to_log_dict = {}
         for split, split_dict in all_results.items():

@@ -11,3 +11,4 @@ tracking:
   watch: "gradients"
   project: ${..project}
   log_model: false
+  tags: [ ]

@@ -36,11 +36,11 @@ def download_models(ctx):
     print(f'Downloading models to {out_path}')
     api = wandb.Api()  # type: ignore
     runs = api.runs(f"{ctx.obj['entity']}/{ctx.obj['project']}")
-    for run in tqdm(runs, desc='Downloading'):
+    for run in runs:
         if run.group == "SO" and run.state == 'finished':
             artifacts = run.logged_artifacts(per_page=100)
             if len(artifacts) == 0:
-                tqdm.write(f"Could not find an artifact for {run.name}")
+                print(f"Could not find an artifact for {run.name}")
                 continue
             latest_artifact = list(sorted(
                 artifacts,
@@ -49,7 +49,7 @@ def download_models(ctx):
             ))[0]
 
             artifact_download_path = out_path.joinpath(run.config['meta.base_name'])
-            tqdm.write(f"Saving {latest_artifact.name} for {run.name} to {artifact_download_path}")
+            print(f"Saving {latest_artifact.name} for {run.name} to {artifact_download_path}")
             latest_artifact.download(str(artifact_download_path.resolve().absolute()))
 
             # if artifacts:

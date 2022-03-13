@@ -183,7 +183,7 @@ def evaluate_model(
 
     dataset = dataset.map(
         get_len,
-        num_proc=cfg.get('num_workers',1),
+        num_proc=cfg.get('num_workers', 1),
     ).sort('length', reverse=True)
 
     device = get_device_from_cfg(cfg)
@@ -299,7 +299,8 @@ def evaluate(
             group=f"{cfg.group}[eval]",
             entity=os.getenv('WANDB_ENTITY'),
             config=get_config_for_tracking(cfg),
-            id=run_id
+            id=run_id,
+            tags=os.getenv('WANDB_RUNS_TAGS').split(','),
         )
 
         run.config.update(get_config_for_tracking(cfg))
