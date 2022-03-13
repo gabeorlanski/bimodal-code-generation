@@ -83,7 +83,6 @@ def generate_code_predictions(
     model.eval()
     with torch.inference_mode():
         progress_bar = tqdm(total=seq_per_sample * len(dataset), desc='Generating')
-        steps = 0
         for sample in dataset:
 
             generated_for_current_sample = []
@@ -125,13 +124,11 @@ def generate_code_predictions(
                     )
                 )
 
-                progress_bar.update(batch_size)
-                steps += 1
-                if steps % 100 == 0:
-                    pct_allocated = torch.cuda.max_memory_allocated(device) / total_memory
-                    logger.debug(
-                        f"{pct_allocated * 100:0.2f}% allocated")
+                progress_bar.update(num_to_generate)
 
+            pct_allocated = torch.cuda.max_memory_allocated(device) / total_memory
+            logger.debug(
+                f"{pct_allocated * 100:0.2f}% allocated")
             assert len(generated_for_current_sample) == seq_per_sample
             predictions.append(generated_for_current_sample)
             labels.append(sample['target'])
