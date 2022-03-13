@@ -36,6 +36,7 @@ def upload_model(ctx, model_directory, run_id):
     run = wandb.init(  # type: ignore
         entity=ctx.obj['entity'],
         project=ctx.obj['project'],
+        id=run_id,
         resume=True
     )
 
