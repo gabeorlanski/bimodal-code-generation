@@ -4,6 +4,7 @@ import math
 import os
 from collections import defaultdict
 from datetime import datetime
+from itertools import chain
 from pathlib import Path
 import random
 from typing import List, Union
@@ -46,9 +47,13 @@ def generate_code_predictions(
         device,
         generation_kwargs,
         seq_per_sample,
-        remove_input_ids_from_output
+        remove_input_ids_from_output,
+        debug
 ):
     logger.info("Starting Generation")
+    if any(dataset[i - 1]['length'] < dataset[i]['length'] for i in range(1, len(dataset))):
+        raise ValueError(f"The custom generation method only works if the "
+                         f"dataset is sorted by length.")
 
     logger.info(f"Using batch size of {batch_size} and generating "
                 f"{seq_per_sample} per sample")
@@ -64,67 +69,66 @@ def generate_code_predictions(
     labels = []
     generate_steps_per_sample, remainder = divmod(seq_per_sample, batch_size)
     has_remainder = remainder > 0
-    if has_remainder:
-        generate_steps_per_sample += 1
+
+    amounts_to_generate = [batch_size] * generate_steps_per_sample + [remainder] * has_remainder
 
     logger.debug(f"{generate_steps_per_sample} steps per sample")
-    # generation_kwargs['num_return_sequences'] = batch_size
 
-    max_new_tokens = generation_kwargs.pop('max_new_tokens', 256)
-    if objective != 'lm':
-        generation_kwargs['max_length'] = generation_kwargs.get('max_length', 256)
-        logger.info(
-            f"Not in language modeling, using a max length of {generation_kwargs['max_length']}")
-
-        generation_kwargs.pop('max_new_tokens', None)
+    max_length = generation_kwargs.pop('max_length', 256)
+    if 'max_new_tokens' in generation_kwargs:
+        max_new_tokens = generation_kwargs.pop('max_new_tokens')
+        if 'max_length' not in generation_kwargs:
+            max_length = max_new_tokens
 
     total_memory = torch.cuda.mem_get_info(device)[1]
+    tokenizer.padding_side = 'left'
 
     model.eval()
     with torch.inference_mode():
-        progress_bar = tqdm(total=seq_per_sample * len(dataset), desc='Generating')
-        for sample in dataset:
 
+        # Disable during debugging for my sanity.
+        if not debug:
+            progress_bar = tqdm(total=seq_per_sample * len(dataset), desc='Generating')
+        else:
+            progress_bar = None
+
+        for idx, sample in enumerate(dataset):
             generated_for_current_sample = []
             sample_tokenized = tokenizer(sample['input_sequence'], return_tensors='pt')
             local_inputs = sample_tokenized["input_ids"].to(device)
-            input_len = sample_tokenized['attention_mask'].sum().item()
+            local_attention = sample_tokenized['attention_mask'].to(device)
+            input_len = dataset[idx]['length']
 
-            if max_new_tokens + input_len > tokenizer.model_max_length:
-                logger.warning(
-                    f"Sample {sample['idx']} has more than the "
-                    f"models max length of {tokenizer.model_max_length}."
-                )
-                max_length_for_gen = tokenizer.model_max_length-5
-            else:
-                max_length_for_gen = input_len + max_new_tokens
-            generation_kwargs['max_length'] = max_length_for_gen
-
-            for batch_num in range(generate_steps_per_sample):
-                if has_remainder and batch_num < generate_steps_per_sample - 1:
-                    num_to_generate = remainder
+            max_length_for_gen = max_length
+            if objective == 'lm':
+                if max_length + input_len > tokenizer.model_max_length:
+                    logger.warning(
+                        f"Sample {sample['idx']} has more than the "
+                        f"models max length of {tokenizer.model_max_length}."
+                    )
+                    # Subtract 4 to be safe.
+                    max_length_for_gen = tokenizer.model_max_length - 4
                 else:
-                    num_to_generate = batch_size
+                    max_length_for_gen = input_len + max_length
+
+            for num_to_generate in amounts_to_generate:
                 generated_from_batch = model.generate(
                     input_ids=local_inputs,
+                    attention_mask=local_attention,
+                    max_length=max_length_for_gen,
                     num_return_sequences=num_to_generate,
                     **generation_kwargs
                 )
-                if not remove_input_ids_from_output:
-                    generated_results = generated_from_batch.tolist()
-                else:
-                    # Can chop all in the results from the generation as they
-                    # all have the same prompt length.
-                    generated_results = generated_from_batch[:, input_len:]
 
-                generated_for_current_sample.extend(
-                    tokenizer.batch_decode(
-                        generated_results,
-                        skip_special_tokens=True
-                    )
-                )
+                slice_len = remove_input_ids_from_output * input_len
+                ids_for_current_sample = generated_from_batch[:, slice_len:]
 
-                progress_bar.update(num_to_generate)
+                if progress_bar:
+                    progress_bar.update(num_to_generate)
+                generated_for_current_sample.extend(tokenizer.batch_decode(
+                    ids_for_current_sample,
+                    skip_special_tokens=True
+                ))
 
             pct_allocated = torch.cuda.max_memory_allocated(device) / total_memory
             logger.debug(
@@ -133,8 +137,10 @@ def generate_code_predictions(
             predictions.append(generated_for_current_sample)
             labels.append(sample['target'])
             indices.append(sample['idx'])
-
-        progress_bar.close()
+            if not progress_bar:
+                logger.info(f"Finished {idx}/{len(dataset)} generations")
+        if progress_bar:
+            progress_bar.close()
 
     logger.info("Generating finished.")
     return {
@@ -164,12 +170,11 @@ def evaluate_model(
         model.config.pad_token_id = task.tokenizer.pad_token_id
         model.config.bos_token_id = task.tokenizer.bos_token_id or task.tokenizer.eos_token
 
-        if cfg.task.name == 'human_eval':
-            def prepend_token(sample):
-                sample['input_sequence'] = task.tokenizer.eos_token + sample['input_sequence']
-                return sample
+        def prepend_token(sample):
+            sample['input_sequence'] = task.tokenizer.eos_token + sample['input_sequence']
+            return sample
 
-            task.preprocessors.append(prepend_token)
+        task.preprocessors.append(prepend_token)
 
     logger.info(f"Getting the data for split {cfg.split}")
     dataset = task.preprocess(cfg.split)
@@ -206,6 +211,7 @@ def evaluate_model(
         generation_kwargs=gen_kwargs,
         seq_per_sample=cfg.seq_per_sample,
         remove_input_ids_from_output=cfg.get("remove_input_ids", False),
+        debug=cfg.debug
     )
 
     labels = list(map(task.postprocess, generation_results['labels']))
