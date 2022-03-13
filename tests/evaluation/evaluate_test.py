@@ -51,12 +51,12 @@ def test_evaluate(tmpdir, simple_eval_config):
 @pytest.mark.parametrize("remove_input_ids", [True, False])
 def test_generate_code_predictions(remove_input_ids):
     expected = [
-        ' Television mutual lined',
-        ' Wheels Television Television',
-        ' bravery lined lined',
-        ' Boone Wheels Television',
-        ' Television boils Wheels',
-        ' lined boils Television'
+        ' boils Boone deflect',
+        ' Boone deflect Television',
+        ' bravery bravery lined',
+        ' mutual factors Television',
+        ' deflect factors Boone',
+        ' Wheels Boone mutual'
     ]
     prompt = 'Why make trillions, when we '
     gen_kwargs = {
@@ -67,19 +67,25 @@ def test_generate_code_predictions(remove_input_ids):
         'top_k'         : 10
     }
 
-    data = [
-        {'input_sequence': prompt, 'target': 'Hello', 'idx': 0}
-    ]
-    device = torch.device('cpu')
-    model = AutoModelForCausalLM.from_pretrained('sshleifer/tiny-gpt2')
     tokenizer = AutoTokenizer.from_pretrained('sshleifer/tiny-gpt2')
+    data = [
+        {
+            'input_sequence': prompt, 'target': 'Hello', 'idx': 0,
+            'length'        : len(tokenizer.tokenize(prompt))
+        }
+    ]
+    device = torch.device('cuda:0')
+    model = AutoModelForCausalLM.from_pretrained('sshleifer/tiny-gpt2').to(device)
+    model.pad_token_id = tokenizer.eos_token_id
+    model.bos_token_id = tokenizer.eos_token_id
     seed = 1
     random.seed(seed)
     np.random.seed(seed)
     torch.manual_seed(seed)
     torch.cuda.manual_seed_all(seed)
     results = generate_code_predictions(
-        model.to(device),
+        model,
+        objective='lm',
         dataset=data,
         tokenizer=tokenizer,
         batch_size=2,
@@ -87,6 +93,7 @@ def test_generate_code_predictions(remove_input_ids):
         generation_kwargs=gen_kwargs,
         seq_per_sample=6,
         remove_input_ids_from_output=remove_input_ids,
+        debug=True
     )
 
     if not remove_input_ids:

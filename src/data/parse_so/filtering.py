@@ -76,7 +76,7 @@ def create_filter_for_so_data(
         logger.info(f"Using the filter file {tag_filter_file}")
         use_random_selection = False
         for tag in PROJECT_ROOT.joinpath(tag_filter_file).read_text().splitlines():
-            tag_filters[tag] = True
+            tag_filters[tag.lower()] = True
         logger.info(f"{len(tag_filters)} tags in the filter")
         sample_mask = np.ones((len(question_overview),), dtype=bool)
 
@@ -90,7 +90,7 @@ def create_filter_for_so_data(
         tag_file_counts[question_dict['tag_to_use']] += 1
 
         finished += 1
-        tags = question_dict.get('tags', [])
+        tags = [t.lower() for t in question_dict.get('tags', [])]
         if tags and question_id not in blacklist:
             first_tag, *rest_of_tags = tags
             if use_random_selection:

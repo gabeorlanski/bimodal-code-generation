@@ -1,7 +1,6 @@
 #!/bin/bash
 #SBATCH --output=./sbatch_logs/%x_train.out
 #SBATCH --account=cds
-#SBATCH --time=100:00:00
 #SBATCH --gres=gpu:rtx8000:4
 #SBATCH --mem=148G
 #SBATCH -c 16
