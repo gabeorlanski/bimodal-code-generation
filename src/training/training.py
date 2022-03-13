@@ -314,7 +314,8 @@ def train_model(cfg: DictConfig):
     total_steps, warmup_steps = get_steps_from_training_args(train_args, train_data)
     if not train_args.deepspeed:
         if train_args.use_8bit_adam:
-            optimizer = bnb.optim.Adam8bit(
+            logger.info(f"Using Adam 8 Bit")
+            optimizer = bnb.optim.AdamW8bit(
                 get_grouped_params(model, train_args),
                 lr=train_args.learning_rate,
                 betas=(train_args.adam_beta1, train_args.adam_beta2),
@@ -322,6 +323,8 @@ def train_model(cfg: DictConfig):
                 weight_decay=train_args.weight_decay
             )
         else:
+
+            logger.info(f"Using AdamW")
             optimizer = torch.optim.AdamW(
                 get_grouped_params(model, train_args),
                 lr=train_args.learning_rate,
