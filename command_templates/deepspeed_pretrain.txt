@@ -7,19 +7,21 @@
 echo "Submitting Jobs for {{ job_name }}"
 
 
-#{{ pretrain_jid }}=$(sbatch --parsable --job-name={{ job_name }}_pretrain \
-#	deepspeed_multi_gpu.sbatch {{ PreTrain.path }})
-#echo "Submitted PreTrain (id=${{ pretrain_jid }})"
+{{ pretrain_jid }}=$(sbatch --parsable --job-name={{ job_name }}_pretrain \
+	deepspeed_multi_gpu.sbatch {{ PreTrain.path }})
+echo "Submitted PreTrain (id=${{ pretrain_jid }})"
 
 
 # Human Eval After PreTrain
 he_so{{idx}}=$(sbatch --job-name='{{ job_name }}_he' --parsable \
+	--dependency=afterok:${{ pretrain_jid }} \
 	run_human_eval.sbatch {{ HumanEval.path }})
 echo "Submitted HumanEval (id=$he_so{{idx}})"
 echo "scancel $he_so{{idx}}" >> generated_experiments/cancel_jobs.sh
 
 # Human Eval Code Execute Zero Shot
 he_exec{{idx}}=$(sbatch --parsable --job-name='{{ job_name }}_he_execute' \
+	--dependency=afterok:$he_so{{idx}} \
 	eval_code.sbatch \
 	eval_results/HUMAN_EVAL {{ PreTrain.save_name }} test.jsonl
 )
@@ -28,7 +30,7 @@ echo "scancel $he_exec{{idx}}" >> generated_experiments/cancel_jobs.sh
 
 # Finetuning
 train_jid{{ idx}}=$(sbatch --parsable \
-#	--dependency=afterok:${{pretrain_jid}} \
+	--dependency=afterok:${{pretrain_jid}} \
 	--job-name={{ job_name }}_finetune {{ train_sbatch }}.sbatch {{ FineTune.path}})
 echo "Submitted Train (id=$train_jid{{ idx}})"
 echo "scancel $train_jid{{idx}}" >> generated_experiments/cancel_jobs.sh
