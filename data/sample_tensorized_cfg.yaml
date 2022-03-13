@@ -42,7 +42,7 @@ processor:
     good_answer_cutoff: 3
     no_answer_str: There is not an answer
     question_prompt: null
-    remove_modality: NL
+    remove_modality: none
     repeat_question_for_each_answer: full
     title_prompt: null
 project: so-code-gen
@@ -74,7 +74,11 @@ training:
   eval_steps: 25
   evaluation_strategy: steps
   fp16: true
+  fp16: true
+  fp16_backend: apex
+  fp16_opt_level: O2
   gradient_accumulation_steps: 4
+  gradient_checkpointing: true
   greater_is_better: false
   group_by_length: false
   learning_rate: 0.0001
@@ -94,3 +98,4 @@ training:
   warmup_steps: 10
   weight_decay: 0.1
   xpu_backend: ccl
+  remove_unused_columns: false

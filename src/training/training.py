@@ -202,6 +202,7 @@ def setup_pretrain(cfg, tokenizer, train_args):
             group_texts,
             batched=True,
         )
+    logger.info(f"{eval_dataset} samples in the eval dataset")
     return train_dataset, eval_dataset, None
 
 

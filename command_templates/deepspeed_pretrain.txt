@@ -14,14 +14,12 @@ echo "Submitting Jobs for {{ job_name }}"
 
 # Human Eval After PreTrain
 he_so{{idx}}=$(sbatch --job-name='{{ job_name }}_he' --parsable \
-#	--dependency=afterok:${{ pretrain_jid }} \
 	run_human_eval.sbatch {{ HumanEval.path }})
 echo "Submitted HumanEval (id=$he_so{{idx}})"
 echo "scancel $he_so{{idx}}" >> generated_experiments/cancel_jobs.sh
 
 # Human Eval Code Execute Zero Shot
 he_exec{{idx}}=$(sbatch --parsable --job-name='{{ job_name }}_he_execute' \
-#	--dependency=afterok:$he_so{{idx}} \
 	eval_code.sbatch \
 	eval_results/HUMAN_EVAL {{ PreTrain.save_name }} test.jsonl
 )

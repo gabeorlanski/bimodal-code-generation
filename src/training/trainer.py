@@ -92,7 +92,7 @@ class CustomTrainer(Seq2SeqTrainer):
         metrics = None
         if self.control.should_evaluate:
             eval_start = datetime.utcnow()
-            metrics = self.evaluate(ignore_keys=ignore_keys_for_eval)
+            metrics = self.evaluate(self.eval_dataset, ignore_keys=ignore_keys_for_eval)
             self._report_to_hp_search(trial, epoch, metrics)
             self.total_time_spent_in_eval += (datetime.utcnow() - eval_start).total_seconds()
             print_dict.update(metrics)

@@ -52,6 +52,7 @@ training:
   disable_tqdm: True
   max_grad_norm: 1.0
   ddp_find_unused_parameters: False
+  remove_unused_columns: false
 
 data_args:
   seq_length: 512

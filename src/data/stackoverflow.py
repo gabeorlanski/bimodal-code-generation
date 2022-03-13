@@ -104,6 +104,9 @@ class StackOverflowProcessor:
             quality_str = "bad"
         else:
             quality_str = "ok"
+        if not answer:
+            return self.no_answer_str
+
         answer_str = self.answer_prompt.replace('__ANSWER__', answer)
         return answer_str.replace('__QUALITY__', quality_str)
 
