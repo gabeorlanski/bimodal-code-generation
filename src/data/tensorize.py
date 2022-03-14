@@ -86,7 +86,7 @@ class TensorizedTask(IterableDataset):
         self.concat_token_id = tokenizer.bos_token_id or tokenizer.eos_token_id
         self.sequence_length = sequence_length
 
-        self.buffer_size = int(buffer_size * 1000)
+        self.buffer_size = int(buffer_size * 5000)
         self.lm_concat_delim = tokenizer.encode('\n')
         self.max_samples_to_yield = max_samples_to_yield
         logger.debug(f"Reading lines from {self.data_file_path}")
