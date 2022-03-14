@@ -85,7 +85,7 @@ experiments:
             save_steps: 1000
             eval_steps: 500
             max_steps: 10000
-            warmup_steps: 500
+            warmup_steps: 1000
             logging_steps: 25
             lr_scheduler_type: linear
             save_total_limit: 10
@@ -186,7 +186,7 @@ experiments:
             save_steps: 1000
             eval_steps: 500
             max_steps: 10000
-            warmup_steps: 500
+            warmup_steps: 1000
             logging_steps: 25
             lr_scheduler_type: linear
             save_total_limit: 10
@@ -334,7 +334,7 @@ experiments:
             save_steps: 2500
             eval_steps: 500
             max_steps: 25000
-            warmup_steps: 500
+            warmup_steps: 2500
             logging_steps: 25
             lr_scheduler_type: linear
             save_total_limit: 10
