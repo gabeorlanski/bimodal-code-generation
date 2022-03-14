@@ -127,6 +127,8 @@ class TensorizedTask(IterableDataset):
         more_examples = True
         total_yielded = 0
         lines_seen = 0
+
+        num_no_samples = 0
         tokenizer = AutoTokenizer.from_pretrained(self.tokenizer_name, use_fast=True)
 
         worker_info = torch.utils.data.get_worker_info()
@@ -150,11 +152,8 @@ class TensorizedTask(IterableDataset):
                 try:
                     line = ujson.loads(next(data_iter))
                     if len(line) == 0:
-                        if worker_id == 0:
-                            logger.debug(
-                                f"{worker_id=} Line {lines_seen + 1} with id {line['id']} "
-                                f"had no samples after processing."
-                            )
+                        num_no_samples += 1
+
                     else:
                         processed.extend(self.processor.make_instances_from_question(line))
 
@@ -174,13 +173,15 @@ class TensorizedTask(IterableDataset):
                         more_examples = False
                         break
 
+            if worker_id == 0:
+                logger.debug(f"{num_no_samples}/{lines_seen} did not produce samples")
             if worker_info is None:
                 start = 0
                 end = self.buffer_size
             else:
                 start = worker_id * slices_per_worker
                 end = min(self.buffer_size, start + slices_per_worker)
-
+                
             if math.floor(ds_epoch * 100) != last_ds_epoch_update:
                 last_ds_epoch_update = math.floor(ds_epoch * 100)
                 logger.debug(f"{worker_id=} On dataset epoch {last_ds_epoch_update / 100}")
