@@ -10,8 +10,11 @@ params:
   answer_prompt: null
   question_prompt: null
   title_prompt: null
+  add_tags: false
   clean: false
   remove_modality: none
   no_answer_str: "There is not an answer"
   force_include_question: False
   force_include_title: False
+  force_include_tags: False
+  remove_body_title_repeat: False

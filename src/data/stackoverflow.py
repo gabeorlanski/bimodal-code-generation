@@ -20,11 +20,14 @@ class StackOverflowProcessor:
             answer_prompt: str = None,
             question_prompt: str = None,
             title_prompt: str = None,
+            tags_prompt: str = None,
             clean: bool = True,
             remove_modality: str = "NONE",
             no_answer_str: str = "There is not an answer",
             force_include_question: bool = False,
-            force_include_title: bool = False
+            force_include_title: bool = False,
+            force_include_tags: bool = False,
+            remove_body_title_repeat: bool = False
     ):
         self.answer_sorting = answer_sorting.lower()
         if self.answer_sorting not in ['ascending', 'descending', 'accepted']:
@@ -39,12 +42,15 @@ class StackOverflowProcessor:
         self.answer_prompt = answer_prompt if answer_prompt else '__ANSWER__'
         self.question_prompt = question_prompt if question_prompt else '__BODY__'
         self.title_prompt = title_prompt if title_prompt else '__TITLE__'
+        self.tags_prompt = tags_prompt
         self.answers_per_sample = answers_per_sample
         self.lm_concat_delim = '\n'
         self.clean = clean
 
         self.force_include_question = force_include_question
         self.force_include_title = force_include_title
+        self.force_include_tags = force_include_tags
+        self.remove_body_title_repeat = remove_body_title_repeat
 
         self.no_answer_str = no_answer_str
         if remove_modality is None:
@@ -82,18 +88,31 @@ class StackOverflowProcessor:
         # to manually construct.
         return '\n'.join(map(repr, soup.find_all(recursive=False))).strip()
 
-    def apply_question_prompt(self, title, body, score, views, is_first_answer):
+    def apply_question_prompt(self, title, body, score, views, tags, is_first_answer):
         title_str = self.title_prompt.replace('__TITLE__', title)
         body_str = self.question_prompt.replace("__BODY__", body)
 
-        if self.remove_modality == "NL" and not self.force_include_title:
-            title_str = ''
+        if self.tags_prompt is not None:
+            # Add the extra space at the end so that it will automatically be
+            # spaced out from the title.
+            tags_str = self.tags_prompt.replace('__TAGS__', ' '.join(tags)) + " "
         else:
-            title_str = f"{title_str}\n"
+            tags_str = ''
+
+        if self.remove_modality == "NL" and not self.force_include_title:
+            if self.force_include_tags and tags_str:
+                title_str = f"{tags_str.strip()}\n"
+            else:
+                title_str = ''
+        else:
+            title_str = f"{tags_str}{title_str}\n"
+
+        if is_first_answer and self.repeat_question_for_each_answer == 'title' and self.remove_body_title_repeat:
+            return title_str.strip()
 
         if is_first_answer or self.repeat_question_for_each_answer == 'full':
             return f"{title_str}{body_str}"
-        if self.repeat_question_for_each_answer == 'title':
+        if self.repeat_question_for_each_answer == 'title' or self.force_include_title:
             return title_str.strip()
         return ''
 
@@ -151,19 +170,21 @@ class StackOverflowProcessor:
             answers = [accepted_answer, *answers]
 
         question_str = self.apply_question_prompt(
-            sample['title'],
-            sample['body'],
-            sample['score'],
-            sample['views'],
-            True
+            title=sample['title'],
+            body=sample['body'],
+            score=sample['score'],
+            views=sample['views'],
+            tags=sample['tags'],
+            is_first_answer=True
         )
 
         repeat_answer_input_str = self.apply_question_prompt(
-            sample['title'],
-            sample['body'],
-            sample['score'],
-            sample['views'],
-            False
+            title=sample['title'],
+            body=sample['body'],
+            score=sample['score'],
+            views=sample['views'],
+            tags=sample['tags'],
+            is_first_answer=False
         )
 
         if self.answers_per_sample == -1:

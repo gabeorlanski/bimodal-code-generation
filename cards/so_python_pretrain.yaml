@@ -33,39 +33,25 @@ experiments:
               PreTrain:
                 ++training.batch_size: 32
                 ++training.gradient_accumulation_steps: 2
-      #          GPT2:
-      #            overrides:
-      #              ++batch_size: 200
-      #              ++model: 'gpt2'
-      #            step_overrides:
-      #              PreTrain:
-      #                ++training.batch_size: 32
-      #          GPT2Medium:
-      #            overrides:
-      #              ++batch_size: 150
-      #              ++model: 'gpt2-medium'
-      #            step_overrides:
-      #              PreTrain:
-      #                ++training.batch_size: 32
-      #          GPT2Large:
-      #            overrides:
-      #              ++batch_size: 100
-      #              ++model: 'gpt2-large'
-      #            step_overrides:
-      #              PreTrain:
-      #                ++training.batch_size: 16
       - DumpProcessing:
           SO:
             ++processor.params.repeat_question_for_each_answer: 'none'
-          RepeatTitle:
-            ++processor.params.repeat_question_for_each_answer: 'title'
-          OnlyCodeWTitleRepeatBody:
+          FullRepeat:
             ++processor.params.repeat_question_for_each_answer: 'full'
+          OnlyCodeTitleRepeat:
+            ++processor.params.repeat_question_for_each_answer: 'title'
+            ++processor.params.force_include_title: true
             ++processor.params.remove_modality: "NL"
-            ++processor.params.force_include_title: True
+            ++processor.params.remove_body_title_repeat: True
           OnlyCode:
             ++processor.params.remove_modality: "NL"
-
+      - IncludeTags:
+          Tags:
+            ++processor.params.tags_prompt: '__TAGS__'
+            ++processor.params.force_include_tags: True
+          NoTags:
+            ++processor.params.tags_prompt: null
+            ++processor.params.force_include_tags: False
     steps:
       - name: PreTrain
         add_name: False

@@ -3,6 +3,7 @@ Tests for the StackOverflow dataset
 """
 import json
 import re
+from functools import partial
 
 import pytest
 from transformers import AutoTokenizer
@@ -186,8 +187,13 @@ class TestStackOverflowProcessor:
                              ids=['Title', 'Full', 'None'])
     @pytest.mark.parametrize('force_include_question', [True, False], ids=['ForceQ', 'NoForceQ'])
     @pytest.mark.parametrize('force_include_title', [True, False], ids=['ForceT', 'NoForceT'])
-    def test_remove_modality_repeats(self, remove_modality, repeat_mode,
-                                     force_include_question, force_include_title):
+    def test_remove_modality_repeats(
+            self,
+            remove_modality,
+            repeat_mode,
+            force_include_question,
+            force_include_title
+    ):
         processor = stackoverflow.StackOverflowProcessor(
             remove_modality=remove_modality,
             force_include_question=force_include_question,
@@ -279,3 +285,62 @@ class TestStackOverflowProcessor:
 
             assert result[1]['input'] == expected_repeat.strip()
             assert result[1]['labels'] == bodies_with_removed[2][remove_modality]
+
+    @pytest.mark.parametrize('remove_modality', ['NONE', "NL"])
+    @pytest.mark.parametrize('force_include_tags', [True, False], ids=['Force', 'NoForce'])
+    @pytest.mark.parametrize('repeat_mode', ['title', 'full', 'none'])
+    def test_add_tags(self, remove_modality, force_include_tags, repeat_mode):
+        processor = stackoverflow.StackOverflowProcessor(
+            remove_modality=remove_modality,
+            force_include_tags=force_include_tags,
+            repeat_question_for_each_answer=repeat_mode,
+            tags_prompt='__TAGS__'
+        )
+
+        processor_fn = partial(
+            processor.apply_question_prompt,
+            title="Title",
+            body="Body",
+            score=1,
+            views=1,
+            tags=["TAG1", "TAG2"],
+        )
+
+        first_question = processor_fn(is_first_answer=True)
+        repeat_question = processor_fn(is_first_answer=False)
+
+        expected_second_question = ''
+        if remove_modality == 'NL':
+            if force_include_tags:
+                expected_first_question = 'TAG1 TAG2\nBody'
+            else:
+                expected_first_question = "Body"
+            if repeat_mode == 'full':
+                expected_second_question = expected_first_question
+            elif repeat_mode == 'title':
+                expected_second_question = "TAG1 TAG2" if force_include_tags else ''
+        else:
+            expected_first_question = 'TAG1 TAG2 Title\nBody'
+            if repeat_mode == 'full':
+                expected_second_question = expected_first_question
+            elif repeat_mode == 'title':
+                expected_second_question = "TAG1 TAG2 Title"
+
+        assert first_question == expected_first_question
+        assert repeat_question == expected_second_question
+
+    def test_no_body_title_repeat(self):
+        processor = stackoverflow.StackOverflowProcessor(
+            repeat_question_for_each_answer='title',
+            remove_body_title_repeat=True
+        )
+
+        result = processor.apply_question_prompt(
+            title="Title",
+            body="Body",
+            score=1,
+            views=1,
+            tags=["TAG1", "TAG2"],
+            is_first_answer=True
+        )
+        assert result == 'Title'
