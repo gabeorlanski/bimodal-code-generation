@@ -1,2 +1,2 @@
 #!/bin/bash
-squeue --format="%.18i %.9P %.48j %.8T %.10M %24S %R" --me
+squeue --format="%.18i %.9P %.48j %.4t %.10M %.8Q %.16R %S" --me
