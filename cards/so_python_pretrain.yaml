@@ -1,6 +1,6 @@
 starting_commands: command_templates/sbatch_experiment.txt
 experiments:
-  8BitAdamW:
+  25KSteps:
     add_name: False
     overrides:
       ++device: 0
@@ -282,7 +282,7 @@ experiments:
           ++tensorize_batch_size: 64
           ++tracking:
             log_model: True
-            
+
           is_checkpoint: False
           ++training:
             batch_size: 16
