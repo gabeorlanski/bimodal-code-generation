@@ -10,7 +10,7 @@ params:
   answer_prompt: null
   question_prompt: null
   title_prompt: null
-  add_tags: false
+  tags_prompt: null
   clean: false
   remove_modality: none
   no_answer_str: "There is not an answer"
