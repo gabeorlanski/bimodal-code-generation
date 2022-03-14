@@ -132,7 +132,7 @@ experiments:
         num_return_sequences: 200
         task_name: MBPP
         train_sbatch: train_single_gpu
-        pretrain_time: "23:59:59"
+        pretrain_time: "27:59:59"
       fields:
         - model_path
 #  Neo1300M.SO:
@@ -348,7 +348,7 @@ experiments:
         num_return_sequences: 200
         task_name: MBPP
         train_sbatch: train_single_gpu
-        pretrain_time: "23:59:59"
+        pretrain_time: "27:59:59"
       fields:
         - model_path
 
