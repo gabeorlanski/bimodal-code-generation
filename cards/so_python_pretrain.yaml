@@ -257,7 +257,7 @@ experiments:
             step_overrides:
               PreTrain:
                 ++training.batch_size: 32
-                ++training.gradient_accumulation_steps: 2
+                ++training.gradient_accumulation_steps: 1
           ParrotSmall:
             overrides:
               ++batch_size: 200
@@ -265,7 +265,7 @@ experiments:
             step_overrides:
               PreTrain:
                 ++training.batch_size: 32
-                ++training.gradient_accumulation_steps: 2
+                ++training.gradient_accumulation_steps: 1
       #          GPT2:
       #            overrides:
       #              ++batch_size: 200
@@ -379,7 +379,7 @@ experiments:
         num_return_sequences: 200
         task_name: MBPP
         train_sbatch: train_single_gpu
-        pretrain_time: "60:00:00"
+        pretrain_time: "23:59:59"
       fields:
         - model_path
 
