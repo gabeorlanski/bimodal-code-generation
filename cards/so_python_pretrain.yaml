@@ -14,7 +14,8 @@ experiments:
       ++tracking.tags:
         - Torchrun
         - GradientCheckpointing
-        - 8BitAdamW
+        - AdamW
+        - O2
     ablations:
       - Model:
           Neo125M:
@@ -81,7 +82,7 @@ experiments:
             fp16_backend: 'apex'
             gradient_checkpointing: true
             fp16_opt_level: O2
-            use_8bit_adam: True
+            use_8bit_adam: False
           ++task.sequence_length: 1024
           task: so
       - name: HumanEval
@@ -248,7 +249,8 @@ experiments:
       ++tracking.tags:
         - Torchrun
         - GradientCheckpointing
-        - 8BitAdamW
+        - AdamW
+        - O2
     ablations:
       - Model:
           Neo125M:
@@ -278,8 +280,9 @@ experiments:
           ++task.buffer_size: 5000
           ++processor.params.clean: True
           ++tensorize_batch_size: 64
-          tracking:
+          ++tracking:
             log_model: True
+            
           is_checkpoint: False
           ++training:
             batch_size: 16
@@ -298,7 +301,7 @@ experiments:
             fp16_backend: 'apex'
             gradient_checkpointing: true
             fp16_opt_level: O2
-            use_8bit_adam: True
+            use_8bit_adam: False
           ++task.sequence_length: 1024
           task: so
       - name: HumanEval
