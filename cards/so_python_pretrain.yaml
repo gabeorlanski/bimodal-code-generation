@@ -55,7 +55,7 @@ experiments:
       #              PreTrain:
       #                ++training.batch_size: 16
       - DumpProcessing:
-          Python:
+          SO:
             ++processor.params.repeat_question_for_each_answer: 'none'
           RepeatTitle:
             ++processor.params.repeat_question_for_each_answer: 'title'
@@ -94,7 +94,7 @@ experiments:
             half_precision_backend: 'apex'
             fp16_backend: 'apex'
             gradient_checkpointing: true
-            fp16_opt_level: O1
+            fp16_opt_level: O2
             use_8bit_adam: True
           ++task.sequence_length: 1024
           task: so
@@ -146,7 +146,7 @@ experiments:
         num_return_sequences: 200
         task_name: MBPP
         train_sbatch: train_single_gpu
-        pretrain_time: "30:00:00"
+        pretrain_time: "23:59:59"
       fields:
         - model_path
 
@@ -343,7 +343,7 @@ experiments:
             half_precision_backend: 'apex'
             fp16_backend: 'apex'
             gradient_checkpointing: true
-            fp16_opt_level: O1
+            fp16_opt_level: O2
             use_8bit_adam: True
           ++task.sequence_length: 1024
           task: so

@@ -5,8 +5,8 @@ params:
   answer_sorting: 'accepted'
   answers_per_sample: -1
   repeat_question_for_each_answer: none
-  good_answer_cutoff: 3
-  bad_answer_cutoff: -1
+  good_answer_cutoff: null
+  bad_answer_cutoff: null
   answer_prompt: null
   question_prompt: null
   title_prompt: null

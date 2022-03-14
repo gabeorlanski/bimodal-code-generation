@@ -98,15 +98,18 @@ class StackOverflowProcessor:
         return ''
 
     def apply_answer_prompt(self, answer, score):
-        if score >= self.good_answer_cutoff:
-            quality_str = "good"
-        elif score <= self.bad_answer_cutoff:
-            quality_str = "bad"
-        else:
-            quality_str = "ok"
+
         if not answer:
             return self.no_answer_str
 
+        quality_str = ""
+        if self.good_answer_cutoff is not None and self.bad_answer_cutoff is not None:
+            if score >= self.good_answer_cutoff:
+                quality_str = "good"
+            elif score <= self.bad_answer_cutoff:
+                quality_str = "bad"
+            else:
+                quality_str = "ok"
         answer_str = self.answer_prompt.replace('__ANSWER__', answer)
         return answer_str.replace('__QUALITY__', quality_str)
 
