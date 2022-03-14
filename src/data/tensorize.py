@@ -138,7 +138,8 @@ class TensorizedTask(IterableDataset):
             max_yielded_per_worker = self.max_samples_to_yield // worker_info.num_workers
             slices_per_worker = int(math.ceil(self.buffer_size / worker_info.num_workers))
             worker_id = worker_info.id
-
+        update_freq = min(1000, math.floor(0.25 * self.buffer_size))
+        last_ds_epoch_update = -1
         while more_examples and total_yielded < max_yielded_per_worker:
             # Read the file and add the lines to the line buffer. This buffer
             # will then be split by each process.
@@ -156,7 +157,7 @@ class TensorizedTask(IterableDataset):
                     else:
                         processed.extend(self.processor.make_instances_from_question(line))
 
-                        if len(processed) % 5000 == 0:
+                        if len(processed) % update_freq == 0 and len(processed) != 0:
                             if worker_id == 0:
                                 logger.debug(f"Filled buffer to {len(processed)=}")
 
@@ -176,7 +177,10 @@ class TensorizedTask(IterableDataset):
             else:
                 start = worker_id * slices_per_worker
                 end = min(self.buffer_size, start + slices_per_worker)
-            logger.debug(f"{worker_id=} On dataset epoch {ds_epoch}")
+
+            if math.floor(ds_epoch * 100) != last_ds_epoch_update:
+                last_ds_epoch_update = math.floor(ds_epoch * 100)
+                logger.debug(f"{worker_id=} On dataset epoch {last_ds_epoch_update / 100}")
             processed_inputs, processed_labels = [], []
             for line in processed[start:end]:
                 processed_inputs.append(line['input'])
@@ -202,7 +206,8 @@ class TensorizedTask(IterableDataset):
                         + labels
                         + [self.concat_token_id]
                     )
-                logger.debug(f"{worker_id=} has {len(buffer)//self.sequence_length} items to yield")
+                logger.debug(
+                    f"{worker_id=} has {len(buffer) // self.sequence_length} items to yield")
                 for i in range(0, len(buffer), self.sequence_length):
                     token_start = i
                     token_end = i + self.sequence_length

@@ -49,7 +49,7 @@ project: so-code-gen
 pytorch_seed: 3
 seed: 1
 task:
-  buffer_size: .25
+  buffer_size: 100
   ds_info_path: data/ds_info
   eval_splits: [ ]
   name: so
@@ -59,13 +59,13 @@ task:
   sequence_length: 512
   tensorized_name: python_code_norepeat
 tensorize_batch_size: 64
-tracking:
-  entity: nyu-code-research
-  log_model: true
-  project: so-code-gen
-  watch: gradients
-  tags:
-    - Testing
+tracking: False
+#  entity: nyu-code-research
+#  log_model: true
+#  project: so-code-gen
+#  watch: gradients
+#  tags:
+#    - Testing
 training:
   batch_size: 1
   ddp_find_unused_parameters: false
