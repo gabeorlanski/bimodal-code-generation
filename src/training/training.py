@@ -177,8 +177,12 @@ def setup_pretrain(cfg, tokenizer, train_args):
     logger.info(f"Creating Eval Dataset")
     eval_dataset = {'input_ids': [], 'labels': []}
     eval_file = dump_path.joinpath(f"{cfg.task.raw_dump_name}_val.jsonl")
+
+    debug_data = {}
+    line_num = 0
     for line in tqdm(eval_file.open('r')):
         sample = ujson.loads(line)
+        line_num += 1
         for instance in processor.make_instances_from_question(sample):
             eval_dataset['input_ids'].append(
                 tokenizer(
@@ -194,6 +198,16 @@ def setup_pretrain(cfg, tokenizer, train_args):
                     truncation=cfg.objective != 'seq2seq'
                 )['input_ids']
             )
+            if len(debug_data) < 10:
+                debug_data[line_num] = {
+                    'input_ids': tokenizer.decode(eval_dataset['input_ids'][-1],
+                                                  skip_special_tokens=False),
+                    'labels'   : tokenizer.decode(eval_dataset['labels'][-1],
+                                                  skip_special_tokens=False),
+                }
+
+    with Path.cwd().joinpath('debug_samples').open('w') as f:
+        json.dump(debug_data, f, indent=True, sort_keys=True)
 
     eval_dataset = Dataset.from_dict(eval_dataset).shuffle(seed=cfg.seed)
 
