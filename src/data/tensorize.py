@@ -149,7 +149,7 @@ class TensorizedTask(IterableDataset):
                     line = ujson.loads(next(data_iter))
                     if len(line) == 0:
                         if worker_id == 0:
-                            logger.warning(
+                            logger.debug(
                                 f"Line {lines_seen + 1} with id {line['id']} "
                                 f"had no samples after processing."
                             )
@@ -173,8 +173,7 @@ class TensorizedTask(IterableDataset):
                 end = min(self.buffer_size, start + slices_per_worker)
             logger.debug(f"{worker_id=} On dataset epoch {ds_epoch}")
             processed_inputs, processed_labels = [], []
-
-            for line in lines[start:end]:
+            for line in processed[start:end]:
                 processed_inputs.append(line['input'])
                 processed_labels.append(line['labels'])
 

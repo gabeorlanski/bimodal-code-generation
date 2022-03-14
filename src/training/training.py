@@ -188,7 +188,7 @@ def setup_pretrain(cfg, tokenizer, train_args):
         if line_num % 1000 == 0:
             logger.info(f"Read {line_num} lines for eval")
         if not processed:
-            logger.warning(f"Line {line_num} with id {sample['id']} had no "
+            logger.debug(f"Line {line_num} with id {sample['id']} had no "
                            f"samples produced.")
             num_no_samples += 1
             continue
