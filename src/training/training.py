@@ -206,8 +206,11 @@ def setup_pretrain(cfg, tokenizer, train_args):
                                                   skip_special_tokens=False),
                 }
 
-    with Path.cwd().joinpath('debug_samples').open('w') as f:
-        json.dump(debug_data, f, indent=True, sort_keys=True)
+    if train_args.local_rank <= 0:
+        logger.info(
+            f"Saving {len(debug_data)} debug samples to {Path.cwd().joinpath('debug_samples.json')}")
+        with Path.cwd().joinpath('debug_samples.json').open('w') as f:
+            json.dump(debug_data, f, indent=True, sort_keys=True)
 
     eval_dataset = Dataset.from_dict(eval_dataset).shuffle(seed=cfg.seed)
 
