@@ -134,7 +134,6 @@ experiments:
         task_name: MBPP
         train_sbatch: train_single_gpu
         pretrain_time: "27:59:59"
-        use_cds: True
       fields:
         - model_path
 #  Neo1300M.SO:
@@ -353,6 +352,7 @@ experiments:
         task_name: MBPP
         train_sbatch: train_single_gpu
         pretrain_time: "27:59:59"
+        use_cds: True
       fields:
         - model_path
 
