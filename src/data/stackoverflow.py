@@ -27,7 +27,8 @@ class StackOverflowProcessor:
             force_include_question: bool = False,
             force_include_title: bool = False,
             force_include_tags: bool = False,
-            remove_body_title_repeat: bool = False
+            remove_body_title_repeat: bool = False,
+            allow_no_answer: bool = False
     ):
         self.answer_sorting = answer_sorting.lower()
         if self.answer_sorting not in ['ascending', 'descending', 'accepted']:
@@ -51,6 +52,7 @@ class StackOverflowProcessor:
         self.force_include_title = force_include_title
         self.force_include_tags = force_include_tags
         self.remove_body_title_repeat = remove_body_title_repeat
+        self.allow_no_answer = allow_no_answer
 
         self.no_answer_str = no_answer_str
         if remove_modality is None:
@@ -195,9 +197,14 @@ class StackOverflowProcessor:
         # Add the quality information to the answer.
         out = []
         if not answers:
-            return [{'input': question_str, 'labels': self.no_answer_str}]
+            if self.allow_no_answer:
+                return [{'input': question_str, 'labels': self.no_answer_str}]
+            return []
 
         for i, answer in enumerate(answers[:answers_keep]):
+            if not answer['body'] and not self.allow_no_answer:
+                continue
+
             answer_str = self.apply_answer_prompt(answer['body'], answer['score'])
             if i > 0:
                 input_str = repeat_answer_input_str

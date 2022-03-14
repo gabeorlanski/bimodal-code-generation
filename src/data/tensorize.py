@@ -85,8 +85,7 @@ class TensorizedTask(IterableDataset):
         self.tokenizer_name = tokenizer.name_or_path
         self.concat_token_id = tokenizer.bos_token_id or tokenizer.eos_token_id
         self.sequence_length = sequence_length
-        # self.tokenizer = tokenizer
-        # self.buffer_size = effective_batch_size * self.sequence_length * buffer_size
+
         self.buffer_size = int(buffer_size * 1000)
         self.lm_concat_delim = tokenizer.encode('\n')
         self.max_samples_to_yield = max_samples_to_yield
@@ -143,11 +142,19 @@ class TensorizedTask(IterableDataset):
         while more_examples and total_yielded < max_yielded_per_worker:
             # Read the file and add the lines to the line buffer. This buffer
             # will then be split by each process.
-            lines = []
+            processed = []
             logger.debug(f"Starting Read on line {lines_seen}")
-            while len(lines) < self.buffer_size:
+            while len(processed) < self.buffer_size:
                 try:
-                    lines.append(next(data_iter))
+                    line = ujson.loads(next(data_iter))
+                    if len(line) == 0:
+                        if worker_id == 0:
+                            logger.warning(
+                                f"Line {lines_seen + 1} with id {line['id']} "
+                                f"had no samples after processing."
+                            )
+                    else:
+                        processed.extend(self.processor.make_instances_from_question(line))
                     lines_seen += 1
                     ds_epoch = lines_seen / self.max_num_lines_in_file
                 except StopIteration:
@@ -164,15 +171,20 @@ class TensorizedTask(IterableDataset):
             else:
                 start = worker_id * slices_per_worker
                 end = min(self.buffer_size, start + slices_per_worker)
-            logger.debug(f"On dataset epoch {ds_epoch}")
-            processed = self.processor(map(ujson.loads, lines[start:end]))
+            logger.debug(f"{worker_id=} On dataset epoch {ds_epoch}")
+            processed_inputs, processed_labels = [], []
+
+            for line in lines[start:end]:
+                processed_inputs.append(line['input'])
+                processed_labels.append(line['labels'])
+
             inputs_tokenized = tokenizer(
-                processed['inputs'],
+                processed_inputs,
                 max_length=self.sequence_length,
                 truncation=True
             )['input_ids']
             labels_tokenized = tokenizer(
-                processed['labels'],
+                processed_labels,
                 max_length=self.sequence_length,
                 truncation=True
             )['input_ids']
@@ -212,9 +224,6 @@ class TensorizedTask(IterableDataset):
                         break
             # Memory Management
             del buffer
-
-    # def __len__(self):
-    #     return self.length
 
     @property
     def params(self):

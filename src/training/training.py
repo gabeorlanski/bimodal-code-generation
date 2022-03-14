@@ -180,10 +180,19 @@ def setup_pretrain(cfg, tokenizer, train_args):
 
     debug_data = {}
     line_num = 0
-    for line in tqdm(eval_file.open('r')):
+    num_no_samples = 0
+    for line in eval_file.open('r'):
         sample = ujson.loads(line)
         line_num += 1
-        for instance in processor.make_instances_from_question(sample):
+        processed = processor.make_instances_from_question(sample)
+        if line_num % 1000 == 0:
+            logger.info(f"Read {line_num} lines for eval")
+        if not processed:
+            logger.warning(f"Line {line_num} with id {sample['id']} had no "
+                           f"samples produced.")
+            num_no_samples += 1
+            continue
+        for instance in processed:
             eval_dataset['input_ids'].append(
                 tokenizer(
                     instance['input'],
@@ -206,6 +215,7 @@ def setup_pretrain(cfg, tokenizer, train_args):
                                                   skip_special_tokens=False),
                 }
 
+    logger.warning(f"{num_no_samples}/{line_num} produced no samples.")
     if train_args.local_rank <= 0:
         logger.info(
             f"Saving {len(debug_data)} debug samples to {Path.cwd().joinpath('debug_samples.json')}")
