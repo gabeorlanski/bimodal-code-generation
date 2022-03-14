@@ -58,7 +58,7 @@ experiments:
         base: pretrain_with_tensorized
         group: SO
         overrides:
-          ++task.buffer_size: 25
+          ++task.buffer_size: 5000
           ++processor.params.clean: True
           ++tensorize_batch_size: 64
           tracking:
@@ -266,38 +266,7 @@ experiments:
               PreTrain:
                 ++training.batch_size: 32
                 ++training.gradient_accumulation_steps: 1
-      #          GPT2:
-      #            overrides:
-      #              ++batch_size: 200
-      #              ++model: 'gpt2'
-      #            step_overrides:
-      #              PreTrain:
-      #                ++training.batch_size: 32
-      #          GPT2Medium:
-      #            overrides:
-      #              ++batch_size: 150
-      #              ++model: 'gpt2-medium'
-      #            step_overrides:
-      #              PreTrain:
-      #                ++training.batch_size: 32
-      #          GPT2Large:
-      #            overrides:
-      #              ++batch_size: 100
-      #              ++model: 'gpt2-large'
-      #            step_overrides:
-      #              PreTrain:
-      #                ++training.batch_size: 16
-    #      - DumpProcessing:
-    #          Python:
-    #            ++processor.params.repeat_question_for_each_answer: 'none'
-    #          RepeatTitle:
-    #            ++processor.params.repeat_question_for_each_answer: 'title'
-    #          OnlyCodeWTitleRepeatBody:
-    #            ++processor.params.repeat_question_for_each_answer: 'full'
-    #            ++processor.params.remove_modality: "NL"
-    #            ++processor.params.force_include_title: True
-    #          OnlyCode:
-    #            ++processor.params.remove_modality: "NL"
+
 
     steps:
       - name: PreTrain
@@ -305,7 +274,7 @@ experiments:
         base: pretrain_with_tensorized
         group: SO
         overrides:
-          ++task.buffer_size: 25
+          ++task.buffer_size: 5000
           ++processor.params.clean: True
           ++tensorize_batch_size: 64
           tracking:
