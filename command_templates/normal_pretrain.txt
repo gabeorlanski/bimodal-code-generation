@@ -1,18 +1,23 @@
 
 {%- set pretrain_jid= "pretrain_jid"+ idx|string -%}
 {%- set get_info_jid= "get_info_"+ idx|string -%}
-
+{%- if use_cds is defined and use_cds -%}
+{% set account_str="--account=cds " %}
+{% else %}
+{% set account_str="" %}
+{%- endif -%}
 ##############################################################################################
 
 echo "Submitting Jobs for {{ job_name }}"
 {{ pretrain_jid }}=$(sbatch --parsable --job-name={{ job_name }}_pretrain \
-	--time={{ pretrain_time }} \
+	{{ account_str }} --time={{ pretrain_time }} \
 	train_multi_gpu.sbatch {{ PreTrain.path }})
 echo "Submitted PreTrain (id=${{ pretrain_jid }})"
 
 
 # Human Eval After PreTrain
-he_so{{idx}}=$(sbatch --job-name='{{ job_name }}_he' --parsable \
+he_so{{idx}}=$(sbatch --job-name='{{ job_name }}_he' \
+	{{ account_str }} --parsable \
 	--dependency=afterok:${{ pretrain_jid }} \
 	run_human_eval.sbatch {{ HumanEval.path }})
 echo "Submitted HumanEval (id=$he_so{{idx}})"
@@ -28,14 +33,15 @@ echo "Submitted CodeEval(id=$he_exec{{idx}})"
 echo "scancel $he_exec{{idx}}" >> generated_experiments/cancel_jobs.sh
 
 # Finetuning
-train_jid{{ idx}}=$(sbatch --parsable \
+train_jid{{ idx}}=$(sbatch --parsable {{account_str}} \
 	--dependency=afterok:${{pretrain_jid}} \
 	--job-name={{ job_name }}_finetune {{ train_sbatch }}.sbatch {{ FineTune.path}})
 echo "Submitted Train (id=$train_jid{{ idx}})"
 echo "scancel $train_jid{{idx}}" >> generated_experiments/cancel_jobs.sh
 
 # Normal Eval
-eval_jid{{idx}}=$(sbatch --parsable --job-name={{ job_name }}_eval \
+eval_jid{{idx}}=$(sbatch --parsable {{account_str}} \
+	--job-name={{ job_name }}_eval \
 	--dependency=afterok:$train_jid{{ idx}} eval.sbatch \
 	{{ Eval.model_path }} {{ num_return_sequences }} {{ Eval.path }})
 echo "Submitted Eval $eval_jid{{idx}} to run after $1(id=$train_jid{{ idx}})"

@@ -146,16 +146,17 @@ class TensorizedTask(IterableDataset):
             # Read the file and add the lines to the line buffer. This buffer
             # will then be split by each process.
             processed = []
-            logger.debug(f"{worker_id=} Starting Read on line {lines_seen}")
+            if worker_id == 0:
+                logger.debug(f"{worker_id=} Starting Read on line {lines_seen}")
             last_processed_update = 0
             while len(processed) < self.buffer_size:
                 try:
                     line = ujson.loads(next(data_iter))
-                    if len(line) == 0:
+                    line_processed = self.processor.make_instances_from_question(line)
+                    if len(line_processed) == 0:
                         num_no_samples += 1
-
                     else:
-                        processed.extend(self.processor.make_instances_from_question(line))
+                        processed.extend(line_processed)
 
                         if len(processed) % update_freq == 0 and len(
                                 processed) != last_processed_update:
@@ -181,7 +182,7 @@ class TensorizedTask(IterableDataset):
             else:
                 start = worker_id * slices_per_worker
                 end = min(self.buffer_size, start + slices_per_worker)
-                
+
             if math.floor(ds_epoch * 100) != last_ds_epoch_update:
                 last_ds_epoch_update = math.floor(ds_epoch * 100)
                 logger.debug(f"{worker_id=} On dataset epoch {last_ds_epoch_update / 100}")
