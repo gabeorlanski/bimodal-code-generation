@@ -17,7 +17,7 @@ echo "Submitted PreTrain (id=${{ pretrain_jid }})"
 
 # Human Eval After PreTrain
 he_so{{idx}}=$(sbatch --job-name='{{ job_name }}_he' \
-	--parsable {{ account_str }}
+	--parsable \
 	--dependency=afterok:${{ pretrain_jid }} \
 	run_human_eval.sbatch {{ HumanEval.path }})
 echo "Submitted HumanEval (id=$he_so{{idx}})"
@@ -40,7 +40,7 @@ echo "Submitted Train (id=$train_jid{{ idx}})"
 echo "scancel $train_jid{{idx}}" >> generated_experiments/cancel_jobs.sh
 
 # Normal Eval
-eval_jid{{idx}}=$(sbatch --parsable {{account_str}}
+eval_jid{{idx}}=$(sbatch --parsable \
 	--job-name={{ job_name }}_eval \
 	--dependency=afterok:$train_jid{{ idx}} eval.sbatch \
 	{{ Eval.model_path }} {{ num_return_sequences }} {{ Eval.path }})
