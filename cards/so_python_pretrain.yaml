@@ -94,7 +94,7 @@ experiments:
             half_precision_backend: 'apex'
             fp16_backend: 'apex'
             gradient_checkpointing: true
-            fp16_opt_level: O2
+            fp16_opt_level: O1
             use_8bit_adam: True
           ++task.sequence_length: 1024
           task: so
