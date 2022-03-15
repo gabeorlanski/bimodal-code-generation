@@ -366,6 +366,6 @@ def save_experiment_cards(
 
         command = composed.get_command(idx=i, output_path=output_path)
         if command is not None:
-            script_fd.write(f"\n# Command for {composed.name}\n")
+            script_fd.write(f"\n# Command for {composed.job_name}\n")
             script_fd.write(command + '\n')
     script_fd.close()
