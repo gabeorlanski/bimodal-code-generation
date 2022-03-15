@@ -364,7 +364,7 @@ def train_model(cfg: DictConfig):
 
         optimizer_arg = (optimizer, lr_scheduler)
     else:
-        optimizer_arg = None
+        optimizer_arg = (None,None)
 
     logger.info(f"{total_steps} total training steps and {warmup_steps} warmup")
     device = train_args.device

@@ -3,11 +3,13 @@ Tests for the StackOverflow dataset
 """
 import json
 import re
+from copy import deepcopy
 from functools import partial
 
 import pytest
 from transformers import AutoTokenizer
 from src.data import stackoverflow
+from bs4 import BeautifulSoup
 
 space_cleaner = re.compile(r'\s{2,}')
 
@@ -16,87 +18,147 @@ class TestStackOverflowProcessor:
 
     @pytest.mark.parametrize('repeat_mode', ['title', 'full', 'none'],
                              ids=['Title', 'Full', 'None'])
-    @pytest.mark.parametrize('answer_prompt', [True, False], ids=['APrompt', 'NoAPrompt'])
-    @pytest.mark.parametrize('question_prompt', [True, False], ids=['QPrompt', 'NoQPrompt'])
+    @pytest.mark.parametrize('quality_prompt', [True, False], ids=['QPrompt', 'NoQPrompt'])
+    @pytest.mark.parametrize('title_prompt', [True, False], ids=['TPrompt', 'NoTPrompt'])
+    @pytest.mark.parametrize('wrap', [True, False], ids=['Wrap', 'NoWrap'])
     def test_make_instances_from_question(
             self,
             repeat_mode,
-            answer_prompt,
-            question_prompt
+            quality_prompt,
+            title_prompt,
+            wrap
     ):
         sample = {
-            "line" : 5991, "body": "Body", "type": 1, "id": "13454",
+            "line" : 5991, "body": "<p>Body</p>", "type": 1, "id": "13454",
             "date" : "2008-08-17T01:23:50.067", "score": 13, "comment_count": 0,
             "tags" : ["python", "string", "escaping"], "title": "Title", "answer_count": 5,
             "views": 8027, "accepted_answer": None, "answers": {
                 "13608"   : {
-                    "line"     : 6083, "body": "Answer 1", "type": 2, "id": "13608",
+                    "line"     : 6083, "body": "<pre><code>Answer 1</code></pre>", "type": 2,
+                    "id"       : "13608",
                     "date"     : "2008-08-17T12:55:25.100", "score": -1, "comment_count": 0,
                     "parent_id": "13454"
                 }, "13456": {
-                    "line"     : 5993, "body": "Answer 2", "type": 2, "id": "13456",
+                    "line"     : 5993, "body": "<p>Answer 2</p>", "type": 2, "id": "13456",
                     "date"     : "2008-08-17T01:26:52.043", "score": 0, "comment_count": 0,
                     "parent_id": "13454"
                 }, "13598": {
-                    "line"     : 6077, "body": "Answer 3", "type": 2, "id": "13598",
+                    "line"     : 6077, "body": "<p>Answer 3</p>", "type": 2, "id": "13598",
                     "date"     : "2008-08-17T12:15:13.170", "score": 13, "comment_count": 0,
                     "parent_id": "13454"
                 }
             }
         }
 
-        if answer_prompt:
-            answer_prompt_template = "__QUALITY__\n__ANSWER__"
-            expected_answer_strs = [
-                "good\nAnswer 3",
-                "ok\nAnswer 2",
-                "bad\nAnswer 1"
+        if quality_prompt:
+            quality_prompt = "__QUALITY__"
+            expected_quality_strs = [
+                '\nGreat',
+                '\nOk',
+                '\nBad'
             ]
+
         else:
-            answer_prompt_template = None
-            expected_answer_strs = [
-                "Answer 3",
-                "Answer 2",
-                "Answer 1"
-            ]
-        if question_prompt:
+            quality_prompt = None
+            expected_quality_strs = [''] * 3
+        if title_prompt:
             title_prompt = "Title:__TITLE__"
-            question_prompt_template = "Body:__BODY__"
             expected_title_str = "Title:Title"
-            expected_question_str = f"{expected_title_str}\nBody:Body"
+            expected_question_str = f'{expected_title_str}\nBody'
+
         else:
-            question_prompt_template = None
             title_prompt = None
 
             expected_title_str = "Title"
             expected_question_str = f"{expected_title_str}\nBody"
 
+        if wrap:
+            q_wrap = 'BLOCK'
+            a_wrap = 'LINE'
+            expected_title_str = f'"""\n{expected_title_str}'
+            expected_question_str = f'"""\n{expected_question_str}'
+            if repeat_mode == 'none':
+                if quality_prompt:
+                    expected_answer_strs = [
+                        '# Great\n# Answer 3',
+                        '# Ok\n# Answer 2',
+                        '# Bad\nAnswer 1'
+                    ]
+                else:
+
+                    expected_answer_strs = [
+                        '# Answer 3',
+                        '# Answer 2',
+                        'Answer 1'
+                    ]
+                expected_inputs = expected_question_str + '\n"""'
+            else:
+                expected_answer_strs = [
+                    '# Answer 3',
+                    '# Answer 2',
+                    'Answer 1'
+                ]
+                expected_inputs = [
+                    f'{expected_title_str if i > 0 and repeat_mode == "title" else expected_question_str}' \
+                    f'{expected_quality_strs[i]}\n"""'
+                    for i, v in enumerate(expected_quality_strs)
+                ]
+        else:
+
+            q_wrap = None
+            a_wrap = None
+            if repeat_mode == 'none':
+                if quality_prompt:
+                    expected_answer_strs = [
+                        'Great\nAnswer 3',
+                        'Ok\nAnswer 2',
+                        'Bad\nAnswer 1'
+                    ]
+                else:
+                    expected_answer_strs = [
+                        'Answer 3',
+                        'Answer 2',
+                        'Answer 1'
+                    ]
+                expected_inputs = expected_question_str
+            else:
+                expected_answer_strs = [
+                    'Answer 3',
+                    'Answer 2',
+                    'Answer 1'
+                ]
+                expected_inputs = [
+                    f"{expected_title_str if i > 0 and repeat_mode == 'title' else expected_question_str}" \
+                    f"{expected_quality_strs[i]}"
+                    for i, v in enumerate(expected_quality_strs)
+                ]
+
         processor = stackoverflow.StackOverflowProcessor(
-            answer_prompt=answer_prompt_template,
-            question_prompt=question_prompt_template,
+            quality_prompt=quality_prompt,
             repeat_question_for_each_answer=repeat_mode,
-            title_prompt=title_prompt
+            title_prompt=title_prompt,
+            wrap_question_character=q_wrap,
+            wrap_answer_character=a_wrap
         )
 
         result = processor.make_instances_from_question(sample)
-        if repeat_mode == "full":
-            expected = [
-                {'input': expected_question_str, 'labels': expected_answer_strs[0]},
-                {'input': expected_question_str, 'labels': expected_answer_strs[1]},
-                {'input': expected_question_str, 'labels': expected_answer_strs[2]}
-            ]
-        elif repeat_mode == 'title':
-            expected = [
-                {'input': expected_question_str, 'labels': expected_answer_strs[0]},
-                {'input': expected_title_str, 'labels': expected_answer_strs[1]},
-                {'input': expected_title_str, 'labels': expected_answer_strs[2]}
+        if repeat_mode != "none":
+            expected_samples = [
+                {'input': a, 'labels': b} for a, b in
+                zip(expected_inputs, expected_answer_strs)
             ]
         else:
-            expected = [{
-                "input": expected_question_str, 'labels': '\n'.join(expected_answer_strs)
+            expected_samples = [{
+                'input' : expected_inputs,
+                'labels': '\n'.join(
+                    expected_answer_strs
+                )
             }]
 
-        assert result == expected
+        assert len(result) == len(expected_samples)
+        for i, (actual, expected) in enumerate(zip(result, expected_samples)):
+            assert actual['input'] == expected['input']
+            assert actual['labels'] == expected['labels']
 
     @pytest.mark.parametrize("answer_sorting", ['accepted', 'ascending', 'descending'])
     def test_answer_sorting(self, sample_parsed_so, answer_sorting):
@@ -157,29 +219,20 @@ class TestStackOverflowProcessor:
             assert result['labels'][i] == v
 
     @pytest.mark.parametrize('remove_modality', ["NONE", "CODE", "NL"])
-    @pytest.mark.parametrize('clean', [True, False], ids=['Clean', 'Dirty'])
-    def test_clean(self, remove_modality, clean):
+    def test_clean(self, remove_modality):
         processor = stackoverflow.StackOverflowProcessor(
-            clean=clean,
             remove_modality=remove_modality
         )
 
-        input_text = "<p>NL <code> Inline Code</code></p>\n<pre><code>CodeBlock</code></pre>"
+        input_text = "<p>NL <code>Inline Code</code></p><p>NL 2</p><pre><code>CodeBlock</code></pre>"
         result = processor.clean_html_body(input_text)
-        if not clean:
-            if remove_modality == "NONE":
-                assert result == input_text
-            elif remove_modality == 'CODE':
-                assert result == "<p>NL <code> Inline Code</code></p>"
-            else:
-                assert result == "<pre><code>CodeBlock</code></pre>"
+        result = ''.join(map(repr, result))
+        if remove_modality == "NONE":
+            assert result == "<p>NL Inline Code\nNL 2</p><code>CodeBlock</code>"
+        elif remove_modality == "CODE":
+            assert result == "<p>NL Inline Code\nNL 2</p>"
         else:
-            if remove_modality == "NONE":
-                assert result == "NL  Inline Code\nCodeBlock"
-            elif remove_modality == "CODE":
-                assert result == "NL  Inline Code"
-            else:
-                assert result == "CodeBlock"
+            assert result == "<code>CodeBlock</code>"
 
     @pytest.mark.parametrize('remove_modality', ['NONE', "CODE", "NL"],
                              ids=["Both", "OnlyNL", "OnlyCode"])
@@ -288,7 +341,7 @@ class TestStackOverflowProcessor:
 
     @pytest.mark.parametrize('remove_modality', ['NONE', "NL"])
     @pytest.mark.parametrize('force_include_tags', [True, False], ids=['Force', 'NoForce'])
-    @pytest.mark.parametrize('repeat_mode', ['title', 'full', 'none'])
+    @pytest.mark.parametrize('repeat_mode', ['title', 'full'])
     def test_add_tags(self, remove_modality, force_include_tags, repeat_mode):
         processor = stackoverflow.StackOverflowProcessor(
             remove_modality=remove_modality,
@@ -296,20 +349,20 @@ class TestStackOverflowProcessor:
             repeat_question_for_each_answer=repeat_mode,
             tags_prompt='__TAGS__'
         )
-
+        soup = BeautifulSoup('', 'lxml')
+        body = soup.new_tag('p')
+        body.string = 'Body'
         processor_fn = partial(
             processor.apply_question_prompt,
             title="Title",
-            body="Body",
             score=1,
             views=1,
             tags=["TAG1", "TAG2"],
         )
 
-        first_question = processor_fn(is_first_answer=True)
-        repeat_question = processor_fn(is_first_answer=False)
+        first_question = processor_fn(is_first_answer=True,body=deepcopy([body]))
+        repeat_question = processor_fn(is_first_answer=False,body=deepcopy([body]))
 
-        expected_second_question = ''
         if remove_modality == 'NL':
             if force_include_tags:
                 expected_first_question = 'TAG1 TAG2\nBody'
@@ -317,30 +370,42 @@ class TestStackOverflowProcessor:
                 expected_first_question = "Body"
             if repeat_mode == 'full':
                 expected_second_question = expected_first_question
-            elif repeat_mode == 'title':
+            else:
                 expected_second_question = "TAG1 TAG2" if force_include_tags else ''
         else:
-            expected_first_question = 'TAG1 TAG2 Title\nBody'
+            expected_first_question = 'TAG1 TAG2\nTitle\nBody'
             if repeat_mode == 'full':
                 expected_second_question = expected_first_question
-            elif repeat_mode == 'title':
-                expected_second_question = "TAG1 TAG2 Title"
+            else:
+                expected_second_question = "TAG1 TAG2\nTitle"
 
         assert first_question == expected_first_question
         assert repeat_question == expected_second_question
 
-    def test_no_body_title_repeat(self):
+    @pytest.mark.parametrize('wrap', ['LINE', 'BLOCK', None])
+    def test_no_body_title_repeat(self, wrap):
         processor = stackoverflow.StackOverflowProcessor(
             repeat_question_for_each_answer='title',
-            remove_body_title_repeat=True
+            remove_body_title_repeat=True,
+            wrap_question_character=wrap
         )
+
+        soup = BeautifulSoup('', 'lxml')
+        body = soup.new_tag('p')
+        body.string = 'Body'
 
         result = processor.apply_question_prompt(
             title="Title",
-            body="Body",
+            body=[body],
             score=1,
             views=1,
             tags=["TAG1", "TAG2"],
             is_first_answer=True
         )
-        assert result == 'Title'
+        if not wrap:
+            assert result == 'Title'
+        elif wrap=='BLOCK':
+            assert result == f'"""\nTitle\n"""'
+        else:
+            assert result == f"# Title"
+

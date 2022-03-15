@@ -8,11 +8,13 @@
 {%- endif -%}
 ##############################################################################################
 
+echo "# {{job_name}}" >> generated_experiments/cancel_jobs.sh
 echo "Submitting Jobs for {{ job_name }}"
 {{ pretrain_jid }}=$(sbatch --parsable --job-name={{ job_name }}_pretrain \
 	--time={{ pretrain_time }} {{ account_str }}
 	train_multi_gpu.sbatch {{ PreTrain.path }})
 echo "Submitted PreTrain (id=${{ pretrain_jid }})"
+echo "scancel ${{ pretrain_jid }}" >> generated_experiments/cancel_jobs.sh
 
 
 # Human Eval After PreTrain

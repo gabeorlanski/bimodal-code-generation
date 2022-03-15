@@ -1,5 +1,5 @@
 data_args:
-  seq_length: 512
+  seq_length: 256
 data_path: data
 debug: false
 device: 0
@@ -20,40 +20,48 @@ meta:
   card_name: ParrotSmall.SO
   step: PreTrain
 metrics:
-- exact-match
-- bleu
-model: EleutherAI/gpt-neo-125M
+  - exact-match
+  - bleu
+model: Salesforce/codet5-small
 model_path: null
-name: ParrotSmall.SO.PyOnlyCodeFullRepeat
+name: ConditionTest
 numpy_seed: 2
-objective: lm
-postprocessors: []
-preprocessors: []
+objective: seq2seq
+postprocessors: [ ]
+preprocessors: [ ]
 processor:
   name: stackoverflow
   params:
+    allow_no_answer: false
     answer_prompt: null
     answer_sorting: accepted
     answers_per_sample: -1
     bad_answer_cutoff: -1
-    clean: true
     force_include_question: false
+    force_include_tags: false
     force_include_title: false
     good_answer_cutoff: 3
     no_answer_str: There is not an answer
+    quality_prompt: null
     question_prompt: null
-    remove_modality: none
-    repeat_question_for_each_answer: full
+    remove_body_title_repeat: false
+    remove_modality: NONE
+    repeat_question_for_each_answer: none
+    tags_prompt: null
     title_prompt: null
+    top_answer_cutoff: 12
+    wrap_answer_character: LINE
+    wrap_question_character: BLOCK
+
 project: so-code-gen
 pytorch_seed: 3
 seed: 1
 task:
-  buffer_size: 100
+  buffer_size: 2500
   ds_info_path: data/ds_info
   eval_splits: [ ]
   name: so
-  raw_dump_name: serial
+  raw_dump_name: python
   raw_dump_path: data/dumps
   seed: 1
   sequence_length: 512
@@ -67,37 +75,37 @@ tracking: False
 #  tags:
 #    - Testing
 training:
-  batch_size: 1
+  batch_size: 8
   ddp_find_unused_parameters: false
-#  deepspeed: deepspeed_configs/large_models.json
+  #  deepspeed: ds_config.json
   disable_tqdm: true
   dataloader_num_workers: 2
   eval_accumulation_steps: 1
-  eval_steps: 25
+  eval_steps: 250
   evaluation_strategy: steps
-  fp16: true
   fp16: true
   fp16_backend: apex
   fp16_opt_level: O2
-  gradient_accumulation_steps: 4
+  gradient_accumulation_steps: 2
   gradient_checkpointing: true
   greater_is_better: false
   group_by_length: false
-  learning_rate: 0.0001
+  learning_rate: 0.0005
   load_best_model_at_end: false
   logging_first_step: true
-  logging_steps: 5
+  logging_steps: 25
   lr_scheduler_type: linear
   max_grad_norm: 1.0
-  max_steps: 500
+  max_steps: 5000
   metric_for_best_model: eval_loss
   num_train_epochs: 1
   output_dir: models
-  save_steps: 250
+  save_steps: 2500
   save_strategy: steps
   save_total_limit: 10
   warmup_ratio: 0.01
-  warmup_steps: 10
+  warmup_steps: 250
   weight_decay: 0.1
   xpu_backend: ccl
   remove_unused_columns: false
+  use_8bit_adam: True

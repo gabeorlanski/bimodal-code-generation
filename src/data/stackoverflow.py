@@ -2,8 +2,12 @@
 Code for handling
 """
 import logging
+from copy import deepcopy
 from typing import Callable, List, Dict, Iterator
 from bs4 import BeautifulSoup
+from bs4.element import Tag
+import re
+from unidecode import unidecode
 
 logger = logging.getLogger(__name__)
 logging.getLogger("transformers.tokenization_utils").setLevel(logging.ERROR)
@@ -15,20 +19,23 @@ class StackOverflowProcessor:
             answer_sorting: str = 'accepted',
             answers_per_sample: int = -1,
             repeat_question_for_each_answer: str = 'none',
+            top_answer_cutoff: int = 12,
             good_answer_cutoff: int = 3,
             bad_answer_cutoff: int = -1,
             answer_prompt: str = None,
             question_prompt: str = None,
+            quality_prompt: str = None,
             title_prompt: str = None,
             tags_prompt: str = None,
-            clean: bool = True,
             remove_modality: str = "NONE",
             no_answer_str: str = "There is not an answer",
             force_include_question: bool = False,
             force_include_title: bool = False,
             force_include_tags: bool = False,
             remove_body_title_repeat: bool = False,
-            allow_no_answer: bool = False
+            allow_no_answer: bool = False,
+            wrap_question_character: str = None,
+            wrap_answer_character: str = None
     ):
         self.answer_sorting = answer_sorting.lower()
         if self.answer_sorting not in ['ascending', 'descending', 'accepted']:
@@ -40,13 +47,27 @@ class StackOverflowProcessor:
 
         self.good_answer_cutoff = good_answer_cutoff
         self.bad_answer_cutoff = bad_answer_cutoff
+        self.top_answer_cutoff = top_answer_cutoff
         self.answer_prompt = answer_prompt if answer_prompt else '__ANSWER__'
         self.question_prompt = question_prompt if question_prompt else '__BODY__'
         self.title_prompt = title_prompt if title_prompt else '__TITLE__'
+        self.quality_prompt = quality_prompt
         self.tags_prompt = tags_prompt
         self.answers_per_sample = answers_per_sample
         self.lm_concat_delim = '\n'
-        self.clean = clean
+        self.wrap_question_character = wrap_question_character
+        if wrap_answer_character:
+            if wrap_answer_character.upper() in ['BLOCK', 'LINE']:
+                self.wrap_question_character = wrap_question_character.upper()
+            else:
+                raise ValueError(f"Unknown Question wrap {wrap_question_character=}, disabling")
+
+        self.wrap_answer_character = wrap_answer_character
+        if wrap_answer_character:
+            if wrap_answer_character.upper() in ['BLOCK', 'LINE']:
+                self.wrap_answer_character = wrap_answer_character.upper()
+            else:
+                raise ValueError(f"Unknown answer wrap {wrap_answer_character=}, disabling")
 
         self.force_include_question = force_include_question
         self.force_include_title = force_include_title
@@ -68,71 +89,128 @@ class StackOverflowProcessor:
         if force_include_question and self.remove_modality is None:
             logger.warning(f"Force include question is enabled but will have no effect.")
 
-    def clean_html_body(self, body):
-        if not self.clean and self.remove_modality == 'NONE':
-            return body
+    def clean_html_body(self, body_str, force_keep_all=False) -> List[Tag]:
+        soup = BeautifulSoup(body_str, 'lxml')
+        body = soup.find('body')
 
-        soup = BeautifulSoup(body, 'lxml').find('body')
+        out = []
+        for i, tag in enumerate(body.find_all(recursive=False)):
 
-        if self.clean and self.remove_modality == "NONE":
-            return soup.text.strip()
+            # Check if in code block
+            if tag.name == 'pre':
+                if self.remove_modality == "CODE" and not force_keep_all:
+                    continue
+                code = tag.find('code', recursive=False)
+                if code is None:
+                    code = tag
+                new_tag = soup.new_tag('code')
+                new_tag.string = code.text.strip()
+                out.append(new_tag)
+            else:
+                if self.remove_modality == 'NL' and not force_keep_all:
+                    continue
+                nl_text = tag.text.strip().replace('"""', '\"\"\"')
+                if out and out[-1].name == 'p':
+                    out[-1].string = f"{out[-1].string}\n{nl_text}"
+                else:
+                    new_tag = soup.new_tag('p')
+                    new_tag.string = nl_text
+                    out.append(new_tag)
 
-        tag_name = 'pre' if self.remove_modality == "CODE" else 'p'
+        return out
 
-        # Remove the tags from the BS4 doc
-        for t in soup.find_all(tag_name):
-            t.extract()
+    def turn_body_into_str(self, body_tags: List[Tag], mode) -> str:
+        out = []
+        for t in body_tags:
+            if not t.string:
+                continue
+            if t.name == 'p':
+                out.append(self.wrap_nl(t.text.strip(), mode))
+            else:
+                out.append(t.text.strip())
+        return unidecode('\n'.join(o for o in out if o.strip()))
 
-        if self.clean:
-            return soup.text.strip()
+    def wrap_nl(self, nl_str, mode):
+        if not nl_str:
+            return ''
 
-        # Do not want to clean the doc, but do not want the <body> tag. So need
-        # to manually construct.
-        return '\n'.join(map(repr, soup.find_all(recursive=False))).strip()
+        if mode == "QUESTION":
+            wrap_char = self.wrap_question_character
+        else:
+            wrap_char = self.wrap_answer_character
 
-    def apply_question_prompt(self, title, body, score, views, tags, is_first_answer):
+        if wrap_char:
+            if wrap_char == "BLOCK":
+                return f'"""\n{nl_str.strip()}\n"""'
+            else:
+                return f"# {nl_str.strip()}"
+        else:
+            return nl_str.strip()
+
+    def apply_question_prompt(
+            self,
+            title: str,
+            body: List[Tag],
+            score,
+            views,
+            tags,
+            is_first_answer
+    ):
         title_str = self.title_prompt.replace('__TITLE__', title)
-        body_str = self.question_prompt.replace("__BODY__", body)
 
         if self.tags_prompt is not None:
             # Add the extra space at the end so that it will automatically be
             # spaced out from the title.
-            tags_str = self.tags_prompt.replace('__TAGS__', ' '.join(tags)) + " "
+            tags_str = self.tags_prompt.replace('__TAGS__', ' '.join(tags)) + "\n"
         else:
             tags_str = ''
 
         if self.remove_modality == "NL" and not self.force_include_title:
             if self.force_include_tags and tags_str:
-                title_str = f"{tags_str.strip()}\n"
+                title_str = f"{tags_str.strip()}"
             else:
                 title_str = ''
         else:
-            title_str = f"{tags_str}{title_str}\n"
+            title_str = f"{tags_str}{title_str}"
 
-        if is_first_answer and self.repeat_question_for_each_answer == 'title' and self.remove_body_title_repeat:
-            return title_str.strip()
+        if (
+                self.repeat_question_for_each_answer == 'title' and (
+                not is_first_answer
+                or (is_first_answer and self.remove_body_title_repeat)
+        )):
+            return self.wrap_nl(title_str, "QUESTION")
 
-        if is_first_answer or self.repeat_question_for_each_answer == 'full':
-            return f"{title_str}{body_str}"
-        if self.repeat_question_for_each_answer == 'title' or self.force_include_title:
-            return title_str.strip()
-        return ''
+        if body[0].name == 'p':
+            body[0].string = f"{title_str}\n{body[0].string}"
+        else:
+            soup = BeautifulSoup(f"<p>{title_str}</p>", 'lxml')
+            body = [soup.find('p')] + body  # type:ignore
+        return self.turn_body_into_str(body, "QUESTION")
 
-    def apply_answer_prompt(self, answer, score):
+    def apply_answer_prompt(self, answer: List[Tag], score, is_accepted):
 
         if not answer:
             return self.no_answer_str
 
-        quality_str = ""
+        quality_adjective = ""
         if self.good_answer_cutoff is not None and self.bad_answer_cutoff is not None:
-            if score >= self.good_answer_cutoff:
-                quality_str = "good"
+            if is_accepted:
+                quality_adjective = 'Accepted'
+            elif score >= self.top_answer_cutoff:
+                quality_adjective = 'Great'
+            elif score >= self.good_answer_cutoff:
+                quality_adjective = "Good"
             elif score <= self.bad_answer_cutoff:
-                quality_str = "bad"
+                quality_adjective = "Bad"
             else:
-                quality_str = "ok"
-        answer_str = self.answer_prompt.replace('__ANSWER__', answer)
-        return answer_str.replace('__QUALITY__', quality_str)
+                quality_adjective = "Ok"
+        if self.quality_prompt:
+            quality_str = self.quality_prompt.replace('__QUALITY__', quality_adjective)
+        else:
+            quality_str = None
+
+        # answer_str = self.answer_prompt.replace('__ANSWER__', )
+        return quality_str, self.turn_body_into_str(answer, "ANSWER")
 
     def make_instances_from_question(self, sample: Dict) -> List[Dict]:
         """
@@ -141,12 +219,8 @@ class StackOverflowProcessor:
         # Set to -1 if there is no accepted answer because it is impossible.
         accepted_answer_id = sample['accepted_answer'] or "-1"
 
-        if self.force_include_question:
-            if self.clean:
-                soup = BeautifulSoup(sample['body'], 'lxml').find('body')
-                sample['body'] = soup.text.strip()
-        else:
-            sample['body'] = self.clean_html_body(sample['body'])
+        sample['body'] = self.clean_html_body(sample['body'],
+                                              force_keep_all=self.force_include_question)
 
         for k in sample['answers'].keys():
             sample['answers'][k]['body'] = self.clean_html_body(sample['answers'][k]['body'])
@@ -173,7 +247,7 @@ class StackOverflowProcessor:
 
         question_str = self.apply_question_prompt(
             title=sample['title'],
-            body=sample['body'],
+            body=deepcopy(sample['body']),
             score=sample['score'],
             views=sample['views'],
             tags=sample['tags'],
@@ -205,16 +279,43 @@ class StackOverflowProcessor:
             if not answer['body'] and not self.allow_no_answer:
                 continue
 
-            answer_str = self.apply_answer_prompt(answer['body'], answer['score'])
+            quality_str, answer_str = self.apply_answer_prompt(answer['body'], answer['score'],
+                                                               answer['id'] == accepted_answer_id)
             if i > 0:
                 input_str = repeat_answer_input_str
             else:
                 input_str = question_str
 
+            if quality_str and self.repeat_question_for_each_answer != 'none':
+                if self.wrap_question_character is None:
+                    input_str += '\n' + quality_str
+                elif self.wrap_question_character == "BLOCK":
+                    if input_str.strip().endswith('\n"""'):
+                        input_str = input_str.strip()[:-4]
+                        input_str += f'\n{quality_str}\n"""'
+                    else:
+                        input_str += f'\n"""\n{quality_str}\n"""'
+                else:
+                    input_str += f"\n# {quality_str}"
+            elif self.repeat_question_for_each_answer == 'none':
+                if quality_str:
+                    if self.wrap_answer_character is None:
+                        answer_str = f"{quality_str}\n{answer_str.lstrip()}"
+                    elif self.wrap_answer_character == "BLOCK":
+                        if answer_str.startswith('"""'):
+                            answer_str = answer_str[3:]
+                            answer_str = f'"""\n{quality_str}\n{answer_str.lstrip()}'
+                        else:
+                            answer_str = f'"""\n{quality_str}\n"""\n{answer_str.lstrip()}'
+                    else:
+                        answer_str = f"# {quality_str}\n{answer_str.lstrip()}"
+                out.append({'input': '', 'labels': answer_str})
+                continue
+
             out.append({'input': input_str, 'labels': answer_str})
 
         if self.repeat_question_for_each_answer == 'none' and out:
-            out = [{'input': out[0]['input'], 'labels': '\n'.join(d['labels'] for d in out)}]
+            out = [{'input': question_str, 'labels': '\n'.join(d['labels'] for d in out)}]
         return out
 
     def __call__(self, samples):

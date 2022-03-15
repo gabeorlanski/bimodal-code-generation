@@ -27,8 +27,9 @@ def cli(ctx):
 
 
 @cli.command('download_models')
+@click.option('--run', 'specific_run', default=None, help='Only download a specific run')
 @click.pass_context
-def download_models(ctx):
+def download_models(ctx, specific_run):
     out_path = PROJECT_ROOT.joinpath('best_models')
     if not out_path.exists():
         out_path.mkdir(parents=True)
@@ -38,6 +39,8 @@ def download_models(ctx):
     runs = api.runs(f"{ctx.obj['entity']}/{ctx.obj['project']}")
     for run in runs:
         if run.group == "SO" and run.state == 'finished':
+            if specific_run is not None and run.name != specific_run:
+                continue
             artifacts = run.logged_artifacts(per_page=100)
             if len(artifacts) == 0:
                 print(f"Could not find an artifact for {run.name}")

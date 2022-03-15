@@ -34,25 +34,25 @@ experiments:
               PreTrain:
                 ++training.batch_size: 32
                 ++training.gradient_accumulation_steps: 1
-      - DumpProcessing:
-          SO:
-            ++processor.params.repeat_question_for_each_answer: 'none'
-          FullRepeat:
-            ++processor.params.repeat_question_for_each_answer: 'full'
-          OnlyCodeTitleRepeat:
-            ++processor.params.repeat_question_for_each_answer: 'title'
-            ++processor.params.force_include_title: true
-            ++processor.params.remove_modality: "NL"
-            ++processor.params.remove_body_title_repeat: True
-          OnlyCode:
-            ++processor.params.remove_modality: "NL"
-      - IncludeTags:
-          Tags:
-            ++processor.params.tags_prompt: '__TAGS__'
-            ++processor.params.force_include_tags: True
-          NoTags:
-            ++processor.params.tags_prompt: null
-            ++processor.params.force_include_tags: False
+#      - DumpProcessing:
+#          SO:
+#            ++processor.params.repeat_question_for_each_answer: 'none'
+#          FullRepeat:
+#            ++processor.params.repeat_question_for_each_answer: 'full'
+#          OnlyCodeTitleRepeat:
+#            ++processor.params.repeat_question_for_each_answer: 'title'
+#            ++processor.params.force_include_title: true
+#            ++processor.params.remove_modality: "NL"
+#            ++processor.params.remove_body_title_repeat: True
+#          OnlyCode:
+#            ++processor.params.remove_modality: "NL"
+#      - IncludeTags:
+#          Tags:
+#            ++processor.params.tags_prompt: '__TAGS__'
+#            ++processor.params.force_include_tags: True
+#          NoTags:
+#            ++processor.params.tags_prompt: null
+#            ++processor.params.force_include_tags: False
     steps:
       - name: PreTrain
         add_name: False
@@ -60,7 +60,6 @@ experiments:
         group: SO
         overrides:
           ++task.buffer_size: 5000
-          ++processor.params.clean: True
           ++tensorize_batch_size: 64
           tracking:
             log_model: True
