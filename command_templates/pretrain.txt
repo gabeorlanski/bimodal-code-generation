@@ -5,12 +5,12 @@
 {% else %}
 {% set account_str="\\" %}
 {%- endif -%}
-##############################################################################################
+{%- set cancel_file="generated_experiments/cancel_scripts/"~job_name~".sh" -%}
 
-echo "# {{job_name}}" >> generated_experiments/cancel_jobs.sh
+echo "#!/bin/bash" >> {{cancel_file}}
 echo "Submitting Jobs for {{ job_name }}"
 {{ pretrain_jid }}=$(sbatch --parsable --job-name={{ job_name }}_pretrain \
 	--time={{ pretrain_time }} {{ account_str }}
 	train_multi_gpu.sbatch {{ PreTrain.path }})
 echo "Submitted PreTrain (id=${{ pretrain_jid }})"
-echo "scancel ${{ pretrain_jid }}" >> generated_experiments/cancel_jobs.sh
+echo "scancel ${{ pretrain_jid }}" >> {{cancel_file}}

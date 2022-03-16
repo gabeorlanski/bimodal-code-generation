@@ -26,15 +26,15 @@ experiments:
               PreTrain:
                 ++training.batch_size: 32
                 ++training.gradient_accumulation_steps: 1
-          ParrotSmall:
-            overrides:
-              ++batch_size: 200
-              ++model: 'lvwerra/codeparrot-small'
-            step_overrides:
-              PreTrain:
-                ++training.batch_size: 32
-                ++training.gradient_accumulation_steps: 1
-                ++training.gradient_checkpointing: False
+#          ParrotSmall:
+#            overrides:
+#              ++batch_size: 200
+#              ++model: 'lvwerra/codeparrot-small'
+#            step_overrides:
+#              PreTrain:
+#                ++training.batch_size: 32
+#                ++training.gradient_accumulation_steps: 1
+#                ++training.gradient_checkpointing: False
       - AnswerComment:
           BlockAnswer:
             ++processor.params.wrap_answer_character: 'BLOCK'
@@ -87,7 +87,7 @@ experiments:
             fp16_backend: 'apex'
             gradient_checkpointing: true
             fp16_opt_level: O2
-            use_8bit_adam: False
+            use_8bit_adam: True
           ++task.sequence_length: 1024
           task: so
       - name: HumanEval
