@@ -172,11 +172,11 @@ experiments:
             batch_size: 16
             gradient_accumulation_steps: 4
             learning_rate: 5e-5
-            save_steps: 2500
-            eval_steps: 500
-            max_steps: 25000
-            warmup_steps: 2500
-            logging_steps: 25
+            save_steps: 100000
+            eval_steps: 2500
+            max_steps: 100000
+            warmup_steps: 5000
+            logging_steps: 100
             lr_scheduler_type: linear
             save_total_limit: 10
             group_by_length: False
@@ -186,7 +186,6 @@ experiments:
             gradient_checkpointing: true
             fp16_opt_level: O2
             use_8bit_adam: False
-          ++task.sequence_length: 1024
           task: so
       - name: HumanEval
         add_name: False
@@ -236,7 +235,7 @@ experiments:
         num_return_sequences: 200
         task_name: MBPP
         train_sbatch: train_single_gpu
-        pretrain_time: "27:59:59"
+        pretrain_time: "166:59:59"
         use_cds: True
       fields:
         - model_path
