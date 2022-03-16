@@ -18,7 +18,7 @@ experiments:
         - O2
     ablations:
       - Model:
-          Neo125M:
+#          Neo125M:
 #            overrides:
 #              ++batch_size: 200
 #              ++model: 'EleutherAI/gpt-neo-125M'
