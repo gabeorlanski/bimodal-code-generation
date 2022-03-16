@@ -19,21 +19,22 @@ experiments:
     ablations:
       - Model:
           Neo125M:
-            overrides:
-              ++batch_size: 200
-              ++model: 'EleutherAI/gpt-neo-125M'
-            step_overrides:
-              PreTrain:
-                ++training.batch_size: 32
-                ++training.gradient_accumulation_steps: 1
+#            overrides:
+#              ++batch_size: 200
+#              ++model: 'EleutherAI/gpt-neo-125M'
+#            step_overrides:
+#              PreTrain:
+#                ++training.batch_size: 32
+#                ++training.gradient_accumulation_steps: 1
           ParrotSmall:
             overrides:
               ++batch_size: 200
               ++model: 'lvwerra/codeparrot-small'
             step_overrides:
               PreTrain:
-                ++training.batch_size: 32
-                ++training.gradient_accumulation_steps: 1
+                ++training.batch_size: 16
+                ++training.gradient_accumulation_steps: 2
+                ++training.gradient_checkpointing: False
       - DumpProcessing:
           SO:
             ++processor.params.repeat_question_for_each_answer: 'none'
