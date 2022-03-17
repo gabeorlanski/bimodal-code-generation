@@ -14,6 +14,7 @@ from dataclasses import asdict
 from urllib.parse import urlparse
 
 import psutil
+import ujson
 from lxml import etree
 import multiprocessing as mp
 
@@ -308,6 +309,29 @@ def get_urls_from_dump(ctx, dump_path, num_workers):
     print(f"{len(urls_found)} unique urls found")
     with out_path.joinpath(f'{dump_path.stem}.json').open('w') as f:
         json.dump(urls_found, f, indent=True, sort_keys=True)
+
+
+@main.command('tag_info')
+@click.argument('dump_path')
+@click.pass_context
+def get_tag_info(ctx, dump_path):
+    lines = 0
+    dump_path = PROJECT_ROOT.joinpath(dump_path)
+    out_path = PROJECT_ROOT.joinpath('data', 'tags')
+    if not out_path.exists():
+        out_path.mkdir()
+
+    tag_counter = defaultdict(list)
+
+    for line in map(json.loads, dump_path.open('r').readlines()):
+        lines += 1
+        tag_counter[','.join(line['tags'])].append(line['score'])
+        if lines % 50000 == 0:
+            print(f"Read {lines} lines. ")
+
+    print(f"{len(tag_counter)} unique tag combos found found")
+    with out_path.joinpath(f'{dump_path.stem}.json').open('w') as f:
+        ujson.dump(tag_counter, f)
 
 
 if __name__ == "__main__":

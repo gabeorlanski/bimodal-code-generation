@@ -1,5 +1,4 @@
 {%- set pretrain_jid= "pretrain_jid"+ idx|string -%}
-{%- set get_info_jid= "get_info_"+ idx|string -%}
 {%- if use_cds is defined and use_cds -%}
 {% set account_str="--account=cds --qos=cds \\" %}
 {% else %}
@@ -27,7 +26,7 @@ echo "scancel $he_so{{idx}}" >> {{cancel_file}}
 he_exec{{idx}}=$(sbatch --parsable --job-name='{{ job_name }}_he_execute' \
 	--dependency=afterok:$he_so{{idx}} \
 	eval_code.sbatch \
-	eval_results/HUMAN_EVAL {{ HumanEval.save_name }} test.jsonl
+	eval_results/HUMAN_EVAL "SO.{{ name }}.{{ ablation_name }}" test.jsonl
 )
 echo "Submitted CodeEval(id=$he_exec{{idx}})"
 echo "scancel $he_exec{{idx}}" >> {{cancel_file}}
