@@ -18,14 +18,14 @@ experiments:
         - O2
     ablations:
       - Model:
-          Neo125M:
-            overrides:
-              ++batch_size: 200
-              ++model: 'EleutherAI/gpt-neo-125M'
-            step_overrides:
-              PreTrain:
-                ++training.batch_size: 32
-                ++training.gradient_accumulation_steps: 1
+#          Neo125M:
+#            overrides:
+#              ++batch_size: 200
+#              ++model: 'EleutherAI/gpt-neo-125M'
+#            step_overrides:
+#              PreTrain:
+#                ++training.batch_size: 32
+#                ++training.gradient_accumulation_steps: 1
           ParrotSmall:
             overrides:
               ++batch_size: 200
