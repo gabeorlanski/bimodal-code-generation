@@ -321,17 +321,33 @@ def get_tag_info(ctx, dump_path):
     if not out_path.exists():
         out_path.mkdir()
 
-    tag_counter = defaultdict(list)
+    tag_counter = defaultdict(lambda: defaultdict(list))
 
     for line in map(json.loads, dump_path.open('r').readlines()):
         lines += 1
-        tag_counter[','.join(line['tags'])].append(line['score'])
+        for i in range(len(line['tags'])):
+            tag_counter[str(i + 1)][','.join(line['tags'][:i + 1])].append(line['score'])
+        tag_counter['all'][','.join(line['tags'])].append(line['score'])
+
         if lines % 50000 == 0:
             print(f"Read {lines} lines. ")
 
-    print(f"{len(tag_counter)} unique tag combos found found")
+    total_tag_combos = sum(map(len, tag_counter.values()))
+    print(f"{total_tag_combos} unique tag combos found found")
+    pbar = tqdm(total=total_tag_combos, desc='Aggregating')
+    tag_means = {}
+    for k, v in tag_counter.items():
+        k_means = {}
+        for tag_name, scores in v.items():
+            k_means[tag_name] = {
+                'mean': np.mean(scores), 'median': np.median(scores), 'std': np.std(scores)
+            }
+            pbar.update(1)
+        tag_means[k] = k_means
+    pbar.close()
+
     with out_path.joinpath(f'{dump_path.stem}.json').open('w') as f:
-        ujson.dump(tag_counter, f)
+        ujson.dump({'values': tag_counter, 'aggregate': tag_means}, f)
 
 
 if __name__ == "__main__":

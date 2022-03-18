@@ -14,6 +14,7 @@ from datetime import datetime
 from functools import partial
 
 import datasets
+import jinja2
 import numpy as np
 import torch
 import wandb
@@ -38,6 +39,8 @@ from transformers import (
     set_seed,
 )
 
+from jinja2 import BaseLoader, Environment, StrictUndefined
+
 from src.common import PROJECT_ROOT, setup_global_logging, flatten
 from src.config import (
     load_model_from_cfg, setup_tracking_env_from_cfg, get_config_for_tracking,
@@ -46,6 +49,11 @@ from src.config import (
 from src.evaluation.code_eval import evaluate_code
 
 EOF_STRINGS = ["\nclass", "\ndef", "\n#", "\n@", "\nprint", "\nif"]
+JINJA_ENV = Environment(loader=BaseLoader)  # type:ignore
+
+# Allow the python function zip()
+JINJA_ENV.globals.update(zip=zip)
+JINJA_ENV.undefined = StrictUndefined
 
 
 class EndOfFunctionCriteria(StoppingCriteria):
@@ -132,6 +140,18 @@ def complete_code(pipe, prompt, remove_prompt=False, num_completions=1, **gen_kw
     help="Move the problem to before the signature"
 )
 @click.option(
+    '--conditioning-tags',
+    '-tags',
+    default='',
+    help='Comma Separated Tags to prepend the question with.', callback=lambda c, t, a: a.split(',')
+)
+@click.option(
+    '--prompt-template',
+    '-template',
+    default=None,
+    help='Template for preprocessing the prompt'
+)
+@click.option(
     '--debug-tasks', '-tasks',
     default=None,
     type=int,
@@ -173,7 +193,9 @@ def main(
         num_workers,
         temperature,
         top_k,
-        top_p
+        top_p,
+        conditioning_tags,
+        prompt_template
 ):
     torch.backends.cudnn.benchmark = True
     # Setup configuration
@@ -207,14 +229,29 @@ def main(
             cfg.generation.top_k = top_k
         if top_p is not None:
             cfg.generation.top_p = top_p
-
         cfg.group = 'HUMAN_EVAL'
+        if conditioning_tags:
+            cfg.group += '_COND'
+
         if 'task' not in cfg or 'name' not in cfg.task:
             cfg.task = OmegaConf.create(yaml.load(
                 PROJECT_ROOT.joinpath('conf', 'task', 'human_eval.yaml').open('r'),
                 yaml.Loader
             ))
         cfg.move_problem = move_problem
+
+        if 'conditioning_tags' not in cfg:
+            cfg.conditioning_tags = conditioning_tags or []
+        elif isinstance(cfg.conditioning_tags, str):
+            cfg.conditioning_tags = cfg.conditioning_tags.split(',')
+
+        if 'prompt_template' not in cfg:
+            cfg.prompt_template = prompt_template
+
+        if cfg.prompt_template is not None:
+            cfg.prompt_template = PROJECT_ROOT.joinpath(cfg.prompt_template).read_text().strip()
+        else:
+            cfg.prompt_template = '{{prompt}}'
 
     working_dir = PROJECT_ROOT.joinpath(
         'eval_results', "HUMAN_EVAL",
@@ -290,6 +327,7 @@ def main(
         num_proc=cfg.num_workers,
 
     ).sort('length', reverse=True)
+
     # Generate completions for evaluation set
     logger.info(f"Starting Generation")
 
@@ -308,7 +346,7 @@ def main(
         tokenizer=tokenizer,
         device=cfg.device
     )
-    pipe.model=pipe.model.half()
+    pipe.model = pipe.model.half()
     logger.info(f"Using {model.device}")
     logger.info(f"Using {cfg.device=}")
     iteration_count, remainder = divmod(cfg.seq_per_sample, cfg.batch_size)
@@ -316,10 +354,14 @@ def main(
     if has_remainder:
         iteration_count += 1
     logger.info(f"{iteration_count} total iterations per task with {remainder} remainder")
+
+    template = jinja2.Template(cfg.prompt_template)
     pbar = tqdm(total=n_tasks * math.ceil(cfg.seq_per_sample // cfg.batch_size), desc='Generating')
     for task_idx, task in enumerate(human_eval.select(list(range(n_tasks)))):
         task_generations = []
-        prompt = task["prompt"].strip()
+        prompt = template.render(
+            {'prompt': task["prompt"].strip(), 'tags': list(cfg.conditioning_tags)}
+        )
         if move_problem:
             problem_statement = remove_comment_regex.search(prompt)
             if problem_statement:
@@ -401,12 +443,13 @@ def main(
 
     if isinstance(cfg.tracking, (dict, DictConfig)) and not no_code_eval:
         os.environ["WANDB_API_KEY"] = open('wandb_secret.txt').read().strip()
+        group_name = f"HUMAN_EVAL{'_COND' if conditioning_tags else ''}[eval]"
         wandb_run = wandb.init(
             job_type='code_eval',
             name=os.getenv('WANDB_RUN_NAME'),
             id=os.getenv('WANDB_RUN_ID'),
             project=os.getenv('WANDB_PROJECT'),
-            group=f"HUMAN_EVAL[eval]",
+            group=group_name,
             config=get_config_for_tracking(cfg),
             entity=os.getenv('WANDB_ENTITY'),
         )

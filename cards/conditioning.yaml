@@ -1,93 +1,48 @@
 starting_commands: command_templates/sbatch_experiment.txt
 experiments:
-  Condition250K.General:
+  ConditonEval:
     overrides:
       ++device: 0
-      +disable_cache: True
-      ++tracking:
-        log_model: false
+      +processor: stackoverflow
+      ++raw_dump_path: data/dumps
+      is_checkpoint: true
+      objective: lm
+      ++task.dump_name: python_${..__META__.ablation.name}
+      ++task.raw_dump_name: python
+      ++task.tensorized_name: python_${..__META__.ablation.name}
+      ++tracking.tags:
+        - Torchrun
+        - GradientCheckpointing
+        - AdamW
+        - O2
+      ++batch_size: 200
       ++model: 'lvwerra/codeparrot-small'
-      ++num_proc: 4
-      ++training:
-        batch_size: 32
-        gradient_accumulation_steps: 1
-      ++task.dump_name: general
-      ++task.answers_per_sample: -1
-    ablations:
-      - RepeatQuestion:
-          TitleEOS:
-            ++task.repeat_question_for_each_answer: title
-            ++task.use_eos_token_when_repeat: true
-          Title:
-            ++task.repeat_question_for_each_answer: title
-            ++task.use_eos_token_when_repeat: false
-          FullEOS:
-            ++task.repeat_question_for_each_answer: full
-            ++task.use_eos_token_when_repeat: true
-          Full:
-            ++task.repeat_question_for_each_answer: full
-            ++task.use_eos_token_when_repeat: false
-          NoneEOS:
-            ++task.repeat_question_for_each_answer:
-            ++task.use_eos_token_when_repeat: false
-      - AnswerPrompt:
-          APrompt:
-            ++task.answer_prompt: "A __QUALITY__ answer:"
-          NoAPrompt:
-            ++task.answer_prompt:
-      - QuestionPrompt:
-          QPrompt:
-            ++task.question_prompt: "Given the question: __TITLE__
-            
-            __BODY__"
-          NoQPrompt:
-            ++task.question_prompt:
-
-
+      ++conditioning_tags:
+        - python
+        - dictionary
+      ++prompt_template: data/prompt_templates/conditioning.txt
     steps:
-      - name: PreTrain
-        base: pretrain_config
-        group: SO
+      - name: HumanEval
+        add_name: False
+        base: human_eval
+        group: HUMAN_EVAL
         overrides:
-          objective: 'lm'
-          ++training:
-            learning_rate: 1e-3
-            max_steps: -1
-            save_steps: 250
-            eval_steps: 250
-            logging_steps: 100
-          tracking:
-            log_model: true
-          task: so
-          ++task.max_samples: 250000
-          ++task.max_val_samples: 250
-      - name: FineTune
-        base: condition_finetune
-        group: MBPP
-        overrides:
-          objective: 'lm'
-          task: mbpp
-          ++is_checkpoint: True
-          ++model_path: best_models/${..__META__.previous_step.save_name}
-          training:
-            learning_rate: 5e-5
-      - name: Eval
-        base: eval_config
-        group: MBPP
-        overrides:
-          batch_size: 200
-          remove_input_ids: true
+          is_checkpoint: false
           ++generation:
             max_new_tokens: 256
-          ++device: 0
-          task: mbpp
-          remove_input_ids: true
-          ++model_path: best_models/${..__META__.previous_step.save_name}
-    command:
-      file: command_templates/pretrain_then_finetune.txt
-      kwargs:
-        num_return_sequences: 200
-        task_name: MBPP
-        train_sbatch: train_single_gpu
-      fields:
-        - model_path
+            do_sample: true
+            temperature: 0.5
+            top_p: 0.95
+            top_k: 50
+          model_path: best_models
+          batch_size: 200
+#    command:
+#      file: command_templates/evaluate_model.txt
+#      kwargs:
+#        num_return_sequences: 200
+#        task_name: MBPP
+#        train_sbatch: train_single_gpu
+#        pretrain_time: "27:59:59"
+#        use_cds: True
+#      fields:
+#        - model_path
