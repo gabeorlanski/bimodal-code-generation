@@ -17,10 +17,9 @@ experiments:
         - O2
       ++batch_size: 200
       ++model: 'lvwerra/codeparrot-small'
-      ++conditioning_tags:
-        - python
-        - dictionary
       ++prompt_template: data/prompt_templates/conditioning.txt
+    ablations:
+
     steps:
       - name: HumanEval
         add_name: False

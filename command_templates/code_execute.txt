@@ -1,23 +1,16 @@
-##############################################################################################
+{%- set pretrain_jid= "pretrain_jid"+ idx|string -%}
+{%- set get_info_jid= "get_info_"+ idx|string -%}
+{%- if use_cds is defined and use_cds -%}
+{% set account_str="--account=cds --qos=cds \\" %}
+{% else %}
+{% set account_str="\\" %}
+{%- endif -%}
+{%- set cancel_file="generated_experiments/cancel_scripts/"~job_name~".sh" -%}
 
-## Human Eval Code Execute Zero Shot
-#he_exec{{idx}}=$(sbatch --parsable --job-name='{{ job_name }}_he_execute' \
-#	eval_code.sbatch \
-#	eval_results/HUMAN_EVAL {{ PreTrain.save_name }} test.jsonl
-#)
-#echo "Submitted CodeEval(id=$he_exec{{idx}})"
-#echo "scancel $he_exec{{idx}}" >> generated_experiments/cancel_jobs.sh
-
-# Human Eval Code Execute after FineTune
-hef_exec{{idx}}=$(sbatch --parsable --job-name='{{ job_name }}_hef_execute' \
+# Human Eval Code Execute Zero Shot
+he_exec{{idx}}=$(sbatch --parsable --job-name='{{ job_name }}_he_execute' \
 	eval_code.sbatch \
-	eval_results/HUMAN_EVAL MBPP.{{ name }}.{{ ablation_name }}.HEFineTune test.jsonl
+	eval_results/HUMAN_EVAL "SO.{{ name }}.{{ ablation_name }}" test.jsonl
 )
-echo "Submitted CodeEval(id=$hef_exec{{idx}})"
-echo "scancel $hef_exec{{idx}}" >> generated_experiments/cancel_jobs.sh
-
-## Normal Code Execute After Eval
-#exec_jid{{idx}}=$(sbatch --parsable --job-name='{{ job_name }}_execute' \
-#	eval_code.sbatch eval_results/{{ task_name }} {{ Eval.save_name }})
-#echo "Submitted CodeEval(id=exec_jid{{idx}})"
-#echo "scancel $exec_jid{{idx}}" >> generated_experiments/cancel_jobs.sh
+echo "Submitted CodeEval(id=$he_exec{{idx}})"
+echo "scancel $he_exec{{idx}}" >> {{cancel_file}}
