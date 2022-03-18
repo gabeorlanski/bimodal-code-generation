@@ -1,4 +1,6 @@
 #!/bin/bash
-for f in generated_experiments/cancel_scripts/"${1}*.sh"; do
+
+files=(find generated_experiments/cancel_scripts/ -maxdepth 1 -name "${1}*.sh")
+for f in $files; do
   echo "$f"
 done
