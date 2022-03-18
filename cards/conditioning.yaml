@@ -1,6 +1,6 @@
 starting_commands: command_templates/sbatch_experiment.txt
 experiments:
-  ConditonEval:
+  ConditionEval:
     overrides:
       ++device: 0
       +processor: stackoverflow
