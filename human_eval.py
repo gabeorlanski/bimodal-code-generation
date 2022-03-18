@@ -252,6 +252,7 @@ def main(
             cfg.prompt_template = PROJECT_ROOT.joinpath(cfg.prompt_template).read_text().strip()
         else:
             cfg.prompt_template = '{{prompt}}'
+        cfg.tracking.force_name = True
 
     working_dir = PROJECT_ROOT.joinpath(
         'eval_results', "HUMAN_EVAL",
@@ -359,8 +360,9 @@ def main(
     pbar = tqdm(total=n_tasks * math.ceil(cfg.seq_per_sample // cfg.batch_size), desc='Generating')
     for task_idx, task in enumerate(human_eval.select(list(range(n_tasks)))):
         task_generations = []
+        raw_prompt = task["prompt"].strip()
         prompt = template.render(
-            {'prompt': task["prompt"].strip(), 'tags': list(cfg.conditioning_tags)}
+            {'prompt': raw_prompt, 'tags': list(cfg.conditioning_tags)}
         )
         if move_problem:
             problem_statement = remove_comment_regex.search(prompt)
@@ -388,13 +390,13 @@ def main(
         test_func = task["test"]
         entry_point = f"check({task['entry_point']})"
         if cfg.objective == 'lm':
-            preds = [prompt + gen for gen in task_generations]
+            preds = [raw_prompt + gen for gen in task_generations]
         else:
             preds = task_generations
         predictions.append({
             "task_id"   : task_idx,
             "prediction": preds,
-            "target"    : prompt + task['canonical_solution'],
+            "target"    : raw_prompt + task['canonical_solution'],
             "tests"     : ["\n" + test_func + "\n" + entry_point]
         })
     pbar.close()

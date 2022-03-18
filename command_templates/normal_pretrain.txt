@@ -16,7 +16,7 @@ echo "scancel ${{ pretrain_jid }}" >> {{cancel_file}}
 
 # Human Eval After PreTrain
 he_so{{idx}}=$(sbatch --job-name='{{ job_name }}_he' \
-	--parsable \
+	--time={{ pretrain_time }} --parsable \
 	--dependency=afterok:${{ pretrain_jid }} \
 	run_human_eval.sbatch {{ HumanEval.path }})
 echo "Submitted HumanEval (id=$he_so{{idx}})"

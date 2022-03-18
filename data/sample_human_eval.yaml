@@ -1,50 +1,76 @@
-batch_size: 20
+batch_size: 10
+conditioning_tags:
+- virtualenv
+data_args:
+  seq_length: 512
 device: 0
 generation:
   do_sample: true
+  max_new_tokens: 256
   temperature: 0.5
   top_k: 50
   top_p: 0.95
-  max_new_tokens: 256
-group: HUMAN_EVAL
+group: HUMAN_EVAL_COND
 is_checkpoint: false
+mean_score: 9.21
 meta:
-  ablation: DB
+  ablation: ParrotSmall.Comment.Virtualenv
   ablation_vals:
-    DumpName: DB
-  card_name: FinetuneSO.ParrotSmall
+    Model: ParrotSmall
+    Tags: Virtualenv
+    Template: Comment
+  card_name: ConditonEval
   step: HumanEval
 model: lvwerra/codeparrot-small
+model_path: best_models/SO.Neo125M.FullRepeat.Tags
+name: testing123
+num_tags: 1
 objective: lm
-model_path: best_models/SO.Pretrain.ParrotSmall.DB
-name: CodeParrotSmall.MoveProblemStatement
 postprocessors:
 - strip: {}
 processor:
   name: stackoverflow
   params:
+    allow_no_answer: false
     answer_prompt: null
     answer_sorting: accepted
     answers_per_sample: -1
     bad_answer_cutoff: -1
-    clean: false
+    force_include_question: false
+    force_include_tags: false
+    force_include_title: false
     good_answer_cutoff: 3
+    no_answer_str: There is not an answer
+    quality_prompt: null
     question_prompt: null
+    remove_body_title_repeat: false
+    remove_modality: NONE
     repeat_question_for_each_answer: none
+    tags_prompt: null
     title_prompt: null
+    top_answer_cutoff: 12
+    wrap_answer_character: null
+    wrap_question_character: null
 project: so-code-gen
-raw_dump_name: db
+prompt_template: data/prompt_templates/comment_block.txt
 raw_dump_path: data/dumps
 remove_input_ids: false
 seed: 1
-seq_per_sample: 200
+seq_per_sample: 10
 splits:
 - test
+tag_count: 58
 task:
-  dump_name: db
-tensorized_name: db
+  dump_name: python_ParrotSmall.Comment.Virtualenv
+  raw_dump_name: python
+  tensorized_name: python_ParrotSmall.Comment.Virtualenv
 tracking:
   entity: nyu-code-research
   log_model: false
   project: so-code-gen
+  tags:
+  - Torchrun
+  - GradientCheckpointing
+  - AdamW
+  - O2
   watch: gradients
