@@ -236,7 +236,7 @@ experiments:
       - name: HumanEval
         add_name: False
         base: human_eval
-        group: HUMAN_EVAL_COND
+        group: HUMAN_EVAL
         overrides:
           is_checkpoint: false
           ++generation:
