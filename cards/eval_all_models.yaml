@@ -52,7 +52,7 @@ experiments:
         overrides:
           task: mbpp
     command:
-      file: command_templates/code_execute.txt
+      file: command_templates/human_eval.txt
       kwargs:
         num_return_sequences: 200
         task_name: MBPP

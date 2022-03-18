@@ -16,15 +16,187 @@ experiments:
         - AdamW
         - O2
       ++batch_size: 200
-      ++model: 'lvwerra/codeparrot-small'
-      ++prompt_template: data/prompt_templates/conditioning.txt
-    ablations:
 
+    ablations:
+      - Model:
+          ParrotSmall:
+            ++model: 'lvwerra/codeparrot-small'
+            ++model_path: best_models/SO.CommentWrap.ParrotSmall.OnlyCodeTitleRepeat.Tags
+          Neo125M:
+            ++model: 'EleutherAI/gpt-neo-125M'
+            ++model_path: best_models/SO.Neo125M.FullRepeat.Tags
+      - Template:
+          Base:
+            ++prompt_template: data/prompt_templates/base_conditioning.txt
+          Comment:
+            ++prompt_template: data/prompt_templates/comment_block.txt
+
+      - Tags:
+          CodingStyle:
+            ++mean_score: 17.57
+            ++tag_count: 28
+            ++conditioning_tags: [ coding-style ]
+          Path:
+            ++mean_score: 14.21
+            ++tag_count: 34
+            ++conditioning_tags: [ path ]
+          Virtualenv:
+            ++mean_score: 9.21
+            ++tag_count: 58
+            ++conditioning_tags: [ virtualenv ]
+          IpythonNotebook:
+            ++mean_score: 7.07
+            ++tag_count: 224
+            ++conditioning_tags: [ ipython-notebook ]
+          Markdown:
+            ++mean_score: 6.80
+            ++tag_count: 56
+            ++conditioning_tags: [ markdown ]
+          OpencvPython:
+            ++mean_score: 0.07
+            ++tag_count: 41
+            ++conditioning_tags: [ opencv-python ]
+          Discord:
+            ++mean_score: 0.05
+            ++tag_count: 503
+            ++conditioning_tags: [ discord ]
+          Python39:
+            ++mean_score: -0.03
+            ++tag_count: 39
+            ++conditioning_tags: [ python-3-9 ]
+          DiscordPy:
+            ++mean_score: -0.05
+            ++tag_count: 928
+            ++conditioning_tags: [ discord-py ]
+          Bots:
+            ++mean_score: -0.06
+            ++tag_count: 35
+            ++conditioning_tags: [ bots ]
+          PythonMagicMethods:
+            ++mean_score: 65.53
+            ++tag_count: 53
+            ++conditioning_tags: [ python,magic-methods ]
+          PythonOperators:
+            ++mean_score: 49.96
+            ++tag_count: 238
+            ++conditioning_tags: [ python,operators ]
+          PythonLineBreaks:
+            ++mean_score: 39.13
+            ++tag_count: 31
+            ++conditioning_tags: [ python,line-breaks ]
+          PythonRelativePath:
+            ++mean_score: 38.75
+            ++tag_count: 32
+            ++conditioning_tags: [ python,relative-path ]
+          PythonSwitchStatement:
+            ++mean_score: 36.97
+            ++tag_count: 66
+            ++conditioning_tags: [ python,switch-statement ]
+          PythonBreak:
+            ++mean_score: -0.24
+            ++tag_count: 38
+            ++conditioning_tags: [ python,break ]
+          PythonTxt:
+            ++mean_score: -0.35
+            ++tag_count: 37
+            ++conditioning_tags: [ python,txt ]
+          PythonPseudocode:
+            ++mean_score: -0.38
+            ++tag_count: 53
+            ++conditioning_tags: [ python,pseudocode ]
+          PythonBubbleSort:
+            ++mean_score: -0.52
+            ++tag_count: 48
+            ++conditioning_tags: [ python,bubble-sort ]
+          PythonBruteForce:
+            ++mean_score: -0.54
+            ++tag_count: 26
+            ++conditioning_tags: [ python,brute-force ]
+          PythonStringUppercase:
+            ++mean_score: 125.04
+            ++tag_count: 26
+            ++conditioning_tags: [ python,string,uppercase ]
+          PythonIteratorGenerator:
+            ++mean_score: 110.82
+            ++tag_count: 117
+            ++conditioning_tags: [ python,iterator,generator ]
+          PythonShellTerminal:
+            ++mean_score: 108.17
+            ++tag_count: 52
+            ++conditioning_tags: [ python,shell,terminal ]
+          PythonDatetimeDate:
+            ++mean_score: 100.18
+            ++tag_count: 44
+            ++conditioning_tags: [ python,datetime,date ]
+          PythonFileCopy:
+            ++mean_score: 72.98
+            ++tag_count: 48
+            ++conditioning_tags: [ python,file,copy ]
+          PythonIfStatementSyntaxError:
+            ++mean_score: -0.43
+            ++tag_count: 44
+            ++conditioning_tags: [ python,if-statement,syntax-error ]
+          PythonLoopsMath:
+            ++mean_score: -0.46
+            ++tag_count: 35
+            ++conditioning_tags: [ python,loops,math ]
+          PythonPython3XAppend:
+            ++mean_score: -0.49
+            ++tag_count: 35
+            ++conditioning_tags: [ python,python-3-x,append ]
+          PythonTkinterTime:
+            ++mean_score: -0.50
+            ++tag_count: 28
+            ++conditioning_tags: [ python,tkinter,time ]
+          PythonPython3XCalculator:
+            ++mean_score: -0.67
+            ++tag_count: 30
+            ++conditioning_tags: [ python,python-3-x,calculator ]
+          PythonDictionaryMerge:
+            ++mean_score: 108.28
+            ++tag_count: 57
+            ++conditioning_tags: [ python,dictionary,merge ]
+          PythonListConcatenation:
+            ++mean_score: 71.38
+            ++tag_count: 48
+            ++conditioning_tags: [ python,list,concatenation ]
+          PythonFileAppend:
+            ++mean_score: 71.31
+            ++tag_count: 26
+            ++conditioning_tags: [ python,file,append ]
+          PythonVersion:
+            ++mean_score: 60.74
+            ++tag_count: 27
+            ++conditioning_tags: [ python,version ]
+          PythonVirtualenvVirtualenvwrapper:
+            ++mean_score: 55.95
+            ++tag_count: 73
+            ++conditioning_tags: [ python,virtualenv,virtualenvwrapper ]
+          PythonLoopsIfStatement:
+            ++mean_score: -0.48
+            ++tag_count: 100
+            ++conditioning_tags: [ python,loops,if-statement ]
+          Python3XDjangoDjangoModelsDjangoViewsDjangoTemplates:
+            ++mean_score: -0.48
+            ++tag_count: 27
+            ++conditioning_tags: [ python-3-x,django,django-models,django-views,django-templates ]
+          PythonIfStatementInput:
+            ++mean_score: -0.48
+            ++tag_count: 33
+            ++conditioning_tags: [ python,if-statement,input ]
+          PythonPython3XVariables:
+            ++mean_score: -0.51
+            ++tag_count: 57
+            ++conditioning_tags: [ python,python-3-x,variables ]
+          PythonPython3XFunctionClass:
+            ++mean_score: -0.64
+            ++tag_count: 28
+            ++conditioning_tags: [ python,python-3-x,function,class ]
     steps:
       - name: HumanEval
         add_name: False
         base: human_eval
-        group: HUMAN_EVAL
+        group: HUMAN_EVAL_COND
         overrides:
           is_checkpoint: false
           ++generation:
@@ -33,15 +205,14 @@ experiments:
             temperature: 0.5
             top_p: 0.95
             top_k: 50
-          model_path: best_models
           batch_size: 200
-#    command:
-#      file: command_templates/evaluate_model.txt
-#      kwargs:
-#        num_return_sequences: 200
-#        task_name: MBPP
-#        train_sbatch: train_single_gpu
-#        pretrain_time: "27:59:59"
-#        use_cds: True
-#      fields:
-#        - model_path
+    command:
+      file: command_templates/human_eval.txt
+      kwargs:
+        num_return_sequences: 200
+        task_name: MBPP
+        train_sbatch: train_single_gpu
+        pretrain_time: "27:59:59"
+        use_cds: True
+      fields:
+        - model_path

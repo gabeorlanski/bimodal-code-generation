@@ -7,8 +7,18 @@
 {%- endif -%}
 {%- set cancel_file="generated_experiments/cancel_scripts/"~job_name~".sh" -%}
 
+rm -f {{ cancel_file }}
+echo "#!/bin/bash" >> {{cancel_file}}
+# Human Eval After PreTrain
+he_so{{idx}}=$(sbatch --job-name='{{ job_name }}_he' \
+	--parsable \
+	run_human_eval.sbatch {{ HumanEval.path }})
+echo "Submitted HumanEval (id=$he_so{{idx}})"
+echo "scancel $he_so{{idx}}" >> {{cancel_file}}
+
 # Human Eval Code Execute Zero Shot
 he_exec{{idx}}=$(sbatch --parsable --job-name='{{ job_name }}_he_execute' \
+	--dependency=afterok:$he_so{{idx}} \
 	eval_code.sbatch \
 	eval_results/HUMAN_EVAL "SO.{{ name }}.{{ ablation_name }}" test.jsonl
 )
