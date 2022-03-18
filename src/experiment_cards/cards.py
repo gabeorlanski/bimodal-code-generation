@@ -164,6 +164,7 @@ class ComposedExperiments:
             template_dict[step] = {
                 'path'     : output_path.joinpath(f"{experiment.save_name}.yaml"),
                 'save_name': experiment.save_name,
+                'group'    : experiment.group,
                 **cfg_fields
 
             }
