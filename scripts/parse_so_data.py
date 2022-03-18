@@ -340,14 +340,17 @@ def get_tag_info(ctx, dump_path):
         k_means = {}
         for tag_name, scores in v.items():
             k_means[tag_name] = {
-                'mean': np.mean(scores), 'median': np.median(scores), 'std': np.std(scores)
+                'mean'  : np.mean(scores),
+                'median': np.median(scores),
+                'std'   : np.std(scores),
+                'len'   : len(scores)
             }
             pbar.update(1)
         tag_means[k] = k_means
     pbar.close()
 
     with out_path.joinpath(f'{dump_path.stem}.json').open('w') as f:
-        ujson.dump({'values': tag_counter, 'aggregate': tag_means}, f)
+        ujson.dump(tag_means, f)
 
 
 if __name__ == "__main__":
