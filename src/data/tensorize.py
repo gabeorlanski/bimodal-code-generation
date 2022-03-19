@@ -152,7 +152,7 @@ class TensorizedTask(IterableDataset):
             while len(processed) < self.buffer_size:
                 try:
                     line = ujson.loads(next(data_iter))
-                    line_processed = self.processor.make_instances_from_question(line)
+                    line_processed = self.processor.__call__(line)
                     if len(line_processed) == 0:
                         num_no_samples += 1
                     else:

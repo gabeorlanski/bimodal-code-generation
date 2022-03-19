@@ -184,7 +184,7 @@ def setup_pretrain(cfg, tokenizer, train_args):
     for line in eval_file.open('r'):
         sample = ujson.loads(line)
         line_num += 1
-        processed = processor.make_instances_from_question(sample)
+        processed = processor.__call__(sample)
         if line_num % 1000 == 0:
             logger.info(f"Read {line_num} lines for eval")
         if not processed:

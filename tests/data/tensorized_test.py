@@ -14,7 +14,7 @@ def test_get_dataset_info_with_processor():
     sample_dump = FIXTURES_ROOT.joinpath('so_dumps', 'python_dump.jsonl')
     tokenizer = AutoTokenizer.from_pretrained('gpt2')
     processor = stackoverflow.StackOverflowProcessor(
-        repeat_question_for_each_answer='full'
+        repeat_prompt_each_answer='full'
     )
 
     result = tensorize.get_dataset_info_with_processor(
@@ -31,7 +31,7 @@ def test_get_dataset_info_with_processor():
         'testing'
     )
 
-    processed_gen = map(processor.make_instances_from_question,
+    processed_gen = map(processor.__call__,
                         map(json.loads, sample_dump.open('r')))
 
     for processed_list in processed_gen:

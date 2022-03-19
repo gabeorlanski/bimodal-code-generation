@@ -22,7 +22,7 @@ meta:
 metrics:
   - exact-match
   - bleu
-model: Salesforce/codet5-small
+model: Salesforce/codet5-base
 model_path: null
 name: ConditionTest
 numpy_seed: 2
@@ -33,25 +33,21 @@ processor:
   name: stackoverflow
   params:
     allow_no_answer: false
-    answer_prompt: null
     answer_sorting: accepted
     answers_per_sample: -1
     bad_answer_cutoff: -1
-    force_include_question: false
-    force_include_tags: false
-    force_include_title: false
+    comment_type_for_question: NONE
     good_answer_cutoff: 3
+    include_date: false
+    include_question_score: false
+    include_tags: false
     no_answer_str: There is not an answer
-    quality_prompt: null
-    question_prompt: null
-    remove_body_title_repeat: false
+    prompt_file: templates/so/base_question.txt
     remove_modality: NONE
-    repeat_question_for_each_answer: none
-    tags_prompt: null
-    title_prompt: null
+    repeat_body_for_each_answer: false
+    repeat_prompt_each_answer: true
     top_answer_cutoff: 12
-    wrap_answer_character: LINE
-    wrap_question_character: BLOCK
+    wrap_answer_character: None
 
 project: so-code-gen
 pytorch_seed: 3

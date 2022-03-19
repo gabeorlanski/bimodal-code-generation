@@ -1,0 +1,36 @@
+{%- set meta_str='' -%}
+{%- if question_score != None %}
+{%- set meta_str='QUESTION RATING: '~question_score -%}
+{%- endif %}
+{%- if question_date != None %}
+{%- set meta_str=meta_str~'\nDATE: '~question_date -%}
+{%- endif %}
+{%- if tags is not none %}
+{%- set meta_str=meta_str~'\nTAGS: '~tags -%}
+{%- endif %}
+{%- set meta_str=meta_str~'\nTITLE: '~title -%}
+{%- set meta_str=meta_str~'\n'~quality.upper()~' SOLUTION' -%}
+{%- if comment_type is defined and comment_type != 'NONE' -%}
+{%- if comment_type == 'BLOCK' -%}
+"""
+{{meta_str|trim}}
+{%- if question is not none %}
+{{ question }}
+{%- endif %}
+"""
+{% else %}
+{%- for line in meta_str.strip().split('\n') %}
+# {{ line }}
+{%- endfor %}
+{%- if question is not none -%}
+{%- for line in question.split('\n') %}
+# {{ line }}
+{%- endfor %}
+{%- endif -%}
+{%- endif -%}
+{% else %}
+{{ meta_str|trim }}
+{%- if question is not none%}
+{{ question }}
+{%- endif %}
+{%- endif -%}

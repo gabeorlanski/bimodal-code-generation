@@ -2,23 +2,19 @@ defaults:
   - _self_
 name: stackoverflow
 params:
+  prompt_file: "templates/so/base_question.txt"
   answer_sorting: 'accepted'
+  repeat_prompt_each_answer: False
   answers_per_sample: -1
-  repeat_question_for_each_answer: 'none'
   top_answer_cutoff: 12
   good_answer_cutoff: 3
   bad_answer_cutoff: -1
-  answer_prompt: null
-  question_prompt: null
-  quality_prompt: null
-  title_prompt: null
-  tags_prompt: null
   remove_modality: "NONE"
   no_answer_str: "There is not an answer"
-  force_include_question: False
-  force_include_title: False
-  force_include_tags: False
-  remove_body_title_repeat: False
   allow_no_answer: False
-  wrap_question_character: null
-  wrap_answer_character: null
+  comment_type_for_question: 'NONE'
+  repeat_body_for_each_answer: False
+  wrap_answer_character: None
+  include_date: True
+  include_question_score: True
+  include_tags: True

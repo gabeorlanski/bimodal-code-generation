@@ -1,258 +1,142 @@
-starting_commands: command_templates/sbatch_experiment.txt
+starting_commands: templates/commands/sbatch_experiment.txt
 experiments:
-  ConditionEval:
+  FullPrompt:
     overrides:
       ++device: 0
       +processor: stackoverflow
       ++raw_dump_path: data/dumps
       is_checkpoint: true
       objective: lm
-      ++task.dump_name: python_${..__META__.ablation.name}
-      ++task.raw_dump_name: python
-      ++task.tensorized_name: python_${..__META__.ablation.name}
       ++tracking.tags:
         - Torchrun
         - GradientCheckpointing
         - AdamW
         - O2
       ++batch_size: 200
-
+      ++task.dump_name: python_${..__META__.ablation.name}
+      ++task.raw_dump_name: python
+      ++task.tensorized_name: python_${..__META__.ablation.name}
+      ++processor.params.repeat_prompt_each_answer: True
+      ++processor.params.repeat_body_for_each_answer: True
     ablations:
       - Model:
-          ParrotSmall:
-            ++model: 'lvwerra/codeparrot-small'
-            ++model_path: best_models/SO.CommentWrap.ParrotSmall.OnlyCodeTitleRepeat.Tags
           Neo125M:
-            ++model: 'EleutherAI/gpt-neo-125M'
-            ++model_path: best_models/SO.Neo125M.FullRepeat.Tags
-      - Template:
+            overrides:
+              ++batch_size: 200
+              ++model: 'EleutherAI/gpt-neo-125M'
+            step_overrides:
+              PreTrain:
+                ++training.batch_size: 32
+                ++training.gradient_accumulation_steps: 1
+          ParrotSmall:
+            overrides:
+              ++batch_size: 200
+              ++model: 'lvwerra/codeparrot-small'
+            step_overrides:
+              PreTrain:
+                ++training.batch_size: 32
+                ++training.gradient_accumulation_steps: 1
+                ++training.gradient_checkpointing: True
+      - ProcessorArgs:
+          NoPromptMeta:
+            ++processor.params:
+                wrap_answer_character: None
+                include_date: False
+                include_question_score: False
+                include_tags: False
+                repeat_body_for_each_answer: False
           Base:
-            ++prompt_template: data/prompt_templates/base_conditioning.txt
-          Comment:
-            ++prompt_template: data/prompt_templates/comment_block.txt
+            ++processor.params.wrap_answer_character: None
+          LineComment:
+            ++processor.params:
+                comment_type_for_question: 'LINE'
+                wrap_answer_character: "LINE"
+          BlockComment:
+            ++processor.params:
+                comment_type_for_question: 'BLOCK'
+                wrap_answer_character: "LINE"
 
-      - Tags:
-          CodingStyle:
-            ++mean_score: 17.57
-            ++tag_count: 28
-            ++conditioning_tags: [ coding-style ]
-            ++num_tags: 1
-          Path:
-            ++mean_score: 14.21
-            ++tag_count: 34
-            ++conditioning_tags: [ path ]
-            ++num_tags: 1
-          Virtualenv:
-            ++mean_score: 9.21
-            ++tag_count: 58
-            ++conditioning_tags: [ virtualenv ]
-            ++num_tags: 1
-          IpythonNotebook:
-            ++mean_score: 7.07
-            ++tag_count: 224
-            ++conditioning_tags: [ ipython-notebook ]
-            ++num_tags: 1
-          Markdown:
-            ++mean_score: 6.80
-            ++tag_count: 56
-            ++conditioning_tags: [ markdown ]
-            ++num_tags: 1
-          OpencvPython:
-            ++mean_score: 0.07
-            ++tag_count: 41
-            ++conditioning_tags: [ opencv-python ]
-            ++num_tags: 1
-          Discord:
-            ++mean_score: 0.05
-            ++tag_count: 503
-            ++conditioning_tags: [ discord ]
-            ++num_tags: 1
-          Python39:
-            ++mean_score: -0.03
-            ++tag_count: 39
-            ++conditioning_tags: [ python-3-9 ]
-            ++num_tags: 1
-          DiscordPy:
-            ++mean_score: -0.05
-            ++tag_count: 928
-            ++conditioning_tags: [ discord-py ]
-            ++num_tags: 1
-          Bots:
-            ++mean_score: -0.06
-            ++tag_count: 35
-            ++conditioning_tags: [ bots ]
-            ++num_tags: 1
-          PythonMagicMethods:
-            ++mean_score: 65.53
-            ++tag_count: 53
-            ++conditioning_tags: [ python,magic-methods ]
-            ++num_tags: 2
-          PythonOperators:
-            ++mean_score: 49.96
-            ++tag_count: 238
-            ++conditioning_tags: [ python,operators ]
-            ++num_tags: 2
-          PythonLineBreaks:
-            ++mean_score: 39.13
-            ++tag_count: 31
-            ++conditioning_tags: [ python,line-breaks ]
-            ++num_tags: 2
-          PythonRelativePath:
-            ++mean_score: 38.75
-            ++tag_count: 32
-            ++conditioning_tags: [ python,relative-path ]
-            ++num_tags: 2
-          PythonSwitchStatement:
-            ++mean_score: 36.97
-            ++tag_count: 66
-            ++conditioning_tags: [ python,switch-statement ]
-            ++num_tags: 2
-          PythonBreak:
-            ++mean_score: -0.24
-            ++tag_count: 38
-            ++conditioning_tags: [ python,break ]
-            ++num_tags: 2
-          PythonTxt:
-            ++mean_score: -0.35
-            ++tag_count: 37
-            ++conditioning_tags: [ python,txt ]
-            ++num_tags: 2
-          PythonPseudocode:
-            ++mean_score: -0.38
-            ++tag_count: 53
-            ++conditioning_tags: [ python,pseudocode ]
-            ++num_tags: 2
-          PythonBubbleSort:
-            ++mean_score: -0.52
-            ++tag_count: 48
-            ++conditioning_tags: [ python,bubble-sort ]
-            ++num_tags: 2
-          PythonBruteForce:
-            ++mean_score: -0.54
-            ++tag_count: 26
-            ++conditioning_tags: [ python,brute-force ]
-            ++num_tags: 2
-          PythonStringUppercase:
-            ++mean_score: 125.04
-            ++tag_count: 26
-            ++conditioning_tags: [ python,string,uppercase ]
-            ++num_tags: 3
-          PythonIteratorGenerator:
-            ++mean_score: 110.82
-            ++tag_count: 117
-            ++conditioning_tags: [ python,iterator,generator ]
-            ++num_tags: 3
-          PythonShellTerminal:
-            ++mean_score: 108.17
-            ++tag_count: 52
-            ++conditioning_tags: [ python,shell,terminal ]
-            ++num_tags: 3
-          PythonDatetimeDate:
-            ++mean_score: 100.18
-            ++tag_count: 44
-            ++conditioning_tags: [ python,datetime,date ]
-            ++num_tags: 3
-          PythonFileCopy:
-            ++mean_score: 72.98
-            ++tag_count: 48
-            ++conditioning_tags: [ python,file,copy ]
-            ++num_tags: 3
-          PythonIfStatementSyntaxError:
-            ++mean_score: -0.43
-            ++tag_count: 44
-            ++conditioning_tags: [ python,if-statement,syntax-error ]
-            ++num_tags: 3
-          PythonLoopsMath:
-            ++mean_score: -0.46
-            ++tag_count: 35
-            ++conditioning_tags: [ python,loops,math ]
-            ++num_tags: 3
-          PythonPython3XAppend:
-            ++mean_score: -0.49
-            ++tag_count: 35
-            ++conditioning_tags: [ python,python-3-x,append ]
-            ++num_tags: 3
-          PythonTkinterTime:
-            ++mean_score: -0.50
-            ++tag_count: 28
-            ++conditioning_tags: [ python,tkinter,time ]
-            ++num_tags: 3
-          PythonPython3XCalculator:
-            ++mean_score: -0.67
-            ++tag_count: 30
-            ++conditioning_tags: [ python,python-3-x,calculator ]
-            ++num_tags: 3
-          PythonDictionaryMerge:
-            ++mean_score: 108.28
-            ++tag_count: 57
-            ++conditioning_tags: [ python,dictionary,merge ]
-            ++num_tags: 3
-          PythonListConcatenation:
-            ++mean_score: 71.38
-            ++tag_count: 48
-            ++conditioning_tags: [ python,list,concatenation ]
-            ++num_tags: 3
-          PythonFileAppend:
-            ++mean_score: 71.31
-            ++tag_count: 26
-            ++conditioning_tags: [ python,file,append ]
-            ++num_tags: 3
-          PythonVersion:
-            ++mean_score: 60.74
-            ++tag_count: 27
-            ++conditioning_tags: [ python,version ]
-            ++num_tags: 2
-          PythonVirtualenvVirtualenvwrapper:
-            ++mean_score: 55.95
-            ++tag_count: 73
-            ++conditioning_tags: [ python,virtualenv,virtualenvwrapper ]
-            ++num_tags: 3
-          PythonLoopsIfStatement:
-            ++mean_score: -0.48
-            ++tag_count: 100
-            ++conditioning_tags: [ python,loops,if-statement ]
-            ++num_tags: 3
-          Python3XDjangoDjangoModelsDjangoViewsDjangoTemplates:
-            ++mean_score: -0.48
-            ++tag_count: 27
-            ++conditioning_tags: [ python-3-x,django,django-models,django-views,django-templates ]
-            ++num_tags: 5
-          PythonIfStatementInput:
-            ++mean_score: -0.48
-            ++tag_count: 33
-            ++conditioning_tags: [ python,if-statement,input ]
-            ++num_tags: 3
-          PythonPython3XVariables:
-            ++mean_score: -0.51
-            ++tag_count: 57
-            ++conditioning_tags: [ python,python-3-x,variables ]
-            ++num_tags: 3
-          PythonPython3XFunctionClass:
-            ++mean_score: -0.64
-            ++tag_count: 28
-            ++conditioning_tags: [ python,python-3-x,function,class ]
-            ++num_tags: 4
+
     steps:
+      - name: PreTrain
+        add_name: False
+        base: pretrain_with_tensorized
+        group: SO
+        overrides:
+          ++task.buffer_size: 5000
+          ++tensorize_batch_size: 64
+          tracking:
+            log_model: True
+          is_checkpoint: False
+          ++training:
+            batch_size: 16
+            gradient_accumulation_steps: 4
+            learning_rate: 5e-5
+            save_steps: 2500
+            eval_steps: 500
+            max_steps: 25000
+            warmup_steps: 2500
+            logging_steps: 25
+            lr_scheduler_type: linear
+            save_total_limit: 10
+            group_by_length: False
+            dataloader_num_workers: 4
+            half_precision_backend: 'apex'
+            fp16_backend: 'apex'
+            gradient_checkpointing: true
+            fp16_opt_level: O2
+            use_8bit_adam: False
+          ++task.sequence_length: 1024
+          task: so
       - name: HumanEval
         add_name: False
         base: human_eval
         group: HUMAN_EVAL
         overrides:
-          is_checkpoint: false
+          is_checkpoint: true
           ++generation:
             max_new_tokens: 256
             do_sample: true
             temperature: 0.5
             top_p: 0.95
             top_k: 50
+          model_path: best_models/${..__META__.PreTrain.save_name}
           batch_size: 200
+      - name: FineTune
+        base: greene_config
+        group: MBPP
+        overrides:
+          task: mbpp
+          ++is_checkpoint: True
+          ++model_path: best_models/${..__META__.PreTrain.save_name}
+          ++training:
+            batch_size: 32
+            gradient_accumulation_steps: 1
+            learning_rate: 5e-5
+          tracking:
+            log_model: False
+      - name: Eval
+        base: eval_config
+        group: MBPP
+        overrides:
+          batch_size: 200
+          remove_input_ids: true
+          ++generation:
+            max_new_tokens: 512
+            do_sample: true
+            temperature: 0.5
+            top_p: 0.95
+            top_k: 50
+          task: mbpp
+          remove_input_ids: true
+          ++model_path: best_models/${..__META__.FineTune.save_name}
     command:
-      file: command_templates/human_eval.txt
+      file: templates/commands/pretrain.txt
       kwargs:
         num_return_sequences: 200
         task_name: MBPP
         train_sbatch: train_single_gpu
-        pretrain_time: "3:00:00"
+        pretrain_time: "47:00:00"
         use_cds: True
       fields:
         - model_path

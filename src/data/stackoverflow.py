@@ -9,85 +9,71 @@ from bs4.element import Tag
 import re
 from unidecode import unidecode
 
+from jinja2 import BaseLoader, Environment, StrictUndefined
+from src.common import PROJECT_ROOT
+
 logger = logging.getLogger(__name__)
 logging.getLogger("transformers.tokenization_utils").setLevel(logging.ERROR)
+JINJA_ENV = Environment(loader=BaseLoader)  # type:ignore
+
+# Allow the python function zip()
+JINJA_ENV.globals.update(zip=zip)
+JINJA_ENV.undefined = StrictUndefined
 
 
 class StackOverflowProcessor:
     def __init__(
             self,
+            prompt_file: str,
             answer_sorting: str = 'accepted',
+            repeat_prompt_each_answer: bool = False,
             answers_per_sample: int = -1,
-            repeat_question_for_each_answer: str = 'none',
             top_answer_cutoff: int = 12,
             good_answer_cutoff: int = 3,
             bad_answer_cutoff: int = -1,
-            answer_prompt: str = None,
-            question_prompt: str = None,
-            quality_prompt: str = None,
-            title_prompt: str = None,
-            tags_prompt: str = None,
             remove_modality: str = "NONE",
             no_answer_str: str = "There is not an answer",
-            force_include_question: bool = False,
-            force_include_title: bool = False,
-            force_include_tags: bool = False,
-            remove_body_title_repeat: bool = False,
             allow_no_answer: bool = False,
-            wrap_question_character: str = None,
-            wrap_answer_character: str = None
+            comment_type_for_question: str = 'NONE',
+            repeat_body_for_each_answer: bool = False,
+            wrap_answer_character: str = None,
+            include_date: bool = True,
+            include_question_score: bool = True,
+            include_tags: bool = True
     ):
         self.answer_sorting = answer_sorting.lower()
         if self.answer_sorting not in ['ascending', 'descending', 'accepted']:
             raise ValueError(f"Unknown answer sorting method: {self.answer_sorting}")
 
-        self.repeat_question_for_each_answer = repeat_question_for_each_answer
-        if self.repeat_question_for_each_answer not in ['title', 'full', 'none']:
-            raise ValueError(f"Invalid repeat mode: {self.repeat_question_for_each_answer}")
-
+        self.prompt = JINJA_ENV.from_string(
+            PROJECT_ROOT.joinpath(prompt_file).read_text()
+        )  # type:ignore
         self.good_answer_cutoff = good_answer_cutoff
         self.bad_answer_cutoff = bad_answer_cutoff
         self.top_answer_cutoff = top_answer_cutoff
-        self.answer_prompt = answer_prompt if answer_prompt else '__ANSWER__'
-        self.question_prompt = question_prompt if question_prompt else '__BODY__'
-        self.title_prompt = title_prompt if title_prompt else '__TITLE__'
-        self.quality_prompt = quality_prompt
-        self.tags_prompt = tags_prompt
         self.answers_per_sample = answers_per_sample
-        self.lm_concat_delim = '\n'
-        self.wrap_question_character = wrap_question_character
-        if wrap_answer_character:
-            if wrap_answer_character.upper() in ['BLOCK', 'LINE']:
-                self.wrap_question_character = wrap_question_character.upper()
-            else:
-                raise ValueError(f"Unknown Question wrap {wrap_question_character=}, disabling")
-
+        self.repeat_prompt_each_answer = repeat_prompt_each_answer
+        self.comment_type_for_question = comment_type_for_question
+        self.repeat_body_for_each_answer = repeat_body_for_each_answer
+        self.allow_no_answer = allow_no_answer
+        self.no_answer_str = no_answer_str
+        self.include_question_score = include_question_score
+        self.include_tags = include_tags
+        self.include_date = include_date
         self.wrap_answer_character = wrap_answer_character
         if wrap_answer_character:
             if wrap_answer_character.upper() in ['BLOCK', 'LINE']:
                 self.wrap_answer_character = wrap_answer_character.upper()
+            elif wrap_answer_character.upper() == 'NONE':
+                self.wrap_answer_character = None
             else:
                 raise ValueError(f"Unknown answer wrap {wrap_answer_character=}, disabling")
-
-        self.force_include_question = force_include_question
-        self.force_include_title = force_include_title
-        self.force_include_tags = force_include_tags
-        self.remove_body_title_repeat = remove_body_title_repeat
-        self.allow_no_answer = allow_no_answer
-
-        self.no_answer_str = no_answer_str
         if remove_modality is None:
             self.remove_modality = "NONE"
         else:
             self.remove_modality = remove_modality.upper()
             if self.remove_modality not in ['CODE', 'NL', 'NONE']:
                 self.remove_modality = 'NONE'
-
-        if force_include_title:
-            if self.remove_modality is None:
-                logger.warning(f"Force include title is enabled but will have no effect.")
-        if force_include_question and self.remove_modality is None:
-            logger.warning(f"Force include question is enabled but will have no effect.")
 
     def clean_html_body(self, body_str, force_keep_all=False) -> List[Tag]:
         soup = BeautifulSoup(body_str, 'lxml')
@@ -119,25 +105,22 @@ class StackOverflowProcessor:
 
         return out
 
-    def turn_body_into_str(self, body_tags: List[Tag], mode) -> str:
+    def turn_body_into_str(self, body_tags: List[Tag]) -> str:
         out = []
         for t in body_tags:
             if not t.string:
                 continue
             if t.name == 'p':
-                out.append(self.wrap_nl(t.text.strip(), mode))
+                out.append(self.wrap_nl(t.text.strip()))
             else:
                 out.append(t.text.strip())
         return unidecode('\n'.join(o for o in out if o.strip()))
 
-    def wrap_nl(self, nl_str, mode):
+    def wrap_nl(self, nl_str):
         if not nl_str:
             return ''
 
-        if mode == "QUESTION":
-            wrap_char = self.wrap_question_character
-        else:
-            wrap_char = self.wrap_answer_character
+        wrap_char = self.wrap_answer_character
 
         if wrap_char:
             if wrap_char == "BLOCK":
@@ -147,72 +130,52 @@ class StackOverflowProcessor:
         else:
             return nl_str.strip()
 
-    def apply_question_prompt(
+    def process_question(
             self,
             title: str,
             body: List[Tag],
             score,
             views,
-            tags,
-            is_first_answer
+            date,
+            tags
     ):
-        title_str = self.title_prompt.replace('__TITLE__', title)
+        return {
+            "title"         : title,
+            "question_score": score if self.include_question_score else None,
+            "tags"          : ','.join(tags) if self.include_tags else None,
+            'question'      : unidecode('\n'.join(t.text.strip() for t in body if t.text.strip())),
+            'question_date' : date.split('T')[0] if self.include_date else None
+        }
 
-        if self.tags_prompt is not None:
-            # Add the extra space at the end so that it will automatically be
-            # spaced out from the title.
-            tags_str = self.tags_prompt.replace('__TAGS__', ' '.join(tags)) + "\n"
-        else:
-            tags_str = ''
-
-        if self.remove_modality == "NL" and not self.force_include_title:
-            if self.force_include_tags and tags_str:
-                title_str = f"{tags_str.strip()}"
-            else:
-                title_str = ''
-        else:
-            title_str = f"{tags_str}{title_str}"
-
-        if (
-                self.repeat_question_for_each_answer == 'title' and (
-                not is_first_answer
-                or (is_first_answer and self.remove_body_title_repeat)
-        )):
-            return self.wrap_nl(title_str, "QUESTION")
-
-        if body[0].name == 'p':
-            body[0].string = f"{title_str}\n{body[0].string}"
-        else:
-            soup = BeautifulSoup(f"<p>{title_str}</p>", 'lxml')
-            body = [soup.find('p')] + body  # type:ignore
-        return self.turn_body_into_str(body, "QUESTION")
-
-    def apply_answer_prompt(self, answer: List[Tag], score, is_accepted):
+    def process_answer(self, answer: List[Tag], score, is_accepted):
 
         if not answer:
             return self.no_answer_str
 
-        quality_adjective = ""
+        quality_str = ""
         if self.good_answer_cutoff is not None and self.bad_answer_cutoff is not None:
             if is_accepted:
-                quality_adjective = 'Accepted'
+                quality_str = 'ACCEPTED'
             elif score >= self.top_answer_cutoff:
-                quality_adjective = 'Great'
+                quality_str = 'GREAT'
             elif score >= self.good_answer_cutoff:
-                quality_adjective = "Good"
+                quality_str = "GOOD"
             elif score <= self.bad_answer_cutoff:
-                quality_adjective = "Bad"
+                quality_str = "BAD"
             else:
-                quality_adjective = "Ok"
-        if self.quality_prompt:
-            quality_str = self.quality_prompt.replace('__QUALITY__', quality_adjective)
-        else:
-            quality_str = None
+                quality_str = "OK"
 
-        # answer_str = self.answer_prompt.replace('__ANSWER__', )
-        return quality_str, self.turn_body_into_str(answer, "ANSWER")
+        return quality_str, self.turn_body_into_str(answer)
 
-    def make_instances_from_question(self, sample: Dict) -> List[Dict]:
+    def apply_prompt(self, prompt_kwargs, is_first_answer, answer_quality=None):
+        copy_prompt_kwargs = deepcopy(prompt_kwargs)
+        if not is_first_answer and not self.repeat_body_for_each_answer:
+            copy_prompt_kwargs['question'] = None
+        if answer_quality:
+            copy_prompt_kwargs['quality'] = answer_quality
+        return self.prompt.render(**copy_prompt_kwargs).strip()
+
+    def __call__(self, sample: Dict) -> List[Dict]:
         """
         Get the text string from the sample.
         """
@@ -220,7 +183,7 @@ class StackOverflowProcessor:
         accepted_answer_id = sample['accepted_answer'] or "-1"
 
         sample['body'] = self.clean_html_body(sample['body'],
-                                              force_keep_all=self.force_include_question)
+                                              force_keep_all=True)
 
         for k in sample['answers'].keys():
             sample['answers'][k]['body'] = self.clean_html_body(sample['answers'][k]['body'])
@@ -235,33 +198,28 @@ class StackOverflowProcessor:
                 answers.append(d)
 
         # Sort the answer keys
-        answers = sorted(
-            answers, key=lambda k: k['score'],
-            reverse=not self.answer_sorting == 'ascending'
-        )
+        answers = list(sorted(
+            answers,
+            key=lambda ans: ans['score'],
+            reverse=self.answer_sorting != 'ascending'
+        ))
 
         # If there is an accepted answer and we are sorting by accepted, put the
         # accepted at the front of the list.
         if accepted_answer is not None and self.answer_sorting == "accepted":
             answers = [accepted_answer, *answers]
 
-        question_str = self.apply_question_prompt(
+        # Create the kwargs for the prompt.
+        prompt_kwargs = self.process_question(
             title=sample['title'],
             body=deepcopy(sample['body']),
             score=sample['score'],
             views=sample['views'],
             tags=sample['tags'],
-            is_first_answer=True
+            date=sample['date']
         )
-
-        repeat_answer_input_str = self.apply_question_prompt(
-            title=sample['title'],
-            body=sample['body'],
-            score=sample['score'],
-            views=sample['views'],
-            tags=sample['tags'],
-            is_first_answer=False
-        )
+        prompt_kwargs['quality'] = 'NONE' if self.repeat_prompt_each_answer else 'ACCEPTED'
+        prompt_kwargs['comment_type'] = self.comment_type_for_question
 
         if self.answers_per_sample == -1:
             answers_keep = len(answers)
@@ -269,62 +227,50 @@ class StackOverflowProcessor:
             answers_keep = self.answers_per_sample
 
         # Add the quality information to the answer.
-        out = []
         if not answers:
             if self.allow_no_answer:
-                return [{'input': question_str, 'labels': self.no_answer_str}]
+                return [
+                    {
+                        'input' : self.apply_prompt(prompt_kwargs, True),
+                        'labels': self.no_answer_str
+                    }
+                ]
             return []
 
-        for i, answer in enumerate(answers[:answers_keep]):
+        answers_processed = []
+        for i, answer in enumerate(answers):
             if not answer['body'] and not self.allow_no_answer:
                 continue
+            if i >= answers_keep:
+                break
+            answers_processed.append(
+                self.process_answer(
+                    answer['body'], answer['score'],
+                    answer['id'] == accepted_answer_id
+                )
+            )
 
-            quality_str, answer_str = self.apply_answer_prompt(answer['body'], answer['score'],
-                                                               answer['id'] == accepted_answer_id)
-            if i > 0:
-                input_str = repeat_answer_input_str
-            else:
-                input_str = question_str
+        if not answers_processed:
+            if not self.allow_no_answer:
+                return []
+            return [
+                {
+                    'input' : self.apply_prompt(prompt_kwargs, True),
+                    'labels': self.no_answer_str
+                }
+            ]
+        if not self.repeat_prompt_each_answer:
+            return [
+                {
+                    'input' : self.apply_prompt(prompt_kwargs, True),
+                    'labels': '\n'.join(d[1] for d in answers_processed)
+                }
+            ]
 
-            if quality_str and self.repeat_question_for_each_answer != 'none':
-                if self.wrap_question_character is None:
-                    input_str += '\n' + quality_str
-                elif self.wrap_question_character == "BLOCK":
-                    if input_str.strip().endswith('\n"""'):
-                        input_str = input_str.strip()[:-4]
-                        input_str += f'\n{quality_str}\n"""'
-                    else:
-                        input_str += f'\n"""\n{quality_str}\n"""'
-                else:
-                    input_str += f"\n# {quality_str}"
-            elif self.repeat_question_for_each_answer == 'none':
-                if quality_str:
-                    if self.wrap_answer_character is None:
-                        answer_str = f"{quality_str}\n{answer_str.lstrip()}"
-                    elif self.wrap_answer_character == "BLOCK":
-                        if answer_str.startswith('"""'):
-                            answer_str = answer_str[3:]
-                            answer_str = f'"""\n{quality_str}\n{answer_str.lstrip()}'
-                        else:
-                            answer_str = f'"""\n{quality_str}\n"""\n{answer_str.lstrip()}'
-                    else:
-                        answer_str = f"# {quality_str}\n{answer_str.lstrip()}"
-                out.append({'input': '', 'labels': answer_str})
-                continue
-
-            out.append({'input': input_str, 'labels': answer_str})
-
-        if self.repeat_question_for_each_answer == 'none' and out:
-            out = [{'input': question_str, 'labels': '\n'.join(d['labels'] for d in out)}]
-        return out
-
-    def __call__(self, samples):
-        inputs = []
-        targets = []
-
-        for instance_list in map(self.make_instances_from_question, samples):
-            for d in instance_list:
-                inputs.append(d['input'])
-                targets.append(d['labels'])
-
-        return {'inputs': inputs, 'labels': targets}
+        return [
+            {
+                'input' : self.apply_prompt(prompt_kwargs, i == 0, d[0]),
+                'labels': d[1]
+            }
+            for i, d in enumerate(answers_processed)
+        ]
