@@ -22,11 +22,11 @@ meta:
 metrics:
   - exact-match
   - bleu
-model: Salesforce/codet5-base
+model: EleutherAI/gpt-neo-125M
 model_path: null
 name: ConditionTest
 numpy_seed: 2
-objective: seq2seq
+objective: lm
 postprocessors: [ ]
 preprocessors: [ ]
 processor:
@@ -60,18 +60,18 @@ task:
   raw_dump_name: python
   raw_dump_path: data/dumps
   seed: 1
-  sequence_length: 512
+  sequence_length: 1024
   tensorized_name: python_code_norepeat
 tensorize_batch_size: 64
-tracking: False
-#  entity: nyu-code-research
-#  log_model: true
-#  project: so-code-gen
-#  watch: gradients
-#  tags:
-#    - Testing
+tracking:
+  entity: nyu-code-research
+  log_model: true
+  project: so-code-gen
+  watch: gradients
+  tags:
+   - Testing
 training:
-  batch_size: 8
+  batch_size: 32
   ddp_find_unused_parameters: false
   #  deepspeed: ds_config.json
   disable_tqdm: true
