@@ -21,6 +21,7 @@ srun $(which singularity) exec --nv \
 	/bin/bash -c "
 source /ext3/env.sh
 conda activate adversarial-code
+echo "${SLURM_NODEID}"
 #python scripts/prepare_train_environment.py $1 -force
 torchrun --nnodes=2 --nproc_per_node=1 --rdzv_id=$SLURM_JOB_ID \
     --rdzv_backend=c10d \
