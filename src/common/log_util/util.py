@@ -5,7 +5,7 @@ from typing import Union
 import re
 from .log_handlers import TQDMLoggingHandler, CompactFileHandler
 
-__all__ = ["setup_global_logging","set_global_logging_level"]
+__all__ = ["setup_global_logging", "set_global_logging_level"]
 
 
 def setup_global_logging(
@@ -52,8 +52,6 @@ def setup_global_logging(
     # Clear the log files
     with open(normal_file, "w", encoding="utf-8") as f:
         f.write("")
-    with open(error_file, "w", encoding="utf-8") as f:
-        f.write("")
 
     # The different message formats to use
     msg_format = logging.Formatter(
@@ -84,6 +82,8 @@ def setup_global_logging(
     root_logger = logging.getLogger()
 
     if not disable_issues_file:
+        with open(error_file, "w", encoding="utf-8") as f:
+            f.write("")
         error_file_handler = CompactFileHandler(str(error_file.resolve().absolute()),
                                                 logging.WARNING,
                                                 error_format)
@@ -93,6 +93,7 @@ def setup_global_logging(
     if rank <= 0:
         root_logger.addHandler(console_handler)
     root_logger.setLevel(logging.NOTSET)
+
 
 def set_global_logging_level(level=logging.ERROR, prefices=[""]):
     """
@@ -105,7 +106,7 @@ def set_global_logging_level(level=logging.ERROR, prefices=[""]):
           Default is `[""]` to match all active loggers.
           The match is a case-sensitive `module_name.startswith(prefix)`
     """
-    prefix_re = re.compile(fr'^(?:{ "|".join(prefices) })')
+    prefix_re = re.compile(fr'^(?:{"|".join(prefices)})')
     for name in logging.root.manager.loggerDict:
         if re.match(prefix_re, name):
             logging.getLogger(name).setLevel(level)

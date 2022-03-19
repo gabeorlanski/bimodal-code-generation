@@ -189,7 +189,7 @@ def setup_pretrain(cfg, tokenizer, train_args):
             logger.info(f"Read {line_num} lines for eval")
         if not processed:
             logger.debug(f"Line {line_num} with id {sample['id']} had no "
-                           f"samples produced.")
+                         f"samples produced.")
             num_no_samples += 1
             continue
         for instance in processed:
@@ -364,7 +364,7 @@ def train_model(cfg: DictConfig):
 
         optimizer_arg = (optimizer, lr_scheduler)
     else:
-        optimizer_arg = (None,None)
+        optimizer_arg = (None, None)
 
     logger.info(f"{total_steps} total training steps and {warmup_steps} warmup")
     device = train_args.device
@@ -385,6 +385,9 @@ def train_model(cfg: DictConfig):
     )
     trainer.train()
 
+    with open_dict(cfg):
+        cfg.best_model_checkpoint = trainer.state.best_model_checkpoint
+        cfg.best_model_path = str(PROJECT_ROOT.joinpath(trainer.state.best_model_checkpoint))
     with Path('config.yaml').open('w') as f:
         f.write(OmegaConf.to_yaml(trainer.cfg, resolve=True, sort_keys=True))
     return trainer.model

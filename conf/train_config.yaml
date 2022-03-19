@@ -18,6 +18,7 @@ device: cpu
 seed: 1
 numpy_seed: 2
 pytorch_seed: 3
+save_best_model: False
 
 generation:
   max_length: 1024

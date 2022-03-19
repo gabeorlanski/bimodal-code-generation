@@ -38,12 +38,16 @@ def train_from_cfg(cfg):
             valid_tasks += f'\t{t}\n'
         raise ValueError(f"Unknown Task '{task}'. Valid tasks are:\n{valid_tasks}")
     new_cwd = Path('outputs', group_name.lower(), name)
-    if not is_currently_distributed():
+
+    if int(os.environ.get('LOCAL_RANK', '-1')) <= 0:
         if not new_cwd.exists():
             new_cwd.mkdir(parents=True)
         else:
             shutil.rmtree(new_cwd)
             new_cwd.mkdir(parents=True)
+    if is_currently_distributed():
+        print('Barrier Hit')
+        torch.distributed.barrier()
 
     setup_global_logging(
         'train',
@@ -86,6 +90,7 @@ def train_from_cfg(cfg):
 
     with open_dict(cfg):
         cfg.training.local_rank = int(os.environ.get('LOCAL_RANK', '-1'))
+        cfg.save_path = str(new_cwd)
         if "meta" not in cfg:
             cfg['meta'] = {'base_name': get_run_base_name_from_cfg(cfg)}
         else:
@@ -97,7 +102,7 @@ def train_from_cfg(cfg):
 
     model = train_model(cfg)
 
-    if cfg.training.local_rank <= 0:
+    if cfg.training.local_rank <= 0 and cfg.get('save_best_model', False):
         best_models_path = PROJECT_ROOT.joinpath('best_models', get_run_base_name_from_cfg(cfg))
         save_model = True
         if best_models_path.exists():
