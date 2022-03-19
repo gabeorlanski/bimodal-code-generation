@@ -233,7 +233,7 @@ def setup_pretrain(cfg, tokenizer, train_args):
     return train_dataset, eval_dataset, None
 
 
-def train_model(cfg: DictConfig):
+def train_model(cfg: DictConfig, train_args):
     """
     Train a model with a given task.
 
@@ -255,8 +255,6 @@ def train_model(cfg: DictConfig):
     else:
         task: Task = config.load_task_from_cfg(cfg)
         tokenizer = task.tokenizer
-
-    train_args = config.get_training_args_from_cfg(cfg)
     if tokenizer.pad_token is None:
         tokenizer.pad_token = tokenizer.eos_token
         model.config.pad_token_id = tokenizer.pad_token_id

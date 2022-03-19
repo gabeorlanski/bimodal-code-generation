@@ -15,7 +15,8 @@ from tio import Task
 
 from src.common import setup_global_logging, is_currently_distributed
 from src.training import train_model
-from src.config import setup_tracking_env_from_cfg, get_run_base_name_from_cfg
+from src.config import setup_tracking_env_from_cfg, get_run_base_name_from_cfg, \
+    get_training_args_from_cfg
 from src.data import NON_REGISTERED_TASKS
 
 # Hydra Messes with the CWD, so we need to save it at the beginning.
@@ -24,9 +25,6 @@ PROJECT_ROOT = Path.cwd()
 
 def train_from_cfg(cfg):
     OmegaConf.resolve(cfg)
-    if cfg.debug:
-        for k, v in os.environ.items():
-            print(f"{os.environ['local_rank']}: {k}={v}")
     task = cfg.task.name
     name = cfg.name
     group_name = cfg.group
@@ -42,14 +40,24 @@ def train_from_cfg(cfg):
         raise ValueError(f"Unknown Task '{task}'. Valid tasks are:\n{valid_tasks}")
     new_cwd = Path('outputs', group_name.lower(), name)
 
-    if int(os.environ.get('LOCAL_RANK', '-1')) <= 0:
+    with open_dict(cfg):
+        cfg.training.local_rank = int(os.environ.get('LOCAL_RANK', '-1'))
+        cfg.save_path = str(new_cwd)
+        if "meta" not in cfg:
+            cfg['meta'] = {'base_name': get_run_base_name_from_cfg(cfg)}
+        else:
+            cfg['meta']['base_name'] = get_run_base_name_from_cfg(cfg)
+
+    train_args = get_training_args_from_cfg(cfg)
+
+    if cfg.training.local_rank <= 0:
         if not new_cwd.exists():
             new_cwd.mkdir(parents=True)
         else:
             shutil.rmtree(new_cwd)
             new_cwd.mkdir(parents=True)
+
     if is_currently_distributed():
-        print('Barrier Hit')
         torch.distributed.barrier()
 
     setup_global_logging(
@@ -71,6 +79,13 @@ def train_from_cfg(cfg):
 
     setup_tracking_env_from_cfg(cfg)
 
+    if (
+            os.environ.get("LOCAL_RANK", '-1') != '-1'
+            or os.environ['WANDB_DISABLED'] != 'true'
+            or cfg.training.get('dataloader_num_workers', 0) > 0
+    ):
+        os.environ["DISABLE_FAST_TOK"] = "true"
+
     if "training" not in cfg:
         raise KeyError("Missing 'training' key in config.")
 
@@ -84,26 +99,11 @@ def train_from_cfg(cfg):
     np.random.seed(cfg["numpy_seed"])
     torch.manual_seed(torch_seed)
 
-    if (
-            os.environ.get("LOCAL_RANK", '-1') != '-1'
-            or os.environ['WANDB_DISABLED'] != 'true'
-            or cfg.training.get('dataloader_num_workers', 0) > 0
-    ):
-        os.environ["DISABLE_FAST_TOK"] = "true"
-
-    with open_dict(cfg):
-        cfg.training.local_rank = int(os.environ.get('LOCAL_RANK', '-1'))
-        cfg.save_path = str(new_cwd)
-        if "meta" not in cfg:
-            cfg['meta'] = {'base_name': get_run_base_name_from_cfg(cfg)}
-        else:
-            cfg['meta']['base_name'] = get_run_base_name_from_cfg(cfg)
-
     # Seed all GPUs with the same seed if available.
     if torch.cuda.is_available():
         torch.cuda.manual_seed_all(torch_seed)
 
-    model = train_model(cfg)
+    model = train_model(cfg, train_args)
 
     if cfg.training.local_rank <= 0 and cfg.get('save_best_model', False):
         best_models_path = PROJECT_ROOT.joinpath('best_models', get_run_base_name_from_cfg(cfg))

@@ -17,11 +17,10 @@ echo "${SLURM_NODEID}"
 MASTER_PORT=$(shuf -i 10000-65500 -n 1)
 
 srun $(which singularity) exec --nv \
-	--overlay $SCRATCH/overlay-50G-10M.ext3:rw \
+	--overlay $SCRATCH/overlay-50G-10M.ext3:ro \
 	/scratch/work/public/singularity/cuda11.4.2-cudnn8.2.4-devel-ubuntu20.04.3.sif \
 	/bin/bash -c "
 source /ext3/env.sh
-echo "$(scontrol show hostnames "$SLURM_JOB_NODELIST")" >> /etc/hosts
 conda activate adversarial-code
 #python scripts/prepare_train_environment.py $1 -force
 torchrun --nnodes=2 --nproc_per_node=1 --rdzv_id=$SLURM_JOB_ID \
