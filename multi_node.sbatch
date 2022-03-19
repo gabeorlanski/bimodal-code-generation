@@ -22,18 +22,10 @@ srun $(which singularity) exec --nv \
 	/bin/bash -c "
 source /ext3/env.sh
 conda activate adversarial-code
-echo "${SLURM_NODEID}"
 #python scripts/prepare_train_environment.py $1 -force
 torchrun --nnodes=2 --nproc_per_node=1 --rdzv_id=$SLURM_JOB_ID \
     --rdzv_backend=c10d \
     --rdzv_endpoint="${master_addr}" \
 	--node_rank=$SLURM_NODEID \
     train.py --debug from_config data/sample_tensorized_cfg.yaml
-#python -m torch.distributed.launch \
-#      --nproc_per_node=1 \
-#      --nnodes=$SLURM_NTASKS \
-#      --node_rank=$SLURM_NODEID \
-#      --master_addr=$MASTER_ADDR \
-#      --master_port=$MASTER_PORT \
-#      train.py --debug from_config data/sample_tensorized_cfg.yaml
 "

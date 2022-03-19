@@ -24,6 +24,9 @@ PROJECT_ROOT = Path.cwd()
 
 def train_from_cfg(cfg):
     OmegaConf.resolve(cfg)
+    if cfg.debug:
+        for k, v in os.environ.items():
+            print(f"{os.environ['local_rank']}: {k}={v}")
     task = cfg.task.name
     name = cfg.name
     group_name = cfg.group
