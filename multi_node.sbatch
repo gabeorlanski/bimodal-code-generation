@@ -11,7 +11,7 @@ export WORLD_SIZE=2
 echo "NODELIST="${SLURM_NODELIST}
 echo "$(scontrol show hostnames "$SLURM_JOB_NODELIST")"
 master_addr=$(scontrol show hostnames "$SLURM_JOB_NODELIST" | head -n 1)
-export MASTER_ADDR="${master_addr}.hpc.nyu.edu"
+export MASTER_ADDR="${master_addr}"
 echo "MASTER_ADDR="$MASTER_ADDR
 echo "${SLURM_NODEID}"
 MASTER_PORT=$(shuf -i 10000-65500 -n 1)
