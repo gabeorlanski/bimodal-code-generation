@@ -42,7 +42,10 @@ class StackOverflowProcessor:
             include_question_score: bool = True,
             include_tags: bool = True,
             include_quality: bool = True,
-            date_format_str: str = "%Y"
+            date_format_str: str = "%Y",
+            highest_is_best: bool = False,
+            allow_negative_best_answer: bool = False,
+            worst_is_best: bool = False,
     ):
         self.answer_sorting = answer_sorting.lower()
         if self.answer_sorting not in ['ascending', 'descending', 'accepted']:
@@ -66,6 +69,9 @@ class StackOverflowProcessor:
         self.date_format_str = date_format_str
         self.include_quality = include_quality
         self.wrap_answer_character = wrap_answer_character
+        self.highest_is_best = highest_is_best
+        self.worst_is_best = worst_is_best
+        self.allow_negative_best_answer = allow_negative_best_answer
         if wrap_answer_character:
             if wrap_answer_character.upper() in ['BLOCK', 'LINE']:
                 self.wrap_answer_character = wrap_answer_character.upper()
@@ -157,15 +163,15 @@ class StackOverflowProcessor:
             'question_date' : question_date
         }
 
-    def process_answer(self, answer: List[Tag], score, is_accepted):
+    def process_answer(self, answer: List[Tag], score, is_best_answer):
 
         if not answer:
             return self.no_answer_str
 
         quality_str = ""
         if self.good_answer_cutoff is not None and self.bad_answer_cutoff is not None:
-            if is_accepted:
-                quality_str = 'ACCEPTED'
+            if is_best_answer:
+                quality_str = 'BEST'
             elif score >= self.top_answer_cutoff:
                 quality_str = 'GREAT'
             elif score >= self.good_answer_cutoff:
@@ -205,7 +211,16 @@ class StackOverflowProcessor:
         # Do a list comprehension to eliminate the accepted answer
         accepted_answer = None
         answers = []
+        highest_scoring_answer = lowest_scoring_answer = None
+        highest_score = float('-inf')
+        lowest_score = float('inf')
         for d in sample['answers'].values():
+            if d['score'] > highest_score:
+                highest_scoring_answer = d['id']
+                highest_score = d['score']
+            if d['score'] < lowest_score:
+                lowest_scoring_answer = d['id']
+                lowest_score = d['score']
             if d['id'] == accepted_answer_id and self.answer_sorting == "accepted":
                 accepted_answer = d
             else:
@@ -232,7 +247,7 @@ class StackOverflowProcessor:
             tags=sample['tags'],
             date=sample['date']
         )
-        prompt_kwargs['quality'] = 'NONE' if self.repeat_prompt_each_answer else 'ACCEPTED'
+        prompt_kwargs['quality'] = 'NONE' if self.repeat_prompt_each_answer else 'BEST'
         prompt_kwargs['comment_type'] = self.comment_type_for_question
 
         if self.answers_per_sample == -1:
@@ -257,10 +272,25 @@ class StackOverflowProcessor:
                 continue
             if i >= answers_keep:
                 break
+
+            is_best_answer = False
+            if self.worst_is_best:
+                is_best_answer = answer['id'] == lowest_scoring_answer
+            elif answer['id'] == accepted_answer_id and not self.highest_is_best:
+                is_best_answer = True
+            elif (
+                    answer['id'] == highest_scoring_answer
+                    and (accepted_answer_id == '-1' or self.highest_is_best)
+            ):
+                if answer['score'] >= 0:
+                    is_best_answer = True
+                elif self.allow_negative_best_answer:
+                    is_best_answer = True
+
             answers_processed.append(
                 self.process_answer(
                     answer['body'], answer['score'],
-                    answer['id'] == accepted_answer_id
+                    is_best_answer
                 )
             )
 

@@ -27,6 +27,7 @@ class TestStackOverflowProcessor:
     @pytest.mark.parametrize('include_tags', [True, False], ids=['Tags', 'NoTags'])
     @pytest.mark.parametrize('answer_sorting', ['accepted', 'ascending'])
     @pytest.mark.parametrize('date_fmt', ['%Y', '%m'], ids=['Year', 'Month'])
+    @pytest.mark.parametrize('best_question', ['Highest', 'Lowest', 'Accepted'])
     def test_call(
             self,
             repeat_prompt,
@@ -37,14 +38,15 @@ class TestStackOverflowProcessor:
             include_scores,
             include_tags,
             answer_sorting,
-            date_fmt
+            date_fmt,
+            best_question
     ):
 
         sample = {
             "line" : 5991, "body": "<p>Body</p>", "type": 1, "id": "13454",
             "date" : "2008-08-17T01:23:50.067", "score": 13, "comment_count": 0,
             "tags" : ["python", "string", "escaping"], "title": "Title", "answer_count": 5,
-            "views": 8027, "accepted_answer": None, "answers": {
+            "views": 8027, "accepted_answer": "13456", "answers": {
                 "13608"   : {
                     "line"     : 6083, "body": "<pre><code>Answer 1</code></pre>", "type": 2,
                     "id"       : "13608",
@@ -56,7 +58,7 @@ class TestStackOverflowProcessor:
                     "parent_id": "13454"
                 }, "13598": {
                     "line"     : 6077, "body": "<p>Answer 3</p>", "type": 2, "id": "13598",
-                    "date"     : "2008-08-17T12:15:13.170", "score": 13, "comment_count": 0,
+                    "date"     : "2008-08-17T12:15:13.170", "score": 10, "comment_count": 0,
                     "parent_id": "13454"
                 }
             }
@@ -64,6 +66,15 @@ class TestStackOverflowProcessor:
 
         prompt = Environment().from_string(
             PROJECT_ROOT.joinpath("templates/so/base_question.txt").read_text())
+
+        highest_is_best = False
+        worst_is_best = False
+        if best_question == 'Highest':
+            highest_is_best = True
+            worst_is_best = False
+        elif best_question == 'Lowest':
+            highest_is_best = False
+            worst_is_best = True
 
         processor = stackoverflow.StackOverflowProcessor(
             prompt_file='templates/so/base_question.txt',
@@ -75,7 +86,9 @@ class TestStackOverflowProcessor:
             include_tags=include_tags,
             include_question_score=include_scores,
             answer_sorting=answer_sorting,
-            date_format_str=date_fmt
+            date_format_str=date_fmt,
+            highest_is_best=highest_is_best,
+            worst_is_best=worst_is_best
         )
 
         result = processor.__call__(sample)
@@ -91,13 +104,26 @@ class TestStackOverflowProcessor:
 
         }
 
-        quality_strs = [
-            ("GREAT", 13),
-            ("OK", 0),
-            ("BAD", -1)
-        ]
+        if highest_is_best:
+            quality_strs = [
+                ("OK", 0),
+                ("BEST", 10),
+                ("BAD", -1)
+            ]
+        elif worst_is_best:
+            quality_strs = [
+                ("OK", 0),
+                ("GOOD", 10),
+                ("BEST", -1)
+            ]
+        else:
+            quality_strs = [
+                ("BEST", 0),
+                ("GOOD", 10),
+                ("BAD", -1)
+            ]
         if answer_sorting == 'ascending':
-            quality_strs = reversed(quality_strs)
+            quality_strs = list(sorted(quality_strs, key=lambda l: l[1]))
 
         expected_inputs = []
         if repeat_prompt:
@@ -108,29 +134,35 @@ class TestStackOverflowProcessor:
                 prompt_kwargs['answer_score'] = v[1]
                 expected_inputs.append(prompt.render(**prompt_kwargs).strip())
         else:
-            prompt_kwargs['quality'] = 'ACCEPTED'
+            prompt_kwargs['quality'] = 'BEST'
             expected_inputs.append(prompt.render(**prompt_kwargs).strip())
 
         expected_answers = [
-            "Answer 3",
             "Answer 2",
+            "Answer 3",
             "Answer 1"
         ]
         if wrap_answer == "LINE":
             expected_answers = [
-                "# Answer 3",
                 "# Answer 2",
+                "# Answer 3",
                 "Answer 1"
             ]
         elif wrap_answer == 'BLOCK':
             expected_answers = [
-                '"""\nAnswer 3\n"""',
                 '"""\nAnswer 2\n"""',
+                '"""\nAnswer 3\n"""',
                 'Answer 1',
             ]
 
+        # if date_fmt == '%Y' and
+
         if answer_sorting == 'ascending':
-            expected_answers = list(reversed(expected_answers))
+            expected_answers = [
+                expected_answers[2],
+                expected_answers[0],
+                expected_answers[1]
+            ]
         if not repeat_prompt:
             expected_answers = ['\n'.join(expected_answers)]
         assert len(result) == len(expected_inputs)

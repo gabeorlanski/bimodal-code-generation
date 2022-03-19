@@ -2,7 +2,7 @@ data_args:
   seq_length: 256
 data_path: data
 debug: false
-device: 0
+device: -1
 generation:
   do_sample: true
   max_length: 256

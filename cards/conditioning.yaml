@@ -40,21 +40,33 @@ experiments:
       - ProcessorArgs:
           NoPromptMeta:
             ++processor.params:
-                wrap_answer_character: None
-                include_date: False
-                include_question_score: False
-                include_tags: False
-                repeat_body_for_each_answer: False
+              wrap_answer_character: None
+              include_date: False
+              include_question_score: False
+              include_tags: False
+              repeat_body_for_each_answer: False
           Base:
             ++processor.params.wrap_answer_character: None
           LineComment:
             ++processor.params:
-                comment_type_for_question: 'LINE'
-                wrap_answer_character: "LINE"
+              comment_type_for_question: 'LINE'
+              wrap_answer_character: "LINE"
           BlockComment:
             ++processor.params:
-                comment_type_for_question: 'BLOCK'
-                wrap_answer_character: "LINE"
+              comment_type_for_question: 'BLOCK'
+              wrap_answer_character: "LINE"
+          OnlyAnswerComment:
+            ++processor.params:
+              wrap_answer_character: "LINE"
+          NoQuestionScore:
+            ++processor.params:
+              include_question_score: False
+          HighestIsBest:
+            ++processor.params:
+              highest_is_best: True
+          LowestIsBest:
+            ++processor.params:
+              worst_is_best: True
 
 
     steps:
