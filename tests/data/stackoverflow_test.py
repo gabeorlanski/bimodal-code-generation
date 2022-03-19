@@ -26,6 +26,7 @@ class TestStackOverflowProcessor:
     @pytest.mark.parametrize('include_date', [True, False], ids=['Date', 'NoDate'])
     @pytest.mark.parametrize('include_tags', [True, False], ids=['Tags', 'NoTags'])
     @pytest.mark.parametrize('answer_sorting', ['accepted', 'ascending'])
+    @pytest.mark.parametrize('date_fmt', ['%Y', '%m'], ids=['Year', 'Month'])
     def test_call(
             self,
             repeat_prompt,
@@ -35,7 +36,8 @@ class TestStackOverflowProcessor:
             include_date,
             include_scores,
             include_tags,
-            answer_sorting
+            answer_sorting,
+            date_fmt
     ):
 
         sample = {
@@ -72,18 +74,20 @@ class TestStackOverflowProcessor:
             include_date=include_date,
             include_tags=include_tags,
             include_question_score=include_scores,
-            answer_sorting=answer_sorting
+            answer_sorting=answer_sorting,
+            date_format_str=date_fmt
         )
 
         result = processor.__call__(sample)
 
+        dt_str = "2008" if date_fmt == '%Y' else '08'
         prompt_kwargs = {
             "title"         : "Title",
             "question_score": "13" if include_scores else None,
             "question"      : "Body",
             "tags"          : "python,string,escaping" if include_tags else None,
             "comment_type"  : comment_type,
-            "question_date" : "2008-08-17" if include_date else None
+            "question_date" : dt_str if include_date else None
 
         }
 

@@ -9,7 +9,9 @@
 {%- set meta_str=meta_str~'\nTAGS: '~tags -%}
 {%- endif %}
 {%- set meta_str=meta_str~'\nTITLE: '~title -%}
+{%- if quality != None %}
 {%- set meta_str=meta_str~'\n'~quality.upper()~' SOLUTION' -%}
+{%- endif %}
 {%- if comment_type is defined and comment_type != 'NONE' -%}
 {%- if comment_type == 'BLOCK' -%}
 """

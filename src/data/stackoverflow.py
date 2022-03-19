@@ -3,6 +3,7 @@ Code for handling
 """
 import logging
 from copy import deepcopy
+from datetime import datetime
 from typing import Callable, List, Dict, Iterator
 from bs4 import BeautifulSoup
 from bs4.element import Tag
@@ -39,7 +40,9 @@ class StackOverflowProcessor:
             wrap_answer_character: str = None,
             include_date: bool = True,
             include_question_score: bool = True,
-            include_tags: bool = True
+            include_tags: bool = True,
+            include_quality: bool = True,
+            date_format_str: str = "%Y"
     ):
         self.answer_sorting = answer_sorting.lower()
         if self.answer_sorting not in ['ascending', 'descending', 'accepted']:
@@ -60,6 +63,8 @@ class StackOverflowProcessor:
         self.include_question_score = include_question_score
         self.include_tags = include_tags
         self.include_date = include_date
+        self.date_format_str = date_format_str
+        self.include_quality = include_quality
         self.wrap_answer_character = wrap_answer_character
         if wrap_answer_character:
             if wrap_answer_character.upper() in ['BLOCK', 'LINE']:
@@ -139,12 +144,17 @@ class StackOverflowProcessor:
             date,
             tags
     ):
+
+        question_date = None
+        if self.include_date:
+            question_date = datetime.fromisoformat(date).strftime(self.date_format_str)
+
         return {
             "title"         : title,
             "question_score": score if self.include_question_score else None,
             "tags"          : ','.join(tags) if self.include_tags else None,
             'question'      : unidecode('\n'.join(t.text.strip() for t in body if t.text.strip())),
-            'question_date' : date.split('T')[0] if self.include_date else None
+            'question_date' : question_date
         }
 
     def process_answer(self, answer: List[Tag], score, is_accepted):
@@ -173,6 +183,10 @@ class StackOverflowProcessor:
             copy_prompt_kwargs['question'] = None
         if answer_quality:
             copy_prompt_kwargs['quality'] = answer_quality
+
+        if not self.include_quality:
+            copy_prompt_kwargs['quality'] = None
+
         return self.prompt.render(**copy_prompt_kwargs).strip()
 
     def __call__(self, sample: Dict) -> List[Dict]:

@@ -60,7 +60,7 @@ task:
   raw_dump_name: python
   raw_dump_path: data/dumps
   seed: 1
-  sequence_length: 1024
+  sequence_length: 512
   tensorized_name: python_code_norepeat
 tensorize_batch_size: 64
 tracking:
@@ -71,7 +71,7 @@ tracking:
   tags:
    - Testing
 training:
-  batch_size: 32
+  batch_size: 1
   ddp_find_unused_parameters: false
   #  deepspeed: ds_config.json
   disable_tqdm: true
