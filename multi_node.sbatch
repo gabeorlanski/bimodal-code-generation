@@ -26,7 +26,7 @@ srun $(which singularity) exec --nv \
 source /ext3/env.sh
 conda activate adversarial-code
 #python scripts/prepare_train_environment.py sample_multinode.yaml -force
-echo "Starting $SLURM_NODEID"
+echo "Starting"
 python -m torch.distributed.launch \
       --nproc_per_node=1 \
       --master_addr=$MASTER_ADDR_JOB \
