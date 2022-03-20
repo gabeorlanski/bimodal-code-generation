@@ -17,7 +17,7 @@ export WORLD_SIZE=2
 echo "$(scontrol show hostnames "$SLURM_JOB_NODELIST")"
 echo "MASTER_ADDR="$MASTER_ADDR
 echo "MASTER_PORT=$MASTER_PORT"
-
+echo "${SLURMD_NODENAME}"
 srun $(which singularity) exec --nv \
 	--overlay $SCRATCH/overlay-50G-10M.ext3:ro \
 	/scratch/work/public/singularity/cuda11.4.2-cudnn8.2.4-devel-ubuntu20.04.3.sif \
@@ -25,8 +25,10 @@ srun $(which singularity) exec --nv \
 source /ext3/env.sh
 conda activate adversarial-code
 #python scripts/prepare_train_environment.py sample_multinode.yaml -force
+echo "Starting"
 python -m torch.distributed.launch \
       --nproc_per_node=1 \
-      --nnodes=$WORLD_SIZE \
+      --nnodes=$SLURM_NTASKS \
+      --node_rank=$SLURM_NODEID \
       train.py --debug from_config data/sample_tensorized_cfg.yaml
 "
