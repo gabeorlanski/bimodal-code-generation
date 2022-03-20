@@ -67,8 +67,6 @@ experiments:
           LowestIsBest:
             ++processor.params:
               worst_is_best: True
-
-
     steps:
       - name: PreTrain
         add_name: False
@@ -112,7 +110,7 @@ experiments:
             temperature: 0.5
             top_p: 0.95
             top_k: 50
-          model_path: best_models/${..__META__.PreTrain.save_name}
+          model_path: outputs/so/${..__META__.PreTrain.name}/models/checkpoint-10000
           batch_size: 200
       - name: FineTune
         base: greene_config
@@ -120,13 +118,27 @@ experiments:
         overrides:
           task: mbpp
           ++is_checkpoint: True
-          ++model_path: best_models/${..__META__.PreTrain.save_name}
+          ++model_path: outputs/so/${..__META__.PreTrain.name}/models/checkpoint-10000
           ++training:
             batch_size: 32
             gradient_accumulation_steps: 1
             learning_rate: 5e-5
           tracking:
             log_model: False
+      - name: HEFineTune
+        add_name: False
+        base: human_eval
+        group: MBPP_HUMAN_EVAL
+        overrides:
+          is_checkpoint: true
+          ++generation:
+            max_new_tokens: 256
+            do_sample: true
+            temperature: 0.5
+            top_p: 0.95
+            top_k: 50
+          model_path: outputs/mbpp/${..__META__.PreTrain.name}/best_model
+          batch_size: 200
       - name: Eval
         base: eval_config
         group: MBPP
@@ -141,9 +153,9 @@ experiments:
             top_k: 50
           task: mbpp
           remove_input_ids: true
-          ++model_path: best_models/${..__META__.FineTune.save_name}
+          ++model_path: outputs/mbpp/${..__META__.PreTrain.name}/best_model
     command:
-      file: templates/commands/pretrain.txt
+      file: templates/commands/evaluate_model.txt
       kwargs:
         num_return_sequences: 200
         task_name: MBPP

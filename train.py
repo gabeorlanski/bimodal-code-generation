@@ -104,8 +104,8 @@ def train_from_cfg(cfg):
 
     model = train_model(cfg, train_args)
 
-    if cfg.training.local_rank <= 0 and cfg.get('save_best_model', False):
-        best_models_path = PROJECT_ROOT.joinpath('best_models', get_run_base_name_from_cfg(cfg))
+    if cfg.training.local_rank <= 0:
+        best_models_path = Path('best_model')
         save_model = True
         if best_models_path.exists():
             logger.info(f"Overwriting {best_models_path}")
@@ -214,6 +214,4 @@ def train(ctx, name, task, config_name, override_str, cfg_overrides):
 
 
 if __name__ == "__main__":
-    for k,v in os.environ.items():
-        print(f"{k}={v}")
     cli()

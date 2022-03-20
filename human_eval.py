@@ -229,9 +229,8 @@ def main(
             cfg.generation.top_k = top_k
         if top_p is not None:
             cfg.generation.top_p = top_p
-        cfg.group = 'HUMAN_EVAL'
-        if conditioning_tags:
-            cfg.group += '_COND'
+        if "HUMAN_EVAL" not in cfg.group:
+            cfg.group = f"{cfg.group}_HUMAN_EVAL"
 
         if 'task' not in cfg or 'name' not in cfg.task:
             cfg.task = OmegaConf.create(yaml.load(
@@ -445,7 +444,7 @@ def main(
 
     if isinstance(cfg.tracking, (dict, DictConfig)) and not no_code_eval:
         os.environ["WANDB_API_KEY"] = open('wandb_secret.txt').read().strip()
-        group_name = f"HUMAN_EVAL{'_COND' if conditioning_tags else ''}[eval]"
+        group_name = f"{cfg.group}[eval]"
         wandb_run = wandb.init(
             job_type='code_eval',
             name=os.getenv('WANDB_RUN_NAME'),
