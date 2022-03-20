@@ -29,8 +29,6 @@ conda activate adversarial-code
 echo "Starting $SLURM_NODEID"
 python -m torch.distributed.launch \
       --nproc_per_node=1 \
-      --nnodes=$SLURM_NTASKS \
-      --node_rank=$SLURM_NODEID \
       --master_addr=$MASTER_ADDR_JOB \
       --master_port=$MASTER_PORT_JOB \
       train.py --debug from_config data/sample_tensorized_cfg.yaml
