@@ -25,7 +25,7 @@ conda activate adversarial-code
 #python scripts/prepare_train_environment.py sample_multinode.yaml -force
 python -m torch.distributed.launch \
       --nproc_per_node=1 \
-      --nnodes=$SLURM_NTASKS \
+      --nnodes=$WORLD_SIZE \
       --node_rank=$SLURM_NODEID \
       --master_addr=$MASTER_ADDR \
       --master_port=$MASTER_PORT \
