@@ -10,7 +10,7 @@
 echo "NODELIST="${SLURM_NODELIST}
 master_addr=$(scontrol show hostnames "$SLURM_JOB_NODELIST" | head -n 1)
 
-export MASTER_ADDR_JOB=$SLURMD_NODENAME
+export MASTER_ADDR_JOB=$(scontrol show hostnames "$SLURM_JOB_NODELIST" | head -n 1)
 export MASTER_PORT_JOB=32500
 export WORLD_SIZE=2
 
@@ -18,14 +18,14 @@ echo "$(scontrol show hostnames "$SLURM_JOB_NODELIST")"
 echo "MASTER_ADDR_JOB="$MASTER_ADDR_JOB
 echo "MASTER_PORT_JOB=$MASTER_PORT_JOB"
 echo ""
-srun $(which singularity) exec --nv \
+srun $(which singularity) -N $WORLD_SIZE exec --nv \
 	--overlay $SCRATCH/overlay-50G-10M.ext3:ro \
 	/scratch/work/public/singularity/cuda11.4.2-cudnn8.2.4-devel-ubuntu20.04.3.sif \
 	/bin/bash -c "
 source /ext3/env.sh
 conda activate adversarial-code
 #python scripts/prepare_train_environment.py sample_multinode.yaml -force
-echo "Starting ${SLURM_NODEID} / ${SLURM_NTASKS}"
+echo "Starting"
 python -m torch.distributed.launch \
       --nproc_per_node=1 \
       --nnodes=$SLURM_NTASKS \
