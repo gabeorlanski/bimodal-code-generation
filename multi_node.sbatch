@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --output=./sbatch_logs/test_multi_node.out
+#SBATCH --output=./sbatch_logs/%N_test_multi_node.out
 #SBATCH --nodes=2
 #SBATCH --account=cds
 #SBATCH --time=1:00:00
