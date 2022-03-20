@@ -32,11 +32,7 @@ echo "Submitted Train (id=$train_jid{{ idx}})"
 echo "scancel $train_jid{{idx}}" >> {{cancel_file}}
 
 
-# Human Eval After Finetune
-hef_so{{idx}}=$(sbatch --job-name='{{ job_name }}_fhe_eval' --parsable \
-	run_human_eval.sbatch {{ HEFineTune.path }})
-echo "Submitted HumanEvalFinetune (id=$hef_so{{idx}})"
-echo "scancel $hef_so{{idx}}" >> generated_experiments/cancel_jobs.sh
+
 
 # Human Eval After PreTrain
 hef_so{{idx}}=$(sbatch --job-name='{{ job_name }}_he' \
@@ -53,6 +49,15 @@ hef_exec{{idx}}=$(sbatch --parsable --job-name='{{ job_name }}_he_execute' \
 )
 echo "Submitted CodeEval(id=$he_exec{{idx}})"
 echo "scancel $he_exec{{idx}}" >> {{cancel_file}}
+
+# Normal Eval
+eval_jid{{idx}}=$(sbatch --parsable \
+	--job-name={{ job_name }}_eval \
+	--dependency=afterok:$train_jid{{ idx}} eval.sbatch \
+	{{ Eval.model_path }} {{ num_return_sequences }} {{ Eval.path }})
+echo "Submitted Eval $eval_jid{{idx}} to run after $1(id=$train_jid{{ idx}})"
+echo "scancel $eval_jid{{idx}}" >> {{cancel_file}}
+
 # Normal Code Execute After Eval
 exec_jid{{idx}}=$(sbatch --parsable --job-name='{{ job_name }}_execute' \
 	--dependency=afterok:$eval_jid{{idx}} \
