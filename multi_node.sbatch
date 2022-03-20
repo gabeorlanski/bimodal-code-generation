@@ -1,11 +1,12 @@
 #!/bin/bash
 #SBATCH --output=./sbatch_logs/%N_test_multi_node.out
 #SBATCH --nodes=2
+#SBATCH --ntasks-per-node=1
+#SBATCH --cpus-per-task=4
 #SBATCH --account=cds
 #SBATCH --time=1:00:00
 #SBATCH --gres=gpu:rtx8000:1
 #SBATCH --mem=64G
-#SBATCH -c 16
 
 echo "NODELIST="${SLURM_NODELIST}
 master_addr=$(scontrol show hostnames "$SLURM_JOB_NODELIST" | head -n 1)
