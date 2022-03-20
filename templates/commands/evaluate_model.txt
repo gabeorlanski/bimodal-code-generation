@@ -32,8 +32,8 @@ echo "Submitted Train (id=$train_jid{{ idx}})"
 echo "scancel $train_jid{{idx}}" >> {{cancel_file}}
 
 
-# Human Eval After PreTrain
-hef_so{{idx}}=$(sbatch --job-name='{{ job_name }}_he' \
+# Human Eval After Finetune
+hef_so{{idx}}=$(sbatch --job-name='{{ job_name }}_hef' \
 	--parsable \
 	--dependency=afterok:$train_jid{{ idx}} \
 	run_human_eval.sbatch {{ HEFineTune.path }})
@@ -41,7 +41,7 @@ echo "Submitted HumanEval (id=$hef_so{{idx}})"
 echo "scancel $hef_so{{idx}}" >> {{cancel_file}}
 
 # Human Eval Code Execute Zero Shot
-hef_exec{{idx}}=$(sbatch --parsable --job-name='{{ job_name }}_he_execute' \
+hef_exec{{idx}}=$(sbatch --parsable --job-name='{{ job_name }}_hef_execute' \
 	--dependency=afterok:$hef_so{{idx}} \
 	eval_code.sbatch \
 	eval_results/HUMAN_EVAL "MBPP.{{ name }}.{{ ablation_name }}" test.jsonl
