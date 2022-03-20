@@ -28,6 +28,7 @@ conda activate adversarial-code
 #python scripts/prepare_train_environment.py sample_multinode.yaml -force
 echo "Starting"
 python -m torch.distributed.launch \
+		--nnodes=$WORLD_SIZE \
       --nproc_per_node=1 \
       --master_addr=$MASTER_ADDR_JOB \
       --master_port=$MASTER_PORT_JOB \
