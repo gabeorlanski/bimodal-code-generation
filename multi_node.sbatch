@@ -7,14 +7,16 @@
 #SBATCH --mem=64G
 #SBATCH -c 16
 
-export WORLD_SIZE=2
 echo "NODELIST="${SLURM_NODELIST}
-echo "$(scontrol show hostnames "$SLURM_JOB_NODELIST")"
 master_addr=$(scontrol show hostnames "$SLURM_JOB_NODELIST" | head -n 1)
+
 export MASTER_ADDR="${master_addr}.hpc.nyu.edu"
+export MASTER_PORT=$(shuf -i 10000-65500 -n 1)
+export WORLD_SIZE=2
+
+echo "$(scontrol show hostnames "$SLURM_JOB_NODELIST")"
 echo "MASTER_ADDR="$MASTER_ADDR
-echo "${SLURM_NODEID}"
-MASTER_PORT=$(shuf -i 10000-65500 -n 1)
+echo "MASTER_PORT=$MASTER_PORT"
 
 srun $(which singularity) exec --nv \
 	--overlay $SCRATCH/overlay-50G-10M.ext3:ro \
@@ -26,8 +28,5 @@ conda activate adversarial-code
 python -m torch.distributed.launch \
       --nproc_per_node=1 \
       --nnodes=$WORLD_SIZE \
-      --node_rank=$SLURM_NODEID \
-      --master_addr=$MASTER_ADDR \
-      --master_port=$MASTER_PORT \
       train.py --debug from_config data/sample_tensorized_cfg.yaml
 "
