@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --output=./sbatch_logs/%N_test_multi_node.out
+#SBATCH --output=./sbatch_logs/%n_test_multi_node.out
 #SBATCH --nodes=2
 #SBATCH --ntasks-per-node=1
 #SBATCH --cpus-per-task=4
