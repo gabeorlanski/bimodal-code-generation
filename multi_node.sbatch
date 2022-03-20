@@ -32,4 +32,5 @@ python -m torch.distributed.launch \
       --master_addr=$MASTER_ADDR_JOB \
       --master_port=$MASTER_PORT_JOB \
       train.py --debug from_config data/sample_tensorized_cfg.yaml
+echo "Finished"
 "
