@@ -19,7 +19,7 @@ echo "$(scontrol show hostnames "$SLURM_JOB_NODELIST")"
 echo "MASTER_ADDR_JOB="$MASTER_ADDR_JOB
 echo "MASTER_PORT_JOB=$MASTER_PORT_JOB"
 echo "$SLURM_NODEID"
-srun -N $WORLD_SIZE $(which singularity) exec --nv \
+srun --mpi=pmi2 $(which singularity) exec --nv \
 	--overlay $SCRATCH/overlay-50G-10M.ext3:ro \
 	/scratch/work/public/singularity/cuda11.4.2-cudnn8.2.4-devel-ubuntu20.04.3.sif \
 	/bin/bash -c "
