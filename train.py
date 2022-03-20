@@ -32,7 +32,6 @@ def train_from_cfg(cfg):
         os.environ['LOCAL_RANK'] = str(cfg.local_rank)
     if Path('wandb_secret.txt').exists():
         os.environ["WANDB_API_KEY"] = open('wandb_secret.txt').read().strip()
-
     if not Task.is_name_registered(task) and task not in NON_REGISTERED_TASKS:
         valid_tasks = ''
         for t in Task.list_available():
@@ -215,4 +214,6 @@ def train(ctx, name, task, config_name, override_str, cfg_overrides):
 
 
 if __name__ == "__main__":
+    for k,v in os.environ.items():
+        print(f"{k}={v}")
     cli()
