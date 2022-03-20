@@ -102,7 +102,7 @@ def train_from_cfg(cfg):
     if torch.cuda.is_available():
         torch.cuda.manual_seed_all(torch_seed)
 
-    model = train_model(cfg, train_args)
+    model,cfg = train_model(cfg, train_args)
 
     if cfg.training.local_rank <= 0:
         best_models_path = Path('best_model')

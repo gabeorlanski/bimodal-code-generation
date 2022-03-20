@@ -137,7 +137,7 @@ experiments:
             temperature: 0.5
             top_p: 0.95
             top_k: 50
-          model_path: outputs/mbpp/${..__META__.PreTrain.name}/best_model
+          model_path: outputs/mbpp/${..__META__.FineTune.name}/best_model
           batch_size: 200
       - name: Eval
         base: eval_config
@@ -153,7 +153,7 @@ experiments:
             top_k: 50
           task: mbpp
           remove_input_ids: true
-          ++model_path: outputs/mbpp/${..__META__.PreTrain.name}/best_model
+          ++model_path: outputs/mbpp/${..__META__.FineTune.name}/best_model
     command:
       file: templates/commands/evaluate_model.txt
       kwargs:

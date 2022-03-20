@@ -388,7 +388,7 @@ def train_model(cfg: DictConfig, train_args):
         cfg.best_model_path = str(PROJECT_ROOT.joinpath(trainer.state.best_model_checkpoint))
     with Path('config.yaml').open('w') as f:
         f.write(OmegaConf.to_yaml(trainer.cfg, resolve=True, sort_keys=True))
-    return trainer.model
+    return trainer.model, cfg
 
 
 def get_grouped_params(model, args, no_decay=None):
