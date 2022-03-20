@@ -1,0 +1,117 @@
+batch_size: 10
+data_args:
+  seq_length: 512
+data_path: data
+debug: false
+device: 0
+generation:
+  do_sample: true
+  max_length: 512
+  min_length: 75
+  num_return_sequences: 25
+  temperature: 0.5
+  top_k: 50
+  top_p: 0.95
+group: SO
+is_checkpoint: false
+meta:
+  ablation: ParrotSmall.Base
+  ablation_vals:
+    Model: ParrotSmall
+    ProcessorArgs: Base
+  card_name: FullPrompt
+  step: PreTrain
+metrics:
+- exact-match
+- bleu
+model: lvwerra/codeparrot-small
+model_path: null
+name: ConditionTest
+numpy_seed: 2
+objective: lm
+postprocessors: []
+preprocessors: []
+processor:
+  name: stackoverflow
+  params:
+    allow_negative_best_answer: false
+    allow_no_answer: false
+    answer_sorting: accepted
+    answers_per_sample: -1
+    bad_answer_cutoff: -1
+    comment_type_for_question: NONE
+    date_format_str: '%Y'
+    good_answer_cutoff: 3
+    highest_is_best: false
+    include_date: true
+    include_question_score: true
+    include_tags: true
+    no_answer_str: There is not an answer
+    prompt_file: templates/so/base_question.txt
+    remove_modality: NONE
+    repeat_body_for_each_answer: true
+    repeat_prompt_each_answer: true
+    top_answer_cutoff: 12
+    worst_is_best: false
+    wrap_answer_character: None
+project: so-code-gen
+pytorch_seed: 3
+raw_dump_path: data/dumps
+seed: 1
+task:
+  buffer_size: 1000
+  ds_info_path: data/ds_info
+  dump_name: python_ParrotSmall.Base
+  eval_splits: []
+  name: so
+  raw_dump_name: python
+  raw_dump_path: data/dumps
+  seed: 1
+  sequence_length: 512
+  tensorized_name: python_ParrotSmall.Base
+tensorize_batch_size: 64
+tracking:
+  entity: nyu-code-research
+  log_model: true
+  project: so-code-gen
+  tags:
+  - Torchrun
+  - GradientCheckpointing
+  - AdamW
+  - O2
+  watch: gradients
+training:
+  batch_size: 2
+  dataloader_num_workers: 4
+  ddp_find_unused_parameters: false
+  disable_tqdm: true
+  eval_accumulation_steps: 1
+  eval_steps: 250
+  evaluation_strategy: steps
+  fp16: true
+  fp16_backend: apex
+  fp16_opt_level: O2
+  gradient_accumulation_steps: 4
+  gradient_checkpointing: false
+  greater_is_better: false
+  group_by_length: false
+  half_precision_backend: apex
+  learning_rate: 5.0e-05
+  load_best_model_at_end: false
+  logging_first_step: true
+  logging_steps: 25
+  lr_scheduler_type: linear
+  max_grad_norm: 1.0
+  max_steps: 1000
+  metric_for_best_model: eval_loss
+  num_train_epochs: 1
+  output_dir: models
+  remove_unused_columns: false
+  save_steps: 500
+  save_strategy: steps
+  save_total_limit: 10
+  use_8bit_adam: true
+  warmup_ratio: 0.01
+  warmup_steps: 250
+  weight_decay: 0.1
+  xpu_backend: ccl
