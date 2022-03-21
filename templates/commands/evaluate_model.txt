@@ -17,7 +17,7 @@ echo "Submitted HumanEval (id=$he_so{{idx}})"
 echo "scancel $he_so{{idx}}" >> {{cancel_file}}
 
 # Human Eval Code Execute Zero Shot
-he_exec{{idx}}=$(sbatch --parsable --job-name='{{ job_name }}_hef_execute' \
+he_exec{{idx}}=$(sbatch --parsable --job-name='{{ job_name }}_he_execute' \
 	--dependency=afterok:$he_so{{idx}} \
 	eval_code.sbatch \
 	eval_results/HUMAN_EVAL "SO.{{ name }}.{{ ablation_name }}" test.jsonl
