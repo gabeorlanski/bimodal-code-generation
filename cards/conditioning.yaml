@@ -155,7 +155,7 @@ experiments:
           remove_input_ids: true
           ++model_path: outputs/mbpp/${..__META__.FineTune.name}/best_model
     command:
-      file: templates/commands/evaluate_model.txt
+      file: templates/commands/execute_code.txt
       kwargs:
         num_return_sequences: 200
         task_name: MBPP

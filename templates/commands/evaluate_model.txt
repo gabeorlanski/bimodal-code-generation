@@ -40,14 +40,14 @@ hef_so{{idx}}=$(sbatch --job-name='{{ job_name }}_hef' \
 echo "Submitted HumanEval (id=$hef_so{{idx}})"
 echo "scancel $hef_so{{idx}}" >> {{cancel_file}}
 
-# Human Eval Code Execute Zero Shot
+# Human Eval Code Execute Finetune
 hef_exec{{idx}}=$(sbatch --parsable --job-name='{{ job_name }}_hef_execute' \
 	--dependency=afterok:$hef_so{{idx}} \
 	eval_code.sbatch \
 	eval_results/HUMAN_EVAL "MBPP.{{ name }}.{{ ablation_name }}" test.jsonl
 )
-echo "Submitted CodeEval(id=$he_exec{{idx}})"
-echo "scancel $he_exec{{idx}}" >> {{cancel_file}}
+echo "Submitted CodeEval(id=$hef_exec{{idx}})"
+echo "scancel $hef_exec{{idx}}" >> {{cancel_file}}
 
 # Normal Eval
 eval_jid{{idx}}=$(sbatch --parsable \
@@ -61,7 +61,7 @@ echo "scancel $eval_jid{{idx}}" >> {{cancel_file}}
 exec_jid{{idx}}=$(sbatch --parsable --job-name='{{ job_name }}_execute' \
 	--dependency=afterok:$eval_jid{{idx}} \
 	eval_code.sbatch eval_results/{{ task_name }} {{ Eval.save_name }})
-echo "Submitted CodeEval(id=exec_jid{{idx}})"
+echo "Submitted CodeEval(id=$exec_jid{{idx}})"
 echo "scancel $exec_jid{{idx}}" >> {{cancel_file}}
 
 echo ""
