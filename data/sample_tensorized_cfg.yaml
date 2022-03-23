@@ -46,7 +46,7 @@ processor:
     highest_is_best: false
     no_answer_str: There is not an answer
     remove_modality: NL
-    repeat_body_for_each_answer: true
+    repeat_body_for_each_answer: false
     repeat_prompt_each_answer: true
     top_answer_cutoff: 12
     worst_is_best: false

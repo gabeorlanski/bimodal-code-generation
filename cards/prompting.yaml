@@ -1,7 +1,8 @@
 starting_commands: templates/commands/sbatch_experiment.txt
 experiments:
-  PromptingTitleRepeat:
-    description: Test SO finetuning with Only Title and Repeating + different prompting methods
+  PromptingTitleCodeRepeat:
+    description: "Test SO finetuning with Only Title and Repeating + Only Code Answer 
+    + different prompting methods"
     overrides:
       ++device: 0
       +processor: stackoverflow
@@ -16,9 +17,11 @@ experiments:
       ++task.raw_dump_name: python
       ++task.tensorized_name: python_${..__META__.ablation.name}
       ++processor.params.repeat_prompt_each_answer: True
-      ++processor.params.repeat_body_for_each_answer: True
+      ++processor.params.repeat_body_for_each_answer: False
       ++prompts:
           file: templates/so_prompts.yaml
+
+      ++processor.params.remove_modality: "NL"
     ablations:
       - Model:
           Neo125M:
@@ -70,15 +73,15 @@ experiments:
             prompts.pipe:
               - name: question_date_before
             ++processor.params.date_format_str: "%Y-%m"
-      - RemoveCode:
-          OnlyCode:
-            description: Remove NL from the answer and keep only code
-            hypothesis: Will do better than when both modalities are kept
-            ++processor.params.remove_modality: "NL"
-          NLandCode:
-            description: Keep Both NL and CODE in the answer
-            hypothesis: Will do worse
-            ++processor.params.remove_modality: NONE
+#      - RemoveCode:
+#          OnlyCode:
+#            description: Remove NL from the answer and keep only code
+#            hypothesis: Will do better than when both modalities are kept
+#            ++processor.params.remove_modality: "NL"
+#          NLandCode:
+#            description: Keep Both NL and CODE in the answer
+#            hypothesis: Will do worse
+#            ++processor.params.remove_modality: NONE
     steps:
       - name: PreTrain
         description: Finetune on the SO Data
