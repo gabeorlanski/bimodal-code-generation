@@ -9,10 +9,8 @@ experiments:
       is_checkpoint: true
       objective: lm
       ++tracking.tags:
-        - Torchrun
-        - GradientCheckpointing
-        - AdamW
         - O2
+        - Prompting
       ++batch_size: 200
       ++task.dump_name: python_${..__META__.ablation.name}
       ++task.raw_dump_name: python
@@ -109,7 +107,7 @@ experiments:
             fp16_backend: 'apex'
             gradient_checkpointing: true
             fp16_opt_level: O2
-            use_8bit_adam: true
+            use_8bit_adam: false
           ++task.sequence_length: 1024
           task: so
 #      - name: HumanEval
