@@ -1,0 +1,16 @@
+title:
+  template: 'TITLE: {{ input_sequence }}'
+quality_after:
+  template: '{{ input_sequence }}
+  
+  {{ quality }} SOLUTION'
+base:
+  template: '{{ input_sequence }}'
+question_date_before:
+  template: 'DATE: {{ question_date }}
+
+{{ input_sequence }}'
+answer_date_before:
+  template: 'DATE: {{ answer_date }}
+
+{{ input_sequence }}'

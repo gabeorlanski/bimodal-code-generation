@@ -183,9 +183,9 @@ class TensorizedTask(IterableDataset):
                 start = worker_id * slices_per_worker
                 end = min(self.buffer_size, start + slices_per_worker)
 
-            if math.floor(ds_epoch * 100) != last_ds_epoch_update:
+            if math.floor(ds_epoch * 100) != last_ds_epoch_update and worker_id == 0:
                 last_ds_epoch_update = math.floor(ds_epoch * 100)
-                logger.debug(f"{worker_id=} On dataset epoch {last_ds_epoch_update / 100}")
+                logger.info(f"{worker_id=} On dataset epoch {last_ds_epoch_update / 100}")
             processed_inputs, processed_labels = [], []
             for line in processed[start:end]:
                 processed_inputs.append(line['input'])

@@ -10,7 +10,7 @@ from omegaconf import OmegaConf, open_dict
 from jinja2 import BaseLoader, Environment, StrictUndefined
 
 from src.common import flatten
-from src.experiment_cards.util import merge_dictionaries
+from src.experiment_cards.util import merge_dictionaries, set_config_at_level
 
 logger = logging.getLogger(__name__)
 
@@ -36,6 +36,8 @@ class ExperimentCard:
     name: str
     base: str
     group: str
+    description: str
+    hypothesis: str
     overrides: Dict = field(default_factory=dict)
     depends_on: str = field(default=None)
 
@@ -61,11 +63,12 @@ class ComposedExperiments:
             to the command kwargs
     """
     name: str
-    ablation_name: str
+    ablation_name: Optional[str]
     step_cards: Dict[str, ExperimentCard]
     command_template: Optional[str] = field(default=None)
     command_kwargs: Optional[Dict] = field(default_factory=dict)
     command_fields: Optional[List] = field(default_factory=list)
+    description: Optional[str] = field(default=None)
 
     def __post_init__(self):
         if self.command_template:
@@ -102,7 +105,11 @@ class ComposedExperiments:
 
             overrides_dict = flatten(experiment.overrides, sep='.')
             overrides_list = []
+            special_overrides = {}
             for k, v in overrides_dict.items():
+                if isinstance(v, list):
+                    special_overrides[k.replace('+', '')] = v
+                    continue
 
                 # Easier way to handle Hydra's override grammar as users may want
                 # to put the override marker at different points.
@@ -118,7 +125,8 @@ class ComposedExperiments:
                     value = v
                 overrides_list.append(f"{override_key}={value}")
 
-            logger.info(f"{len(overrides_list)} overrides to use for {experiment.name}")
+            logger.debug(f"{len(overrides_list)} overrides to use for {experiment.name}")
+            logger.debug(f"{len(overrides_dict)} special overrides to use for {experiment.name}")
             logger.debug(f"Overrides for {experiment.name=}: {', '.join(overrides_list)}")
             save_path = output_path.joinpath(f"{experiment.save_name}.yaml")
 
@@ -127,7 +135,7 @@ class ComposedExperiments:
                                        job_name="create_configs"):
                 cfg = compose(config_name=experiment.base, overrides=overrides_list)
 
-                logger.info(f"Loaded config, now saving to {save_path}")
+                logger.debug(f"Loaded config, now saving to {save_path}")
                 with save_path.open('w', encoding='utf-8') as f:
                     # Add both the group and the name of the run to the configs
                     # before saving them. Do not use overrides for these because
@@ -135,6 +143,15 @@ class ComposedExperiments:
                     with open_dict(cfg):
                         cfg['name'] = experiment.name
                         cfg['group'] = experiment.group
+                        cfg['description'] = (
+                                f"Group={self.description} | "
+                                + f"{experiment.description}"
+                        )
+                        cfg['hypothesis'] = experiment.hypothesis
+                        raw_cfg = OmegaConf.to_object(cfg)
+                        for k, v in special_overrides.items():
+                            raw_cfg = set_config_at_level(raw_cfg, k.split('.'), v)
+                        cfg = OmegaConf.create(raw_cfg)
                     self._cfg[name] = OmegaConf.to_object(cfg)
                     f.write(OmegaConf.to_yaml(cfg, resolve=True, sort_keys=True))
 
@@ -201,15 +218,23 @@ class AblationCombination:
     overrides: Dict
     step_overrides: Dict
     ablation_values: Dict
+    description: str
+    hypothesis: str
 
     @classmethod
     def from_ablations_info(cls, name: str, ablations_info: Dict):
         overrides = {}
         step_overrides = {}
         ablation_values = {}
+        ablation_descriptions = {}
+        ablation_hypothesis = {}
+
         for k, v in ablations_info.items():
             ablation_values[k], ablation_overrides = v
-
+            ablation_descriptions[k] = ablation_overrides.pop('description')
+            hypothesis = ablation_overrides.pop('hypothesis', None)
+            if hypothesis:
+                ablation_hypothesis[k] = hypothesis
             try:
                 overrides = merge_dictionaries(
                     overrides,
@@ -232,7 +257,9 @@ class AblationCombination:
             name=name,
             overrides=overrides,
             step_overrides=step_overrides,
-            ablation_values=ablation_values
+            ablation_values=ablation_values,
+            description=', '.join(f"{k}: {v}" for k, v in ablation_descriptions.items()),
+            hypothesis=', '.join(f"{k}: {v}" for k, v in ablation_hypothesis.items())
         )
 
     def __eq__(self, other: 'AblationCombination') -> bool:
@@ -301,6 +328,8 @@ class AblationGroup:
     ) -> 'AblationGroup':
         ablation_cards = {}
         for ablation_name, ablation_dict in ablation_group_dict.items():
+            description = ablation_dict.pop('description')
+            hypothesis = ablation_dict.pop('hypothesis', None)
             step_overrides = ablation_dict.get('step_overrides', None)
             if step_overrides is not None:
                 if not isinstance(step_overrides, dict):
@@ -316,6 +345,8 @@ class AblationGroup:
 
             ablation_cards[ablation_name] = {
                 "name"          : ablation_name,
+                "description"   : description,
+                "hypothesis"    : hypothesis,
                 "step_overrides": step_overrides,
                 "overrides"     : overrides
             }

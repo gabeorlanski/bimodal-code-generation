@@ -3,6 +3,12 @@ defaults:
 
 
 name: mbpp
+preprocessors:
+  - add-prefix:
+      prefix: "You are an expert Python programmer, and here is your task: "
+  - add-suffix:
+      suffix: "#Solution:\n"
+      key: input_sequence
 postprocessors:
   - split:
       split_phrase: "#Solution:"

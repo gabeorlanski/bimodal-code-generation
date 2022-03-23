@@ -20,40 +20,55 @@ numpy_seed: 2
 pytorch_seed: 3
 save_best_model: False
 
+# Prompt Arguments
+prompts: null
+
+# Evaluation Arguments
+batch_size: 5
+remove_input_ids: False
+seq_per_sample: 200
 generation:
-  max_length: 1024
   do_sample: true
+  max_length: 512
   temperature: 0.5
-  num_return_sequences: 2
-  min_length: 75
   top_p: 0.95
   top_k: 50
 
 training:
   batch_size: 1
-  output_dir: models
-  learning_rate: 5e-6
-  logging_steps: 10
-  warmup_ratio: 0.05
-  weight_decay: 0.1
-  gradient_accumulation_steps: 2
-  lr_scheduler_type: 'linear'
+  dataloader_num_workers: 0
+  ddp_find_unused_parameters: false
+  disable_tqdm: true
   eval_accumulation_steps: 1
-  metric_for_best_model: 'eval_loss'
-  load_best_model_at_end: True
-  save_total_limit: 2
-  num_train_epochs: 10
-  greater_is_better: False
-  evaluation_strategy: epoch
-  save_strategy: epoch
-  group_by_length: True
-  logging_first_step: True
-  xpu_backend: "ccl"
-  fp16: True
-  disable_tqdm: True
+  eval_steps: 100
+  evaluation_strategy: steps
+  fp16: true
+  fp16_backend: apex
+  fp16_opt_level: O2
+  gradient_accumulation_steps: 1
+  gradient_checkpointing: true
+  greater_is_better: false
+  group_by_length: false
+  half_precision_backend: apex
+  learning_rate: 5.0e-05
+  load_best_model_at_end: false
+  logging_first_step: true
+  logging_steps: 25
+  lr_scheduler_type: linear
   max_grad_norm: 1.0
-  ddp_find_unused_parameters: False
+  max_steps: 1000
+  metric_for_best_model: eval_loss
+  num_train_epochs: 1
+  output_dir: models
   remove_unused_columns: false
+  save_steps: 500
+  save_strategy: steps
+  save_total_limit: 10
+  use_8bit_adam: false
+  warmup_ratio: 0.01
+  warmup_steps: 100
+  weight_decay: 0.1
+  xpu_backend: ccl
 
 data_args:
   seq_length: 512
@@ -61,9 +76,4 @@ data_args:
 metrics:
   - exact-match
   - bleu
-preprocessors:
-  - add-prefix:
-      prefix: "You are an expert Python programmer, and here is your task: "
-  - add-suffix:
-      suffix: "#Solution:\n"
-      key: input_sequence
+preprocessors: [ ]

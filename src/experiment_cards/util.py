@@ -1,5 +1,6 @@
+import collections
 from copy import deepcopy
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Tuple
 
 
 def merge_dictionaries(
@@ -45,3 +46,14 @@ def merge_dictionaries(
         else:
             out[key] = right[key]
     return out
+
+
+def set_config_at_level(cfg, path, value):
+    if not path:
+        return value
+
+    current_key, *path = path
+    if current_key not in cfg:
+        cfg[current_key] = {}
+    cfg[current_key] = set_config_at_level(cfg[current_key], path, value)
+    return cfg

@@ -4,6 +4,7 @@ import math
 import os
 from collections import defaultdict
 from datetime import datetime
+from functools import partial
 from itertools import chain
 from pathlib import Path
 import random
@@ -19,9 +20,12 @@ from transformers import PreTrainedModel, DataCollatorForSeq2Seq, pipeline, Stop
 import torch
 import logging
 from tqdm import tqdm
-from src.config import get_device_from_cfg, load_task_from_cfg, get_config_for_tracking, \
-    get_run_base_name_from_cfg
+from src.config import (
+    get_device_from_cfg, load_task_from_cfg, get_config_for_tracking, \
+    get_run_base_name_from_cfg, initialize_run_from_cfg
+)
 from apex import amp
+import multiprocessing as mp
 
 logger = logging.getLogger(__name__)
 
@@ -36,6 +40,18 @@ class EOSStoppingCriteria(StoppingCriteria):
         """Returns true if all generated sequences contain any of the end-of-function strings."""
 
         return all(self.eos_token in row[1:] for row in input_ids)
+
+
+def oracle(args, metric_list):
+    # To get the oracle score, we need to repeat target for every prediction
+    predictions, target = args
+    oracle_values = {}
+    for p in predictions:
+        for res in map(lambda m: m([p], [target]), metric_list):
+            for name, value in res.items():
+                oracle_values[name] = max(oracle_values.get(name, float('-inf')), value)
+
+    return oracle_values
 
 
 def generate_code_predictions(
@@ -72,7 +88,7 @@ def generate_code_predictions(
 
     amounts_to_generate = [batch_size] * generate_steps_per_sample + [remainder] * has_remainder
 
-    logger.debug(f"{generate_steps_per_sample} steps per sample")
+    logger.debug(f"{len(amounts_to_generate)} steps per sample")
 
     max_length = generation_kwargs.pop('max_length', 256)
     if 'max_new_tokens' in generation_kwargs:
@@ -221,6 +237,24 @@ def evaluate_model(
     indices = generation_results['indices']
 
     metrics = task.evaluate(predictions, labels)
+    oracle_args = [[p, t] for p, t in zip(predictions, labels)]
+    oracle_fn = partial(
+        oracle,
+        metric_list=task.metric_fns
+    )
+
+    global_oracle = defaultdict(list)
+    logger.info(f"Calculating the Oracle Scores")
+    with mp.Pool(cfg.get("num_workers", 1)) as pool:
+        for oracle_scores in tqdm(
+                pool.imap_unordered(oracle_fn, oracle_args),
+                total=len(predictions)
+        ):
+            for k, v in oracle_scores.items():
+                global_oracle[k].append(v)
+
+    for k, v in global_oracle.items():
+        metrics[f"oracle_{k}"] = np.mean(v)  # type: ignore
     # Get the full metrics suite for the predictions and the labels
     logger.info("Results:")
     for k, v in metrics.items():
@@ -302,18 +336,11 @@ def evaluate(
             isinstance(cfg.tracking, (dict, DictConfig))
             and int(os.environ.get("LOCAL_RANK", "-1")) <= 0
     ):
-        run = wandb.init(
-            job_type='evaluate',
-            name=os.getenv('WANDB_RUN_NAME'),
-            project=os.getenv('WANDB_PROJECT'),
-            group=f"{cfg.group}[eval]",
-            entity=os.getenv('WANDB_ENTITY'),
-            config=get_config_for_tracking(cfg),
-            id=run_id,
-            tags=os.getenv('WANDB_RUNS_TAGS').split(','),
+        cfg, run = initialize_run_from_cfg(
+            cfg,
+            f"{cfg.group}[eval]",
+            job_type='evaluate'
         )
-
-        run.config.update(get_config_for_tracking(cfg))
 
         if dry_run and out_path.joinpath('eval_metrics.json').exists():
             all_metrics = json.loads(out_path.joinpath('eval_metrics.json').read_text('utf-8'))

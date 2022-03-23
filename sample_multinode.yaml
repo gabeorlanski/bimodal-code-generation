@@ -47,7 +47,7 @@ processor:
     include_question_score: true
     include_tags: true
     no_answer_str: There is not an answer
-    prompt_file: templates/so/base_question.txt
+    prompt_file: templates/so/complex.txt
     remove_modality: NONE
     repeat_body_for_each_answer: true
     repeat_prompt_each_answer: true

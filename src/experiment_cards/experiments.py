@@ -41,7 +41,10 @@ def get_all_ablation_combinations(
     # Check for the case where there are no ablations.
     if len(ablation_groups) == 1 and ablation_groups[0].name == "NO_ABLATIONS_FOUND":
         return [
-            AblationCombination.from_ablations_info(name="NO_ABLATIONS_FOUND", ablations_info={})
+            AblationCombination.from_ablations_info(name="NO_ABLATIONS_FOUND", ablations_info={
+                'description': "N/A",
+                'hypothesis' : "N/A"
+            })
         ]
 
     out = []
@@ -56,7 +59,7 @@ def get_all_ablation_combinations(
             combo_values[ablation_group.name] = (v, ablation_group[v])
         out.append(AblationCombination.from_ablations_info(
             name='.'.join(combo_names),
-            ablations_info=combo_values)
+            ablations_info=deepcopy(combo_values))
         )
 
     logger.info(f"{len(out)} total ablation combos")
@@ -90,12 +93,13 @@ def make_experiment_card(
         ExperimentCard: The created experiment card.
     """
     # Do basic error checking.
-    for k in ['name', 'group', 'base']:
+    for k in ['name', 'group', 'base', 'description']:
         if k not in step_dict or step_dict[k] is None:
             raise KeyError(f"Step {step_num} in {group_name} is missing key {k}")
     step_name = step_dict['name']
     step_group = step_dict['group']
     step_base = step_dict['base']
+    step_description = step_dict['description']
 
     has_ablations = not ablation.is_empty
     has_steps = step_num != -1
@@ -154,7 +158,11 @@ def make_experiment_card(
     # Pop the meta key because it is no longer needed.
     cfg.pop("__META__")
 
-    return ExperimentCard(**cfg)
+    return ExperimentCard(
+        description=f'Step={step_description} | Ablation={ablation.description}',
+        hypothesis=ablation.hypothesis,
+        **cfg
+    )
 
 
 def get_experiment_card_cfg_from_dict(
@@ -181,6 +189,7 @@ def get_experiment_card_cfg_from_dict(
     experiment_group = experiment_card_dict.get('group')
     base_config = experiment_card_dict.get('base')
     experiment_steps = experiment_card_dict.get('steps', [])
+    experiment_description = experiment_card_dict.get("description")
 
     # Put parent's values before the children's in the overrides so that the
     # children get priority.
@@ -207,6 +216,7 @@ def get_experiment_card_cfg_from_dict(
 
         yield ComposedExperiments(
             name=name,
+            ablation_name=None,
             step_cards={
                 'single': ExperimentCard(
                     name=name,
@@ -214,7 +224,8 @@ def get_experiment_card_cfg_from_dict(
                     group=experiment_group,
                     overrides=experiment_overrides
                 )
-            }
+            },
+            description=experiment_description
         )
     else:
         # We are at a complex card, so we need to do more.
@@ -253,7 +264,8 @@ def get_experiment_card_cfg_from_dict(
                 step_cards={},
                 command_template=command_str,
                 command_kwargs=command_kwargs,
-                command_fields=command_fields
+                command_fields=command_fields,
+                description=experiment_description
             )
 
             for step_num, step_dict in enumerate(experiment_steps):
@@ -361,12 +373,12 @@ def save_experiment_cards(
         script_fd.write(starting_commands + '\n')
 
     for i, composed in enumerate(composed_experiments):
-        logger.info(f"Saving {composed.name} to {output_path}")
+        logger.info(f"Saving {composed.job_name} to {output_path}")
         composed.save(output_path, config_directory)
 
         command = composed.get_command(idx=i, output_path=output_path)
         if command is not None:
             script_fd.write(f"\n# Command for {composed.job_name}\n")
-            script_fd.write(f"#"*80+'\n')
+            script_fd.write(f"#" * 80 + '\n')
             script_fd.write(command + '\n')
     script_fd.close()

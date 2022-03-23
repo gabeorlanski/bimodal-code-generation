@@ -44,7 +44,7 @@ from jinja2 import BaseLoader, Environment, StrictUndefined
 from src.common import PROJECT_ROOT, setup_global_logging, flatten
 from src.config import (
     load_model_from_cfg, setup_tracking_env_from_cfg, get_config_for_tracking,
-    get_run_base_name_from_cfg, merge_configs
+    get_run_base_name_from_cfg, merge_configs, initialize_run_from_cfg
 )
 from src.evaluation.code_eval import evaluate_code
 
@@ -445,14 +445,10 @@ def main(
     if isinstance(cfg.tracking, (dict, DictConfig)) and not no_code_eval:
         os.environ["WANDB_API_KEY"] = open('wandb_secret.txt').read().strip()
         group_name = f"{cfg.group}[eval]"
-        wandb_run = wandb.init(
-            job_type='code_eval',
-            name=os.getenv('WANDB_RUN_NAME'),
-            id=os.getenv('WANDB_RUN_ID'),
-            project=os.getenv('WANDB_PROJECT'),
+        cfg, wandb_run = initialize_run_from_cfg(
+            cfg,
             group=group_name,
-            config=get_config_for_tracking(cfg),
-            entity=os.getenv('WANDB_ENTITY'),
+            job_type='evaluate'
         )
         metrics_to_log_dict = {
             'test': {

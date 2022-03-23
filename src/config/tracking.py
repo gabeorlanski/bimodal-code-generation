@@ -24,7 +24,8 @@ __all__ = [
     "get_config_for_tracking",
     "is_tracking_enabled",
     "setup_tracking_env_from_cfg",
-    "get_run_base_name_from_cfg"
+    "get_run_base_name_from_cfg",
+    "initialize_run_from_cfg"
 ]
 
 
@@ -109,19 +110,13 @@ class TrackingCallback(TrainerCallback):
 
             combined_dict = {**get_config_for_tracking(self.cfg), **combined_dict}
 
-            init_args = {"job_type": self.job_type, "group": self.cfg['group']}
             if self._wandb.run is None:
-                self._wandb.init(
-                    project=os.getenv('WANDB_PROJECT'),
-                    name=os.getenv('WANDB_RUN_NAME'),
-                    entity=os.getenv('WANDB_ENTITY'),
-                    config=combined_dict,
-                    id=os.getenv('WANDB_RUN_ID'),
-                    tags=os.getenv('WANDB_RUNS_TAGS').split(','),
-                    **init_args,
+                self.cfg, self._wandb.run = initialize_run_from_cfg(
+                    cfg=self.cfg,
+                    group=self.cfg.group,
+                    job_type=self.job_type,
+                    run_cfg=combined_dict,
                 )
-                with open_dict(self.cfg):
-                    self.cfg.run_id = os.getenv('WANDB_RUN_ID')
 
             # keep track of model topology and gradients, unsupported on TPU
             if os.getenv("WANDB_WATCH") != "false":
@@ -196,6 +191,7 @@ def get_config_for_tracking(cfg: Union[DictConfig, Dict]):
     out_cfg.pop('name')
     out_cfg.pop('group')
     out_cfg.pop('project')
+    out_cfg.pop('description', 'N/A')
     return flatten(out_cfg, sep='.')
 
 
@@ -236,6 +232,32 @@ def setup_tracking_env_from_cfg(cfg: DictConfig):
     os.environ['WANDB_LOG_MODEL'] = 'true' if cfg['tracking'].get('log_model') else 'false'
     os.environ['DISABLE_FAST_TOK'] = 'true'
     os.environ['WANDB_RUNS_TAGS'] = ','.join(cfg.tracking.tags if 'tags' in cfg.tracking else [])
+
+
+def initialize_run_from_cfg(cfg, group, job_type, wandb_kwargs=None, run_cfg=None):
+    run_cfg = run_cfg or {}
+    wandb_kwargs = wandb_kwargs or {}
+
+    run_cfg.update(get_config_for_tracking(cfg))
+    run = wandb.init(
+        job_type=job_type,
+        group=group,
+        project=os.getenv('WANDB_PROJECT'),
+        name=os.getenv('WANDB_RUN_NAME'),
+        entity=os.getenv('WANDB_ENTITY'),
+        config=run_cfg,
+        id=os.getenv('WANDB_RUN_ID'),
+        tags=os.getenv('WANDB_RUNS_TAGS').split(',') if os.getenv('WANDB_RUNS_TAGS') else None,
+        notes=cfg.get("description", None),
+        **wandb_kwargs
+    )
+
+    # Guarantee that the cfg values are correct
+    run.config.update(get_config_for_tracking(cfg))
+
+    with open_dict(cfg):
+        cfg.run_id = os.getenv('WANDB_RUN_ID')
+    return cfg, run
 
 
 def get_run_base_name_from_cfg(cfg: DictConfig, suffix=None) -> str:

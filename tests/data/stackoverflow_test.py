@@ -1,42 +1,28 @@
 """
 Tests for the StackOverflow dataset
 """
-import json
 import re
-from copy import deepcopy
-from functools import partial
+from unittest.mock import MagicMock
 
-from jinja2 import BaseLoader, Environment, StrictUndefined
 import pytest
-from transformers import AutoTokenizer
-
 from src.common import PROJECT_ROOT
 from src.data import stackoverflow
-from bs4 import BeautifulSoup
 
 space_cleaner = re.compile(r'\s{2,}')
 
 
 class TestStackOverflowProcessor:
     @pytest.mark.parametrize('repeat_prompt', [True, False], ids=['Repeat', 'Single'])
-    @pytest.mark.parametrize('comment_type', ['NONE', "BLOCK", "LINE"])
     @pytest.mark.parametrize('wrap_answer', ['NONE', "BLOCK", "LINE"])
     @pytest.mark.parametrize('repeat_question', [True, False], ids=['RepeatQ', 'SingleQ'])
-    @pytest.mark.parametrize('include_scores', [True, False], ids=['Score', 'NoScore'])
-    @pytest.mark.parametrize('include_date', [True, False], ids=['Date', 'NoDate'])
-    @pytest.mark.parametrize('include_tags', [True, False], ids=['Tags', 'NoTags'])
     @pytest.mark.parametrize('answer_sorting', ['accepted', 'ascending'])
     @pytest.mark.parametrize('date_fmt', ['%Y', '%m'], ids=['Year', 'Month'])
     @pytest.mark.parametrize('best_question', ['Highest', 'Lowest', 'Accepted'])
     def test_call(
             self,
             repeat_prompt,
-            comment_type,
             wrap_answer,
             repeat_question,
-            include_date,
-            include_scores,
-            include_tags,
             answer_sorting,
             date_fmt,
             best_question
@@ -50,22 +36,19 @@ class TestStackOverflowProcessor:
                 "13608"   : {
                     "line"     : 6083, "body": "<pre><code>Answer 1</code></pre>", "type": 2,
                     "id"       : "13608",
-                    "date"     : "2008-08-17T12:55:25.100", "score": -1, "comment_count": 0,
+                    "date"     : "2009-11-17T12:55:25.100", "score": -1, "comment_count": 0,
                     "parent_id": "13454"
                 }, "13456": {
                     "line"     : 5993, "body": "<p>Answer 2</p>", "type": 2, "id": "13456",
-                    "date"     : "2008-08-17T01:26:52.043", "score": 0, "comment_count": 0,
+                    "date"     : "2009-11-17T01:26:52.043", "score": 0, "comment_count": 0,
                     "parent_id": "13454"
                 }, "13598": {
                     "line"     : 6077, "body": "<p>Answer 3</p>", "type": 2, "id": "13598",
-                    "date"     : "2008-08-17T12:15:13.170", "score": 10, "comment_count": 0,
+                    "date"     : "2009-11-17T12:15:13.170", "score": 10, "comment_count": 0,
                     "parent_id": "13454"
                 }
             }
         }
-
-        prompt = Environment().from_string(
-            PROJECT_ROOT.joinpath("templates/so/base_question.txt").read_text())
 
         highest_is_best = False
         worst_is_best = False
@@ -76,31 +59,35 @@ class TestStackOverflowProcessor:
             highest_is_best = False
             worst_is_best = True
 
+        prompt_fn = MagicMock()
+        if repeat_prompt:
+            prompt_fn.side_effect = lambda f: (
+                f"{f['question_date']} {f['tags']} "
+                f"{f['answer_date']} {f['quality']} "
+                f"{f['input_sequence']} {f['context']}")
+        else:
+            prompt_fn.side_effect = lambda f: (
+                f"{f['question_date']} {f['tags']} "
+                f"{f['input_sequence']} {f['context']}")
         processor = stackoverflow.StackOverflowProcessor(
-            prompt_file='templates/so/base_question.txt',
+            prompt_fn=prompt_fn,
             repeat_prompt_each_answer=repeat_prompt,
-            comment_type_for_question=comment_type,
             wrap_answer_character=wrap_answer,
             repeat_body_for_each_answer=repeat_question,
-            include_date=include_date,
-            include_tags=include_tags,
-            include_question_score=include_scores,
             answer_sorting=answer_sorting,
             date_format_str=date_fmt,
             highest_is_best=highest_is_best,
             worst_is_best=worst_is_best
         )
 
-        result = processor.__call__(sample)
-
-        dt_str = "2008" if date_fmt == '%Y' else '08'
+        result = processor(sample)
         prompt_kwargs = {
-            "title"         : "Title",
-            "question_score": "13" if include_scores else None,
-            "question"      : "Body",
-            "tags"          : "python,string,escaping" if include_tags else None,
-            "comment_type"  : comment_type,
-            "question_date" : dt_str if include_date else None
+            "input_sequence": "Title",
+            "question_score": "13",
+            "context"       : "Body",
+            "tags"          : "python,string,escaping",
+            "question_date" : "2008" if date_fmt == '%Y' else '08',
+            "answer_date"   : "2009" if date_fmt == '%Y' else '11'
 
         }
 
@@ -132,10 +119,14 @@ class TestStackOverflowProcessor:
                     prompt_kwargs['question'] = None
                 prompt_kwargs['quality'] = v[0]
                 prompt_kwargs['answer_score'] = v[1]
-                expected_inputs.append(prompt.render(**prompt_kwargs).strip())
+                expected_inputs.append(
+                    prompt_fn.side_effect(prompt_kwargs).strip()
+                )
         else:
             prompt_kwargs['quality'] = 'BEST'
-            expected_inputs.append(prompt.render(**prompt_kwargs).strip())
+            expected_inputs.append(
+                prompt_fn.side_effect(prompt_kwargs).strip()
+            )
 
         expected_answers = [
             "Answer 2",
@@ -174,7 +165,7 @@ class TestStackOverflowProcessor:
     @pytest.mark.parametrize('remove_modality', ["NONE", "CODE", "NL"])
     def test_clean(self, remove_modality):
         processor = stackoverflow.StackOverflowProcessor(
-            'templates/so/base_question.txt',
+            lambda f: f,
             remove_modality=remove_modality
         )
 

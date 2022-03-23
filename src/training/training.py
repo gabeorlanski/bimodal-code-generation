@@ -20,15 +20,23 @@ from src.common import get_stats_from_list, PROJECT_ROOT, set_global_logging_lev
 from src.data import langauge_modeling, NON_REGISTERED_TASKS
 from src.data.stackoverflow import StackOverflowProcessor
 from src.training.trainer import CustomTrainer
-from src.config import get_steps_from_training_args, get_lr_scheduler
+from src.config import get_steps_from_training_args, get_lr_scheduler, get_prompts_from_cfg
 from src.data.tensorize import TensorizedTask
 from tqdm import tqdm
 import bitsandbytes as bnb
+from jinja2 import BaseLoader, Environment, StrictUndefined
+from src.common import PROJECT_ROOT
 
 logger = logging.getLogger(__name__)
 
 set_global_logging_level(logging.ERROR,
                          ["transformers", "nlp", "torch", "tensorflow", "tensorboard", "wandb"])
+
+JINJA_ENV = Environment(loader=BaseLoader)  # type:ignore
+
+# Allow the python function zip()
+JINJA_ENV.globals.update(zip=zip)
+JINJA_ENV.undefined = StrictUndefined
 
 
 def evaluate_seq2seq(eval_predictions: EvalPrediction, task: Task):
@@ -123,11 +131,12 @@ def setup_lm(cfg, task):
     return train_data, validation_data, None
 
 
-def setup_pretrain(cfg, tokenizer, train_args):
+def setup_pretrain(cfg, tokenizer, train_args, prompt_fn):
     concat_delim = tokenizer('\n')['input_ids']
     block_size = cfg.task.sequence_length
 
     processor = StackOverflowProcessor(
+        prompt_fn=prompt_fn,
         **OmegaConf.to_object(cfg.processor.params)
     )
 
@@ -248,24 +257,34 @@ def train_model(cfg: DictConfig, train_args):
 
     logger.debug("Loading Model")
     model_cls, model = config.load_model_from_cfg(cfg)
+    prompt_fn = get_prompts_from_cfg(cfg, JINJA_ENV)
 
+    def prompt_preprocessor(instance):
+        instance['input_sequence'] = prompt_fn(instance)
+        return instance
+
+    is_non_registered_task = False
     if cfg.task.name in NON_REGISTERED_TASKS:
+        is_non_registered_task = True
         tokenizer = config.load_tokenizer_from_cfg(cfg)
         task = None  # type: ignore
     else:
         task: Task = config.load_task_from_cfg(cfg)
         tokenizer = task.tokenizer
+        task.preprocessors.append(prompt_preprocessor)
+
     if tokenizer.pad_token is None:
         tokenizer.pad_token = tokenizer.eos_token
         model.config.pad_token_id = tokenizer.pad_token_id
 
     if cfg.objective == 'seq2seq':
-        if cfg.task.name in NON_REGISTERED_TASKS:
+        if is_non_registered_task:
             logger.info(f"Setting up the SO pretrain objective")
             train_data, validation_data, evaluate_fn = setup_pretrain(
                 cfg,
                 tokenizer,
-                train_args
+                train_args,
+                prompt_fn
             )
         else:
             logger.info(f"Setting Up Seq2Seq Objective")
@@ -296,12 +315,13 @@ def train_model(cfg: DictConfig, train_args):
         model.config.eos_token_id = tokenizer.eos_token_id
         model.config.pad_token_id = tokenizer.pad_token_id
         model.config.bos_token_id = tokenizer.bos_token_id or tokenizer.eos_token
-        if cfg.task.name in NON_REGISTERED_TASKS:
+        if is_non_registered_task:
             logger.info(f"Setting up the SO pretrain objective")
             train_data, validation_data, evaluate_fn = setup_pretrain(
                 cfg,
                 tokenizer,
-                train_args
+                train_args,
+                prompt_fn
             )
         else:
             logger.info("Setting up the LM objective")

@@ -16,23 +16,23 @@
 {%- if comment_type == 'BLOCK' -%}
 """
 {{meta_str|trim}}
-{%- if question is not none %}
-{{ question }}
+{%- if input_sequence is not none %}
+{{ input_sequence }}
 {%- endif %}
 """
 {% else %}
 {%- for line in meta_str.strip().split('\n') %}
 # {{ line }}
 {%- endfor %}
-{%- if question is not none -%}
-{%- for line in question.split('\n') %}
+{%- if input_sequence is not none -%}
+{%- for line in input_sequence.split('\n') %}
 # {{ line }}
 {%- endfor %}
 {%- endif -%}
 {%- endif -%}
 {% else %}
 {{ meta_str|trim }}
-{%- if question is not none%}
-{{ question }}
+{%- if input_sequence is not none%}
+{{ input_sequence }}
 {%- endif %}
 {%- endif -%}

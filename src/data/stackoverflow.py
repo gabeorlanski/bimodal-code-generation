@@ -10,22 +10,14 @@ from bs4.element import Tag
 import re
 from unidecode import unidecode
 
-from jinja2 import BaseLoader, Environment, StrictUndefined
-from src.common import PROJECT_ROOT
-
 logger = logging.getLogger(__name__)
 logging.getLogger("transformers.tokenization_utils").setLevel(logging.ERROR)
-JINJA_ENV = Environment(loader=BaseLoader)  # type:ignore
-
-# Allow the python function zip()
-JINJA_ENV.globals.update(zip=zip)
-JINJA_ENV.undefined = StrictUndefined
 
 
 class StackOverflowProcessor:
     def __init__(
             self,
-            prompt_file: str,
+            prompt_fn: Callable,
             answer_sorting: str = 'accepted',
             repeat_prompt_each_answer: bool = False,
             answers_per_sample: int = -1,
@@ -35,39 +27,27 @@ class StackOverflowProcessor:
             remove_modality: str = "NONE",
             no_answer_str: str = "There is not an answer",
             allow_no_answer: bool = False,
-            comment_type_for_question: str = 'NONE',
             repeat_body_for_each_answer: bool = False,
             wrap_answer_character: str = None,
-            include_date: bool = True,
-            include_question_score: bool = True,
-            include_tags: bool = True,
-            include_quality: bool = True,
             date_format_str: str = "%Y",
             highest_is_best: bool = False,
             allow_negative_best_answer: bool = False,
-            worst_is_best: bool = False,
+            worst_is_best: bool = False
     ):
         self.answer_sorting = answer_sorting.lower()
         if self.answer_sorting not in ['ascending', 'descending', 'accepted']:
             raise ValueError(f"Unknown answer sorting method: {self.answer_sorting}")
 
-        self.prompt = JINJA_ENV.from_string(
-            PROJECT_ROOT.joinpath(prompt_file).read_text()
-        )  # type:ignore
+        self.prompt_fn = prompt_fn
         self.good_answer_cutoff = good_answer_cutoff
         self.bad_answer_cutoff = bad_answer_cutoff
         self.top_answer_cutoff = top_answer_cutoff
         self.answers_per_sample = answers_per_sample
         self.repeat_prompt_each_answer = repeat_prompt_each_answer
-        self.comment_type_for_question = comment_type_for_question
         self.repeat_body_for_each_answer = repeat_body_for_each_answer
         self.allow_no_answer = allow_no_answer
         self.no_answer_str = no_answer_str
-        self.include_question_score = include_question_score
-        self.include_tags = include_tags
-        self.include_date = include_date
         self.date_format_str = date_format_str
-        self.include_quality = include_quality
         self.wrap_answer_character = wrap_answer_character
         self.highest_is_best = highest_is_best
         self.worst_is_best = worst_is_best
@@ -151,24 +131,23 @@ class StackOverflowProcessor:
             tags
     ):
 
-        question_date = None
-        if self.include_date:
-            question_date = datetime.fromisoformat(date).strftime(self.date_format_str)
+        question_date = datetime.fromisoformat(date).strftime(self.date_format_str)
 
         return {
-            "title"         : title,
-            "question_score": score if self.include_question_score else None,
-            "tags"          : ','.join(tags) if self.include_tags else None,
-            'question'      : unidecode('\n'.join(t.text.strip() for t in body if t.text.strip())),
+            "input_sequence": title,
+            "question_score": score,
+            "tags"          : ','.join(tags),
+            "views"         : views,
+            'context'       : unidecode('\n'.join(t.text.strip() for t in body if t.text.strip())),
             'question_date' : question_date
         }
 
-    def process_answer(self, answer: List[Tag], score, is_best_answer):
+    def process_answer(self, answer: List[Tag], score, date, is_best_answer):
 
         if not answer:
             return self.no_answer_str
 
-        quality_str = ""
+        quality_str = None
         if self.good_answer_cutoff is not None and self.bad_answer_cutoff is not None:
             if is_best_answer:
                 quality_str = 'BEST'
@@ -181,19 +160,23 @@ class StackOverflowProcessor:
             else:
                 quality_str = "OK"
 
-        return quality_str, self.turn_body_into_str(answer)
+        return self.turn_body_into_str(answer), {
+            'quality'    : quality_str,
+            'answer_date': datetime.fromisoformat(date).strftime(self.date_format_str)
+        }
 
-    def apply_prompt(self, prompt_kwargs, is_first_answer, answer_quality=None):
+    def apply_prompt(self, prompt_kwargs, is_first_answer, answer_kwargs=None):
         copy_prompt_kwargs = deepcopy(prompt_kwargs)
+        answer_kwargs = answer_kwargs or {}
         if not is_first_answer and not self.repeat_body_for_each_answer:
             copy_prompt_kwargs['question'] = None
-        if answer_quality:
-            copy_prompt_kwargs['quality'] = answer_quality
 
-        if not self.include_quality:
-            copy_prompt_kwargs['quality'] = None
+        if answer_kwargs.get('quality', None):
+            copy_prompt_kwargs['quality'] = answer_kwargs['quality']
 
-        return self.prompt.render(**copy_prompt_kwargs).strip()
+        if answer_kwargs.get('answer_date', None):
+            copy_prompt_kwargs['answer_date'] = answer_kwargs['answer_date']
+        return self.prompt_fn(copy_prompt_kwargs).strip()
 
     def __call__(self, sample: Dict) -> List[Dict]:
         """
@@ -248,7 +231,6 @@ class StackOverflowProcessor:
             date=sample['date']
         )
         prompt_kwargs['quality'] = 'NONE' if self.repeat_prompt_each_answer else 'BEST'
-        prompt_kwargs['comment_type'] = self.comment_type_for_question
 
         if self.answers_per_sample == -1:
             answers_keep = len(answers)
@@ -289,7 +271,7 @@ class StackOverflowProcessor:
 
             answers_processed.append(
                 self.process_answer(
-                    answer['body'], answer['score'],
+                    answer['body'], answer['score'], answer['date'],
                     is_best_answer
                 )
             )
@@ -306,15 +288,15 @@ class StackOverflowProcessor:
         if not self.repeat_prompt_each_answer:
             return [
                 {
-                    'input' : self.apply_prompt(prompt_kwargs, True),
-                    'labels': '\n'.join(d[1] for d in answers_processed)
+                    'input' : self.apply_prompt(prompt_kwargs, True, ),
+                    'labels': '\n'.join(d[0] for d in answers_processed)
                 }
             ]
 
         return [
             {
-                'input' : self.apply_prompt(prompt_kwargs, i == 0, d[0]),
-                'labels': d[1]
+                'input' : self.apply_prompt(prompt_kwargs, i == 0, d[1]),
+                'labels': d[0]
             }
             for i, d in enumerate(answers_processed)
         ]
