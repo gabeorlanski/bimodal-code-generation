@@ -4,15 +4,15 @@ model_path: best_models/MBPP.FinetuneSO.ParrotSmall.PythonTitleRepeat.FineTune
 seq_per_sample: 100
 remove_input_ids: true
 splits:
-- test
-- validation
+  - test
 project: so-code-gen
-batch_size: 200
-tracking:
-  watch: all
-  project: so-code-gen
-  log_model: true
-  entity: nyu-code-research
+num_generate_per_step: 10
+tracking: false
+num_proc: 4
+#  watch: all
+#  project: so-code-gen
+#  log_model: true
+#  entity: nyu-code-research
 generation:
   max_new_tokens: 256
   do_sample: true
@@ -20,16 +20,22 @@ generation:
   top_p: 0.95
   top_k: 50
 postprocessors:
-- strip: {}
+  - strip: { }
 task:
-  name: mbpp
+  name: human_eval
+  preprocessors: [ ]
   postprocessors:
-  - split:
-      split_phrase: '#Solution:'
+    - strip: { }
+  override_preprocessors: True
+  override_postprocessors: True
+
+  metrics:
+    - exact-match
+    - bleu
+
   eval_splits:
-  - test
-  - validation
-  dump_name: python_title
+    - test
+
 processor:
   name: stackoverflow
   params:
@@ -63,5 +69,5 @@ meta:
   card_name: FinetuneSO.ParrotSmall
   ablation_vals:
     DumpName: PythonTitleRepeat
-name: FinetuneSO.ParrotSmall.PythonTitleRepeat.Eval
-group: MBPP
+name: Testing
+group: DEBUGGING

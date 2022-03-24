@@ -15,13 +15,12 @@ import numpy as np
 import wandb
 from datasets import set_caching_enabled, Dataset
 from omegaconf import DictConfig, open_dict, OmegaConf
-from transformers import PreTrainedModel, DataCollatorForSeq2Seq, pipeline, StoppingCriteria, \
-    MaxLengthCriteria, StoppingCriteriaList
+from transformers import PreTrainedModel, StoppingCriteria, StoppingCriteriaList
 import torch
 import logging
 from tqdm import tqdm
 from src.config import (
-    get_device_from_cfg, load_task_from_cfg, get_config_for_tracking, \
+    get_device_from_cfg, load_task_from_cfg, \
     get_run_base_name_from_cfg, initialize_run_from_cfg
 )
 from apex import amp
@@ -29,37 +28,43 @@ import multiprocessing as mp
 
 logger = logging.getLogger(__name__)
 
+EOF_STRINGS = ["\nclass", "\ndef", "\n#", "\n@", "\nprint", "\nif"]
 
-class EOSStoppingCriteria(StoppingCriteria):
+
+class EndOfFunctionCriteria(StoppingCriteria):
     """Custom `StoppingCriteria` which checks if all generated functions in the batch are completed."""
 
-    def __init__(self, tokenizer):
-        self.eos_token = tokenizer.eos_token_id
+    def __init__(self, start_length, eof_strings, tokenizer):
+        self.start_length = start_length
+        self.eof_strings = eof_strings
+        self.tokenizer = tokenizer
 
     def __call__(self, input_ids, scores, **kwargs):
         """Returns true if all generated sequences contain any of the end-of-function strings."""
-
-        return all(self.eos_token in row[1:] for row in input_ids)
+        decoded_generations = self.tokenizer.batch_decode(input_ids[:, self.start_length:])
+        done = []
+        for decoded_generation in decoded_generations:
+            done.append(
+                any([stop_string in decoded_generation for stop_string in self.eof_strings]))
+        return all(done)
 
 
 def oracle(args, metric_list):
     # To get the oracle score, we need to repeat target for every prediction
     predictions, target = args
-    oracle_values = {}
-    for p in predictions:
-        for res in map(lambda m: m([p], [target]), metric_list):
-            for name, value in res.items():
-                oracle_values[name] = max(oracle_values.get(name, float('-inf')), value)
-
-    return oracle_values
+    return target, [
+        m.get_oracle_best_pred(predictions, target)
+        for m in metric_list
+    ]
 
 
-def generate_code_predictions(
+def generate_predictions(
         model,
         objective,
         dataset: Union[List[dict], Dataset],
         tokenizer,
-        batch_size,
+        num_procs,
+        num_generate_per_step,
         device,
         generation_kwargs,
         seq_per_sample,
@@ -67,26 +72,22 @@ def generate_code_predictions(
         debug
 ):
     logger.info("Starting Generation")
-    if any(dataset[i - 1]['length'] < dataset[i]['length'] for i in range(1, len(dataset))):
-        raise ValueError(f"The custom generation method only works if the "
-                         f"dataset is sorted by length.")
 
-    logger.info(f"Using batch size of {batch_size} and generating "
+    logger.info(f"Using batch size of {num_generate_per_step} and generating "
                 f"{seq_per_sample} per sample")
 
     logger.info("Generation kwargs:")
     for k, v in generation_kwargs.items():
         logger.info(f"\t{k:>20} = {v}")
 
-    generation_kwargs["stopping_criteria"] = StoppingCriteriaList(
-        [EOSStoppingCriteria(tokenizer)])
     indices = []
     predictions = []
     labels = []
-    generate_steps_per_sample, remainder = divmod(seq_per_sample, batch_size)
+    generate_steps_per_sample, remainder = divmod(seq_per_sample, num_generate_per_step)
     has_remainder = remainder > 0
 
-    amounts_to_generate = [batch_size] * generate_steps_per_sample + [remainder] * has_remainder
+    amounts_to_generate = [num_generate_per_step] * generate_steps_per_sample + [
+        remainder] * has_remainder
 
     logger.debug(f"{len(amounts_to_generate)} steps per sample")
 
@@ -96,8 +97,31 @@ def generate_code_predictions(
         if 'max_length' not in generation_kwargs:
             max_length = max_new_tokens
 
-    total_memory = torch.cuda.mem_get_info(device)[1]
-    tokenizer.padding_side = 'left'
+    total_memory = torch.cuda.mem_get_info(device)[1]  # type: ignore
+    tokenizer.padding_side = 'left' if objective == 'lm' else 'right'
+
+    def prepare_for_eval(ex, ex_idx):
+        prompt = ex['input_sequence']
+        if objective == 'lm' and not debug:
+            prompt = tokenizer.eos_token + prompt
+        input_ids = tokenizer(prompt)
+        return {
+            'labels': tokenizer(ex['target'])['input_ids'],
+            'length': len(input_ids['input_ids']),
+            'idx'   : ex_idx,
+            **input_ids
+        }
+
+    logger.info(f"Preparing {len(dataset)} instances for evaluation")
+    tokenized = dataset.map(
+        prepare_for_eval,
+        with_indices=True,
+        remove_columns=dataset.column_names,
+        num_proc=num_procs
+    ).sort('length', reverse=True)
+    tokenized.set_format(type='torch')
+
+    dataloader = torch.utils.data.DataLoader(tokenized, batch_size=1)
 
     model.eval()
     with torch.inference_mode():
@@ -108,24 +132,29 @@ def generate_code_predictions(
         else:
             progress_bar = None
 
-        for idx, sample in enumerate(dataset):
+        for instance in dataloader:
+            idx = instance['idx'].item()
             generated_for_current_sample = []
-            sample_tokenized = tokenizer(sample['input_sequence'], return_tensors='pt')
-            local_inputs = sample_tokenized["input_ids"].to(device)
-            local_attention = sample_tokenized['attention_mask'].to(device)
-            input_len = dataset[idx]['length']
+            local_inputs = instance["input_ids"].to(device)
+            local_attention = instance['attention_mask'].to(device)
+            input_len = instance['length'].item()
 
             max_length_for_gen = max_length
             if objective == 'lm':
                 if max_length + input_len > tokenizer.model_max_length:
                     logger.warning(
-                        f"Sample {sample['idx']} has more than the "
+                        f"Sample {idx} has more than the "
                         f"models max length of {tokenizer.model_max_length}."
                     )
                     # Subtract 4 to be safe.
                     max_length_for_gen = tokenizer.model_max_length - 4
                 else:
                     max_length_for_gen = input_len + max_length
+
+            if 'stopping_criteria' in generation_kwargs:
+                for sc in generation_kwargs['stopping_criteria']:
+                    if hasattr(sc, 'start_length'):
+                        sc.start_length = input_len
 
             for num_to_generate in amounts_to_generate:
                 generated_from_batch = model.generate(
@@ -148,13 +177,13 @@ def generate_code_predictions(
 
             pct_allocated = torch.cuda.max_memory_allocated(device) / total_memory
             logger.debug(
-                f"{pct_allocated * 100:0.2f}% allocated")
+                f"{pct_allocated * 100:0.2f}% GPU memory allocated")
             assert len(generated_for_current_sample) == seq_per_sample
             predictions.append(generated_for_current_sample)
-            labels.append(sample['target'])
-            indices.append(sample['idx'])
+            labels.append(dataset[idx]['target'])
+            indices.append(idx)
             if not progress_bar:
-                logger.info(f"Finished {idx}/{len(dataset)} generations")
+                logger.info(f"Finished {idx + 1}/{len(dataset)} generations")
         if progress_bar:
             progress_bar.close()
 
@@ -186,11 +215,10 @@ def evaluate_model(
         model.config.pad_token_id = task.tokenizer.pad_token_id
         model.config.bos_token_id = task.tokenizer.bos_token_id or task.tokenizer.eos_token
 
-        def prepend_token(sample):
-            sample['input_sequence'] = task.tokenizer.eos_token + sample['input_sequence']
-            return sample
-
-        task.preprocessors.append(prepend_token)
+    if cfg.task.name == 'human_eval':
+        gen_kwargs["stopping_criteria"] = StoppingCriteriaList(
+            [EndOfFunctionCriteria(0, EOF_STRINGS, task.tokenizer)]
+        )
 
     logger.info(f"Getting the data for split {cfg.split}")
     dataset = task.preprocess(cfg.split)
@@ -200,29 +228,19 @@ def evaluate_model(
         logger.warning(f"DEBUG NUMBER OF SAMPLES={debug_num_samples}")
         dataset = dataset.select(list(range(debug_num_samples)))
 
-    logger.info("Sorting the dataset by length")
-
-    def get_len(ex):
-        ex['length'] = len(task.tokenizer.tokenize(ex['input_sequence']))
-        return ex
-
-    dataset = dataset.map(
-        get_len,
-        num_proc=cfg.get('num_workers', 1),
-    ).sort('length', reverse=True)
-
     device = get_device_from_cfg(cfg)
     model = model.to(device)
-    model = amp.initialize(model)
+    # model = amp.initialize(model)
     logger.info(f"Model is on {model.device}")
-    logger.info(f"{type(dataset)=}")
+    logger.debug(f"{type(dataset)=}")
 
-    generation_results = generate_code_predictions(
+    generation_results = generate_predictions(
         model,
         objective=cfg.objective,
         dataset=dataset,
+        num_procs=cfg.get('num_proc', 1),
         tokenizer=task.tokenizer,
-        batch_size=cfg.batch_size,
+        num_generate_per_step=cfg.num_generate_per_step,
         device=device,
         generation_kwargs=gen_kwargs,
         seq_per_sample=cfg.seq_per_sample,
@@ -243,18 +261,23 @@ def evaluate_model(
         metric_list=task.metric_fns
     )
 
-    global_oracle = defaultdict(list)
+    # Copy the targets to another list to maintain order
+    global_targets = []
+    global_oracle = [[] for _ in task.metric_fns]
     logger.info(f"Calculating the Oracle Scores")
     with mp.Pool(cfg.get("num_workers", 1)) as pool:
-        for oracle_scores in tqdm(
+        for target, best_predictions in tqdm(
                 pool.imap_unordered(oracle_fn, oracle_args),
                 total=len(predictions)
         ):
-            for k, v in oracle_scores.items():
-                global_oracle[k].append(v)
+            global_targets.append(target)
+            for i, v in enumerate(best_predictions):
+                global_oracle[i].append(v)
 
-    for k, v in global_oracle.items():
-        metrics[f"oracle_{k}"] = np.mean(v)  # type: ignore
+    for m, preds_list in zip(task.metric_fns, global_oracle):
+        for k, v in m(preds_list, global_targets).items():
+            metrics[f"oracle_{k}"] = v  # type: ignore
+
     # Get the full metrics suite for the predictions and the labels
     logger.info("Results:")
     for k, v in metrics.items():

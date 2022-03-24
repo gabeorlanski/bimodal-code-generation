@@ -82,24 +82,12 @@ def first_block(string):
 def oracle(instance, clean_regex, metric_list):
     # Remove the block comments from the prompt.
     cleaned_target = clean_regex.sub('', instance['target'])
+    cleaned_predictions = [clean_regex.sub('', p) for p in instance['prediction']]
 
-    # To get the oracle score, we need to repeat target for every prediction
-
-    oracle_values = {}
-
-    cleaned_prediction = None
-
-    for p in instance['prediction']:
-
-        cleaned_p = clean_regex.sub('', p)
-        if cleaned_prediction is None:
-            cleaned_prediction = cleaned_p
-
-        for res in map(lambda m: m([cleaned_p], [cleaned_target]), metric_list):
-            for name, value in res.items():
-                oracle_values[name] = max(oracle_values.get(name, float('-inf')), value)
-
-    return cleaned_prediction, cleaned_target, oracle_values
+    return cleaned_predictions[0], cleaned_target, [
+        m.get_oracle_best_pred(cleaned_predictions, cleaned_target)
+        for m in metric_list
+    ]
 
 
 def complete_code(pipe, prompt, remove_prompt=False, num_completions=1, **gen_kwargs):
@@ -251,7 +239,8 @@ def main(
             cfg.prompt_template = PROJECT_ROOT.joinpath(cfg.prompt_template).read_text().strip()
         else:
             cfg.prompt_template = '{{prompt}}'
-        cfg.tracking.force_name = True
+        if isinstance(cfg.tracking, dict):
+            cfg.tracking.force_name = True
 
     working_dir = PROJECT_ROOT.joinpath(
         'eval_results', "HUMAN_EVAL",
@@ -410,30 +399,31 @@ def main(
     logger.info(f"Calculating BLEU")
     em = ExactMatch()
     bleu = BLEU()
-
+    metric_list = [em, bleu]
     map_fn = partial(
         oracle,
         clean_regex=remove_comment_regex,
-        metric_list=[em, bleu]
+        metric_list=metric_list
     )
 
     global_preds, global_targets = [], []
-    global_oracle = defaultdict(list)
+    global_oracle = [[] for _ in metric_list]
     logger.info(f"Calculating the Oracle Scores")
     with mp.Pool(num_workers) as pool:
-        for p_cleaned, t_cleaned, oracle_scores in tqdm(
+        for cleaned_p, cleaned_t, best_preds in tqdm(
                 pool.imap_unordered(map_fn, predictions), total=len(predictions)):
-            global_preds.append(p_cleaned)
-            global_targets.append(t_cleaned)
-            for k, v in oracle_scores.items():
-                global_oracle[k] = v
+            global_preds.append(cleaned_p)
+            global_targets.append(cleaned_t)
+            for i, best_pred in enumerate(best_preds):
+                global_oracle[i].append(best_pred)
 
     metrics = {}
     metrics.update(em(global_preds, global_targets))
     metrics.update(bleu(global_preds, global_targets))
 
-    for k, v in global_oracle.items():
-        metrics[f"oracle_{k}"] = np.mean(v)
+    for m, preds_list in zip(metric_list, global_oracle):
+        for k, v in m(preds_list, global_targets).items():
+            metrics[f"oracle_{k}"] = v
 
     logger.info(f"Evaluation Metrics:")
     for k, v in metrics.items():

@@ -38,7 +38,7 @@ from src.common import setup_global_logging, PROJECT_ROOT
     '--seq-per-sample', '-seqs', 'sequences_per_sample',
     default=None, type=int, help='Number of sequences per sample to generate.')
 @click.option(
-    '--batch-size', '-B', 'batch_size',
+    '--num-generate-per-step', '-B', 'num_generate_per_step',
     default=None, type=int, help='Number of sequences per batch to generate.')
 @click.option(
     '--debug-samples', 'debug_num_samples',
@@ -69,7 +69,7 @@ from src.common import setup_global_logging, PROJECT_ROOT
 def eval_from_checkpoint(
         train_dir: str,
         output_dir_name,
-        batch_size: int,
+        num_generate_per_step: int,
         splits_for_eval: str,
         sequences_per_sample: int,
         debug_num_samples: int,
@@ -115,19 +115,19 @@ def eval_from_checkpoint(
 
             if splits_for_eval:
                 cfg.splits = splits_for_eval.split(',')
-            if batch_size:
-                cfg.batch_size = batch_size
+            if num_generate_per_step:
+                cfg.batch_size = num_generate_per_step
 
             cfg.model_path = str(train_dir)
 
     else:
         cfg_overrides = config.create_overrides_list(
             {
-                "model_path"    : train_dir,
-                "task"          : eval_task_name,
-                "seq_per_sample": sequences_per_sample,
-                "splits"        : splits_for_eval,
-                "batch_size"    : batch_size
+                "model_path"           : train_dir,
+                "task"                 : eval_task_name,
+                "seq_per_sample"       : sequences_per_sample,
+                "splits"               : splits_for_eval,
+                "num_generate_per_step": num_generate_per_step
             },
             hydra_overrides,
             override_str
@@ -149,12 +149,12 @@ def eval_from_checkpoint(
             'generation'
         ]
     )
-    dir_name = output_dir_name or f"{cfg.group}.{cfg.name}"
+    dir_name = output_dir_name or f"{cfg.name}"
 
     if debug:
         dir_name = f"debug_{dir_name}"
     working_dir = PROJECT_ROOT.joinpath(
-        'eval_results', cfg.task.name.upper(),
+        'eval_results', cfg.group.upper(),
         dir_name
     )
 

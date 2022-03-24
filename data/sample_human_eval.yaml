@@ -1,12 +1,10 @@
 batch_size: 10
-conditioning_tags:
-- virtualenv
 data_args:
   seq_length: 512
 device: 0
 generation:
   do_sample: true
-  max_new_tokens: 256
+  max_new_tokens: 16
   temperature: 0.5
   top_k: 50
   top_p: 0.95
@@ -52,7 +50,7 @@ processor:
     wrap_answer_character: null
     wrap_question_character: null
 project: so-code-gen
-prompt_template: data/prompt_templates/comment_block.txt
+#prompt_template: data/prompt_templates/comment_block.txt
 raw_dump_path: data/dumps
 remove_input_ids: false
 seed: 1
@@ -64,13 +62,13 @@ task:
   dump_name: python_ParrotSmall.Comment.Virtualenv
   raw_dump_name: python
   tensorized_name: python_ParrotSmall.Comment.Virtualenv
-tracking:
-  entity: nyu-code-research
-  log_model: false
-  project: so-code-gen
-  tags:
-  - Torchrun
-  - GradientCheckpointing
-  - AdamW
-  - O2
-  watch: gradients
+tracking: False
+#  entity: nyu-code-research
+#  log_model: false
+#  project: so-code-gen
+#  tags:
+#  - Torchrun
+#  - GradientCheckpointing
+#  - AdamW
+#  - O2
+#  watch: gradients

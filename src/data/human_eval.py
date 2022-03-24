@@ -46,7 +46,7 @@ class HumanEval(Task):
             split_mapping=split_mapping
         )
         self._dataset = load_dataset('openai_humaneval')
-        # self.postprocessors = [first_block, *self.postprocessors]
+        self.postprocessors = [first_block, *self.postprocessors]
 
     def _load_samples(self, split) -> Dataset:
         # Load the data into a dict where the key is the task_id
@@ -56,7 +56,7 @@ class HumanEval(Task):
 
     def map_to_standard_entries(self, sample: Dict) -> Dict:
         sample['target'] = sample['canonical_solution']
-        sample['input_sequence'] = sample['prompt']
+        sample['input_sequence'] = sample['prompt'].strip()
         return sample
 
     def serialize_task_features(
@@ -98,10 +98,9 @@ class HumanEval(Task):
             ]
 
             # Have to add the prompt back to the predictions
-            preds_list = [first_block(p[len(processed_sample['prompt']):]) for p in preds]
             preds_list = [
-                processed_sample['prompt'] + ('\t' if not p.startswith('\t') else '') + p
-                for p in preds_list
+                processed_sample['prompt'].strip() + ('\t' if not p.startswith('\t') else '') + p
+                for p in preds
             ]
 
             yield {

@@ -19,6 +19,7 @@ seed: 1
 numpy_seed: 2
 pytorch_seed: 3
 save_best_model: False
+num_proc: 4
 
 # Prompt Arguments
 prompts: null
