@@ -12,7 +12,7 @@ echo "#!/bin/bash" >> {{cancel_file}}
 # Human Eval After PreTrain
 he_so{{idx}}=$(sbatch --job-name='{{ job_name }}_he' \
 	--parsable \
-	eval.sbatch outputs/so/{{FineTune.model_path}} human_eval)
+	eval.sbatch {{FineTune.model_path}} human_eval)
 echo "Submitted HumanEval (id=$he_so{{idx}})"
 echo "scancel $he_so{{idx}}" >> {{cancel_file}}
 
@@ -20,7 +20,7 @@ echo "scancel $he_so{{idx}}" >> {{cancel_file}}
 he_exec{{idx}}=$(sbatch --parsable --job-name='{{ job_name }}_he_execute' \
 	--dependency=afterok:$he_so{{idx}} \
 	eval_code.sbatch \
-	outputs/so/{{FineTune.model_path}}/eval/HUMAN_EVAL
+	{{FineTune.model_path}}/eval/HUMAN_EVAL
 )
 echo "Submitted CodeEval(id=$he_exec{{idx}})"
 echo "scancel $he_exec{{idx}}" >> {{cancel_file}}
