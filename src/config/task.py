@@ -184,7 +184,11 @@ def get_prompts_from_cfg(cfg, jinja_env: Environment) -> Callable:
     global_params = OmegaConf.to_object(cfg.prompts['params']) if 'params' in cfg.prompts else {}
     global_flags = OmegaConf.to_object(cfg.prompts['flags']) if 'flags' in cfg.prompts else {}
     logger.info(f"Found {len(cfg.prompts)} prompt{'s' if len(cfg.prompts) > 1 else ''}")
-    for prompt_name in cfg.prompts.pipe:
+    for prompt in cfg.prompts.pipe:
+        if isinstance(prompt, dict):
+            prompt_name = prompt['name']
+        else:
+            prompt_name = prompt
         logger.debug(f"Loading prompt from {prompt_name}")
         if prompt_name not in prompts_raw:
             raise KeyError(f"No prompt with name {prompt_name}")
