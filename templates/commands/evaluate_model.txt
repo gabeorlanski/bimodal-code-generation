@@ -51,7 +51,7 @@ echo "scancel $hef_exec{{idx}}" >> {{cancel_file}}
 # Normal Eval
 eval_jid{{idx}}=$(sbatch --parsable \
 	--job-name={{ job_name }}_eval \
-	--dependency=afterok:$train_jid{{ idx}} eval.sbatch \
+	eval.sbatch \
 	outputs/mbpp/{{ FineTune.name }} mbpp)
 echo "Submitted Eval $eval_jid{{idx}} to run after $1(id=$train_jid{{ idx}})"
 echo "scancel $eval_jid{{idx}}" >> {{cancel_file}}
