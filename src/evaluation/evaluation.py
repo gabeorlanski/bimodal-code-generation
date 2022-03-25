@@ -447,8 +447,11 @@ def make_eval_cfg_from_ctx(ctx, cfg):
             cfg.evaluation = {
                 "num_generate_per_step": cfg.pop("num_generate_per_step", 200),
                 "remove_input_ids"     : cfg.pop("seq_per_sample", False),
-                "seq_per_sample"       : cfg.pop("seq_per_sample", 1),
             }
+            cfg.evaluation["seq_per_sample"] = cfg.pop(
+                "seq_per_sample",
+                cfg.evaluation["num_generate_per_step"]
+            )
         else:
             # Remove those keys because they are deprecated
             for k in cfg.evaluation:
