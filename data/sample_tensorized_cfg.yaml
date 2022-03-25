@@ -55,7 +55,7 @@ project: so-code-gen
 prompts:
   file: templates/so_prompts.yaml
   pipe:
-  - name: answer_date_before
+  - answer_date_before
 pytorch_seed: 3
 raw_dump_path: data/dumps
 remove_input_ids: false

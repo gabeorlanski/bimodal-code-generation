@@ -1,73 +1,122 @@
-seed: 1
-is_checkpoint: false
-model_path: best_models/MBPP.FinetuneSO.ParrotSmall.PythonTitleRepeat.FineTune
-seq_per_sample: 100
-remove_input_ids: true
-splits:
-  - test
-project: so-code-gen
-num_generate_per_step: 10
-tracking: false
-num_proc: 4
-#  watch: all
-#  project: so-code-gen
-#  log_model: true
-#  entity: nyu-code-research
+data_args:
+  seq_length: 1024
+data_path: data
+debug: false
+description: 'Group=Baseline Evaluation of the models finetuned on SO with Only Title
+  and Repeating + Only Code Answer + different prompting methods | Step=Finetune on
+  the SO Data | Ablation=Model: GPT Neo 125M, Prompts: The year and month of the answer
+  followed by the title'
+device: 0
+evaluation:
+  num_generate_per_step: 200
+  remove_input_ids: false
+  seq_per_sample: 200
 generation:
-  max_new_tokens: 256
   do_sample: true
+  max_length: 512
   temperature: 0.5
-  top_p: 0.95
   top_k: 50
-postprocessors:
-  - strip: { }
-task:
-  name: human_eval
-  preprocessors: [ ]
-  postprocessors:
-    - strip: { }
-  override_preprocessors: True
-  override_postprocessors: True
-
-  metrics:
-    - exact-match
-    - bleu
-
-  eval_splits:
-    - test
-
+  top_p: 0.95
+group: SO
+hypothesis: 'Prompts: Should improve results as it handles the issue of deprecated
+  code, should also be better than the question date'
+is_checkpoint: false
+meta:
+  ablation: Neo125M.AnswerYearMonth
+  ablation_vals:
+    Model: Neo125M
+    Prompts: AnswerYearMonth
+  card_name: PromptingTitleCodeRepeat.Base
+  step: PreTrain
+metrics:
+- exact-match
+- bleu
+model: EleutherAI/gpt-neo-125M
+model_path: null
+name: PromptingTitleCodeRepeat.Base.Neo125M.AnswerYearMonth
+num_proc: 4
+numpy_seed: 2
+objective: lm
+preprocessors: []
 processor:
   name: stackoverflow
   params:
+    allow_negative_best_answer: false
+    allow_no_answer: false
     answer_sorting: accepted
     answers_per_sample: -1
-    repeat_question_for_each_answer: title
-    good_answer_cutoff: 3
     bad_answer_cutoff: -1
-    answer_prompt: null
-    question_prompt: null
-    title_prompt: null
-    clean: false
-device: 0
-model: lvwerra/codeparrot-small
-training:
-  batch_size: 16
-  gradient_accumulation_steps: 4
-  learning_rate: 0.0001
-  save_steps: 2500
-  eval_steps: 500
-  max_steps: 10000
-  warmup_steps: 500
-  logging_steps: 25
-  lr_scheduler_type: linear
+    date_format_str: '%Y-%m'
+    good_answer_cutoff: 3
+    highest_is_best: false
+    no_answer_str: There is not an answer
+    remove_modality: NL
+    repeat_body_for_each_answer: false
+    repeat_prompt_each_answer: true
+    top_answer_cutoff: 12
+    worst_is_best: false
+    wrap_answer_character: None
+project: so-code-gen
+prompts:
+  disable_prompts: true
+  file: templates/so_prompts.yaml
+  pipe:
+  - name: answer_date_before
+pytorch_seed: 3
 raw_dump_path: data/dumps
-raw_dump_name: python
-tensorized_name: python_title
-meta:
-  ablation: PythonTitleRepeat
-  step: Eval
-  card_name: FinetuneSO.ParrotSmall
-  ablation_vals:
-    DumpName: PythonTitleRepeat
-name: Testing
-group: DEBUGGING
+save_best_model: false
+seed: 1
+task:
+  buffer_size: 5000
+  ds_info_path: data/ds_info
+  dump_name: python_Neo125M.AnswerYearMonth
+  eval_splits: []
+  name: so
+  raw_dump_name: python
+  raw_dump_path: data/dumps
+  seed: 1
+  sequence_length: 1024
+  tensorized_name: python_Neo125M.AnswerYearMonth
+tracking:
+  entity: nyu-code-research
+  log_model: true
+  project: so-code-gen
+  tags:
+  - O2
+  - Prompting
+  watch: gradients
+training:
+  batch_size: 32
+  dataloader_num_workers: 4
+  ddp_find_unused_parameters: false
+  disable_tqdm: true
+  eval_accumulation_steps: 1
+  eval_steps: 500
+  evaluation_strategy: steps
+  fp16: true
+  fp16_backend: apex
+  fp16_opt_level: O2
+  gradient_accumulation_steps: 1
+  gradient_checkpointing: false
+  greater_is_better: false
+  group_by_length: false
+  half_precision_backend: apex
+  learning_rate: 5.0e-05
+  load_best_model_at_end: false
+  logging_first_step: true
+  logging_steps: 100
+  lr_scheduler_type: linear
+  max_grad_norm: 1.0
+  max_steps: 25000
+  metric_for_best_model: eval_loss
+  num_train_epochs: 1
+  output_dir: checkpoints
+  remove_unused_columns: false
+  save_steps: 2500
+  save_strategy: steps
+  save_total_limit: 10
+  use_8bit_adam: false
+  warmup_ratio: 0.01
+  warmup_steps: 2500
+  weight_decay: 0.1
+  xpu_backend: ccl

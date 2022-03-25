@@ -15,40 +15,6 @@ from src.evaluation import evaluation
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
 
-def test_evaluate(tmpdir, simple_eval_config):
-    # simple_eval_config['training']['batch_size'] = batch_size
-    simple_eval_config['splits'] = ["train"]
-    cfg = OmegaConf.create(simple_eval_config)
-    model = AutoModelForCausalLM.from_pretrained('sshleifer/tiny-gpt2')
-    return_val = {
-        "predictions": [
-            ["A", "B", "C"],
-            ["D", "E", "F"]
-        ],
-        "labels"     : ["A", "C"],
-        "indices"    : [0, 1]
-    }
-
-    with patch('src.evaluation.evaluation.generate_code_predictions',
-               return_value=return_val) as mock_gen:
-        evaluation.evaluate(
-            cfg,
-            model,
-            Path(tmpdir),
-            False
-        )
-        assert mock_gen.call_count == 1
-
-    tmpdir_path = Path(tmpdir)
-    assert tmpdir_path.joinpath('eval_config.yaml').exists()
-    assert tmpdir_path.joinpath('eval_metrics.json').exists()
-    assert tmpdir_path.joinpath('predictions', 'train.jsonl').exists()
-    results = list(map(json.loads,
-                       tmpdir_path.joinpath('predictions', 'train.jsonl').read_text().splitlines()))
-    assert len(results) == 2
-    assert [d['prediction'] for d in results] == return_val['predictions']
-
-
 @pytest.mark.parametrize("remove_input_ids", [True, False])
 def test_generate_predictions(remove_input_ids):
     seed = 1
@@ -78,7 +44,6 @@ def test_generate_predictions(remove_input_ids):
 
     tokenizer = AutoTokenizer.from_pretrained('lvwerra/codeparrot-small')
     tokenizer.pad_token = tokenizer.eos_token
-    # prompt = tokenizer.eos_token + prompt
     gen_kwargs = {
         'max_new_tokens': 16,
         'do_sample'     : True,
@@ -121,14 +86,63 @@ def test_generate_predictions(remove_input_ids):
     assert results['indices'] == [0]
 
 
-@pytest.mark.parametrize('inputs,expected', [
-    [[10, 1, 5], 1.0],
-    [[0, 1, 5], 0.5],
-    [[0, 0, 0], 0.0],
-], ids=['100%', '50%', '0%'])
-def test_oracle(inputs, expected):
-    def metric(p, t):
-        return {'m': p[0] / t[0]}
+def test_generate_predictions_batch_size():
+    seed = 1
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)
+    expected = [
+        ["1", "1", "1.5"],
+        ["2", "2", "2.5"]
+    ]
+    prompt = '''Test'''
 
-    results = evaluation.oracle([inputs, 10], [metric])
-    assert results == {'m': expected}
+    tokenizer = AutoTokenizer.from_pretrained('lvwerra/codeparrot-small')
+    tokenizer.pad_token = tokenizer.eos_token
+    gen_kwargs = {
+        'max_new_tokens': 16,
+        'do_sample'     : True,
+        'temperature'   : 0.5,
+        'top_p'         : 0.95,
+        'top_k'         : 50
+    }
+
+    data = Dataset.from_dict({
+        'input_sequence': [prompt] * 2,
+        'target'        : ['Hello'] * 2,
+        'idx'           : [0, 1],
+        'length'        : [len(tokenizer.tokenize(prompt))] * 2
+    })
+    device = torch.device('cuda:0')
+    model = AutoModelForCausalLM.from_pretrained('lvwerra/codeparrot-small',
+                                                 pad_token_id=tokenizer.eos_token_id)
+    model.eos_token_id = tokenizer.eos_token_id
+    model.pad_token_id = tokenizer.eos_token_id
+    model.bos_token_id = tokenizer.eos_token_id
+
+    def gen_mock(num_return_sequences, **kwargs):
+        if num_return_sequences == 4:
+            return tokenizer(["1", "1", "2", "2"], return_tensors='pt')['input_ids']
+        return tokenizer(["1.5", "2.5"], return_tensors='pt')['input_ids']
+
+    model.generate = MagicMock()
+    model.generate.side_effect = gen_mock
+
+    results = evaluation.generate_predictions(
+        model,
+        objective='lm',
+        dataset=data,
+        num_procs=1,
+        tokenizer=tokenizer,
+        num_generate_per_step=4,
+        device=device,
+        generation_kwargs=gen_kwargs,
+        seq_per_sample=3,
+        remove_input_ids_from_output=False,
+        debug=True
+    )
+
+    assert results['predictions'] == expected
+    assert results['labels'] == ['Hello'] * 2
+    assert results['indices'] == [0, 1]

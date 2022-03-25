@@ -1,8 +1,5 @@
-defaults:
-  - _self_
-
-
 name: mbpp
+
 preprocessors:
   - add-prefix:
       prefix: "You are an expert Python programmer, and here is your task: "

@@ -212,10 +212,10 @@ def setup_tracking_env_from_cfg(cfg: DictConfig):
     project = cfg['tracking'].get('project')
     run_name = cfg["name"]
 
-    if cfg.get('old_name'):
-        run_name = cfg.get('old_name')
-    elif not cfg.tracking.get('force_name', False) and cfg.group != cfg.task.name.upper():
-        run_name = f"{cfg.task.name.upper()}.{run_name}"
+    if 'force_name' in cfg:
+        run_name = cfg.pop('force_name')
+    # elif cfg.group != cfg.task.name.upper():
+    #     run_name = f"{cfg.task.name.upper()}.{run_name}"
 
     if cfg.debug:
         project = f"debug-{project}"

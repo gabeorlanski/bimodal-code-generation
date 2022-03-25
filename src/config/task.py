@@ -20,8 +20,10 @@ __all__ = [
     "load_processors_from_cfg",
     "load_task_from_cfg",
     "load_tokenizer_from_cfg",
-    "get_prompts_from_cfg"
+    "get_prompts_from_cfg",
 ]
+
+PROMPT_REGISTRY = {}
 
 
 def load_processors_from_cfg(cfg: DictConfig) -> Tuple[List[Callable], List[Callable]]:
@@ -150,16 +152,19 @@ def apply_prompts(input_kwargs, prompts) -> str:
         raise KeyError("Missing key 'input_sequence'")
 
     for prompt in prompts:
-        if set(inputs) & set(prompt['params']):
-            raise KeyError(f"Found conflict input keys {set(inputs) & set(prompt['params'])} "
+        if set(inputs) & set(prompt['flags']):
+            raise KeyError(f"Found conflict input keys {set(inputs) & set(prompt['flags'])} "
                            f"with prompt {prompt['path']}")
-        inputs['input_sequence'] = prompt['prompt'].render(**inputs)
+
+        prompt_kwargs = {**inputs, **prompt['params']}
+        prompt_kwargs.update(prompt['flags'])
+        inputs['input_sequence'] = PROMPT_REGISTRY[prompt['name']].render(**prompt_kwargs)
 
     return inputs['input_sequence']
 
 
 def get_prompts_from_cfg(cfg, jinja_env: Environment) -> Callable:
-    if 'prompts' not in cfg or not cfg.prompts:
+    if 'prompts' not in cfg or not cfg.prompts or cfg.prompts.get('disable_prompts', False):
         return lambda input_kwargs: input_kwargs['input_sequence']
 
     if 'file' not in cfg.prompts:
@@ -176,19 +181,22 @@ def get_prompts_from_cfg(cfg, jinja_env: Environment) -> Callable:
         raise KeyError("Missing 'pipe' key in prompts")
 
     prompts = []
+    global_params = OmegaConf.to_object(cfg.prompts['params']) if 'params' in cfg.prompts else {}
+    global_flags = OmegaConf.to_object(cfg.prompts['flags']) if 'flags' in cfg.prompts else {}
     logger.info(f"Found {len(cfg.prompts)} prompt{'s' if len(cfg.prompts) > 1 else ''}")
-    for prompt in cfg.prompts.pipe:
-        prompt_name = prompt['name']
+    for prompt_name in cfg.prompts.pipe:
         logger.debug(f"Loading prompt from {prompt_name}")
         if prompt_name not in prompts_raw:
             raise KeyError(f"No prompt with name {prompt_name}")
-        prompt_params = prompts_raw[prompt_name].get('params', {})
-        prompt_params.update(OmegaConf.to_object(prompt['params']) if 'params' in prompt else {})
-
+        prompt_params = deepcopy(prompts_raw[prompt_name].get('params', {}))
+        prompt_params.update(global_params)
+        prompt_flags = deepcopy(prompts_raw[prompt_name].get('flags', {}))
+        prompt_flags.update(global_flags)
+        PROMPT_REGISTRY[prompt_name] = jinja_env.from_string(prompts_raw[prompt_name]['template'])
         prompts.append({
             "name"  : prompt_name,
-            "prompt": jinja_env.from_string(prompts_raw[prompt_name]['template']),
-            "params": prompt_params
+            "params": prompt_params,
+            "flags" : prompt_flags
         })
 
     return partial(apply_prompts, prompts=prompts)

@@ -15,7 +15,7 @@ from src.common.util import flatten
 
 
 @click.command()
-@click.argument('path_to_preds', metavar="<predictions dir>")
+@click.argument('preds_dir', metavar="<predictions dir>")
 @click.argument('num_workers', type=int, metavar="<Number of workers>")
 @click.option(
     '--debug',
@@ -35,22 +35,9 @@ from src.common.util import flatten
     type=float,
     help="The amount to use for timeout"
 )
-def run(path_to_preds, num_workers, debug, disable_tracking, timeout):
+def run(preds_dir, num_workers, debug, disable_tracking, timeout):
     # I just needed a way to get the parent directory.
-    path_to_preds = Path(path_to_preds)
-    print(f"{path_to_preds}")
-    print(f"{path_to_preds.suffix}")
-
-    if path_to_preds.suffix == '.jsonl':
-        preds_file = path_to_preds
-        path_to_preds = path_to_preds.parent
-    else:
-        preds_file = None
-        if path_to_preds.stem != 'predictions':
-            path_to_preds = path_to_preds.joinpath('predictions')
-    if not path_to_preds.exists():
-        raise FileExistsError(f"{path_to_preds.resolve().absolute()} does not exist.")
-
+    path_to_preds = Path(preds_dir)
     setup_global_logging(
         f'execution',
         path_to_preds,
@@ -58,19 +45,10 @@ def run(path_to_preds, num_workers, debug, disable_tracking, timeout):
         world_size=int(os.environ.get("WORLD_SIZE", 1)),
         disable_issues_file=True
     )
-    logger = logging.getLogger('code_eval')
-    logger.info("Starting...")
+    logger = logging.getLogger('execution')
     logger.info(f"Loading eval config from {path_to_preds}")
-    if preds_file is not None:
-        logger.info(f"Using single preds file {preds_file}")
-
-    # In the case this script is not called from an artifact.
-    if path_to_preds.stem == 'predictions':
-        path_to_cfg = path_to_preds.parent.joinpath('eval_config.yaml')
-    else:
-        path_to_cfg = path_to_preds.joinpath('eval_config.yaml')
     cfg = yaml.load(
-        path_to_cfg.open('r', encoding='utf-8'),
+        path_to_preds.joinpath('config.yaml').open('r', encoding='utf-8'),
         yaml.Loader
     )
     cfg = OmegaConf.create(
@@ -85,18 +63,19 @@ def run(path_to_preds, num_workers, debug, disable_tracking, timeout):
 
     all_results = {}
 
-    if preds_file:
-        found_files = [preds_file]
-    else:
-        found_files = list(path_to_preds.glob('*.jsonl'))
-        logger.info(f"{len(found_files)} prediction file found")
+    logger.info(f"Splits to execute: {', '.join(cfg.splits)}")
+    splits = []
+    for split in cfg.splits:
+        if not path_to_preds.joinpath(f"{split}.jsonl").exists():
+            raise FileNotFoundError(f'{path_to_preds.joinpath(f"{split}.jsonl")} does not exist')
+        splits.append(path_to_preds.joinpath(f"{split}.jsonl"))
 
-    for split_file in found_files:
+    for split_file in splits:
         split = split_file.stem
         logger.info(f"Executing code from {split_file}")
         results = evaluate_code_from_file(
             str(split_file),
-            samples_per_problem=cfg.seq_per_sample,
+            samples_per_problem=cfg.evaluation.seq_per_sample,
             num_workers=num_workers,
             timeout=timeout
         )

@@ -25,9 +25,11 @@ num_proc: 4
 prompts: null
 
 # Evaluation Arguments
-batch_size: 5
-remove_input_ids: False
-seq_per_sample: 200
+evaluation:
+  num_generate_per_step: 5
+  remove_input_ids: False
+  seq_per_sample: 200
+
 generation:
   do_sample: true
   max_length: 512

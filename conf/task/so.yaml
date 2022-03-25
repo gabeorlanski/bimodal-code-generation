@@ -1,13 +1,8 @@
-defaults:
-  - _self_
 name: so
-
 seed: 1
-
 raw_dump_name: ???
 raw_dump_path: data/dumps
 tensorized_name: ???
-
 # Parameters For The iterable Dataset
 ds_info_path: data/ds_info
 sequence_length: 512

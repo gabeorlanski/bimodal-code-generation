@@ -1,10 +1,8 @@
-defaults:
-  - _self_
-
 name: human_eval
+generation:
+  max_length: 256
 preprocessors: [ ]
-postprocessors:
-  - strip: { }
+postprocessors: [ ]
 override_preprocessors: True
 override_postprocessors: True
 
