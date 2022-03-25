@@ -154,7 +154,10 @@ def generate_predictions(
 
         # Disable during debugging for my sanity.
         if not debug:
-            progress_bar = tqdm(total=seq_per_sample * len(dataset), desc='Generating')
+            progress_bar = tqdm(
+                total=math.ceil(len(dataset) / batch_size) * amounts_to_generate,
+                desc='Generating'
+            )
         else:
             progress_bar = None
         completed = 0
@@ -197,7 +200,7 @@ def generate_predictions(
                 ids_for_current_sample = generated_from_batch[:, slice_len:]
 
                 if progress_bar:
-                    progress_bar.update(num_to_generate)
+                    progress_bar.update(1)
                 elif (i + 1) == len(amounts_to_generate) // 2:
                     logger.info(f"Finished {i + 1}/{len(amounts_to_generate)} for {completed + 1}")
 
