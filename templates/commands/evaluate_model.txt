@@ -20,7 +20,7 @@ echo "scancel $he_so{{idx}}" >> {{cancel_file}}
 he_exec{{idx}}=$(sbatch --parsable --job-name='{{ job_name }}_he_execute' \
 	--dependency=afterok:$he_so{{idx}} \
 	eval_code.sbatch \
-	outputs/so/{{FineTune.model_path}}/eval/SO_HUMAN_EVAL
+	outputs/so/{{FineTune.model_path}}/eval/HUMAN_EVAL
 )
 echo "Submitted CodeEval(id=$he_exec{{idx}})"
 echo "scancel $he_exec{{idx}}" >> {{cancel_file}}
@@ -60,7 +60,8 @@ echo "scancel $eval_jid{{idx}}" >> {{cancel_file}}
 # Normal Code Execute After Eval
 exec_jid{{idx}}=$(sbatch --parsable --job-name='{{ job_name }}_execute' \
 	--dependency=afterok:$eval_jid{{idx}} \
-	outputs/mbpp/{{PreTrain.name}}/eval/MBPP_MBPP)
+	eval_code.sbatch \
+	outputs/mbpp/{{PreTrain.name}}/eval/MBPP)
 echo "Submitted CodeEval(id=$exec_jid{{idx}})"
 echo "scancel $exec_jid{{idx}}" >> {{cancel_file}}
 
