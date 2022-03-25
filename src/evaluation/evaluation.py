@@ -427,16 +427,11 @@ def evaluate(
             job_type='evaluate'
         )
 
-        if dry_run and out_path.joinpath('eval_metrics.json').exists():
-            all_metrics = json.loads(out_path.joinpath('eval_metrics.json').read_text('utf-8'))
-            print(all_metrics)
         run.log({f"eval/{k}": v for k, v in all_metrics.items()}, step=1)
         preds_artifact = wandb.Artifact(get_run_base_name_from_cfg(cfg, "preds"),
                                         type='predictions')
 
         preds_artifact.add_dir(str(out_path.resolve().absolute()))
-        preds_artifact.add_file(
-            str(out_path.joinpath(f'eval_config.yaml').resolve().absolute()))
         run.log_artifact(preds_artifact)
         run.finish()
     logger.info("Finished Evaluation")

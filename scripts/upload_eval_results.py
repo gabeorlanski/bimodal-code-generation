@@ -22,9 +22,9 @@ def main(
 ):
     os.environ["WANDB_API_KEY"] = PROJECT_ROOT.joinpath('wandb_secret.txt').read_text().strip()
     path_to_dir = PROJECT_ROOT.joinpath(path_to_dir)
-    metrics = json.loads(path_to_dir.joinpath('eval_metrics.json').read_text('utf-8'))
+    metrics = json.loads(path_to_dir.joinpath('metrics.json').read_text('utf-8'))
     cfg = OmegaConf.create(
-        yaml.load(path_to_dir.joinpath('eval_config.yaml').open('r', encoding='utf-8'),
+        yaml.load(path_to_dir.joinpath('config.yaml').open('r', encoding='utf-8'),
                   yaml.Loader)
     )
     config.setup_tracking_env_from_cfg(cfg)
@@ -48,9 +48,7 @@ def main(
         type='predictions'
     )
 
-    preds_artifact.add_dir(str(path_to_dir.joinpath('predictions').resolve().absolute()))
-    preds_artifact.add_file(
-        str(path_to_dir.joinpath(f'eval_config.yaml').resolve().absolute()))
+    preds_artifact.add_dir(str(path_to_dir.resolve().absolute()))
     run.log_artifact(preds_artifact)
     run.finish()
 
