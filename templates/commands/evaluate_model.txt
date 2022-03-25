@@ -12,7 +12,7 @@ echo "#!/bin/bash" >> {{cancel_file}}
 # Human Eval After PreTrain
 he_so{{idx}}=$(sbatch --job-name='{{ job_name }}_he' \
 	--parsable \
-	eval.sbatch outputs/so/{{FineTune.model_path}}/best_model human_eval)
+	eval.sbatch outputs/so/{{FineTune.model_path}} human_eval)
 echo "Submitted HumanEval (id=$he_so{{idx}})"
 echo "scancel $he_so{{idx}}" >> {{cancel_file}}
 
@@ -36,7 +36,7 @@ echo "scancel $train_jid{{idx}}" >> {{cancel_file}}
 hef_so{{idx}}=$(sbatch --job-name='{{ job_name }}_hef' \
 	--parsable \
 	--dependency=afterok:$train_jid{{ idx}} \
-	eval.sbatch outputs/mbpp/{{ FineTune.name }}/best_model human_eval)
+	eval.sbatch outputs/mbpp/{{ FineTune.name }} human_eval)
 echo "Submitted HumanEval (id=$hef_so{{idx}})"
 echo "scancel $hef_so{{idx}}" >> {{cancel_file}}
 
@@ -53,7 +53,7 @@ echo "scancel $hef_exec{{idx}}" >> {{cancel_file}}
 eval_jid{{idx}}=$(sbatch --parsable \
 	--job-name={{ job_name }}_eval \
 	--dependency=afterok:$train_jid{{ idx}} eval.sbatch \
-	outputs/mbpp/{{ FineTune.name }}/best_model mbpp)
+	outputs/mbpp/{{ FineTune.name }} mbpp)
 echo "Submitted Eval $eval_jid{{idx}} to run after $1(id=$train_jid{{ idx}})"
 echo "scancel $eval_jid{{idx}}" >> {{cancel_file}}
 
