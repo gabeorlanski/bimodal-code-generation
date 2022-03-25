@@ -7,35 +7,34 @@
 {%- endif -%}
 {%- set cancel_file="generated_experiments/cancel_scripts/"~job_name~".sh" -%}
 
-rm -f {{ cancel_file }}
-echo "#!/bin/bash" >> {{cancel_file}}
-# Human Eval After PreTrain
-he_so{{idx}}=$(sbatch --job-name='{{ job_name }}_he' \
-	--parsable \
-	eval.sbatch {{FineTune.model_path}} human_eval {{ PreTrain.path }})
-echo "Submitted HumanEval (id=$he_so{{idx}})"
-echo "scancel $he_so{{idx}}" >> {{cancel_file}}
-
-# Human Eval Code Execute Zero Shot
-he_exec{{idx}}=$(sbatch --parsable --job-name='{{ job_name }}_he_execute' \
-	--dependency=afterok:$he_so{{idx}} \
-	eval_code.sbatch \
-	eval_results/{{ name }}/HUMAN_EVAL/{{ ablation_name }}_FineTune
-)
-echo "Submitted CodeEval(id=$he_exec{{idx}})"
-echo "scancel $he_exec{{idx}}" >> {{cancel_file}}
-
-# Finetuning
-train_jid{{ idx}}=$(sbatch --parsable {{account_str}}
-	--job-name={{ job_name }}_finetune {{ train_sbatch }}.sbatch {{ FineTune.path}})
-echo "Submitted Train (id=$train_jid{{ idx}})"
-echo "scancel $train_jid{{idx}}" >> {{cancel_file}}
+#rm -f {{ cancel_file }}
+#echo "#!/bin/bash" >> {{cancel_file}}
+## Human Eval After PreTrain
+#he_so{{idx}}=$(sbatch --job-name='{{ job_name }}_he' \
+#	--parsable \
+#	eval.sbatch {{FineTune.model_path}} human_eval {{ PreTrain.path }})
+#echo "Submitted HumanEval (id=$he_so{{idx}})"
+#echo "scancel $he_so{{idx}}" >> {{cancel_file}}
+#
+## Human Eval Code Execute Zero Shot
+#he_exec{{idx}}=$(sbatch --parsable --job-name='{{ job_name }}_he_execute' \
+#	--dependency=afterok:$he_so{{idx}} \
+#	eval_code.sbatch \
+#	eval_results/{{ name }}/HUMAN_EVAL/{{ ablation_name }}_FineTune
+#)
+#echo "Submitted CodeEval(id=$he_exec{{idx}})"
+#echo "scancel $he_exec{{idx}}" >> {{cancel_file}}
+#
+## Finetuning
+#train_jid{{ idx}}=$(sbatch --parsable {{account_str}}
+#	--job-name={{ job_name }}_finetune {{ train_sbatch }}.sbatch {{ FineTune.path}})
+#echo "Submitted Train (id=$train_jid{{ idx}})"
+#echo "scancel $train_jid{{idx}}" >> {{cancel_file}}
 
 
 # Human Eval After Finetune
 hef_so{{idx}}=$(sbatch --job-name='{{ job_name }}_hef' \
 	--parsable \
-	--dependency=afterok:$train_jid{{ idx}} \
 	eval.sbatch outputs/mbpp/{{ FineTune.name }} human_eval {{ FineTune.path }})
 echo "Submitted HumanEval (id=$hef_so{{idx}})"
 echo "scancel $hef_so{{idx}}" >> {{cancel_file}}

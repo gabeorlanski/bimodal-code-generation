@@ -212,10 +212,10 @@ def eval_from_checkpoint(
     if train_dir.stem != 'best_model':
         best_model_path = train_dir.joinpath('best_model')
     else:
-        best_model_path = train_dir 
+        best_model_path = train_dir
     if not best_model_path.exists():
         raise FileNotFoundError(f"{best_model_path} does not exist")
-    elif not train_dir.joinpath('pytorch_model.bin').exists():
+    elif not best_model_path.joinpath('pytorch_model.bin').exists():
         raise FileNotFoundError(f"{best_model_path} does not have a model file")
 
     with open_dict(cfg):
