@@ -84,7 +84,7 @@ experiments:
           ++task.buffer_size: 5000
           tracking:
             log_model: True
-          is_checkpoint: False
+          is_checkpoint: true
           ++task.sequence_length: 1024
           task: so
       - name: FineTune
@@ -172,7 +172,7 @@ experiments:
           ++task.buffer_size: 5000
           tracking:
             log_model: True
-          is_checkpoint: False
+          is_checkpoint: true
           ++task.sequence_length: 1024
           task: so
       - name: FineTune

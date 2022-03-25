@@ -155,7 +155,7 @@ def generate_predictions(
         # Disable during debugging for my sanity.
         if not debug:
             progress_bar = tqdm(
-                total=math.ceil(len(dataset) / batch_size) * amounts_to_generate,
+                total=math.ceil(len(dataset) / batch_size) * len(amounts_to_generate),
                 desc='Generating'
             )
         else:
