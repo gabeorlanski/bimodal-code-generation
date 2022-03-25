@@ -54,6 +54,9 @@ from src.data import NON_REGISTERED_TASKS
 @click.option(
     '--num-workers', '-N',
     default=None, type=int, help='number of workers override')
+@click.option(
+    '--output-dir', '-o',
+    default=None, type=int, help='Output directory name')
 @click.pass_context
 def evaluate_cli_entry(
         ctx,
@@ -65,7 +68,8 @@ def evaluate_cli_entry(
         disable_tracking: bool,
         debug: bool,
         force_create_dir,
-        num_workers
+        num_workers,
+        output_dir
 ):
     ctx.obj = {
         "DEBUG"                : debug,
@@ -76,7 +80,8 @@ def evaluate_cli_entry(
         "num_generate_per_step": num_generate_per_step,
         "sequences_per_sample" : sequences_per_sample,
         "FORCE_CREATE_DIR"     : force_create_dir,
-        "num_workers"          : num_workers
+        "num_workers"          : num_workers,
+        "out_dir"              : output_dir
     }
 
 
