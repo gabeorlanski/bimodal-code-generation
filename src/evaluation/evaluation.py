@@ -194,7 +194,7 @@ def generate_predictions(
                     max_length=max_length_for_gen,
                     num_return_sequences=num_to_generate,
                     **generation_kwargs
-                )
+                ).cpu()
 
                 slice_len = remove_input_ids_from_output * input_len
                 ids_for_current_sample = generated_from_batch[:, slice_len:]
@@ -214,12 +214,26 @@ def generate_predictions(
                     start = j * gen_per_sample
                     generated_for_current_batch[j].extend(decoded[start:start + gen_per_sample])
 
+            assert all(map(lambda x: len(x) == seq_per_sample, generated_for_current_batch))
             pct_allocated = torch.cuda.max_memory_allocated(device) / total_memory
             logger.debug(
                 f"{pct_allocated * 100:0.2f}% GPU memory allocated"
             )
+            if pct_allocated < 0.75 and len(amounts_to_generate) > 1:
+                num_generate_per_step += 5*batch_size
+                generate_steps_per_batch, remainder = divmod(
+                    seq_per_sample * batch_size,
+                    num_generate_per_step
+                )
+                has_remainder = remainder > 0
 
-            assert all(map(lambda x: len(x) == seq_per_sample, generated_for_current_batch))
+                amounts_to_generate = (
+                        [num_generate_per_step] * generate_steps_per_batch
+                        + [remainder] * has_remainder
+                )
+                logger.info(f"Increasing number to generate per step to {num_generate_per_step}")
+                logger.debug(f"{amounts_to_generate=}")
+
             for idx, preds in zip(local_indices, generated_for_current_batch):
                 predictions.append(preds)
                 labels.append(dataset[idx]['target'])

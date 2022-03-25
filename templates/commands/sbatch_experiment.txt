@@ -1,5 +1,4 @@
-#rm -rf sbatch_logs
-#mkdir sbatch_logs
-#rm -rf generated_experiments/cancel_scripts
-#mkdir generated_experiments/cancel_scripts
-#
+rm -rf sbatch_logs
+mkdir sbatch_logs
+rm -rf generated_experiments/cancel_scripts
+mkdir generated_experiments/cancel_scripts
