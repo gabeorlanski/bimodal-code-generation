@@ -88,7 +88,6 @@ def evaluate_cli_entry(
 def evaluate_from_ctx_and_cfg(
         ctx,
         cfg,
-        output_path: Optional[Path] = None
 ):
     debug = ctx.obj['DEBUG']
     dry_run = ctx.obj['DRY_RUN']
@@ -98,26 +97,26 @@ def evaluate_from_ctx_and_cfg(
     # Need to load in the secret from the file to log to wandb
     if Path('wandb_secret.txt').exists():
         os.environ["WANDB_API_KEY"] = open('wandb_secret.txt').read().strip()
-    if output_path is None or ctx.obj['FORCE_CREATE_DIR']:
-        dir_name = cfg.name
-        working_dir = [cfg.task.name.upper()]
-        if 'meta' in cfg and 'card_name' in cfg.meta:
-            dir_name = cfg.meta.ablation
-            working_dir = [cfg.meta.card_name, cfg.task.name.upper()]
+    # if output_path is None or ctx.obj['FORCE_CREATE_DIR']:
+    dir_name = cfg.name
+    working_dir = [cfg.task.name.upper()]
+    if 'meta' in cfg and 'card_name' in cfg.meta:
+        dir_name = f"{cfg.meta.ablation}_{cfg.meta.step}"
+        working_dir = [cfg.meta.card_name, cfg.task.name.upper()]
 
-        if debug:
-            dir_name = f"debug_{dir_name}"
+    if debug:
+        dir_name = f"debug_{dir_name}"
 
-        working_dir = PROJECT_ROOT.joinpath(
-            'eval_results', *working_dir, dir_name
-        )
-        log_name = f'evaluate_{cfg.task.name}'
-    else:
-        if ctx.obj['out_dir'] is None:
-            working_dir = output_path.joinpath("eval", cfg.task.name.upper())
-        else:
-            working_dir = output_path.joinpath("eval", ctx.obj['out_dir'])
-        log_name = "evaluate"
+    working_dir = PROJECT_ROOT.joinpath(
+        'eval_results', *working_dir, dir_name
+    )
+    log_name = f'evaluate_{cfg.task.name}'
+    # else:
+    #     if ctx.obj['out_dir'] is None:
+    #         working_dir = output_path.joinpath("eval", f"{cfg.group}_{cfg.task.name.upper()}")
+    #     else:
+    #         working_dir = output_path.joinpath("eval", ctx.obj['out_dir'])
+    #     log_name = "evaluate"
     if not working_dir.exists():
         working_dir.mkdir(parents=True)
 
@@ -174,11 +173,15 @@ def evaluate_from_ctx_and_cfg(
 @evaluate_cli_entry.command('chk')
 @click.argument('train_dir', metavar="<PATH TO THE DIR CREATED BY TRAINING>")
 @click.argument('task_name', metavar='<Name of Task to evaluate on>')
+@click.option(
+    '--cfg-path', '-cfg',
+    default=None, help='Path to cfg to use')
 @click.pass_context
 def eval_from_checkpoint(
         ctx,
         train_dir: str,
-        task_name: str
+        task_name: str,
+        cfg_path
 ):
     if task_name in NON_REGISTERED_TASKS:
         raise ValueError(f"{task_name} is not compatible with evaluate")
@@ -192,9 +195,12 @@ def eval_from_checkpoint(
         task_path.open('r'),
         yaml.Loader
     )
-    print(f"Loading Training Config from {train_dir}")
     train_dir = Path(train_dir).resolve().absolute()
-    train_config_path = train_dir.joinpath('config.yaml')
+    if cfg_path is None:
+        train_config_path = train_dir.joinpath('config.yaml')
+    else:
+        train_config_path = PROJECT_ROOT.joinpath(cfg_path)
+    print(f"Loading Training Config from {train_config_path}")
     cfg = yaml.load(
         train_config_path.open('r', encoding='utf-8'),
         yaml.Loader
@@ -216,7 +222,7 @@ def eval_from_checkpoint(
         cfg.model_path = str(best_model_path.resolve().absolute())
         cfg.task = task_cfg
 
-    evaluate_from_ctx_and_cfg(ctx, cfg, output_path=train_dir)
+    evaluate_from_ctx_and_cfg(ctx, cfg)
 
 
 @evaluate_cli_entry.command('cfg')
