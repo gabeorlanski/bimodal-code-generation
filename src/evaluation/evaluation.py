@@ -220,6 +220,8 @@ def generate_predictions(
                         **generation_kwargs
                     ).cpu()
                 except RuntimeError:
+                    if num_to_generate == batch_size:
+                        raise RuntimeError(f"{batch_size} is too big, cannot reduce")
                     num_generate_per_step -= batch_size
                     logger.info(f"CUDA error with {num_to_generate}, reducing to {num_generate_per_step}")
                     num_generate_per_step = max(batch_size, num_generate_per_step)
@@ -256,7 +258,7 @@ def generate_predictions(
                 f"{pct_allocated * 100:0.2f}% GPU memory allocated"
             )
             if (
-                    pct_allocated < 0.6
+                    pct_allocated < 0.7
                     and len(amounts_to_generate) > 1
             ):
                 num_generate_per_step += batch_size
