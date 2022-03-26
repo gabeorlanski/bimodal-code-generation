@@ -185,6 +185,7 @@ def generate_predictions(
         else:
             progress_bar = None
         completed = 0
+        last_log=0
         for instance in dataloader:
             local_indices = instance['idx'].tolist()
             local_inputs = instance["input_ids"].to(device)
@@ -244,21 +245,22 @@ def generate_predictions(
             assert all(map(lambda x: len(x) == seq_per_sample, generated_for_current_batch))
 
             completed += len(local_indices)
-            # torch.cuda.empty_cache()
             pct_allocated = torch.cuda.max_memory_allocated(device) / total_memory
-            logger.info(
-                f"{pct_allocated * 100:0.2f}% GPU memory allocated"
-            )
-            if (
-                    pct_allocated < 0.7
-                    and len(amounts_to_generate) > 1
-            ):
-                num_generate_per_step += batch_size
-                amounts_to_generate, batch_gen_steps, remainder = get_amounts_to_generate(
-                    seq_per_sample, batch_size, num_generate_per_step
+            if debug or math.floor(completed/len(dataset)*10)!=last_log:
+                last_log=math.floor(completed/len(dataset)*10)
+                logger.info(
+                    f"{pct_allocated * 100:0.2f}% GPU memory allocated"
                 )
-                logger.info(f"Increasing number to generate per step to {num_generate_per_step}")
-                logger.debug(f"{amounts_to_generate=}")
+            # if (
+            #         pct_allocated < 0.7
+            #         and len(amounts_to_generate) > 1
+            # ):
+            #     num_generate_per_step += batch_size
+            #     amounts_to_generate, batch_gen_steps, remainder = get_amounts_to_generate(
+            #         seq_per_sample, batch_size, num_generate_per_step
+            #     )
+            #     logger.info(f"Increasing number to generate per step to {num_generate_per_step}")
+            #     logger.debug(f"{amounts_to_generate=}")
 
             for idx, preds in zip(local_indices, generated_for_current_batch):
                 predictions.append(preds)
