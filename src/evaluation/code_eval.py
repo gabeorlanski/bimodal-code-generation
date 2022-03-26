@@ -114,7 +114,8 @@ def evaluate_code(code_dicts, samples_per_problem, num_workers, timeout):
         pred_count,
         invalid_syntax_by_idx,
         all_invalid,
-        samples_per_problem
+        samples_per_problem,
+        timeout
     )
     correct, runtime_errors = counts
     overview_metrics.update(metrics)
@@ -182,37 +183,60 @@ def evaluate_code_from_file(
     return evaluate_code(code_dicts, samples_per_problem, num_workers, timeout)
 
 
-def parse_results(results, pred_count, invalid_syntax_by_idx, all_invalid, samples_per_problem):
+def parse_results(
+        execution_results,
+        pred_count,
+        invalid_syntax_by_idx,
+        all_invalid,
+        samples_per_problem,
+        timeout
+):
     global_error_tracker = Counter({k: 0 for k in BASE_ERROR_TYPES})
     results_by_task_id = {}
 
-    correct, runtime_errors = [], []
-    for task_id, task_results in results.items():
+    correct, runtime_errors, runtimes = [], [], []
+
+    # Keep a separate list to track the runtimes of full executions, so
+    # timeouts and passes.
+    runtimes_for_executions = []
+
+    for task_id, task_results in execution_results.items():
         task_results.sort()
         if pred_count[task_id] == 0:
             logger.error(f"Task {task_id} has no prediction count but has results")
             continue
 
         # Setup the dict for tracking metrics for a given task.
+        task_runtimes_dict = defaultdict(list)
         task_metrics = {
-            'correct'    : 0,
-            'total'      : pred_count[task_id],
-            'error_types': Counter({'SyntaxError': invalid_syntax_by_idx[task_id]})
+            'correct'         : 0,
+            'total'           : pred_count[task_id],
+            'error_types'     : Counter({'SyntaxError': invalid_syntax_by_idx[task_id]}),
+            'error_messages'  : {},
+            'runtimes_by_type': {}
+
         }
         task_correct = task_runtime_errors = 0
 
         # Go through and calculate metrics on both a task and global level.
-        for completion_id, result in task_results:
-            assert result['completion_id'] == completion_id
-            assert result['task_id'] == task_id
+        for completion_id, result_dict in task_results:
+            assert result_dict['completion_id'] == completion_id
+            assert result_dict['task_id'] == task_id
 
-            task_metrics['correct'] += result['passed']
+            result_str = result_dict['result']
 
-            if not result['passed']:
-                task_metrics['error_types'][result['result']] += 1
-                assert result['result'] != 'Passed'
-                if result['result'] != 'Failed Tests' and result['result'] != 'Timed Out':
+            task_runtimes_dict[result_str].append(result_dict['time'])
+
+            task_metrics['correct'] += result_dict['passed']
+
+            if result_str != 'Passed':
+                task_metrics['error_types'][result_str] += 1
+                assert result_dict['result'] != 'Passed'
+
+                if result_str != 'Timed Out' and result_str != 'Failed Tests':
                     task_runtime_errors += 1
+                    task_metrics['error_messages'][completion_id] = f"{result_str}: {result_dict['error']}"
+
             else:
                 task_correct += 1
 
@@ -220,8 +244,24 @@ def parse_results(results, pred_count, invalid_syntax_by_idx, all_invalid, sampl
         task_metrics['correct_pct'] = task_metrics['correct'] / task_metrics['total'] * 100
         task_metrics['runtime_error_pct'] = task_runtime_errors / task_metrics['total'] * 100
 
+        task_runtime = []
+        execution_runtimes = []
+        for k, v in task_runtimes_dict.items():
+            if k in ['Passed', 'Timeout']:
+                execution_runtimes.extend(v)
+
+            task_metrics['runtimes_by_type'][k] = np.mean(v)
+            task_runtime.extend(v)
+        task_metrics['runtime'] = np.mean(task_runtime)
+
+        if execution_runtimes:
+            task_metrics['execution_runtime'] = np.mean(execution_runtimes)
+        else:
+            task_metrics['execution_runtime'] = 2 * timeout
+        runtimes.extend(task_runtime)
         correct.append(task_correct)
         runtime_errors.append(task_runtime_errors)
+        runtimes_for_executions.extend(execution_runtimes)
 
         # Add the error types to the global tracker.
         for error_type, count in task_metrics['error_types'].items():
@@ -244,8 +284,15 @@ def parse_results(results, pred_count, invalid_syntax_by_idx, all_invalid, sampl
 
     correct = np.array(correct)
     runtime_errors = np.array(runtime_errors)
-
-    metrics = {'runtime_error_pct_mean': np.mean(runtime_errors / samples_per_problem * 100)}
+    if runtimes_for_executions:
+        runtimes_for_executions = np.mean(runtimes_for_executions)
+    else:
+        runtimes_for_executions = 2 * timeout
+    metrics = {
+        'runtime_error_pct_mean': np.mean(runtime_errors / samples_per_problem * 100),
+        'runtime_mean'          : np.mean(runtimes),
+        'runtime_execution_mean': runtimes_for_executions,
+    }
 
     return results_by_task_id, global_error_tracker, metrics, (correct, runtime_errors)
 

@@ -87,24 +87,26 @@ class HumanEval(Task):
             A generator of dicts for each sample.
         """
 
-        processed_data = self.preprocessed_splits[split]
+        processed_data = {d['task_id']: d for d in self.preprocessed_splits[split]}
 
         assert len(indices) == len(predictions), "Indices must be the same length as predictions"
 
-        for idx, preds in zip(indices, predictions):
-            processed_sample = processed_data[idx]
+        for task_id, preds in zip(indices, predictions):
+            processed_sample = processed_data[task_id]
             tests_str = [
                 processed_sample['test'] + '\n' + f"check({processed_sample['entry_point']})"
             ]
 
             # Have to add the prompt back to the predictions
+            prompt = processed_sample['prompt'].split('"""')[0].strip()
             preds_list = [
-                processed_sample['prompt'].strip() + p
+                prompt + p
                 for p in preds
             ]
 
             yield {
-                'idx'           : idx,
+                'idx'           : processed_sample['idx'],
+                'task_id'       : processed_sample['task_id'],
                 'target'        : processed_sample['target'],
                 'input_sequence': processed_sample['input_sequence'],
                 'prediction'    : preds_list,

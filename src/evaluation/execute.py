@@ -11,6 +11,7 @@ import os
 import platform
 import signal
 import tempfile
+import time
 
 
 def check_correctness(check_program, timeout, task_id, completion_id):
@@ -31,12 +32,14 @@ def check_correctness(check_program, timeout, task_id, completion_id):
         p.kill()
 
     if not result:
-        result.append("Timed Out")
+        result.append(("Timed Out", timeout, None))
 
     return dict(
         task_id=task_id,
-        passed=result[0] == "Passed",
-        result=result[0],
+        passed=result[0][0] == "Passed",
+        result=result[0][0],
+        time=result[0][1],
+        error=result[0][2],
         completion_id=completion_id,
     )
 
@@ -51,23 +54,24 @@ def unsafe_execute(check_program, result, timeout):
         rmtree = shutil.rmtree
         rmdir = os.rmdir
         chdir = os.chdir
-
         # Disable functionalities that can make destructive changes to the test.
         reliability_guard()
 
         # Run program.
+        start_time = time.time()
         try:
             exec_globals = {}
             with swallow_io():
                 with time_limit(timeout):
                     exec(check_program, exec_globals)
-            result.append("Passed")
+                    elapsed = time.time() - start_time
+            result.append(("Passed", elapsed, None))
         except TimeoutException:
-            result.append("Timed Out")
-        except AssertionError:
-            result.append("Failed Tests")
+            result.append(("Timed Out", timeout, None))
+        except AssertionError as e:
+            result.append(("Failed Tests", time.time() - start_time, None))
         except BaseException as e:
-            result.append(type(e).__name__)
+            result.append((type(e).__name__, time.time() - start_time, str(e)))
 
         # Needed for cleaning up.
         shutil.rmtree = rmtree

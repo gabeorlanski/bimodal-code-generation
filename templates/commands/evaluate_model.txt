@@ -20,7 +20,7 @@ echo "scancel $he_so{{idx}}" >> {{cancel_file}}
 he_exec{{idx}}=$(sbatch --parsable --job-name='{{ job_name }}_he_execute' \
 	--dependency=afterok:$he_so{{idx}} \
 	eval_code.sbatch \
-	eval_results/{{ name }}/HUMAN_EVAL/{{ ablation_name }}_FineTune
+	eval_results/{{ name }}/HUMAN_EVAL/{{ ablation_name }}_PreTrain
 )
 echo "Submitted CodeEval(id=$he_exec{{idx}})"
 echo "scancel $he_exec{{idx}}" >> {{cancel_file}}

@@ -146,7 +146,8 @@ def generate_predictions(
         tokenized,
         batch_size=batch_size,
         collate_fn=collator,
-        num_workers=num_procs if num_procs != 1 else 0
+        num_workers=num_procs if num_procs != 1 else 0,
+        shuffle=False
     )
 
     model.eval()
@@ -187,6 +188,8 @@ def generate_predictions(
                     if hasattr(sc, 'start_length'):
                         sc.start_length = input_len
 
+
+
             for i, num_to_generate in enumerate(amounts_to_generate):
                 generated_from_batch = model.generate(
                     input_ids=local_inputs,
@@ -219,8 +222,8 @@ def generate_predictions(
             logger.debug(
                 f"{pct_allocated * 100:0.2f}% GPU memory allocated"
             )
-            if pct_allocated < 0.75 and len(amounts_to_generate) > 1:
-                num_generate_per_step += 5*batch_size
+            if pct_allocated < 0.5 and len(amounts_to_generate) > 1:
+                num_generate_per_step += 5 * batch_size
                 generate_steps_per_batch, remainder = divmod(
                     seq_per_sample * batch_size,
                     num_generate_per_step
@@ -237,7 +240,7 @@ def generate_predictions(
             for idx, preds in zip(local_indices, generated_for_current_batch):
                 predictions.append(preds)
                 labels.append(dataset[idx]['target'])
-                indices.append(idx)
+                indices.append(dataset[idx]['task_id'])
             completed += len(local_indices)
             if not progress_bar:
                 logger.info(f"Finished {completed}/{len(dataset)} generations")

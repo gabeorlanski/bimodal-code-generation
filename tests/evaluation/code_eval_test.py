@@ -34,10 +34,10 @@ def test_evaluate_code(code_preds_dir):
         'syntax_error_pct_ovr'  : expected_outcomes['SyntaxError'] / 12 * 100,
         'failed_tests_pct_ovr'  : expected_outcomes['Failed_Tests'] / 12 * 100,
         'runtime_error_pct_ovr' : 3 / 12 * 100,
-        'problems_correct_pct'  : 2 / 3 * 100
+        'problems_correct_pct'  : 2 / 3 * 100,
     })
 
-    for k in [5, 10, 25, 50,100]:
+    for k in [5, 10, 25, 50, 100]:
         expected_overview[f"pass@{k}"] = 0.0
 
     for e in BASE_ERROR_TYPES:
@@ -48,11 +48,31 @@ def test_evaluate_code(code_preds_dir):
         key = k.replace(' ', '_')
         expected_outcomes_pct[key] = v / 12 * 100
 
+    # These are very small floats, so we only care that they are there and
+    # greater than 0.
+    assert results['overview'].pop('runtime_mean') > 0
+    assert results['overview'].pop('runtime_execution_mean') > 0
+
     assert results['overview'] == expected_overview
+
+    # Again, small floats that we only care are present.
+    for k in results['results_by_task_id']:
+        v = results['results_by_task_id'][k]
+        if 'runtime' in v:
+            assert 'execution_runtime' in v
+            assert 'runtimes_by_type' in v
+            results['results_by_task_id'][k].pop('runtimes_by_type')
+            results['results_by_task_id'][k].pop('runtime')
+            results['results_by_task_id'][k].pop('execution_runtime')
+
     assert results['results_by_task_id'] == {
         "939": {
             "correct"          : 1,
             "total"            : 4,
+            'error_messages'   : {
+                1: 'TypeError: unsupported operand type(s) for -: '
+                   "'int' and 'str'"
+            },
             "error_types"      : {
                 "SyntaxError" : 1,
                 "Failed Tests": 1,
@@ -64,6 +84,10 @@ def test_evaluate_code(code_preds_dir):
         "940": {
             "correct"          : 1,
             "total"            : 4,
+            'error_messages': {
+                0: 'KeyError: 4',
+                1: "TypeError: 'int' object is not subscriptable"
+            },
             "error_types"      : {
                 "SyntaxError" : 0,
                 "Failed Tests": 1,
