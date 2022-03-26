@@ -211,24 +211,15 @@ def generate_predictions(
             i = 0
             while i < len(amounts_to_generate):
                 num_to_generate = amounts_to_generate[i]
-                try:
-                    generated_from_batch = model.generate(
-                        input_ids=local_inputs,
-                        attention_mask=local_attention,
-                        max_length=max_length_for_gen,
-                        num_return_sequences=num_to_generate,
-                        **generation_kwargs
-                    ).cpu()
-                except RuntimeError:
-                    if num_to_generate == batch_size:
-                        raise RuntimeError(f"{batch_size} is too big, cannot reduce")
-                    num_generate_per_step -= batch_size
-                    logger.info(f"CUDA error with {num_to_generate}, reducing to {num_generate_per_step}")
-                    num_generate_per_step = max(batch_size, num_generate_per_step)
-                    amounts_to_generate, batch_gen_steps, remainder = get_amounts_to_generate(
-                        seq_per_sample, batch_size, num_generate_per_step
-                    )
-                    continue
+                generated_from_batch = model.generate(
+                    input_ids=local_inputs,
+                    attention_mask=local_attention,
+                    max_length=max_length_for_gen,
+                    num_return_sequences=num_to_generate,
+                    use_cache=True,
+                    **generation_kwargs
+                ).cpu()
+
 
                 slice_len = remove_input_ids_from_output * input_len
                 ids_for_current_sample = generated_from_batch[:, slice_len:]
@@ -252,7 +243,7 @@ def generate_predictions(
             assert all(map(lambda x: len(x) == seq_per_sample, generated_for_current_batch))
 
             completed += len(local_indices)
-            torch.cuda.empty_cache()
+            # torch.cuda.empty_cache()
             pct_allocated = torch.cuda.max_memory_allocated(device) / total_memory
             logger.info(
                 f"{pct_allocated * 100:0.2f}% GPU memory allocated"
