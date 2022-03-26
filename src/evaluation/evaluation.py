@@ -183,8 +183,6 @@ def generate_predictions(
         else:
             progress_bar = None
         completed = 0
-        last_clear = 0
-        last_error_amount = float('inf')
         for instance in dataloader:
             local_indices = instance['idx'].tolist()
             local_inputs = instance["input_ids"].to(device)
@@ -222,7 +220,6 @@ def generate_predictions(
                         **generation_kwargs
                     ).cpu()
                 except RuntimeError:
-                    last_error_amount = num_to_generate
                     num_generate_per_step -= batch_size
                     logger.info(f"CUDA error with {num_to_generate}, reducing to {num_generate_per_step}")
                     num_generate_per_step = max(batch_size, num_generate_per_step)
@@ -253,10 +250,7 @@ def generate_predictions(
             assert all(map(lambda x: len(x) == seq_per_sample, generated_for_current_batch))
 
             completed += len(local_indices)
-            if completed - last_clear > 10:
-                logger.info("Emptying cuda cache")
-                torch.cuda.empty_cache()
-                last_clear = completed
+            torch.cuda.empty_cache()
             pct_allocated = torch.cuda.max_memory_allocated(device) / total_memory
             logger.info(
                 f"{pct_allocated * 100:0.2f}% GPU memory allocated"
@@ -264,9 +258,8 @@ def generate_predictions(
             if (
                     pct_allocated < 0.6
                     and len(amounts_to_generate) > 1
-                    and num_generate_per_step + 5 * batch_size < last_error_amount
             ):
-                num_generate_per_step += 5 * batch_size
+                num_generate_per_step += batch_size
                 amounts_to_generate, batch_gen_steps, remainder = get_amounts_to_generate(
                     seq_per_sample, batch_size, num_generate_per_step
                 )
