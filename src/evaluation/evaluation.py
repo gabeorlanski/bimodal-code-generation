@@ -57,6 +57,19 @@ class EndOfFunctionCriteria(StoppingCriteria):
         return all(done)
 
 
+class EOSStoppingCriteria(StoppingCriteria):
+    """Custom `StoppingCriteria` which checks if all generated functions in the batch are completed."""
+
+    def __init__(self, start_length, tokenizer):
+        self.start_length = start_length
+        self.eos_token = tokenizer.eos_token_id
+
+    def __call__(self, input_ids, scores, **kwargs):
+        """Returns true if all generated sequences contain any of the end-of-function strings."""
+
+        return all(self.eos_token in row[self.start_length:] for row in input_ids)
+
+
 def oracle(args, metric_list):
     # To get the oracle score, we need to repeat target for every prediction
     predictions, target = args
@@ -95,7 +108,6 @@ def generate_predictions(
 
     logger.info(f"Generating {num_generate_per_step} per step and generating "
                 f"{seq_per_sample} total per sample")
-    initial_num_per_step = num_generate_per_step
     logger.info("Generation kwargs:")
     for k, v in generation_kwargs.items():
         logger.info(f"\t{k:>20} = {v}")
@@ -211,8 +223,8 @@ def generate_predictions(
                     ).cpu()
                 except RuntimeError:
                     last_error_amount = num_to_generate
-                    logger.info(f"CUDA error with {num_to_generate}, reducing")
-                    num_generate_per_step -= 5 * batch_size
+                    num_generate_per_step -= batch_size
+                    logger.info(f"CUDA error with {num_to_generate}, reducing to {num_generate_per_step}")
                     num_generate_per_step = max(batch_size, num_generate_per_step)
                     amounts_to_generate, batch_gen_steps, remainder = get_amounts_to_generate(
                         seq_per_sample, batch_size, num_generate_per_step
@@ -252,7 +264,7 @@ def generate_predictions(
             if (
                     pct_allocated < 0.6
                     and len(amounts_to_generate) > 1
-                    and num_generate_per_step+5*batch_size < last_error_amount
+                    and num_generate_per_step + 5 * batch_size < last_error_amount
             ):
                 num_generate_per_step += 5 * batch_size
                 amounts_to_generate, batch_gen_steps, remainder = get_amounts_to_generate(
@@ -310,6 +322,10 @@ def evaluate_model(
     if cfg.task.name == 'human_eval':
         gen_kwargs["stopping_criteria"] = StoppingCriteriaList(
             [EndOfFunctionCriteria(0, EOF_STRINGS, task.tokenizer)]
+        )
+    elif cfg.objecitve == 'lm':
+        gen_kwargs["stopping_criteria"] = StoppingCriteriaList(
+            [EOSStoppingCriteria(0, task.tokenizer)]
         )
 
     prompt_fn = get_prompts_from_cfg(cfg, JINJA_ENV)
