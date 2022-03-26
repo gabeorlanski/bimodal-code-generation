@@ -121,7 +121,7 @@ experiments:
         - O2
         - Prompting
       ++evaluation:
-        num_generate_per_step: 175
+        num_generate_per_step: 200
         remove_input_ids: False
         seq_per_sample: 200
       ++task.dump_name: python_${..__META__.ablation.name}

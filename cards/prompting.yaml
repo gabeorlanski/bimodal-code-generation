@@ -13,10 +13,9 @@ experiments:
         - O2
         - Prompting
       ++evaluation:
-        num_generate_per_step: 5
+        num_generate_per_step: 200
         remove_input_ids: False
         seq_per_sample: 200
-        batch_size: 200
       ++task.dump_name: python_${..__META__.ablation.name}
       ++task.raw_dump_name: python
       ++task.tensorized_name: python_${..__META__.ablation.name}
@@ -27,14 +26,14 @@ experiments:
       ++processor.params.remove_modality: "NL"
     ablations:
       - Model:
-          Neo125M:
-            description: GPT Neo 125M
-            overrides:
-              ++model: 'EleutherAI/gpt-neo-125M'
-            step_overrides:
-              PreTrain:
-                ++training.batch_size: 32
-                ++training.gradient_accumulation_steps: 1
+#          Neo125M:
+#            description: GPT Neo 125M
+#            overrides:
+#              ++model: 'EleutherAI/gpt-neo-125M'
+#            step_overrides:
+#              PreTrain:
+#                ++training.batch_size: 32
+#                ++training.gradient_accumulation_steps: 1
           ParrotSmall:
             description: CodeParrot Small
             overrides:
@@ -45,21 +44,21 @@ experiments:
                 ++training.gradient_accumulation_steps: 1
                 ++training.gradient_checkpointing: True
       - Prompts:
-          TitleMarker:
-            description: Add at "TITLE:" before the actual Title
-            hypothesis: Slight Improvement B/C of "TITLE"
-            prompts.pipe:
-              - title
-          Baseline:
-            description: Only the Title
-            hypothesis: Baseline
-            prompts.pipe:
-              - base
-          QualityAfter:
-            description: The Title followed by a quality adjective based on the answers score
-            hypothesis: Slight Improvement B/C of "TITLE"
-            prompts.pipe:
-              - quality_after
+#          TitleMarker:
+#            description: Add at "TITLE:" before the actual Title
+#            hypothesis: Slight Improvement B/C of "TITLE"
+#            prompts.pipe:
+#              - title
+#          Baseline:
+#            description: Only the Title
+#            hypothesis: Baseline
+#            prompts.pipe:
+#              - base
+#          QualityAfter:
+#            description: The Title followed by a quality adjective based on the answers score
+#            hypothesis: Slight Improvement B/C of "TITLE"
+#            prompts.pipe:
+#              - quality_after
           AnswerYearMonth:
             description: The year and month of the answer followed by the title
             hypothesis: 'Should improve results as it handles the issue of deprecated code,
@@ -84,7 +83,7 @@ experiments:
           ++task.buffer_size: 5000
           tracking:
             log_model: True
-          is_checkpoint: False
+          is_checkpoint: true
           ++task.sequence_length: 1024
           task: so
     command:
