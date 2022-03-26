@@ -185,7 +185,7 @@ def generate_predictions(
         else:
             progress_bar = None
         completed = 0
-        last_log=0
+        last_log = 0
         for instance in dataloader:
             local_indices = instance['idx'].tolist()
             local_inputs = instance["input_ids"].to(device)
@@ -246,8 +246,8 @@ def generate_predictions(
 
             completed += len(local_indices)
             pct_allocated = torch.cuda.max_memory_allocated(device) / total_memory
-            if debug or math.floor(completed/len(dataset)*10)!=last_log:
-                last_log=math.floor(completed/len(dataset)*10)
+            if debug or math.floor(completed / len(dataset) * 10) != last_log:
+                last_log = math.floor(completed / len(dataset) * 10)
                 logger.info(
                     f"{pct_allocated * 100:0.2f}% GPU memory allocated"
                 )
@@ -312,7 +312,7 @@ def evaluate_model(
         gen_kwargs["stopping_criteria"] = StoppingCriteriaList(
             [EndOfFunctionCriteria(0, EOF_STRINGS, task.tokenizer)]
         )
-    elif cfg.objecitve == 'lm':
+    elif cfg.objective == 'lm':
         gen_kwargs["stopping_criteria"] = StoppingCriteriaList(
             [EOSStoppingCriteria(0, task.tokenizer)]
         )
