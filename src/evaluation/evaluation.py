@@ -160,7 +160,9 @@ def generate_predictions(
         with_indices=True,
         remove_columns=dataset.column_names,
         num_proc=num_procs
-    ).sort('length', reverse=True)
+    )
+    if debug:
+        tokenized = tokenized.sort('length', reverse=True)
     tokenized.set_format(type='torch')
 
     dataloader = torch.utils.data.DataLoader(
@@ -219,7 +221,6 @@ def generate_predictions(
                     use_cache=True,
                     **generation_kwargs
                 ).cpu()
-
 
                 slice_len = remove_input_ids_from_output * input_len
                 ids_for_current_sample = generated_from_batch[:, slice_len:]
