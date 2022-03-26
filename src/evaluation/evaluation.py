@@ -66,6 +66,17 @@ def oracle(args, metric_list):
     ]
 
 
+def get_amounts_to_generate(seq_per_sample, batch_size, num_generate_per_step):
+    generate_steps_per_batch, remainder = divmod(seq_per_sample * batch_size, num_generate_per_step)
+    has_remainder = remainder > 0
+
+    amounts_to_generate = (
+            [num_generate_per_step] * generate_steps_per_batch
+            + [remainder] * has_remainder
+    )
+    return amounts_to_generate, generate_steps_per_batch, remainder
+
+
 def generate_predictions(
         model,
         objective,
@@ -77,13 +88,14 @@ def generate_predictions(
         generation_kwargs,
         seq_per_sample,
         remove_input_ids_from_output,
-        debug
+        debug,
+        min_batch_size
 ):
     logger.info("Starting Generation")
 
-    logger.info(f"Using batch size of {num_generate_per_step} and generating "
-                f"{seq_per_sample} per sample")
-
+    logger.info(f"Generating {num_generate_per_step} per step and generating "
+                f"{seq_per_sample} total per sample")
+    initial_num_per_step = num_generate_per_step
     logger.info("Generation kwargs:")
     for k, v in generation_kwargs.items():
         logger.info(f"\t{k:>20} = {v}")
@@ -92,14 +104,11 @@ def generate_predictions(
     predictions = []
     labels = []
     batch_size = math.ceil(num_generate_per_step / seq_per_sample)
+    batch_size = max(batch_size, min_batch_size)
     logger.info(f"Using batch size {batch_size}")
 
-    generate_steps_per_batch, remainder = divmod(seq_per_sample * batch_size, num_generate_per_step)
-    has_remainder = remainder > 0
-
-    amounts_to_generate = (
-            [num_generate_per_step] * generate_steps_per_batch
-            + [remainder] * has_remainder
+    amounts_to_generate, batch_gen_steps, remainder = get_amounts_to_generate(
+        seq_per_sample, batch_size, num_generate_per_step
     )
 
     logger.debug(f"{len(amounts_to_generate)} steps per sample")
@@ -162,6 +171,8 @@ def generate_predictions(
         else:
             progress_bar = None
         completed = 0
+        last_clear = 0
+        last_error_amount = float('inf')
         for instance in dataloader:
             local_indices = instance['idx'].tolist()
             local_inputs = instance["input_ids"].to(device)
@@ -187,17 +198,26 @@ def generate_predictions(
                 for sc in generation_kwargs['stopping_criteria']:
                     if hasattr(sc, 'start_length'):
                         sc.start_length = input_len
-
-
-
-            for i, num_to_generate in enumerate(amounts_to_generate):
-                generated_from_batch = model.generate(
-                    input_ids=local_inputs,
-                    attention_mask=local_attention,
-                    max_length=max_length_for_gen,
-                    num_return_sequences=num_to_generate,
-                    **generation_kwargs
-                ).cpu()
+            i = 0
+            while i < len(amounts_to_generate):
+                num_to_generate = amounts_to_generate[i]
+                try:
+                    generated_from_batch = model.generate(
+                        input_ids=local_inputs,
+                        attention_mask=local_attention,
+                        max_length=max_length_for_gen,
+                        num_return_sequences=num_to_generate,
+                        **generation_kwargs
+                    ).cpu()
+                except RuntimeError:
+                    last_error_amount = num_to_generate
+                    logger.info(f"CUDA error with {num_to_generate}, reducing")
+                    num_generate_per_step -= 5 * batch_size
+                    num_generate_per_step = max(batch_size, num_generate_per_step)
+                    amounts_to_generate, batch_gen_steps, remainder = get_amounts_to_generate(
+                        seq_per_sample, batch_size, num_generate_per_step
+                    )
+                    continue
 
                 slice_len = remove_input_ids_from_output * input_len
                 ids_for_current_sample = generated_from_batch[:, slice_len:]
@@ -216,23 +236,27 @@ def generate_predictions(
                 for j in range(batch_size):
                     start = j * gen_per_sample
                     generated_for_current_batch[j].extend(decoded[start:start + gen_per_sample])
+                i += 1
 
             assert all(map(lambda x: len(x) == seq_per_sample, generated_for_current_batch))
+
+            completed += len(local_indices)
+            if completed - last_clear > 10:
+                logger.info("Emptying cuda cache")
+                torch.cuda.empty_cache()
+                last_clear = completed
             pct_allocated = torch.cuda.max_memory_allocated(device) / total_memory
-            logger.debug(
+            logger.info(
                 f"{pct_allocated * 100:0.2f}% GPU memory allocated"
             )
-            if pct_allocated < 0.5 and len(amounts_to_generate) > 1:
+            if (
+                    pct_allocated < 0.6
+                    and len(amounts_to_generate) > 1
+                    and num_generate_per_step+5*batch_size < last_error_amount
+            ):
                 num_generate_per_step += 5 * batch_size
-                generate_steps_per_batch, remainder = divmod(
-                    seq_per_sample * batch_size,
-                    num_generate_per_step
-                )
-                has_remainder = remainder > 0
-
-                amounts_to_generate = (
-                        [num_generate_per_step] * generate_steps_per_batch
-                        + [remainder] * has_remainder
+                amounts_to_generate, batch_gen_steps, remainder = get_amounts_to_generate(
+                    seq_per_sample, batch_size, num_generate_per_step
                 )
                 logger.info(f"Increasing number to generate per step to {num_generate_per_step}")
                 logger.debug(f"{amounts_to_generate=}")
@@ -241,9 +265,9 @@ def generate_predictions(
                 predictions.append(preds)
                 labels.append(dataset[idx]['target'])
                 indices.append(dataset[idx]['task_id'])
-            completed += len(local_indices)
             if not progress_bar:
                 logger.info(f"Finished {completed}/{len(dataset)} generations")
+
         if progress_bar:
             progress_bar.close()
 
@@ -327,7 +351,8 @@ def evaluate_model(
         generation_kwargs=gen_kwargs,
         seq_per_sample=cfg.evaluation.seq_per_sample,
         remove_input_ids_from_output=cfg.evaluation.get("remove_input_ids", False),
-        debug=cfg.debug
+        debug=cfg.debug,
+        min_batch_size=cfg.evaluation.get('min_batch_size', 1)
     )
 
     labels = list(map(task.postprocess, generation_results['labels']))
@@ -483,6 +508,9 @@ def make_eval_cfg_from_ctx(ctx, cfg):
             logger.debug(
                 f"Found num_generate_per_step override of {ctx.obj['num_generate_per_step']}")
             cfg.evaluation.num_generate_per_step = ctx.obj['num_generate_per_step']
+
+        if ctx.obj['min_batch_size']:
+            cfg.evaluation.min_batch_size = ctx.obj['min_batch_size']
 
         if ctx.obj['sequences_per_sample']:
             logger.debug(

@@ -56,7 +56,8 @@ def test_generate_predictions(remove_input_ids):
         'input_sequence': [prompt],
         'target'        : ['Hello'],
         'idx'           : [0],
-        'length'        : [len(tokenizer.tokenize(prompt))]
+        'length'        : [len(tokenizer.tokenize(prompt))],
+        'task_id'       : [0],
     })
     device = torch.device('cuda:0')
     model = AutoModelForCausalLM.from_pretrained('lvwerra/codeparrot-small',
@@ -76,7 +77,8 @@ def test_generate_predictions(remove_input_ids):
         generation_kwargs=gen_kwargs,
         seq_per_sample=10,
         remove_input_ids_from_output=remove_input_ids,
-        debug=True
+        debug=True,
+        min_batch_size=1
     )
 
     if not remove_input_ids:
@@ -112,7 +114,8 @@ def test_generate_predictions_batch_size():
         'input_sequence': [prompt] * 2,
         'target'        : ['Hello'] * 2,
         'idx'           : [0, 1],
-        'length'        : [len(tokenizer.tokenize(prompt))] * 2
+        'length'        : [len(tokenizer.tokenize(prompt))] * 2,
+        'task_id': [0,1],
     })
     device = torch.device('cuda:0')
     model = AutoModelForCausalLM.from_pretrained('lvwerra/codeparrot-small',
@@ -140,7 +143,8 @@ def test_generate_predictions_batch_size():
         generation_kwargs=gen_kwargs,
         seq_per_sample=3,
         remove_input_ids_from_output=False,
-        debug=True
+        debug=True,
+        min_batch_size=1
     )
 
     assert results['predictions'] == expected

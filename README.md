@@ -12,8 +12,12 @@ git clone https://github.com/gabeorlanski/springresearch.git
 
 ```shell
 pip install -r requirements.txt
-pip install git+git@github.com:gabeorlanski/taskio.git
 ```
+
+3. Install these python libraries from their repositories:
+
+* [TaskIO](https://github.com/gabeorlanski/taskio)
+* [Apex](https://github.com/NVIDIA/apex)
 
 ### Configs
 

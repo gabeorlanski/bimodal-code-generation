@@ -43,6 +43,9 @@ from src.data import NON_REGISTERED_TASKS
     '--num-generate-per-step', '-genstep', 'num_generate_per_step',
     default=None, type=int, help='Number of sequences per batch to generate.')
 @click.option(
+    '--min-batch-size', '-B', 'min_batch_size',
+    default=None, type=int, help='Minimum batch size to use')
+@click.option(
     '--debug-samples', 'debug_num_samples',
     default=None, type=int, help='Debug number of samples')
 @click.option(
@@ -69,7 +72,8 @@ def evaluate_cli_entry(
         debug: bool,
         force_create_dir,
         num_workers,
-        output_dir
+        output_dir,
+        min_batch_size
 ):
     ctx.obj = {
         "DEBUG"                : debug,
@@ -81,7 +85,8 @@ def evaluate_cli_entry(
         "sequences_per_sample" : sequences_per_sample,
         "FORCE_CREATE_DIR"     : force_create_dir,
         "num_workers"          : num_workers,
-        "out_dir"              : output_dir
+        "out_dir"              : output_dir,
+        "min_batch_size":min_batch_size
     }
 
 
