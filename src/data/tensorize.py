@@ -127,6 +127,7 @@ class TensorizedTask(IterableDataset):
         more_examples = True
         total_yielded = 0
         lines_seen = 0
+        total_restarts = 0
 
         num_no_samples = 0
         tokenizer = AutoTokenizer.from_pretrained(self.tokenizer_name, use_fast=True)
@@ -142,11 +143,13 @@ class TensorizedTask(IterableDataset):
             worker_id = worker_info.id
         update_freq = min(1000, math.floor(0.25 * self.buffer_size))
         last_ds_epoch_update = -1
+
         while more_examples and total_yielded < max_yielded_per_worker:
+            total_restarts += 1
             # Read the file and add the lines to the line buffer. This buffer
             # will then be split by each process.
             processed = []
-            if worker_id == 0:
+            if worker_id == 0 and total_restarts % 100 == 0:
                 logger.debug(f"{worker_id=} Starting Read on line {lines_seen}")
             last_processed_update = 0
             while len(processed) < self.buffer_size:
@@ -158,24 +161,21 @@ class TensorizedTask(IterableDataset):
                     else:
                         processed.extend(line_processed)
 
-                        if len(processed) % update_freq == 0 and len(
-                                processed) != last_processed_update:
-                            last_processed_update = len(processed)
-                            if worker_id == 0:
-                                logger.debug(f"Filled buffer to {len(processed)=}")
-
                     lines_seen += 1
                     ds_epoch = lines_seen / self.max_num_lines_in_file
                 except StopIteration:
                     if self.infinite:
-                        logger.info(f"New Dataset Epoch")
+                        if worker_id == 0:
+                            logger.info(f"New Dataset Epoch")
                         data_iter = iter(self.data_file_path.open())
                     else:
                         more_examples = False
                         break
 
             if worker_id == 0:
-                logger.debug(f"{num_no_samples}/{lines_seen} did not produce samples")
+                if total_restarts % 100 == 0:
+                    logger.debug(f"{num_no_samples}/{lines_seen} did not produce samples")
+                os.environ['DS_EPOCH'] = f"{ds_epoch:0.5f}"
             if worker_info is None:
                 start = 0
                 end = self.buffer_size

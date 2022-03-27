@@ -43,8 +43,8 @@ training:
   ddp_find_unused_parameters: false
   disable_tqdm: true
   eval_accumulation_steps: 1
-  eval_steps: 100
-  evaluation_strategy: steps
+  eval_steps: null
+  evaluation_strategy: epoch
   fp16: true
   fp16_backend: apex
   fp16_opt_level: O2
@@ -56,20 +56,18 @@ training:
   learning_rate: 5.0e-05
   load_best_model_at_end: false
   logging_first_step: true
-  logging_steps: 25
+  logging_steps: 10
   lr_scheduler_type: linear
   max_grad_norm: 1.0
-  max_steps: 1000
   metric_for_best_model: eval_loss
-  num_train_epochs: 1
+  num_train_epochs: 32
   output_dir: models
   remove_unused_columns: false
   save_steps: 500
-  save_strategy: steps
-  save_total_limit: 10
+  save_strategy: epoch
+  save_total_limit: 2
   use_8bit_adam: false
-  warmup_ratio: 0.01
-  warmup_steps: 100
+  warmup_ratio: 0.05
   weight_decay: 0.1
   xpu_backend: ccl
 

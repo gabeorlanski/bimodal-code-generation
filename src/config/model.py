@@ -61,7 +61,6 @@ def load_model_from_cfg(
             logger.info('USING MODEL PATH')
             model_path = PROJECT_ROOT.joinpath(cfg["model_path"])
 
-
         logger.info(f"Loading checkpoint from {model_path}")
         model = model_cls.from_pretrained(str(model_path.resolve().absolute()))
     else:

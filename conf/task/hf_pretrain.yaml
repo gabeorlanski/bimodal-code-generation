@@ -1,0 +1,15 @@
+name: hf_pretrain
+sequence_length: 512
+train:
+  dataset: ???
+  subset: null
+  split: train
+  text_key: ???
+  columns_remove: []
+validation:
+  dataset: ${..train.dataset}
+  subset: ${..train.subset}
+  split: validation
+  text_key: ???
+  max_val_samples: -1
+eval_splits: [ ]

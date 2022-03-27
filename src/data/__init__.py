@@ -4,5 +4,6 @@ from .code_search_net import CodeSearchNet
 
 NON_REGISTERED_TASKS = [
     "so",
-    "tensorize"
+    "tensorize",
+    'hf_pretrain'
 ]

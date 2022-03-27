@@ -83,7 +83,7 @@ experiments:
           ++task.buffer_size: 5000
           tracking:
             log_model: True
-          is_checkpoint: true
+          is_checkpoint: False
           ++task.sequence_length: 1024
           task: so
     command:

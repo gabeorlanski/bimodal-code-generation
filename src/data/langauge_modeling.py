@@ -15,7 +15,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-def group_texts(texts: List, concat_token, seq_length, padding=False):
+def raw_group_texts(texts: List, concat_token, seq_length, padding=False):
     buffer = []
     for text in texts:
         buffer.append(text)

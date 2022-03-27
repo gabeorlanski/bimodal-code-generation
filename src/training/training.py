@@ -19,7 +19,7 @@ from src import config
 from src.common import get_stats_from_list, PROJECT_ROOT, set_global_logging_level
 from src.data import langauge_modeling, NON_REGISTERED_TASKS
 from src.data.stackoverflow import StackOverflowProcessor
-from src.training.trainer import CustomTrainer
+from src.training.trainer import CustomTrainer, HFIterableWrapper
 from src.config import get_steps_from_training_args, get_lr_scheduler, get_prompts_from_cfg
 from src.data.tensorize import TensorizedTask
 from tqdm import tqdm
@@ -111,7 +111,7 @@ def setup_lm(cfg, task):
     task.preprocessors.append(concat)
 
     group_texts = partial(
-        langauge_modeling.group_texts,
+        langauge_modeling.raw_group_texts,
         concat_token=task.tokenizer.eos_token_id,
         seq_length=cfg.data_args.seq_length,
 
@@ -131,7 +131,74 @@ def setup_lm(cfg, task):
     return train_data, validation_data, None
 
 
-def setup_pretrain(cfg, tokenizer, train_args, prompt_fn):
+def setup_hf_pretrain(cfg, tokenizer, train_args, prompt_fn):
+    concat_delim = tokenizer('\n')['input_ids']
+    block_size = cfg.task.sequence_length
+
+    def group_texts(examples):
+        # Concatenate all texts.
+        concatenated_examples = {}
+        for k, v in examples.items():
+            concatenated_examples[k] = []
+            for ex in v:
+                concatenated_examples[k].extend(ex + [tokenizer.eos_token_id])
+        total_length = len(concatenated_examples[list(examples.keys())[0]])
+        # We drop the small remainder, we could add padding if the model supported it instead of this drop, you can
+        # customize this part to your needs.
+        if total_length >= block_size:
+            total_length = (total_length // block_size) * block_size
+        # Split by chunks of max_len.
+        result = {
+            k: [t[i: i + block_size] for i in range(0, total_length, block_size)]
+            for k, t in concatenated_examples.items()
+        }
+        result["labels"] = result["input_ids"].copy()
+        return result
+
+    raw_train_dataset = load_dataset(
+        cfg.task.train.dataset,
+        cfg.task.train.subset,
+        split=cfg.task.train.split,
+        streaming=True
+    )
+
+    def tokenize(ex, text_key):
+        return tokenizer(ex[text_key], add_special_tokens=False)
+
+    raw_train_dataset = raw_train_dataset.map(
+        lambda e: tokenize(e, cfg.task.train.text_key),
+        batched=True
+    )
+    train_dataset = raw_train_dataset.map(
+        group_texts,
+        batched=True,
+    )
+    for k in cfg.task.train.columns_remove:
+        train_dataset = train_dataset.remove_columns(k)
+
+    raw_eval_dataset = load_dataset(
+        cfg.task.validation.dataset,
+        cfg.task.validation.subset,
+        split=cfg.task.validation.split,
+    )
+    if cfg.task.validation.max_val_samples > 0:
+        raw_eval_dataset = raw_eval_dataset.select(range(cfg.task.validation.max_val_samples))
+
+    raw_eval_dataset = raw_eval_dataset.shuffle(seed=cfg.seed).map(
+        lambda e: tokenize(e, cfg.task.validation.text_key),
+        num_proc=cfg.get("num_proc", 4),
+        remove_columns=raw_eval_dataset.column_names
+    )
+    eval_dataset = raw_eval_dataset.map(
+        group_texts,
+        batched=True,
+        remove_columns=raw_eval_dataset.column_names,
+
+    )
+    return HFIterableWrapper(train_dataset), eval_dataset, None
+
+
+def setup_tensorized(cfg, tokenizer, train_args, prompt_fn):
     concat_delim = tokenizer('\n')['input_ids']
     block_size = cfg.task.sequence_length
 
@@ -280,12 +347,20 @@ def train_model(cfg: DictConfig, train_args):
     if cfg.objective == 'seq2seq':
         if is_non_registered_task:
             logger.info(f"Setting up the SO pretrain objective")
-            train_data, validation_data, evaluate_fn = setup_pretrain(
-                cfg,
-                tokenizer,
-                train_args,
-                prompt_fn
-            )
+            if cfg.task.name == 'hf_pretrain':
+                train_data, validation_data, evaluate_fn = setup_hf_pretrain(
+                    cfg,
+                    tokenizer,
+                    train_args,
+                    prompt_fn
+                )
+            else:
+                train_data, validation_data, evaluate_fn = setup_tensorized(
+                    cfg,
+                    tokenizer,
+                    train_args,
+                    prompt_fn
+                )
         else:
             logger.info(f"Setting Up Seq2Seq Objective")
             train_data, validation_data, evaluate_fn = setup_seq2seq(
@@ -317,12 +392,20 @@ def train_model(cfg: DictConfig, train_args):
         model.config.bos_token_id = tokenizer.bos_token_id or tokenizer.eos_token
         if is_non_registered_task:
             logger.info(f"Setting up the SO pretrain objective")
-            train_data, validation_data, evaluate_fn = setup_pretrain(
-                cfg,
-                tokenizer,
-                train_args,
-                prompt_fn
-            )
+            if cfg.task.name == 'hf_pretrain':
+                train_data, validation_data, evaluate_fn = setup_hf_pretrain(
+                    cfg,
+                    tokenizer,
+                    train_args,
+                    prompt_fn
+                )
+            else:
+                train_data, validation_data, evaluate_fn = setup_tensorized(
+                    cfg,
+                    tokenizer,
+                    train_args,
+                    prompt_fn
+                )
         else:
             logger.info("Setting up the LM objective")
 

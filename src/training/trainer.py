@@ -1,4 +1,5 @@
 import math
+import os
 from pathlib import Path
 from typing import Dict, Optional, Union, Tuple, List, Any
 import logging
@@ -6,6 +7,8 @@ import logging
 import psutil
 import torch
 from datasets import Dataset
+from datasets import IterableDataset as HFIterableDataset
+from torch.utils.data import IterableDataset
 import datasets
 from omegaconf import DictConfig, OmegaConf
 from torch.utils.data import DataLoader
@@ -22,6 +25,43 @@ from src.config import TrackingCallback, is_tracking_enabled
 from src.data.tensorize import TensorizedTask
 
 logger = logging.getLogger(__name__)
+
+
+class HFIterableWrapper(IterableDataset):
+    def __init__(self, hf_dataset, buffer=1000):
+        self.ds = hf_dataset
+        self.buffer = buffer
+
+    def __iter__(self):
+        data_iter = iter(self.ds)
+        lines_seen = 0
+        more_examples = True
+        ds_epoch = 0
+
+        worker_info = torch.utils.data.get_worker_info()
+        if worker_info is None:
+            worker_id = 0
+        else:
+            raise ValueError(f"Not Compatible with multiple dataset workers")
+        while more_examples:
+            instances = []
+            if worker_id == 0:
+                logger.debug(f"{worker_id=} Starting Read on line {lines_seen}")
+            while len(instances) < self.buffer:
+                try:
+                    instances.append(next(data_iter))
+                except StopIteration:
+                    if self.infinite:
+                        if worker_id == 0:
+                            logger.info(f"New Dataset Epoch")
+                        data_iter = iter(self.ds)
+                        ds_epoch += 1
+                    else:
+                        more_examples = False
+                        break
+            os.environ['DS_EPOCH'] = f"{ds_epoch:0.5f}"
+            for i in instances:
+                yield i
 
 
 class CustomTrainer(Seq2SeqTrainer):
@@ -82,6 +122,9 @@ class CustomTrainer(Seq2SeqTrainer):
                 self.state.global_step / elapsed_start, 3
             )
             logs['train_ram_pct'] = psutil.virtual_memory()[2]
+
+            if 'DS_EPOCH' in os.environ:
+                logs['train_ds_epoch'] = float(os.getenv('DS_EPOCH', 0.0))
 
             self.last_runtime_step = self.state.global_step
             self.time_last_log = datetime.utcnow()
@@ -160,6 +203,55 @@ class CustomTrainer(Seq2SeqTrainer):
             logger.debug(f"{isinstance(self.eval_dataset, collections.abc.Sized)=}")
 
         return super(CustomTrainer, self).get_eval_dataloader(eval_dataset)
+
+    def get_train_dataloader(self) -> DataLoader:
+        """
+        Returns the training [`~torch.utils.data.DataLoader`].
+
+        Will use no sampler if `self.train_dataset` does not implement `__len__`, a random sampler (adapted to
+        distributed training if necessary) otherwise.
+
+        Subclass and override this method if you want to inject some custom behavior.
+        """
+        if self.train_dataset is None:
+            raise ValueError("Trainer: training requires a train_dataset.")
+
+        train_dataset = self.train_dataset
+        if is_datasets_available() and isinstance(train_dataset, datasets.Dataset):
+            train_dataset = self._remove_unused_columns(train_dataset, description="training")
+
+        if (
+                isinstance(train_dataset, torch.utils.data.IterableDataset)
+                or isinstance(train_dataset, HFIterableDataset)
+        ):
+            if self.args.world_size > 1:
+                train_dataset = IterableDatasetShard(
+                    train_dataset,
+                    batch_size=self.args.train_batch_size,
+                    drop_last=self.args.dataloader_drop_last,
+                    num_processes=self.args.world_size,
+                    process_index=self.args.process_index,
+                )
+
+            return DataLoader(
+                train_dataset,
+                batch_size=self.args.per_device_train_batch_size,
+                collate_fn=self.data_collator,
+                num_workers=self.args.dataloader_num_workers,
+                pin_memory=self.args.dataloader_pin_memory,
+            )
+
+        train_sampler = self._get_train_sampler()
+
+        return DataLoader(
+            train_dataset,
+            batch_size=self.args.train_batch_size,
+            sampler=train_sampler,
+            collate_fn=self.data_collator,
+            drop_last=self.args.dataloader_drop_last,
+            num_workers=self.args.dataloader_num_workers,
+            pin_memory=self.args.dataloader_pin_memory,
+        )
 
 
 def create_log_metric_message(
