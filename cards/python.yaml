@@ -68,6 +68,8 @@ experiments:
             log_model: True
           is_checkpoint: False
           ++task.sequence_length: 1024
+          training:
+            dataloader_num_workers: 0
           task: hf_pretrain
     command:
       file: templates/commands/pretrain.txt
