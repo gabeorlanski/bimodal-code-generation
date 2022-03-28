@@ -1,93 +1,123 @@
 data_args:
-  seq_length: 512
+  seq_length: 1024
 data_path: data
 debug: false
+description: 'Group=Baseline Evaluation of the models finetuned on SO with Only Title
+  and Repeating + Only Code Answer + different prompting methods | Step=Finetune on
+  the MBPP Data | Ablation=Model: CodeParrot Small, Prompts: Add at "TITLE:" before
+  the actual Title'
 device: 0
+evaluation:
+  num_generate_per_step: 200
+  remove_input_ids: false
+  seq_per_sample: 200
 generation:
   do_sample: true
-  max_length: 1024
-  min_length: 75
+  max_length: 512
   num_return_sequences: 25
   temperature: 0.5
   top_k: 50
   top_p: 0.95
 group: MBPP
-is_checkpoint: true
+hypothesis: 'Prompts: Slight Improvement B/C of "TITLE"'
+is_checkpoint: false
 meta:
-  ablation: Random
+  ablation: ParrotSmall.TitleMarker
   ablation_vals:
-    DumpName: Random
-  card_name: FinetuneSO.ParrotSmall
+    Model: ParrotSmall
+    Prompts: TitleMarker
+  card_name: PromptingTitleCodeRepeat
   step: FineTune
 metrics:
 - exact-match
 - bleu
-model: lvwerra/codeparrot-small
-model_path: best_models/SO.TestSOData
-name: FinetuneSO.ParrotSmall.Random.FineTune
+model: EleutherAI/gpt-neo-125M
+model_path: null
+name: test_finetune
+num_proc: 4
 numpy_seed: 2
 objective: lm
-preprocessors:
-- add-prefix:
-    prefix: 'You are an expert Python programmer, and here is your task: '
-- add-suffix:
-    key: input_sequence
-    suffix: '#Solution:
-
-      '
+preprocessors: []
 processor:
   name: stackoverflow
   params:
-    answer_prompt: null
+    allow_negative_best_answer: false
+    allow_no_answer: false
     answer_sorting: accepted
     answers_per_sample: -1
     bad_answer_cutoff: -1
-    clean: false
+    date_format_str: '%Y-%m'
     good_answer_cutoff: 3
-    question_prompt: null
-    repeat_question_for_each_answer: none
-    title_prompt: null
+    highest_is_best: false
+    no_answer_str: There is not an answer
+    remove_modality: NL
+    repeat_body_for_each_answer: false
+    repeat_prompt_each_answer: true
+    top_answer_cutoff: 12
+    worst_is_best: false
+    wrap_answer_character: None
 project: so-code-gen
 pytorch_seed: 3
-raw_dump_name: random
 raw_dump_path: data/dumps
+save_best_model: false
 seed: 1
 task:
-  dump_name: random
+  dump_name: python_ParrotSmall.TitleMarker
   eval_splits:
   - test
   - validation
+  metrics:
+  - exact-match
+  - bleu
   name: mbpp
   postprocessors:
   - split:
       split_phrase: '#Solution:'
-tensorized_name: random
+  preprocessors:
+  - add-prefix:
+      prefix: 'You are an expert Python programmer, and here is your task: '
+  raw_dump_name: python
+  tensorized_name: python_ParrotSmall.TitleMarker
 tracking:
   entity: nyu-code-research
-  log_model: true
+  log_model: false
   project: so-code-gen
+  tags:
+  - O2
+  - Prompting
   watch: gradients
 training:
-  batch_size: 2
+  batch_size: 1
+  dataloader_num_workers: 0
   ddp_find_unused_parameters: false
   disable_tqdm: true
   eval_accumulation_steps: 1
-  evaluation_strategy: epoch
+  eval_steps: 50
+  dataloader_drop_last: False
+  evaluation_strategy: steps
   fp16: true
-  gradient_accumulation_steps: 1
+  fp16_backend: apex
+  fp16_opt_level: O2
+  gradient_accumulation_steps: 4
+  gradient_checkpointing: true
   greater_is_better: false
-  group_by_length: true
-  learning_rate: 5.0e-05
-  load_best_model_at_end: true
+  group_by_length: false
+  half_precision_backend: apex
+  learning_rate: 5.0e-06
+  load_best_model_at_end: false
   logging_first_step: true
   logging_steps: 10
   lr_scheduler_type: linear
   max_grad_norm: 1.0
   metric_for_best_model: eval_loss
-  num_train_epochs: 5
+  num_train_epochs: 32
   output_dir: models
-  save_strategy: epoch
+  remove_unused_columns: false
+  save_steps: 50
+  max_steps: 1000
+  save_strategy: steps
   save_total_limit: 2
+  use_8bit_adam: false
   warmup_ratio: 0.05
   weight_decay: 0.1
   xpu_backend: ccl

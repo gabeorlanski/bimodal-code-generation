@@ -9,16 +9,24 @@
 
 rm -f {{ cancel_file }}
 echo "#!/bin/bash" >> {{cancel_file}}
-## Normal Eval
-#eval_jid{{idx}}=$(sbatch --parsable \
-#	--job-name={{ job_name }}_eval \
-#	--dependency=afterok:$train_jid{{ idx}} eval.sbatch \
-#	{{ Eval.model_path }} {{ num_return_sequences }} {{ Eval.path }})
-#echo "Submitted Eval $eval_jid{{idx}} to run after $1(id=$train_jid{{ idx}})"
-#echo "scancel $eval_jid{{idx}}" >> {{cancel_file}}
-#
-## Normal Code Execute After Eval
+# Finetuning
+train_jid{{ idx}}=$(sbatch --parsable {{account_str}}
+	--job-name={{ job_name }}_finetune {{ train_sbatch }}.sbatch {{ FineTune.path}})
+echo "Submitted Train (id=$train_jid{{ idx}})"
+echo "scancel $train_jid{{idx}}" >> {{cancel_file}}
+
+# Normal Eval
+eval_jid{{idx}}=$(sbatch --parsable \
+	--job-name={{ job_name }}_eval \
+	--dependency=afterok:$train_jid{{ idx}} eval.sbatch \
+	outputs/mbpp/{{ FineTune.name }} mbpp {{ FineTune.path }})
+echo "Submitted Eval $eval_jid{{idx}} to run after $1(id=$train_jid{{ idx}})"
+echo "scancel $eval_jid{{idx}}" >> {{cancel_file}}
+
+# Normal Code Execute After Eval
 exec_jid{{idx}}=$(sbatch --parsable --job-name='{{ job_name }}_execute' \
-	eval_code.sbatch eval_results/{{ task_name }} {{ Eval.save_name }})
-echo "Submitted CodeEval(id=exec_jid{{idx}})"
+	--dependency=afterok:$eval_jid{{idx}} \
+	eval_code.sbatch \
+	eval_results/{{ name }}/MBPP/{{ ablation_name }}_FineTune)
+echo "Submitted CodeEval(id=$exec_jid{{idx}})"
 echo "scancel $exec_jid{{idx}}" >> {{cancel_file}}

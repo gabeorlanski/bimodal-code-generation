@@ -151,23 +151,6 @@ class CustomTrainer(Seq2SeqTrainer):
             self._save_checkpoint(model, trial, metrics=metrics)
             self.control = self.callback_handler.on_save(self.args, self.state, self.control)
 
-    def train(
-            self,
-            resume_from_checkpoint=None,
-            trial=None,
-            ignore_keys_for_eval=None,
-            **kwargs,
-    ):
-        super(CustomTrainer, self).train(
-            resume_from_checkpoint,
-            trial,
-            ignore_keys_for_eval,
-            **kwargs
-        )
-
-    def training_step(self, model, inputs) -> torch.Tensor:
-        return super(CustomTrainer, self).training_step(model, inputs)
-
     def evaluation_loop(
             self,
             dataloader,

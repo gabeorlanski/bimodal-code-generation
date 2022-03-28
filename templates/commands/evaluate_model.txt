@@ -31,24 +31,6 @@ train_jid{{ idx}}=$(sbatch --parsable {{account_str}}
 echo "Submitted Train (id=$train_jid{{ idx}})"
 echo "scancel $train_jid{{idx}}" >> {{cancel_file}}
 
-
-# Human Eval After Finetune
-hef_so{{idx}}=$(sbatch --job-name='{{ job_name }}_hef' \
-	--parsable \
-	--dependency=afterok:$train_jid{{ idx}} \
-	eval.sbatch outputs/mbpp/{{ FineTune.name }} human_eval {{ FineTune.path }})
-echo "Submitted HumanEval (id=$hef_so{{idx}})"
-echo "scancel $hef_so{{idx}}" >> {{cancel_file}}
-
-# Human Eval Code Execute Finetune
-hef_exec{{idx}}=$(sbatch --parsable --job-name='{{ job_name }}_hef_execute' \
-	--dependency=afterok:$hef_so{{idx}} \
-	eval_code.sbatch \
-	eval_results/{{ name }}/HUMAN_EVAL/{{ ablation_name }}_FineTune
-)
-echo "Submitted CodeEval(id=$hef_exec{{idx}})"
-echo "scancel $hef_exec{{idx}}" >> {{cancel_file}}
-
 # Normal Eval
 eval_jid{{idx}}=$(sbatch --parsable \
 	--job-name={{ job_name }}_eval \

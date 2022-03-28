@@ -54,9 +54,8 @@ def get_training_args_from_cfg(cfg: DictConfig) -> TrainingArguments:
         training_args['deepspeed'] = json.loads(
             PROJECT_ROOT.joinpath(training_args['deepspeed']).read_text())
 
-
     if 'report_to' not in training_args:
-        training_args['report_to']=["none"]
+        training_args['report_to'] = ["none"]
     batch_size = training_args.pop("batch_size", None)
     if batch_size:
         if 'per_device_train_batch_size' not in training_args:
@@ -76,7 +75,7 @@ def get_steps_from_training_args(
             * train_args.world_size
     )
     if train_dataset_is_sized and train_args.max_steps < 0:
-        num_update_steps_per_epoch = len(train_data) // effective_batch_size
+        num_update_steps_per_epoch = math.ceil(len(train_data) / effective_batch_size)
         num_update_steps_per_epoch = max(num_update_steps_per_epoch, 1)
         total_steps = int(num_update_steps_per_epoch * train_args.num_train_epochs)
     else:

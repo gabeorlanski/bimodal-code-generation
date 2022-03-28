@@ -35,15 +35,15 @@ experiments:
               PreTrain:
                 ++training.batch_size: 32
                 ++training.gradient_accumulation_steps: 1
-      #          ParrotSmall:
-      #            description: CodeParrot Small
-      #            overrides:
-      #              ++model: 'lvwerra/codeparrot-small'
-      #            step_overrides:
-      #              PreTrain:
-      #                ++training.batch_size: 32
-      #                ++training.gradient_accumulation_steps: 1
-      #                ++training.gradient_checkpointing: True
+          ParrotSmall:
+            description: CodeParrot Small
+            overrides:
+              ++model: 'lvwerra/codeparrot-small'
+            step_overrides:
+              PreTrain:
+                ++training.batch_size: 32
+                ++training.gradient_accumulation_steps: 1
+                ++training.gradient_checkpointing: True
       - Prompts:
           TitleMarker:
             description: Add at "TITLE:" before the actual Title
@@ -142,15 +142,15 @@ experiments:
               PreTrain:
                 ++training.batch_size: 32
                 ++training.gradient_accumulation_steps: 1
-      #          ParrotSmall:
-      #            description: CodeParrot Small
-      #            overrides:
-      #              ++model: 'lvwerra/codeparrot-small'
-      #            step_overrides:
-      #              PreTrain:
-      #                ++training.batch_size: 32
-      #                ++training.gradient_accumulation_steps: 1
-      #                ++training.gradient_checkpointing: True
+          ParrotSmall:
+            description: CodeParrot Small
+            overrides:
+              ++model: 'lvwerra/codeparrot-small'
+            step_overrides:
+              PreTrain:
+                ++training.batch_size: 32
+                ++training.gradient_accumulation_steps: 1
+                ++training.gradient_checkpointing: True
       - Prompts:
           QualityAfter:
             description: The Title followed by a quality adjective based on the answers score
@@ -191,6 +191,60 @@ experiments:
             log_model: False
     command:
       file: templates/commands/evaluate_model.txt
+      kwargs:
+        train_sbatch: train_single_gpu
+        pretrain_time: "12:00:00"
+        use_cds: True
+      fields:
+        - model_path
+  Baselines:
+    add_name: False
+    description: "Evaluate the baseline models with the updated MBPP loop"
+    overrides:
+      ++device: 0
+      is_checkpoint: false
+      objective: lm
+      ++evaluation:
+        num_generate_per_step: 200
+        remove_input_ids: True
+        seq_per_sample: 200
+    ablations:
+      - Model:
+          Neo125M:
+            description: GPT Neo 125M
+            overrides:
+              ++model: 'EleutherAI/gpt-neo-125M'
+            step_overrides:
+              PreTrain:
+                ++training.batch_size: 32
+                ++training.gradient_accumulation_steps: 1
+          ParrotSmall:
+            description: CodeParrot Small
+            overrides:
+              ++model: 'lvwerra/codeparrot-small'
+            step_overrides:
+              PreTrain:
+                ++training.batch_size: 32
+                ++training.gradient_accumulation_steps: 1
+                ++training.gradient_checkpointing: True
+    steps:
+      - name: FineTune
+        add_name: False
+        description: Finetune on the MBPP Data
+        base: greene_config
+        group: MBPP
+        overrides:
+          task: mbpp
+          ++is_checkpoint: false
+          ++model_path: null
+          ++training:
+            batch_size: 32
+            gradient_accumulation_steps: 1
+            learning_rate: 5e-5
+          tracking:
+            log_model: False
+    command:
+      file: templates/commands/mbpp_eval.txt
       kwargs:
         train_sbatch: train_single_gpu
         pretrain_time: "12:00:00"
