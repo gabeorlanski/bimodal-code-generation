@@ -45,8 +45,9 @@ experiments:
               ++model: 'EleutherAI/gpt-neo-125M'
             step_overrides:
               PreTrain:
-                ++training.batch_size: 32
-                ++training.gradient_accumulation_steps: 1
+                ++training.batch_size: 16
+                ++training.gradient_accumulation_steps: 2
+                ++training.gradient_checkpointing: True
           ParrotSmall:
             description: CodeParrot Small
             overrides:
@@ -55,7 +56,6 @@ experiments:
               PreTrain:
                 ++training.batch_size: 32
                 ++training.gradient_accumulation_steps: 1
-                ++training.gradient_checkpointing: True
     steps:
       - name: PreTrain
         description: Finetune on the SO Data
@@ -70,6 +70,7 @@ experiments:
           ++task.sequence_length: 1024
           training:
             dataloader_num_workers: 0
+            fp16_opt_level: O1
           task: hf_pretrain
     command:
       file: templates/commands/pretrain.txt

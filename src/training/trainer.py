@@ -45,8 +45,6 @@ class HFIterableWrapper(IterableDataset):
             raise ValueError(f"Not Compatible with multiple dataset workers")
         while more_examples:
             instances = []
-            if worker_id == 0:
-                logger.debug(f"{worker_id=} Starting Read on line {lines_seen}")
             while len(instances) < self.buffer:
                 try:
                     instances.append(next(data_iter))
