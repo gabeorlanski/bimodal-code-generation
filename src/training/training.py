@@ -268,7 +268,7 @@ def setup_tensorized(cfg, tokenizer, train_args, prompt_fn):
                          f"samples produced.")
             num_no_samples += 1
             continue
-        for instance in processed:
+        for i, instance in enumerate(processed):
             eval_dataset['input_ids'].append(
                 tokenizer(
                     instance['input'],
@@ -283,20 +283,8 @@ def setup_tensorized(cfg, tokenizer, train_args, prompt_fn):
                     truncation=cfg.objective != 'seq2seq'
                 )['input_ids']
             )
-            if len(debug_data) < 10:
-                debug_data[line_num] = {
-                    'input_ids': tokenizer.decode(eval_dataset['input_ids'][-1],
-                                                  skip_special_tokens=False),
-                    'labels'   : tokenizer.decode(eval_dataset['labels'][-1],
-                                                  skip_special_tokens=False),
-                }
 
     logger.warning(f"{num_no_samples}/{line_num} produced no samples.")
-    if train_args.local_rank <= 0:
-        logger.info(
-            f"Saving {len(debug_data)} debug samples to {Path.cwd().joinpath('debug_samples.json')}")
-        with Path.cwd().joinpath('debug_samples.json').open('w') as f:
-            json.dump(debug_data, f, indent=True, sort_keys=True)
 
     eval_dataset = Dataset.from_dict(eval_dataset).shuffle(seed=cfg.seed)
 
@@ -437,6 +425,13 @@ def train_model(cfg: DictConfig, train_args):
             logger.info(
                 f"{arg_name:>30} = {getattr(train_args, arg_name)}"
             )
+        logger.info(
+            f"Saving 100 debug samples to {Path.cwd().joinpath('debug_samples.json')}")
+        with Path.cwd().joinpath('debug_samples.json').open('w') as f:
+            json.dump({i: {
+                'input_ids': tokenizer.decode(v['input_ids']),
+                'labels'   : tokenizer.decode(v['labels'])
+            } for i, v in enumerate(validation_data)}, f, indent=True, sort_keys=True)
 
     logger.info(f"Setting up the optimizer")
     total_steps, warmup_steps = get_steps_from_training_args(train_args, train_data)

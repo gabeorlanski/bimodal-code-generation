@@ -173,6 +173,11 @@ class TrackingCallback(TrainerCallback):
                             fa.write(f.read_bytes())
                 artifact.add_file(str(Path(temp_dir, 'config.yaml').resolve().absolute()))
 
+                if Path('debug_samples.json').exists():
+                    artifact.add_file(str(Path('debug_samples.json').resolve().absolute()))
+                if Path('debug.jsonl').exists():
+                    artifact.add_file(str(Path('debug.jsonl').resolve().absolute()))
+
                 self._wandb.run.log_artifact(artifact)
 
     def on_log(self, args, state, control, model=None, logs=None, **kwargs):

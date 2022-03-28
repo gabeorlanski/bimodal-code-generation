@@ -56,6 +56,12 @@ processor:
     top_answer_cutoff: 12
     worst_is_best: false
     wrap_answer_character: None
+prompts:
+  file: templates/so_prompts.yaml
+  params:
+    question_date: 2018
+  pipe:
+  - question_date_before
 project: so-code-gen
 pytorch_seed: 3
 raw_dump_path: data/dumps
@@ -78,14 +84,14 @@ task:
       prefix: 'You are an expert Python programmer, and here is your task: '
   raw_dump_name: python
   tensorized_name: python_ParrotSmall.TitleMarker
-tracking:
-  entity: nyu-code-research
-  log_model: false
-  project: so-code-gen
-  tags:
-  - O2
-  - Prompting
-  watch: gradients
+tracking: False
+#  entity: nyu-code-research
+#  log_model: false
+#  project: so-code-gen
+#  tags:
+#  - O2
+#  - Prompting
+#  watch: gradients
 training:
   batch_size: 1
   dataloader_num_workers: 0
@@ -114,7 +120,7 @@ training:
   output_dir: models
   remove_unused_columns: false
   save_steps: 50
-  max_steps: 1000
+  max_steps: 500
   save_strategy: steps
   save_total_limit: 2
   use_8bit_adam: false

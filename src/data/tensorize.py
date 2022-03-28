@@ -141,9 +141,13 @@ class TensorizedTask(IterableDataset):
             max_yielded_per_worker = self.max_samples_to_yield // worker_info.num_workers
             slices_per_worker = int(math.ceil(self.buffer_size / worker_info.num_workers))
             worker_id = worker_info.id
-        update_freq = min(1000, math.floor(0.25 * self.buffer_size))
         last_ds_epoch_update = -1
-
+        if worker_id ==0:
+            debug = Path('debug.jsonl').open('w')
+            debug_logged = 0
+        else:
+            debug = None
+            debug_logged = 0
         while more_examples and total_yielded < max_yielded_per_worker:
             total_restarts += 1
             # Read the file and add the lines to the line buffer. This buffer
@@ -151,14 +155,19 @@ class TensorizedTask(IterableDataset):
             processed = []
             if worker_id == 0 and total_restarts % 100 == 0:
                 logger.debug(f"{worker_id=} Starting Read on line {lines_seen}")
-            last_processed_update = 0
             while len(processed) < self.buffer_size:
                 try:
                     line = ujson.loads(next(data_iter))
-                    line_processed = self.processor.__call__(line)
+                    line_processed = self.processor(line)
                     if len(line_processed) == 0:
                         num_no_samples += 1
                     else:
+                        if worker_id==0 and debug_logged < 100:
+                            for d in map(json.dumps,line_processed):
+                                debug.write(d+'\n')
+                            debug_logged +=1
+                            if debug_logged >= 100:
+                                debug.close()
                         processed.extend(line_processed)
 
                     lines_seen += 1
