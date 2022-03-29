@@ -63,7 +63,7 @@ experiments:
           tracking:
             log_model: False
     command:
-      file: templates/commands/mbpp_eval.txt
+      file: templates/commands/evaluate_model.txt
       kwargs:
         train_sbatch: train_single_gpu
         pretrain_time: "12:00:00"
