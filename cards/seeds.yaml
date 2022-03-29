@@ -1,8 +1,7 @@
 starting_commands: templates/commands/sbatch_experiment.txt
 experiments:
-  Baselines:
-    add_name: False
-    description: "Evaluate the baseline models with the updated MBPP loop"
+  SeedTest:
+    description: "Testing Different Seeds to view variance"
     overrides:
       ++device: 0
       is_checkpoint: false
@@ -30,6 +29,22 @@ experiments:
                 ++training.batch_size: 32
                 ++training.gradient_accumulation_steps: 1
                 ++training.gradient_checkpointing: True
+      - Seed:
+          35:
+            description: Seed Set to 35
+            seed: 35
+            numpy_seed: 35
+            pytorch_seed: 35
+          319:
+            description: Seed Set to 319
+            seed: 319
+            numpy_seed: 319
+            pytorch_seed: 319
+          1999:
+            description: Seed Set to 319
+            seed: 319
+            numpy_seed: 319
+            pytorch_seed: 319
     steps:
       - name: PreTrain
         description: Finetune on the SO Data
@@ -47,7 +62,7 @@ experiments:
         add_name: False
         description: Finetune on the MBPP Data
         base: greene_config
-        group: MBPP
+        group: MBPP_SEED
         overrides:
           task: mbpp
           ++is_checkpoint: false
@@ -59,7 +74,7 @@ experiments:
           tracking:
             log_model: False
     command:
-      file: templates/commands/mbpp_eval.txt
+      file: templates/commands/evaluate_model.txt
       kwargs:
         train_sbatch: train_single_gpu
         pretrain_time: "12:00:00"

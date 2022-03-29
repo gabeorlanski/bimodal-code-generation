@@ -1,0 +1,168 @@
+starting_commands: command_templates/sbatch_experiment.txt
+experiments:
+  CodeT5.Baseline:
+    overrides:
+      ++device: 0
+      is_checkpoint: true
+      objective: seq2seq
+      ++model: Salesforce/codet5-base
+    steps:
+      - name: HumanEval
+        add_name: False
+        base: human_eval
+        group: HUMAN_EVAL
+        overrides:
+          is_checkpoint: false
+          ++generation:
+            max_length: 256
+            do_sample: true
+            temperature: 0.5
+            top_p: 0.95
+            top_k: 50
+          ++model_path: null
+          batch_size: 200
+      - name: FineTune
+        base: greene_config
+        group: MBPP
+        overrides:
+          task: mbpp
+          ++is_checkpoint: false
+          ++model_path: null
+          ++training:
+            batch_size: 32
+            gradient_accumulation_steps: 1
+            learning_rate: 5e-5
+            metric_for_best_model: "eval_bleu"
+      - name: HEFineTune
+        base: human_eval
+        group: HUMAN_EVAL
+        overrides:
+          is_checkpoint: true
+          ++generation:
+            max_length: 256
+            do_sample: true
+            temperature: 0.5
+            top_p: 0.95
+            top_k: 50
+          model_path: best_models/${..__META__.FineTune.save_name}
+          batch_size: 200
+      - name: Eval
+        base: eval_config
+        group: MBPP
+        overrides:
+          batch_size: 200
+          remove_input_ids: true
+          ++generation:
+            max_length: 512
+            do_sample: true
+            temperature: 0.5
+            top_p: 0.95
+            top_k: 50
+          task: mbpp
+          remove_input_ids: false
+          ++model_path: best_models/${..__META__.FineTune.save_name}
+    command:
+      file: command_templates/baseline.txt
+      kwargs:
+        num_return_sequences: 200
+        task_name: MBPP
+        train_sbatch: train_single_gpu
+      fields:
+        - model_path
+  GPT2.Baseline:
+    overrides:
+      ++device: 0
+      ++tracking:
+        log_model: False
+      objective: lm
+    ablations:
+      - Model:
+          Normal:
+            ++model: gpt2
+            ++training.batch_size: 32
+            ++training.gradient_accumulation_steps: 1
+            ++batch_size: 200
+          Medium:
+            overrides:
+              ++model: gpt2-medium
+              ++training.batch_size: 16
+              ++training.gradient_accumulation_steps: 2
+              ++training.deepspeed: deepspeed_configs/mbpp_finetune.json
+            step_overrides:
+              Eval:
+                ++batch_size: 50
+              HumanEval:
+                ++batch_size: 100
+              HEFineTune:
+                ++batch_size: 100
+          Large:
+            overrides:
+              ++model: gpt2-large
+              ++training.batch_size: 8
+              ++training.gradient_accumulation_steps: 4
+              ++training.deepspeed: deepspeed_configs/mbpp_finetune.json
+            step_overrides:
+              Eval:
+                ++batch_size: 25
+              HumanEval:
+                ++batch_size: 50
+              HEFineTune:
+                ++batch_size: 50
+    steps:
+      - name: HumanEval
+        add_name: False
+        base: human_eval
+        group: HUMAN_EVAL
+        overrides:
+          is_checkpoint: false
+          ++generation:
+            max_new_tokens: 256
+            do_sample: true
+            temperature: 0.5
+            top_p: 0.95
+            top_k: 50
+          ++model_path: null
+      - name: FineTune
+        base: greene_config
+        group: MBPP
+        overrides:
+          task: mbpp
+          ++is_checkpoint: false
+          ++model_path: null
+          ++training:
+            learning_rate: 5e-5
+          ++data_args.seq_length: 512
+      - name: HEFineTune
+        base: human_eval
+        group: HUMAN_EVAL
+        overrides:
+          is_checkpoint: true
+          ++generation:
+            max_new_tokens: 256
+            do_sample: true
+            temperature: 0.5
+            top_p: 0.95
+            top_k: 50
+          model_path: best_models/${..__META__.FineTune.save_name}
+      - name: Eval
+        base: eval_config
+        group: MBPP
+        overrides:
+          remove_input_ids: true
+          ++generation:
+            max_new_tokens: 512
+            do_sample: true
+            temperature: 0.5
+            top_p: 0.95
+            top_k: 50
+          task: mbpp
+          remove_input_ids: true
+          ++model_path: best_models/${..__META__.FineTune.save_name}
+    command:
+      file: command_templates/baseline.txt
+      kwargs:
+        num_return_sequences: 200
+        task_name: MBPP
+        train_sbatch: train_single_gpu
+      fields:
+        - model_path
