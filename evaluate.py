@@ -6,6 +6,7 @@ from omegaconf import OmegaConf, open_dict
 import os
 from pathlib import Path
 import click
+import torch
 
 from src import config
 from src.evaluation import evaluate, make_eval_cfg_from_ctx
@@ -94,6 +95,8 @@ def evaluate_from_ctx_and_cfg(
         ctx,
         cfg,
 ):
+    torch.use_deterministic_algorithms(True)
+    os.environ['CUBLAS_WORKSPACE_CONFIG']=":4096:8"
     debug = ctx.obj['DEBUG']
     dry_run = ctx.obj['DRY_RUN']
     disable_tracking = ctx.obj['DISABLE_TRACKING']
