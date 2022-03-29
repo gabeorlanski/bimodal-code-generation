@@ -163,6 +163,8 @@ def generate_predictions(
     )
     if debug:
         tokenized = tokenized.sort('length', reverse=True)
+    # else:
+    #     tokenized = tokenized.sort('idx')
     tokenized.set_format(type='torch')
 
     dataloader = torch.utils.data.DataLoader(

@@ -86,7 +86,7 @@ def evaluate_cli_entry(
         "FORCE_CREATE_DIR"     : force_create_dir,
         "num_workers"          : num_workers,
         "out_dir"              : output_dir,
-        "min_batch_size":min_batch_size
+        "min_batch_size"       : min_batch_size
     }
 
 
@@ -214,19 +214,24 @@ def eval_from_checkpoint(
         cfg
     )
 
-    if train_dir.stem != 'best_model':
-        best_model_path = train_dir.joinpath('best_model')
+    if cfg.is_checkpoint:
+        if train_dir.stem != 'best_model':
+            best_model_path = train_dir.joinpath('best_model')
+        else:
+            best_model_path = train_dir
+        if not best_model_path.exists():
+            if not train_dir.joinpath('pytorch_model.bin').exists():
+                raise FileNotFoundError(f"{best_model_path} does not exist")
+            best_model_path = train_dir
+        elif not best_model_path.joinpath('pytorch_model.bin').exists():
+            raise FileNotFoundError(f"{best_model_path} does not have a model file")
     else:
-        best_model_path = train_dir
-    if not best_model_path.exists():
-        if not train_dir.joinpath('pytorch_model.bin').exists():
-            raise FileNotFoundError(f"{best_model_path} does not exist")
-        best_model_path = train_dir
-    elif not best_model_path.joinpath('pytorch_model.bin').exists():
-        raise FileNotFoundError(f"{best_model_path} does not have a model file")
-
+        best_model_path = None
     with open_dict(cfg):
-        cfg.model_path = str(best_model_path.resolve().absolute())
+        if best_model_path:
+            cfg.model_path = str(best_model_path.resolve().absolute())
+        else:
+            cfg.model_path = None
         cfg.task = task_cfg
 
     evaluate_from_ctx_and_cfg(ctx, cfg)
