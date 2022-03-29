@@ -161,10 +161,11 @@ def generate_predictions(
         remove_columns=dataset.column_names,
         num_proc=num_procs
     )
+
     if debug:
         tokenized = tokenized.sort('length', reverse=True)
     # else:
-    #     tokenized = tokenized.sort('idx')
+    #     tokenized = tokenized.sort('task_id')
     tokenized.set_format(type='torch')
 
     dataloader = torch.utils.data.DataLoader(
@@ -253,16 +254,6 @@ def generate_predictions(
                 logger.info(
                     f"{pct_allocated * 100:0.2f}% GPU memory allocated"
                 )
-            # if (
-            #         pct_allocated < 0.7
-            #         and len(amounts_to_generate) > 1
-            # ):
-            #     num_generate_per_step += batch_size
-            #     amounts_to_generate, batch_gen_steps, remainder = get_amounts_to_generate(
-            #         seq_per_sample, batch_size, num_generate_per_step
-            #     )
-            #     logger.info(f"Increasing number to generate per step to {num_generate_per_step}")
-            #     logger.debug(f"{amounts_to_generate=}")
 
             for idx, preds in zip(local_indices, generated_for_current_batch):
                 predictions.append(preds)

@@ -5,7 +5,7 @@ experiments:
     description: "Evaluate the baseline models with the updated MBPP loop"
     overrides:
       ++device: 0
-      is_checkpoint: false
+      is_checkpoint: true
       objective: lm
       ++evaluation:
         num_generate_per_step: 200
@@ -54,7 +54,7 @@ experiments:
         group: MBPP
         overrides:
           task: mbpp
-          ++is_checkpoint: false
+          ++is_checkpoint: true
           ++model_path: null
           ++training:
             batch_size: 32
