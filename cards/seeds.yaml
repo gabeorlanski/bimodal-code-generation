@@ -10,6 +10,10 @@ experiments:
         num_generate_per_step: 200
         remove_input_ids: True
         seq_per_sample: 200
+      ++raw_dump_path: data/dumps
+      ++task.dump_name: python_${..__META__.ablation.name}
+      ++task.raw_dump_name: python
+      ++task.tensorized_name: python_${..__META__.ablation.name}
     ablations:
       - Model:
           Neo125M:
