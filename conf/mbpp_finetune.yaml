@@ -1,0 +1,42 @@
+defaults:
+  - train_config@_global_
+  - _self_
+
+data_args:
+  seq_length: 1024
+
+training:
+  batch_size: 16
+  disable_tqdm: true
+  eval_steps: 10
+  dataloader_drop_last: False
+  evaluation_strategy: steps
+  fp16: true
+  fp16_backend: apex
+  fp16_opt_level: O2
+  gradient_checkpointing: False
+  greater_is_better: false
+  group_by_length: false
+  half_precision_backend: apex
+  learning_rate: 1.0e-05
+  load_best_model_at_end: true
+  logging_first_step: true
+  logging_steps: 10
+  lr_scheduler_type: linear
+  max_grad_norm: 1.0
+  metric_for_best_model: eval_loss
+  output_dir: models
+  remove_unused_columns: false
+  save_steps: 10
+  max_steps: 500
+  save_strategy: steps
+  save_total_limit: 2
+  use_8bit_adam: false
+  warmup_ratio: 0.1
+  weight_decay: 0.1
+  xpu_backend: ccl
+
+device: 0
+tracking:
+  log_model: true
+  entity: nyu-code-research

@@ -41,7 +41,8 @@ class MBPP(Task):
             postprocessors: List[Callable],
             metric_fns: List[Callable],
             split_mapping: Dict[str, PathType] = None,
-            add_def_to_prompt: bool = False
+            add_def_to_prompt: bool = False,
+            remove_carriage_return: bool = False
     ):
         super(MBPP, self).__init__(
             preprocessors=preprocessors,
@@ -57,6 +58,7 @@ class MBPP(Task):
         self._dataset_mapping = self.load_dataset_mapping()
         self.add_def_to_prompt = add_def_to_prompt
         self.find_def = re.compile(r'\ndef ')
+        self.remove_carriage_return = remove_carriage_return
 
     def load_dataset_mapping(self):
         out = {}
@@ -99,6 +101,10 @@ class MBPP(Task):
                 target_code = target_code[def_match.regs[0][1]:]
 
         sample['target'] = target_code
+
+        if self.remove_carriage_return:
+            sample['input_sequence'] = sample['input_sequence'].replace('\r', '')
+            sample['target'] = sample['target'].replace('\r', '')
         return sample
 
     def serialize_task_features(
@@ -112,4 +118,3 @@ class MBPP(Task):
             'task_id': processed_sample['task_id'],
             **self.excluded_columns_data[processed_sample['task_id']]
         }
-

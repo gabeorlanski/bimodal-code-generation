@@ -35,7 +35,7 @@ echo "scancel $train_jid{{idx}}" >> {{cancel_file}}
 eval_jid{{idx}}=$(sbatch --parsable \
 	--job-name={{ job_name }}_eval \
 	--dependency=afterok:$train_jid{{ idx}} eval.sbatch \
-	outputs/mbpp/{{ FineTune.name }} mbpp {{ FineTune.path }})
+	outputs/mbpp/{{ FineTune.name }} mbpp {{ Eval.path }})
 echo "Submitted Eval $eval_jid{{idx}} to run after $1(id=$train_jid{{ idx}})"
 echo "scancel $eval_jid{{idx}}" >> {{cancel_file}}
 

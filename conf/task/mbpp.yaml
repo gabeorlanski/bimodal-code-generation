@@ -1,5 +1,8 @@
 name: mbpp
 
+params:
+  remove_carriage_return: False
+
 preprocessors:
   - add-prefix:
       prefix: "You are an expert Python programmer, and here is your task: "

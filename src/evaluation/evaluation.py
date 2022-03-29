@@ -168,12 +168,15 @@ def generate_predictions(
     #     tokenized = tokenized.sort('task_id')
     tokenized.set_format(type='torch')
 
+    sequential_sampler = torch.utils.data.SequentialSampler(tokenized)
+
     dataloader = torch.utils.data.DataLoader(
         tokenized,
         batch_size=batch_size,
         collate_fn=collator,
         num_workers=num_procs if num_procs != 1 else 0,
-        shuffle=False
+        shuffle=False,
+        sampler=sequential_sampler,
     )
 
     model.eval()
