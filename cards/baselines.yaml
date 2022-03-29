@@ -63,7 +63,6 @@ experiments:
             log_model: False
             watch: null
       - name: Eval
-        add_name: False
         description: Evaluate the model
         base: mbpp_finetune
         group: MBPP
