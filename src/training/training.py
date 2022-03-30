@@ -293,7 +293,7 @@ def setup_tensorized(cfg, tokenizer, train_args, prompt_fn):
             group_texts,
             batched=True,
         )
-    logger.info(f"{eval_dataset} samples in the eval dataset")
+    logger.info(f"{len(eval_dataset)} samples in the eval dataset")
     return train_dataset, eval_dataset, None
 
 
@@ -428,10 +428,12 @@ def train_model(cfg: DictConfig, train_args):
         logger.info(
             f"Saving 100 debug samples to {Path.cwd().joinpath('debug_samples.json')}")
         with Path.cwd().joinpath('debug_samples.json').open('w') as f:
-            json.dump({i: {
-                'input_ids': tokenizer.decode(v['input_ids']),
-                'labels'   : tokenizer.decode(v['labels'])
-            } for i, v in enumerate(validation_data)}, f, indent=True, sort_keys=True)
+            data_to_save = {}
+            for i, v in enumerate(validation_data):
+                if len(data_to_save) >= 100:
+                    break
+                data_to_save[i] = v
+            json.dump(data_to_save, f, indent=True, sort_keys=True)
 
     logger.info(f"Setting up the optimizer")
     total_steps, warmup_steps = get_steps_from_training_args(train_args, train_data)
