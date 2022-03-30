@@ -89,7 +89,7 @@ training:
   fp16: true
   fp16_backend: apex
   fp16_opt_level: O2
-  gradient_accumulation_steps: 1
+  gradient_accumulation_steps: 4
   gradient_checkpointing: true
   greater_is_better: false
   group_by_length: false

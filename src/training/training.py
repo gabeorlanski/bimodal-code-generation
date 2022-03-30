@@ -430,9 +430,12 @@ def train_model(cfg: DictConfig, train_args):
         with Path.cwd().joinpath('debug_samples.json').open('w') as f:
             data_to_save = {}
             for i, v in enumerate(validation_data):
-                if len(data_to_save) >= 100:
+                if len(data_to_save) >= 25:
                     break
-                data_to_save[i] = v
+                data_to_save[i] = {
+                    'input_ids': tokenizer.decode(v['input_ids']),
+                    'labels'   : tokenizer.decode(v['labels'])
+                }
             json.dump(data_to_save, f, indent=True, sort_keys=True)
 
     logger.info(f"Setting up the optimizer")
