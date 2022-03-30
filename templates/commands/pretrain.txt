@@ -34,7 +34,7 @@ echo "Submitted CodeEval(id=$he_exec{{idx}})"
 echo "scancel $he_exec{{idx}}" >> {{cancel_file}}
 
 # Finetuning
-train_jid{{ idx}}=$(sbatch --parsable {{account_str}} \
+train_jid{{ idx}}=$(sbatch --parsable {{account_str}}
 	--dependency=afterok:${{ pretrain_jid }} \
 	--job-name={{ job_name }}_finetune {{ train_sbatch }}.sbatch {{ FineTune.path}})
 echo "Submitted Train (id=$train_jid{{ idx}})"
