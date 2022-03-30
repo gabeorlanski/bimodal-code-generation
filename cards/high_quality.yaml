@@ -123,7 +123,7 @@ experiments:
       ++processor.params.repeat_body_for_each_answer: False
       ++prompts:
         file: templates/so_prompts.yaml
-#      ++processor.params.remove_modality: "NL"
+      ++processor.params.remove_modality: "NL"
     ablations:
       - Model:
           Neo125M:

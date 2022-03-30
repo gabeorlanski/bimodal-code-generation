@@ -47,7 +47,7 @@ processor:
     good_answer_cutoff: 3
     highest_is_best: false
     no_answer_str: There is not an answer
-    remove_modality: NONE
+    remove_modality: "NL"
     repeat_body_for_each_answer: false
     repeat_prompt_each_answer: false
     top_answer_cutoff: 12
@@ -89,12 +89,12 @@ training:
   fp16: true
   fp16_backend: apex
   fp16_opt_level: O2
-  gradient_accumulation_steps: 4
+  gradient_accumulation_steps: 8
   gradient_checkpointing: true
   greater_is_better: false
   group_by_length: false
   half_precision_backend: apex
-  learning_rate: 5.0e-05
+  learning_rate: 1.0e-06
   load_best_model_at_end: false
   logging_first_step: true
   logging_steps: 10

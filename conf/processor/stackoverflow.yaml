@@ -12,7 +12,7 @@ params:
   no_answer_str: "There is not an answer"
   allow_no_answer: False
   repeat_body_for_each_answer: False
-  wrap_answer_character: None
+  wrap_answer_character: null
   date_format_str: "%Y-%m"
   highest_is_best: False
   allow_negative_best_answer: False

@@ -142,7 +142,7 @@ class TensorizedTask(IterableDataset):
             slices_per_worker = int(math.ceil(self.buffer_size / worker_info.num_workers))
             worker_id = worker_info.id
         last_ds_epoch_update = -1
-        if worker_id ==0:
+        if worker_id == 0:
             debug = Path('debug.jsonl').open('w')
             debug_logged = 0
         else:
@@ -162,10 +162,10 @@ class TensorizedTask(IterableDataset):
                     if len(line_processed) == 0:
                         num_no_samples += 1
                     else:
-                        if worker_id==0 and debug_logged < 100:
-                            for d in map(json.dumps,line_processed):
-                                debug.write(d+'\n')
-                            debug_logged +=1
+                        if worker_id == 0 and debug_logged < 100:
+                            for d in map(json.dumps, line_processed):
+                                debug.write(d + '\n')
+                            debug_logged += 1
                             if debug_logged >= 100:
                                 debug.close()
                         processed.extend(line_processed)
@@ -184,7 +184,7 @@ class TensorizedTask(IterableDataset):
             if worker_id == 0:
                 if total_restarts % 100 == 0:
                     logger.debug(f"{num_no_samples}/{lines_seen} did not produce samples")
-                os.environ['DS_EPOCH'] = f"{ds_epoch:0.5f}"
+
             if worker_info is None:
                 start = 0
                 end = self.buffer_size
@@ -194,7 +194,8 @@ class TensorizedTask(IterableDataset):
 
             if math.floor(ds_epoch * 100) != last_ds_epoch_update and worker_id == 0:
                 last_ds_epoch_update = math.floor(ds_epoch * 100)
-                logger.info(f"{worker_id=} On dataset epoch {last_ds_epoch_update / 100}")
+                os.environ['DS_EPOCH'] = f"{ds_epoch:0.5f}"
+                logger.info(f"{worker_id=} On dataset epoch {os.environ['DS_EPOCH']}")
             processed_inputs, processed_labels = [], []
             for line in processed[start:end]:
                 processed_inputs.append(line['input'])
