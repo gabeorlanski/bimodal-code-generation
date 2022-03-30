@@ -27,7 +27,7 @@ meta:
 metrics:
 - exact-match
 - bleu
-model: EleutherAI/gpt-neo-125M
+model: lvwerra/codeparrot-small
 model_path: null
 name: Testing
 num_proc: 4
