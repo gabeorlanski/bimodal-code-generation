@@ -20,7 +20,7 @@ echo "scancel ${{ pretrain_jid }}" >> {{cancel_file}}
 he_so{{idx}}=$(sbatch --job-name='{{ job_name }}_he' \
 	--dependency=afterok:${{ pretrain_jid }} \
 	--parsable \
-	eval.sbatch {{FineTune.model_path}} human_eval {{ PreTrain.path }})
+	eval.sbatch {{FineTune.model_path}} human_eval {{ Eval.path }})
 echo "Submitted HumanEval (id=$he_so{{idx}})"
 echo "scancel $he_so{{idx}}" >> {{cancel_file}}
 
