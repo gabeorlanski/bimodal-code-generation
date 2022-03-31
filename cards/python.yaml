@@ -45,9 +45,11 @@ experiments:
               ++model: 'EleutherAI/gpt-neo-125M'
             step_overrides:
               PreTrain:
-                ++training.batch_size: 32
-                ++training.gradient_accumulation_steps: 1
-                ++training.gradient_checkpointing: True
+                ++training.batch_size: 16
+                ++training.gradient_accumulation_steps: 2
+                ++training.gradient_checkpointing: False
+                ++training.fp16: False
+
           ParrotSmall:
             description: CodeParrot Small
             overrides:
