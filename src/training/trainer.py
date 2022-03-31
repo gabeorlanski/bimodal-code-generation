@@ -28,13 +28,26 @@ logger = logging.getLogger(__name__)
 
 
 class HFIterableWrapper(IterableDataset):
-    def __init__(self, hf_dataset, buffer=1000):
+    def __init__(
+            self,
+            hf_dataset,
+            objective,
+            field_concat_tokens,
+            concat_token,
+            input_fields,
+            sequence_length=1024,
+            buffer=1000
+    ):
         self.ds = hf_dataset
         self.buffer = buffer
+        self.objective = objective
+        self.input_fields = input_fields
+        self.field_concat_tokens = field_concat_tokens
+        self.concat_token = concat_token
+        self.sequence_length = sequence_length
 
     def __iter__(self):
         data_iter = iter(self.ds)
-        lines_seen = 0
         more_examples = True
         ds_epoch = 0
 
@@ -58,8 +71,28 @@ class HFIterableWrapper(IterableDataset):
                         more_examples = False
                         break
             os.environ['DS_EPOCH'] = f"{ds_epoch:0.5f}"
-            for i in instances:
-                yield i
+            if self.objective == 'lm':
+                buffer = []
+                for i in instances:
+                    instance_seq = []
+                    for j, f in enumerate(self.input_fields):
+                        if j == len(self.input_fields) - 1:
+                            instance_seq.extend(i[f])
+                        else:
+                            instance_seq.extend(i[f] + self.field_concat_tokens)
+                    buffer.extend(instance_seq + [self.concat_token])
+                for i in range(0, len(buffer), self.sequence_length):
+                    token_start = i
+                    token_end = i + self.sequence_length
+                    input_ids = buffer[token_start:token_end]
+                    if len(input_ids) == self.sequence_length:
+                        yield {
+                            'input_ids': torch.tensor(input_ids),
+                            'labels'   : torch.tensor(input_ids),
+                        }
+            else:
+                for i in instances:
+                    yield i
 
 
 class CustomTrainer(Seq2SeqTrainer):

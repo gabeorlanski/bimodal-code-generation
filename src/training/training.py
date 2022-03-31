@@ -165,13 +165,9 @@ def setup_hf_pretrain(cfg, tokenizer, train_args, prompt_fn):
     def tokenize(ex, text_key):
         return tokenizer(ex[text_key], add_special_tokens=False)
 
-    raw_train_dataset = raw_train_dataset.shuffle(seed=cfg.seed, buffer_size=2500).map(
+    train_dataset = raw_train_dataset.shuffle(seed=cfg.seed, buffer_size=2500).map(
         lambda e: tokenize(e, cfg.task.train.text_key),
         batched=True
-    )
-    train_dataset = raw_train_dataset.map(
-        group_texts,
-        batched=True,
     )
     for k in cfg.task.train.columns_remove:
         train_dataset = train_dataset.remove_columns(k)
@@ -195,7 +191,13 @@ def setup_hf_pretrain(cfg, tokenizer, train_args, prompt_fn):
         remove_columns=raw_eval_dataset.column_names,
 
     )
-    return HFIterableWrapper(train_dataset), eval_dataset, None
+    return HFIterableWrapper(
+        train_dataset,
+        cfg.objective,
+        concat_delim,
+        tokenizer.eos_token_id,
+        ['input_ids']
+    ), eval_dataset, None
 
 
 def setup_tensorized(cfg, tokenizer, train_args, prompt_fn):
