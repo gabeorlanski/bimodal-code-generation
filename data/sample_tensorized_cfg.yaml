@@ -3,8 +3,8 @@ data_args:
 data_path: data
 debug: false
 description: 'Group=Test Finetuning on a filtered down set of python questions that
-  should be higher quality | Step=Finetune on the SO Data | Ablation=Model: CodeParrot
-  Small'
+  should be higher quality | Step=Finetune on the SO Data | Ablation=Model: GPT Neo
+  125M, Prompts: Only the Title'
 device: 0
 evaluation:
   num_generate_per_step: 200
@@ -17,20 +17,21 @@ generation:
   top_k: 50
   top_p: 0.95
 group: SO
-hypothesis: ''
+hypothesis: 'Prompts: Baseline'
 is_checkpoint: false
 meta:
-  ablation: ParrotSmall
+  ablation: Neo125M.Baseline
   ablation_vals:
-    Model: ParrotSmall
-  card_name: HighQuality.Base
+    Model: Neo125M
+    Prompts: Baseline
+  card_name: HighQuality
   step: PreTrain
 metrics:
 - exact-match
 - bleu
-model: lvwerra/codeparrot-small
+model: EleutherAI/gpt-neo-125M
 model_path: null
-name: HighQuality.Base.ParrotSmall
+name: Testing
 num_proc: 4
 numpy_seed: 2
 objective: lm
@@ -47,13 +48,17 @@ processor:
     good_answer_cutoff: 3
     highest_is_best: false
     no_answer_str: There is not an answer
-    remove_modality: "NL"
+    remove_modality: NL
     repeat_body_for_each_answer: false
-    repeat_prompt_each_answer: false
+    repeat_prompt_each_answer: true
     top_answer_cutoff: 12
     worst_is_best: false
     wrap_answer_character: None
 project: so-code-gen
+prompts:
+  file: templates/so_prompts.yaml
+  pipe:
+  - base
 pytorch_seed: 3
 raw_dump_path: data/dumps
 save_best_model: false
@@ -61,14 +66,14 @@ seed: 1
 task:
   buffer_size: 5000
   ds_info_path: data/ds_info
-  dump_name: python_hq_ParrotSmall
+  dump_name: python_hq_Neo125M.Baseline
   eval_splits: []
   name: so
   raw_dump_name: python_hq
   raw_dump_path: data/dumps
   seed: 1
   sequence_length: 1024
-  tensorized_name: python_hq_ParrotSmall
+  tensorized_name: python_hq_Neo125M.Baseline
 tracking:
   entity: nyu-code-research
   log_model: true
@@ -79,37 +84,37 @@ tracking:
   - PythonHQ
   watch: gradients
 training:
-  batch_size: 1
+  batch_size: 32
   dataloader_num_workers: 4
   ddp_find_unused_parameters: false
   disable_tqdm: true
   eval_accumulation_steps: 1
-  eval_steps: 50
+  eval_steps: 500
   evaluation_strategy: steps
   fp16: true
   fp16_backend: apex
   fp16_opt_level: O2
-  gradient_accumulation_steps: 8
-  gradient_checkpointing: true
+  gradient_accumulation_steps: 1
+  gradient_checkpointing: false
   greater_is_better: false
   group_by_length: false
   half_precision_backend: apex
-  learning_rate: 1.0e-06
+  learning_rate: 5.0e-05
   load_best_model_at_end: false
   logging_first_step: true
-  logging_steps: 10
+  logging_steps: 100
   lr_scheduler_type: linear
   max_grad_norm: 1.0
-  max_steps: 1000
+  max_steps: 25000
   metric_for_best_model: eval_loss
   num_train_epochs: 1
   output_dir: checkpoints
   remove_unused_columns: false
-  save_steps: 100
+  save_steps: 2500
   save_strategy: steps
   save_total_limit: 10
   use_8bit_adam: false
   warmup_ratio: 0.01
-  warmup_steps: 50
+  warmup_steps: 2500
   weight_decay: 0.1
   xpu_backend: ccl
