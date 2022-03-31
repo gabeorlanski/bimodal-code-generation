@@ -48,7 +48,7 @@ experiments:
                 ++training.batch_size: 16
                 ++training.gradient_accumulation_steps: 2
                 ++training.gradient_checkpointing: False
-                ++training.fp16: False
+                ++training.fp16_opt_level: "O0"
 
           ParrotSmall:
             description: CodeParrot Small
