@@ -1,0 +1,63 @@
+starting_commands: templates/commands/sbatch_experiment.txt
+experiments:
+  TopLanguagesFull:
+    description: "Finetune the base checkpoints first on a mixture of questions from the most popular languages"
+    overrides:
+      ++device: 0
+      +processor: stackoverflow
+      ++raw_dump_path: data/dumps
+      is_checkpoint: true
+      objective: lm
+      ++tracking.tags:
+        - O2
+        - StackOverflow
+      ++evaluation:
+        num_generate_per_step: 200
+        remove_input_ids: False
+        seq_per_sample: 200
+      ++task.dump_name: top_languages_${..__META__.ablation.name}
+      ++task.raw_dump_name: top_languages
+      ++task.tensorized_name: top_languages_${..__META__.ablation.name}
+    ablations:
+      - Model:
+          Neo125M:
+            description: GPT Neo 125M
+            overrides:
+              ++model: 'EleutherAI/gpt-neo-125M'
+            step_overrides:
+              PreTrain:
+                ++training.batch_size: 32
+                ++training.gradient_accumulation_steps: 1
+                ++training.gradient_checkpointing: True
+          ParrotSmall:
+            description: CodeParrot Small
+            overrides:
+              ++model: 'lvwerra/codeparrot-small'
+            step_overrides:
+              PreTrain:
+                ++training.batch_size: 32
+                ++training.gradient_accumulation_steps: 1
+                ++training.gradient_checkpointing: True
+    steps:
+      - name: PreTrain
+        description: Finetune on the SO Data
+        add_name: False
+        base: pretrain
+        group: SO
+        overrides:
+          ++task.buffer_size: 5000
+          tracking:
+            log_model: True
+          is_checkpoint: False
+          ++task.sequence_length: 1024
+          task: so
+    command:
+      file: templates/commands/pretrain.txt
+      kwargs:
+        num_return_sequences: 200
+        task_name: MBPP
+        train_sbatch: train_single_gpu
+        pretrain_time: "23:00:00"
+        use_cds: True
+      fields:
+        - model_path

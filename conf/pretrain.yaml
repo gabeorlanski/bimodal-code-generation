@@ -20,7 +20,7 @@ training:
   group_by_length: false
   half_precision_backend: apex
   learning_rate: 5.0e-05
-  load_best_model_at_end: false
+  load_best_model_at_end: true
   logging_first_step: true
   logging_steps: 100
   lr_scheduler_type: linear

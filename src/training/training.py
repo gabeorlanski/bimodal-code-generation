@@ -196,7 +196,8 @@ def setup_hf_pretrain(cfg, tokenizer, train_args, prompt_fn):
         cfg.objective,
         concat_delim,
         tokenizer.eos_token_id,
-        ['input_ids']
+        ['input_ids'],
+        sequence_length=cfg.task.sequence_length
     ), eval_dataset, None
 
 

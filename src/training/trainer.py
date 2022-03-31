@@ -154,8 +154,6 @@ class CustomTrainer(Seq2SeqTrainer):
             )
             logs['train_ram_pct'] = psutil.virtual_memory()[2]
 
-            if 'DS_EPOCH' in os.environ:
-                logs['train_ds_epoch'] = float(os.getenv('DS_EPOCH', 0.0))
 
             self.last_runtime_step = self.state.global_step
             self.time_last_log = datetime.utcnow()
