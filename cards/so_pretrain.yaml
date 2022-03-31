@@ -58,7 +58,7 @@ experiments:
         num_return_sequences: 200
         task_name: MBPP
         train_sbatch: train_single_gpu
-        pretrain_time: "23:00:00"
+        pretrain_time: "48:00:00"
         use_cds: True
       fields:
         - model_path
