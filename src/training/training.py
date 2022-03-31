@@ -249,21 +249,28 @@ def setup_tensorized(cfg, tokenizer, train_args, prompt_fn):
         sequence_length=cfg.task.sequence_length,
         buffer_size=cfg.task.get('buffer_size', 1)
     )
-    logger.info("Tensorized Task Params:")
-    for k, v in train_dataset.params.items():
-        logger.info(f"\t{k:>24}={v}")
+
+    if train_args.local_rank <= 0:
+        logger.info("Processor Params:")
+        for k, v in cfg.processor.params.items():
+            logger.info(f"\t{k:>24}={v}")
+
+        logger.info("Tensorized Task Params:")
+        for k, v in train_dataset.params.items():
+            logger.info(f"\t{k:>24}={v}")
 
     logger.info(f"Creating Eval Dataset")
     eval_dataset = {'input_ids': [], 'labels': []}
     eval_file = dump_path.joinpath(f"{cfg.task.raw_dump_name}_val.jsonl")
 
-    debug_data = {}
     line_num = 0
     num_no_samples = 0
+    total_samples = 0
     for line in eval_file.open('r'):
+
         sample = ujson.loads(line)
         line_num += 1
-        processed = processor.__call__(sample)
+        processed = processor(sample)
         if line_num % 1000 == 0:
             logger.info(f"Read {line_num} lines for eval")
         if not processed:
@@ -286,6 +293,9 @@ def setup_tensorized(cfg, tokenizer, train_args, prompt_fn):
                     truncation=cfg.objective != 'seq2seq'
                 )['input_ids']
             )
+            total_samples += 1
+        if line_num-num_no_samples >= 10000:
+            break
 
     logger.warning(f"{num_no_samples}/{line_num} produced no samples.")
 
