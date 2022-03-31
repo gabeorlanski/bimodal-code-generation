@@ -430,7 +430,7 @@ def train_model(cfg: DictConfig, train_args):
             )
         logger.info(
             f"Saving 100 debug samples to {Path.cwd().joinpath('debug_samples.json')}")
-        with Path.cwd().joinpath('debug_samples.json').open('w') as f:
+        with Path.cwd().joinpath('debug_eval_samples.json').open('w') as f:
             data_to_save = {}
             for i, v in enumerate(validation_data):
                 if len(data_to_save) >= 25:

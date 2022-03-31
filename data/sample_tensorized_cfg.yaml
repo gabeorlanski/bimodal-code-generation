@@ -40,6 +40,7 @@ processor:
   name: stackoverflow
   params:
     allow_negative_best_answer: false
+    add_body_to_input_sequence: True
     allow_no_answer: false
     answer_sorting: accepted
     answers_per_sample: -1
@@ -48,12 +49,12 @@ processor:
     good_answer_cutoff: 3
     highest_is_best: false
     no_answer_str: There is not an answer
-    remove_modality: NL
-    repeat_body_for_each_answer: false
-    repeat_prompt_each_answer: true
+    remove_modality: NONE
+    repeat_body_for_each_answer: False
+    repeat_prompt_each_answer: false
     top_answer_cutoff: 12
     worst_is_best: false
-    wrap_answer_character: None
+    wrap_answer_character: null
 project: so-code-gen
 prompts:
   file: templates/so_prompts.yaml
@@ -84,7 +85,7 @@ tracking:
   - PythonHQ
   watch: gradients
 training:
-  batch_size: 32
+  batch_size: 1
   dataloader_num_workers: 4
   ddp_find_unused_parameters: false
   disable_tqdm: true

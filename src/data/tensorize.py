@@ -143,7 +143,7 @@ class TensorizedTask(IterableDataset):
             worker_id = worker_info.id
         last_ds_epoch_update = -1
         if worker_id == 0:
-            debug = Path('debug.jsonl').open('w')
+            debug = Path('debug_train_samples.jsonl').open('w')
             debug_logged = 0
         else:
             debug = None

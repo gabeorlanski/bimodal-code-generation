@@ -3,6 +3,7 @@ defaults:
 name: stackoverflow
 params:
   answer_sorting: 'accepted'
+  add_body_to_input_sequence: False
   repeat_prompt_each_answer: False
   answers_per_sample: -1
   top_answer_cutoff: 12

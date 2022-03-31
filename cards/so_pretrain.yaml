@@ -18,6 +18,7 @@ experiments:
       ++task.dump_name: top_languages_${..__META__.ablation.name}
       ++task.raw_dump_name: top_languages
       ++task.tensorized_name: top_languages_${..__META__.ablation.name}
+      ++processor.params.add_body_to_input_sequence: True
     ablations:
       - Model:
           Neo125M:

@@ -1,10 +1,10 @@
-title:
+title_marker:
   template: 'TITLE: {{ input_sequence }}'
 quality_after:
   template: '{{ input_sequence }}
   
   {{ quality }} SOLUTION'
-base:
+title_only:
   template: '{{ input_sequence }}'
 question_date_before:
   template: 'DATE: {{ question_date }}
@@ -14,3 +14,9 @@ answer_date_before:
   template: 'DATE: {{ answer_date }}
 
 {{ input_sequence }}'
+context_only:
+  template: '{{context}}'
+base:
+  template: '{{ input_sequence }}
+
+{{ context }}'

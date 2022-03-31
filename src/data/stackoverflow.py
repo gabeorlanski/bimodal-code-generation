@@ -32,7 +32,8 @@ class StackOverflowProcessor:
             date_format_str: str = "%Y",
             highest_is_best: bool = False,
             allow_negative_best_answer: bool = False,
-            worst_is_best: bool = False
+            worst_is_best: bool = False,
+            add_body_to_input_sequence: bool = False
     ):
         self.answer_sorting = answer_sorting.lower()
         if self.answer_sorting not in ['ascending', 'descending', 'accepted']:
@@ -52,6 +53,7 @@ class StackOverflowProcessor:
         self.highest_is_best = highest_is_best
         self.worst_is_best = worst_is_best
         self.allow_negative_best_answer = allow_negative_best_answer
+        self.add_body_to_input_sequence = add_body_to_input_sequence
         if wrap_answer_character:
             if wrap_answer_character.upper() in ['BLOCK', 'LINE']:
                 self.wrap_answer_character = wrap_answer_character.upper()
@@ -132,13 +134,18 @@ class StackOverflowProcessor:
     ):
 
         question_date = datetime.fromisoformat(date).strftime(self.date_format_str)
+        input_seq = title
+        context = unidecode('\n'.join(t.text.strip() for t in body if t.text.strip()))
+        if self.add_body_to_input_sequence:
+            input_seq = f'{input_seq}\n{context}'
+            context = ''
 
         return {
-            "input_sequence": title,
+            "input_sequence": input_seq,
             "question_score": score,
             "tags"          : ','.join(tags),
             "views"         : views,
-            'context'       : unidecode('\n'.join(t.text.strip() for t in body if t.text.strip())),
+            'context'       : context,
             'question_date' : question_date
         }
 
