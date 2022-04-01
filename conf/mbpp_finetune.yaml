@@ -8,7 +8,7 @@ data_args:
 training:
   batch_size: 16
   disable_tqdm: true
-  eval_steps: 10
+  eval_steps: 5
   dataloader_drop_last: False
   evaluation_strategy: steps
   fp16: true
@@ -21,14 +21,14 @@ training:
   learning_rate: 1.0e-05
   load_best_model_at_end: true
   logging_first_step: true
-  logging_steps: 10
+  logging_steps: 5
   lr_scheduler_type: linear
   max_grad_norm: 1.0
   metric_for_best_model: eval_loss
   output_dir: models
   remove_unused_columns: false
-  save_steps: 10
-  max_steps: 500
+  save_steps: 5
+  max_steps: 100
   save_strategy: steps
   save_total_limit: 2
   use_8bit_adam: false
