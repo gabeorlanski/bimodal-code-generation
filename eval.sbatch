@@ -1,6 +1,5 @@
 #!/bin/bash
 #SBATCH --output=./sbatch_logs/%x.out
-#SBATCH --time=24:00:00
 #SBATCH --gres=gpu:rtx8000:1
 #SBATCH --mem=64G
 #SBATCH -c 4

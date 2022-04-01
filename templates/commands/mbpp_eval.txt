@@ -11,19 +11,21 @@ rm -f {{ cancel_file }}
 echo "#!/bin/bash" >> {{cancel_file}}
 # Finetuning
 train_jid{{ idx}}=$(sbatch --parsable {{account_str}}
+	--time={{ finetune_time }} \
 	--job-name={{ job_name }}_finetune {{ train_sbatch }}.sbatch {{ FineTune.path}})
 echo "Submitted Train (id=$train_jid{{ idx}})"
 echo "scancel $train_jid{{idx}}" >> {{cancel_file}}
 
-# Normal Eval
+# MBPP Eval
 eval_jid{{idx}}=$(sbatch --parsable \
+	--time={{ finetune_time }} \
 	--job-name={{ job_name }}_eval \
 	--dependency=afterok:$train_jid{{ idx}} eval.sbatch \
 	outputs/mbpp/{{ FineTune.name }} mbpp {{ Eval.path }})
 echo "Submitted Eval $eval_jid{{idx}} to run after $1(id=$train_jid{{ idx}})"
 echo "scancel $eval_jid{{idx}}" >> {{cancel_file}}
 
-# Normal Code Execute After Eval
+# MBPP Code Execute After Eval
 exec_jid{{idx}}=$(sbatch --parsable --job-name='{{ job_name }}_execute' \
 	--dependency=afterok:$eval_jid{{idx}} \
 	eval_code.sbatch \
