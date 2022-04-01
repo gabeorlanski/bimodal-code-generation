@@ -194,7 +194,7 @@ experiments:
       - name: FineTune
         add_name: False
         description: Finetune on the MBPP Data
-        base: greene_config
+        base: mbpp_finetune
         group: MBPP
         overrides:
           task: mbpp
