@@ -138,19 +138,20 @@ experiments:
             description: GPT Neo 125M
             overrides:
               ++model: 'EleutherAI/gpt-neo-125M'
+              ++training.gradient_checkpointing: True
             step_overrides:
               PreTrain:
                 ++training.batch_size: 32
                 ++training.gradient_accumulation_steps: 1
-          ParrotSmall:
-            description: CodeParrot Small
-            overrides:
-              ++model: 'lvwerra/codeparrot-small'
-            step_overrides:
-              PreTrain:
-                ++training.batch_size: 32
-                ++training.gradient_accumulation_steps: 1
-                ++training.gradient_checkpointing: True
+#          ParrotSmall:
+#            description: CodeParrot Small
+#            overrides:
+#              ++model: 'lvwerra/codeparrot-small'
+#            step_overrides:
+#              PreTrain:
+#                ++training.batch_size: 32
+#                ++training.gradient_accumulation_steps: 1
+#                ++training.gradient_checkpointing: True
       - Prompts:
           QualityAfter:
             description: The Title followed by a quality adjective based on the answers score
