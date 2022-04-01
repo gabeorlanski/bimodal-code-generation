@@ -97,7 +97,7 @@ experiments:
         num_return_sequences: 200
         task_name: MBPP
         train_sbatch: train_single_gpu
-        finetune_time: "23:00:00"
+        finetune_time: "12:00:00"
         use_cds: True
       fields:
         - model_path
