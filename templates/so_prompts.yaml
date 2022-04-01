@@ -1,9 +1,11 @@
 title_marker:
   template: 'TITLE: {{ input_sequence }}'
 quality_after:
-  template: '{{ input_sequence }}
+  template: '{{ input_sequence|trim}}
   
-  {{ quality }} SOLUTION'
+  {{ quality }} SOLUTION
+  
+  '
 title_only:
   template: '{{ input_sequence }}'
 question_date_before:
