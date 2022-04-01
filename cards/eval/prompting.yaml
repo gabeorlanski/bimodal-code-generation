@@ -158,6 +158,10 @@ experiments:
             prompts.pipe:
               - quality_after
       - QualityAdjective:
+          Best:
+            description: The 'BEST' adjective, should in theory do the best
+            ++prompts.params:
+              quality: BEST
           Bad:
             description: The 'BAD' adjective, should in theory do the worst
             ++prompts.params:
