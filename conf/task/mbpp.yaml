@@ -14,5 +14,5 @@ metrics:
   - bleu
 eval_splits:
   - test
-  - validation
+#  - validation
 
