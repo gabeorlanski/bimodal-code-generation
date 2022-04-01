@@ -173,7 +173,7 @@ experiments:
           Good:
             description: The 'GOOD' adjective, should have slight performance improvement
             ++prompts.params:
-              quality: Good
+              quality: GOOD
     steps:
       - name: PreTrain
         description: Finetune on the SO Data
