@@ -7,26 +7,27 @@
 {%- endif -%}
 {%- set cancel_file="generated_experiments/cancel_scripts/"~job_name~".sh" -%}
 
-#rm -f {{ cancel_file }}
-#echo "#!/bin/bash" >> {{cancel_file}}
-## Finetuning
-#train_jid{{ idx}}=$(sbatch --parsable {{account_str}}
-#	--time={{ finetune_time }} \
-#	--job-name={{ job_name }}_finetune {{ train_sbatch }}.sbatch {{ FineTune.path}})
-#echo "Submitted Train (id=$train_jid{{ idx}})"
-#echo "scancel $train_jid{{idx}}" >> {{cancel_file}}
-#
-## MBPP Eval
-#eval_jid{{idx}}=$(sbatch --parsable \
-#	--time={{ finetune_time }} \
-#	--job-name={{ job_name }}_eval \
-#	--dependency=afterok:$train_jid{{ idx}} eval.sbatch \
-#	outputs/mbpp/{{ FineTune.name }} mbpp {{ Eval.path }})
-#echo "Submitted Eval $eval_jid{{idx}} to run after $1(id=$train_jid{{ idx}})"
-#echo "scancel $eval_jid{{idx}}" >> {{cancel_file}}
+rm -f {{ cancel_file }}
+echo "#!/bin/bash" >> {{cancel_file}}
+# Finetuning
+train_jid{{ idx}}=$(sbatch --parsable {{account_str}}
+	--time={{ finetune_time }} \
+	--job-name={{ job_name }}_finetune {{ train_sbatch }}.sbatch {{ FineTune.path}})
+echo "Submitted Train (id=$train_jid{{ idx}})"
+echo "scancel $train_jid{{idx}}" >> {{cancel_file}}
+
+# MBPP Eval
+eval_jid{{idx}}=$(sbatch --parsable \
+	--time={{ finetune_time }} \
+	--job-name={{ job_name }}_eval \
+	--dependency=afterok:$train_jid{{ idx}} eval.sbatch \
+	outputs/mbpp/{{ FineTune.name }} mbpp {{ Eval.path }})
+echo "Submitted Eval $eval_jid{{idx}} to run after $1(id=$train_jid{{ idx}})"
+echo "scancel $eval_jid{{idx}}" >> {{cancel_file}}
 
 # MBPP Code Execute After Eval
 exec_jid{{idx}}=$(sbatch --parsable --job-name='{{ job_name }}_execute' \
+	--dependency=afterok:$eval_jid{{idx}} \
 	eval_code.sbatch \
 	eval_results/{{ name }}/MBPP/{{ ablation_name }}_Eval)
 echo "Submitted CodeEval(id=$exec_jid{{idx}})"
