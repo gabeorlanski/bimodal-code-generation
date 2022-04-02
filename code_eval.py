@@ -47,7 +47,7 @@ def run(preds_dir, num_workers, debug, disable_tracking, timeout):
     )
     logger = logging.getLogger('execution')
     logger.info(f"Loading eval config from {path_to_preds}")
-    logger.info(f"CWD={Path()}")
+    logger.info(f"CWD={Path().absolute().resolve()}")
     cfg = yaml.load(
         path_to_preds.joinpath('config.yaml').open('r', encoding='utf-8'),
         yaml.Loader
