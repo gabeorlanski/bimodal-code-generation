@@ -9,8 +9,9 @@ import plotly.graph_objects as go
 import matplotlib.pyplot as plt
 import plotly.express as px
 from plotly.subplots import make_subplots
-
+import seaborn as sns
 import sys
+import dataframe_image as dfi
 
 try:
     from src.common import PROJECT_ROOT
@@ -21,6 +22,8 @@ except ImportError:
 
 OVR_PCT_COLUMNS = ["test/syntax_error_pct_ovr", "test/runtime_error_pct_ovr",
                    "test/failed_tests_pct_ovr", "test/correct_pct_ovr"]
+
+PASS_AT_K_COL = [f'pass@{k}' for k in [1, 5, 10, 25, 50, 100]]
 
 
 def multi_figure_bar_graph(
@@ -62,7 +65,7 @@ def multi_line_plot(
 
     global_line_dict = line_dict or {}
     dashed = dashed or []
-    color_palette=color_palette or px.colors.qualitative.T10
+    color_palette = color_palette or px.colors.qualitative.T10
 
     filter_mask = df.apply(filter_fn, axis=1)
     filtered_df = df[filter_mask]
@@ -107,57 +110,154 @@ def multi_line_plot(
     return traces
 
 
-def main():
-    import plotly.express as px
+def make_gradient_table(
+        raw_df,
+        columns_keep,
+        stat_columns,
+        rename_columns=None,
+        formatting_cols=None,
+        no_grad_rows=None,
+        cmap=None
+):
+    rename_columns = rename_columns or {}
 
+    filtered_df = raw_df[[*list(rename_columns), *columns_keep, *stat_columns]]
+    if no_grad_rows:
+        grad_index = filtered_df[~filtered_df['display_name'].isin(no_grad_rows)].index
+    else:
+        grad_index = filtered_df.index
+    filtered_df = filtered_df.rename(columns=rename_columns)
+
+    styled_df = filtered_df.style.format(
+        precision=3,
+        na_rep='MISSING',
+        thousands=" ",
+        subset=stat_columns
+    )
+    for c, format_dict in (formatting_cols or {}).items():
+        styled_df = styled_df.set_properties(
+            subset=[c] if not isinstance(c, (dict, tuple)) else c,
+            **format_dict
+        )
+    if cmap is None:
+        cmap = sns.diverging_palette(220, 20, as_cmap=True)
+
+    styled_df = styled_df.set_properties(**{
+        'font-size': '11pt',
+    })
+    styled_df = styled_df.background_gradient(
+        cmap=cmap,
+        axis=0,
+        subset=(grad_index, stat_columns)
+    )
+    return styled_df
+
+
+def make_minmax_highlight_table(
+        df,
+        columns_keep,
+        stat_columns,
+        rename_columns=None,
+        formatting_cols=None,
+        no_grad_rows=None
+):
+    rename_columns = rename_columns or {}
+
+    filtered_df = df[[*list(rename_columns), *columns_keep, *stat_columns]]
+    if no_grad_rows:
+        grad_index = filtered_df[~filtered_df['display_name'].isin(no_grad_rows)].index
+    else:
+        grad_index = filtered_df.index
+    filtered_df = filtered_df.rename(columns=rename_columns)
+
+    styled_df = filtered_df.style.format(
+        precision=3,
+        na_rep='MISSING',
+        thousands=" ",
+        subset=stat_columns
+    )
+    for c, format_dict in (formatting_cols or {}).items():
+        styled_df = styled_df.set_properties(
+            subset=[c] if not isinstance(c, (dict, tuple)) else c,
+            **format_dict
+        )
+
+    def highlight(s, max_props='', min_props=''):
+        out = []
+        for r in s:
+            if r == s.max():
+                out.append(max_props)
+            elif r == s.min():
+                out.append(min_props)
+            else:
+                out.append('')
+        return out
+
+    styled_df = styled_df.apply(
+        highlight,
+        max_props='background-color: #70db70;',
+        min_props='background-color: #ffad99;',
+        axis=0,
+        subset=(grad_index, stat_columns)
+    )
+    return styled_df
+
+
+def fix_name(c_name):
+    out_name = c_name.split('-')[0].split('_')
+    if len(out_name) == 1:
+        return out_name[0]
+    return '_'.join(out_name[:-1])
+
+
+def prepare_df_pass_at_k(df, runs_to_keep=None):
+    pass_at_k_cols = {
+        f'test/{k}': k for k in PASS_AT_K_COL
+    }
+    if runs_to_keep:
+        out = df[df.name.isin(runs_to_keep)].copy()
+    else:
+        out = df.copy()
+    out = out.rename(columns=pass_at_k_cols)
+
+    if runs_to_keep:
+        out['display_name'] = out['name'].apply(lambda n: runs_to_keep[n])
+
+    return out
+
+
+def get_pass_at_k_df(df, extra_columns=None):
+    extra_columns = extra_columns or []
+    col_to_keep = ['meta.ablation', 'name', 'meta.card_name']
+    if 'display_name' in df.columns:
+        col_to_keep.append('display_name')
+    col_to_keep.extend(extra_columns)
+
+    return df[col_to_keep + PASS_AT_K_COL]
+
+
+def save_style_df(style_df, name, path=None):
+    if isinstance(path, str):
+        save_path = Path(path)
+    else:
+        save_path = path or Path()
+    dfi.export(style_df, str(save_path.joinpath(f"{name}.png")))
+
+
+def main():
     main_df = pd.read_json(PROJECT_ROOT.joinpath('data', 'run_data', 'MBPP[execution].jsonl'))
     main_df['full_name'] = main_df.name.copy()
-    main_df['name'] = main_df['name'].apply(lambda n: n.split('-')[0])
+    main_df['name'] = main_df['name'].apply(fix_name)
     print(f"Testing Visualization with {len(main_df)} elements")
 
-    met_name_map = {
-        "test/syntax_error_pct_ovr" : {
-            "name" : "Syntax Error",
-            "color": "#990000"
-        },
-        "test/runtime_error_pct_ovr": {
-            "name" : "Runtime Error",
-            "color": "#FFA500"
-        },
-        "test/correct_pct_ovr"      : {
-            "name" : "Correct",
-            "color": "#5bbd4a"
-        },
-        "test/failed_tests_pct_ovr" : {
-            "name" : "Failed Tests",
-            "color": "#ff6666"
-        }
+    runs_to_keep = {
+        f'GPTNeo125M.Eval': 'GPT Neo 125M',
+        f'CodeParrotSmall': 'CodeParrot Small'
     }
-    if not PROJECT_ROOT.joinpath('imgs').exists():
-        PROJECT_ROOT.joinpath('imgs').mkdir(parents=True)
-    pass_at_k_vals = [1, 5, 10, 25, 50, 100]
-    runs_to_keep = [
-        'PythonNoNL',
-        'PythonNoCode',
-        'PythonTitleShuffle'
-    ]
-    x = multi_line_plot(
-        main_df,
-        filter_fn=lambda r: (
-                (r['meta.ablation'] in runs_to_keep and '512' not in r['name'])
-                or r['name'] == "CodeParrotSmall"
-        ),
-        name_col='meta.ablation',
-        value_columns=[f'test/pass@{k}' for k in pass_at_k_vals],
-        x_values=pass_at_k_vals
-    )
-    fig = make_subplots(1,2,subplot_titles=("TEST","TEST"))
-    for t in x:
-        fig.add_trace(t,row=1,col=1)
-    for anno in fig['layout']['annotations']:
-        print("?")
-    fig.show()
-    print("???")
+
+    raw_df = prepare_df_pass_at_k(main_df[main_df.name.isin(runs_to_keep)])
+    raw_df = get_pass_at_k_df(raw_df)
+    print(len(raw_df))
 
 
 if __name__ == '__main__':
