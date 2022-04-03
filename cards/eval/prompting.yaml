@@ -96,7 +96,7 @@ experiments:
         overrides:
           task: mbpp
           ++is_checkpoint: True
-          ++model_path: outputs/so/PromptingTitleCodeRepeat.${..__META__.ablation.Model}.${..__META__.ablation.Prompts}
+          ++model_path: outputs/so/PromptingTitleCodeRepeat.${..__META__.ablation.Model}.${..__META__.ablation.Prompts}/best_model
           ++training:
             batch_size: 32
             gradient_accumulation_steps: 1
