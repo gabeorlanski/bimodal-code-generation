@@ -217,7 +217,7 @@ def eval_from_checkpoint(
         cfg
     )
 
-    if cfg.is_checkpoint:
+    if not cfg.get('zero_shot', False):
         if train_dir.stem != 'best_model':
             best_model_path = train_dir.joinpath('best_model')
         else:
@@ -233,6 +233,7 @@ def eval_from_checkpoint(
     with open_dict(cfg):
         if best_model_path:
             cfg.model_path = str(best_model_path.resolve().absolute())
+            cfg.is_checkpoint = True
         else:
             cfg.model_path = None
         cfg.task = task_cfg

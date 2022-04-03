@@ -1,6 +1,6 @@
 starting_commands: templates/commands/sbatch_experiment.txt
 experiments:
-  PromptingTitleCodeRepeat.Baseline.NewMBPP:
+  PromptingTitleCodeRepeat.NewMBPP:
     description: "Baseline Evaluation of the models finetuned on SO with Only Title and Repeating + Only Code Answer
     + different prompting methods"
     overrides:
@@ -35,6 +35,8 @@ experiments:
               PreTrain:
                 ++training.batch_size: 32
                 ++training.gradient_accumulation_steps: 1
+              FineTune:
+                ++training.gradient_checkpointing: True
           ParrotSmall:
             description: CodeParrot Small
             overrides:
@@ -94,7 +96,7 @@ experiments:
         overrides:
           task: mbpp
           ++is_checkpoint: True
-          ++model_path: outputs/so/${..__META__.PreTrain.name}/best_model
+          ++model_path: outputs/so/PromptingTitleCodeRepeat.${..__META__.ablation.Model}.${..__META__.ablation.Prompts}
           ++training:
             batch_size: 32
             gradient_accumulation_steps: 1
@@ -108,7 +110,7 @@ experiments:
         overrides:
           task: mbpp
           ++is_checkpoint: true
-          ++model_path: outputs/mbpp/QualityPrompt.${..__META__.ablation.name}/best_model
+          ++model_path: outputs/mbpp/${..__META__.ablation.name}/best_model
           tracking:
             log_model: False
             watch: null
