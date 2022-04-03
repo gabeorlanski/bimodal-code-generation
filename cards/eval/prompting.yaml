@@ -106,6 +106,7 @@ experiments:
       kwargs:
         train_sbatch: train_single_gpu
         pretrain_time: "12:00:00"
+        finetune_time: "12:00:00"
         use_cds: True
       fields:
         - model_path
