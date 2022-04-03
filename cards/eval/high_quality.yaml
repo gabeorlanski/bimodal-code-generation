@@ -152,26 +152,30 @@ experiments:
               - quality_after
 
       - QualityAdjective:
-          Best:
-            description: The 'BEST' adjective, should in theory do the best
+#          Best:
+#            description: The 'BEST' adjective, should in theory do the best
+#            ++prompts.params:
+#              quality: BEST
+#          Bad:
+#            description: The 'BAD' adjective, should in theory do the worst
+#            ++prompts.params:
+#              quality: BAD
+#          Worst:
+#            description: The 'WORST' adjective, should have no effect b/c it was not used in training
+#            ++prompts.params:
+#              quality: WORST
+#          Ok:
+#            description: The 'OK' adjective, should have minimal effect b/c is neutral
+#            ++prompts.params:
+#              quality: OK
+#          Good:
+#            description: The 'GOOD' adjective, should have slight performance improvement
+#            ++prompts.params:
+#              quality: GOOD
+          Word:
+            description: A random word that should have minimal impact
             ++prompts.params:
-              quality: BEST
-          Bad:
-            description: The 'BAD' adjective, should in theory do the worst
-            ++prompts.params:
-              quality: BAD
-          Worst:
-            description: The 'WORST' adjective, should have no effect b/c it was not used in training
-            ++prompts.params:
-              quality: WORST
-          Ok:
-            description: The 'OK' adjective, should have minimal effect b/c is neutral
-            ++prompts.params:
-              quality: OK
-          Good:
-            description: The 'GOOD' adjective, should have slight performance improvement
-            ++prompts.params:
-              quality: GOOD
+              quality: WORD
     steps:
       - name: PreTrain
         description: Finetune on the SO Data
