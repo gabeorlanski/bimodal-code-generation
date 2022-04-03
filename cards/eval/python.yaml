@@ -43,6 +43,7 @@ experiments:
             description: GPT Neo 125M
             overrides:
               ++model: 'EleutherAI/gpt-neo-125M'
+              ++training.gradient_checkpointing: True
             step_overrides:
               PreTrain:
                 ++training.batch_size: 32
