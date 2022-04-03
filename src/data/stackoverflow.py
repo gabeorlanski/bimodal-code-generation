@@ -71,6 +71,8 @@ class StackOverflowProcessor:
     def clean_html_body(self, body_str, force_keep_all=False) -> List[Tag]:
         soup = BeautifulSoup(body_str, 'lxml')
         body = soup.find('body')
+        if body is None:
+            return []
 
         out = []
         for i, tag in enumerate(body.find_all(recursive=False)):
@@ -194,6 +196,9 @@ class StackOverflowProcessor:
 
         sample['body'] = self.clean_html_body(sample['body'],
                                               force_keep_all=True)
+
+        if not sample['body']:
+            return []
 
         for k in sample['answers'].keys():
             sample['answers'][k]['body'] = self.clean_html_body(sample['answers'][k]['body'])

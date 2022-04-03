@@ -182,8 +182,7 @@ class TensorizedTask(IterableDataset):
                         break
 
             if worker_id == 0:
-                if total_restarts % 100 == 0:
-                    logger.debug(f"{num_no_samples}/{lines_seen} did not produce samples")
+                logger.debug(f"{num_no_samples}/{lines_seen} did not produce samples")
 
             if worker_info is None:
                 start = 0

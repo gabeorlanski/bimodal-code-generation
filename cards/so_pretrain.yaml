@@ -21,15 +21,15 @@ experiments:
       ++processor.params.add_body_to_input_sequence: True
     ablations:
       - Model:
-          Neo125M:
-            description: GPT Neo 125M
-            overrides:
-              ++model: 'EleutherAI/gpt-neo-125M'
-            step_overrides:
-              PreTrain:
-                ++training.batch_size: 32
-                ++training.gradient_accumulation_steps: 1
-                ++training.gradient_checkpointing: True
+#          Neo125M:
+#            description: GPT Neo 125M
+#            overrides:
+#              ++model: 'EleutherAI/gpt-neo-125M'
+#            step_overrides:
+#              PreTrain:
+#                ++training.batch_size: 32
+#                ++training.gradient_accumulation_steps: 1
+#                ++training.gradient_checkpointing: True
           ParrotSmall:
             description: CodeParrot Small
             overrides:

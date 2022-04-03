@@ -53,8 +53,13 @@ def train_from_cfg(cfg):
         if not new_cwd.exists():
             new_cwd.mkdir(parents=True)
         else:
-            shutil.rmtree(new_cwd)
-            new_cwd.mkdir(parents=True)
+            os.environ['WANDB_RESUME'] = 'false'
+            if cfg.get('resume_from_checkpoint') is None:
+                shutil.rmtree(new_cwd)
+                new_cwd.mkdir(parents=True)
+            elif new_cwd.joinpath('wandb_id').exists():
+                os.environ['WANDB_RESUME'] = 'true'
+                os.environ['WANDB_RUN_ID'] = new_cwd.joinpath('wandb_id').read_text()
 
     if is_currently_distributed():
         torch.distributed.barrier()
@@ -102,7 +107,7 @@ def train_from_cfg(cfg):
     if torch.cuda.is_available():
         torch.cuda.manual_seed_all(torch_seed)
 
-    model,cfg = train_model(cfg, train_args)
+    model, cfg = train_model(cfg, train_args)
 
     if cfg.training.local_rank <= 0:
         best_models_path = Path('best_model')

@@ -96,7 +96,7 @@ def evaluate_from_ctx_and_cfg(
         cfg,
 ):
     torch.use_deterministic_algorithms(True)
-    os.environ['CUBLAS_WORKSPACE_CONFIG']=":4096:8"
+    os.environ['CUBLAS_WORKSPACE_CONFIG'] = ":4096:8"
     debug = ctx.obj['DEBUG']
     dry_run = ctx.obj['DRY_RUN']
     disable_tracking = ctx.obj['DISABLE_TRACKING']
@@ -116,7 +116,7 @@ def evaluate_from_ctx_and_cfg(
         dir_name = f"debug_{dir_name}"
 
     working_dir = PROJECT_ROOT.joinpath(
-        'eval_results', *working_dir, dir_name
+        'eval_results', *working_dir, dir_name.strip()
     )
     log_name = f'evaluate_{cfg.task.name}'
     # else:

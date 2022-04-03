@@ -232,7 +232,10 @@ def setup_tracking_env_from_cfg(cfg: DictConfig):
     if entity and not cfg.debug:
         os.environ['WANDB_ENTITY'] = entity
     os.environ['WANDB_PROJECT'] = project
-    os.environ["WANDB_RUN_ID"] = wandb.util.generate_id()
+    if not os.getenv('WANDB_RESUME', 'false') == 'true':
+        os.environ["WANDB_RUN_ID"] = wandb.util.generate_id()
+    else:
+        logger.info("Resuming WandB run")
     os.environ['WANDB_RUN_NAME'] = f"{run_name}-{os.environ['WANDB_RUN_ID']}"
     os.environ['WANDB_LOG_MODEL'] = 'true' if cfg['tracking'].get('log_model') else 'false'
     os.environ['DISABLE_FAST_TOK'] = 'true'
@@ -242,6 +245,10 @@ def setup_tracking_env_from_cfg(cfg: DictConfig):
 def initialize_run_from_cfg(cfg, group, job_type, wandb_kwargs=None, run_cfg=None):
     run_cfg = run_cfg or {}
     wandb_kwargs = wandb_kwargs or {}
+    resume_wandb = os.getenv('WANDB_RESUME', 'false') == 'true'
+    if not os.getenv('WANDB_RESUME', 'false') == 'true':
+        with Path('wandb_id').open('w') as f:
+            f.write(os.getenv('WANDB_RUN_ID'))
 
     run_cfg.update(get_config_for_tracking(cfg))
     run = wandb.init(
@@ -254,6 +261,7 @@ def initialize_run_from_cfg(cfg, group, job_type, wandb_kwargs=None, run_cfg=Non
         id=os.getenv('WANDB_RUN_ID'),
         tags=os.getenv('WANDB_RUNS_TAGS').split(',') if os.getenv('WANDB_RUNS_TAGS') else None,
         notes=cfg.get("description", None),
+        resume=resume_wandb,
         **wandb_kwargs
     )
 

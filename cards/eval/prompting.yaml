@@ -182,7 +182,7 @@ experiments:
           Word:
             description: A random word that should have minimal impact
             ++prompts.params:
-              quality: WORD 
+              quality: WORD
     steps:
       - name: PreTrain
         description: Finetune on the SO Data

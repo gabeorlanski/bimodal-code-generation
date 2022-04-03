@@ -294,7 +294,7 @@ def setup_tensorized(cfg, tokenizer, train_args, prompt_fn):
                 )['input_ids']
             )
             total_samples += 1
-        if line_num-num_no_samples >= 10000:
+        if line_num - num_no_samples >= 10000:
             break
 
     logger.warning(f"{num_no_samples}/{line_num} produced no samples.")
@@ -497,7 +497,11 @@ def train_model(cfg: DictConfig, train_args):
         optimizers=optimizer_arg
 
     )
-    trainer.train()
+    resume_path = None
+    if cfg.get('resume_from_checkpoint') is not None:
+        logger.info(f"Resuming from checkpoint {cfg.get('resume_from_checkpoint')}")
+        resume_path = str(Path('checkpoints', cfg.get('resume_from_checkpoint')))
+    trainer.train(resume_path)
 
     with open_dict(cfg):
         cfg.best_model_checkpoint = trainer.state.best_model_checkpoint

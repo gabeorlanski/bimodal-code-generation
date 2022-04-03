@@ -63,6 +63,7 @@ prompts:
 pytorch_seed: 3
 raw_dump_path: data/dumps
 save_best_model: false
+resume_from_checkpoint: checkpoint-100
 seed: 1
 task:
   buffer_size: 5000
@@ -106,7 +107,7 @@ training:
   logging_steps: 10
   lr_scheduler_type: linear
   max_grad_norm: 1.0
-  max_steps: 1000
+  max_steps: 500
   metric_for_best_model: eval_loss
   num_train_epochs: 1
   output_dir: checkpoints
