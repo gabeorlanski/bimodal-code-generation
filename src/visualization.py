@@ -113,26 +113,29 @@ def multi_line_plot(
 def make_gradient_table(
         raw_df,
         columns_keep,
-        stat_columns,
+        gradient_stat_columns,
+        float_columns=None,
         rename_columns=None,
         formatting_cols=None,
         no_grad_rows=None,
         cmap=None
 ):
     rename_columns = rename_columns or {}
+    float_columns = float_columns or []
+    col_to_keep = [*list(rename_columns), *columns_keep,*float_columns,*gradient_stat_columns]
 
-    filtered_df = raw_df[[*list(rename_columns), *columns_keep, *stat_columns]]
+    filtered_df = raw_df[col_to_keep]
     if no_grad_rows:
         grad_index = filtered_df[~filtered_df['display_name'].isin(no_grad_rows)].index
     else:
         grad_index = filtered_df.index
-    filtered_df = filtered_df.rename(columns=rename_columns)
+    filtered_df = filtered_df[col_to_keep].rename(columns=rename_columns)
 
     styled_df = filtered_df.style.format(
         precision=3,
         na_rep='MISSING',
         thousands=" ",
-        subset=stat_columns
+        subset=gradient_stat_columns+float_columns
     )
     for c, format_dict in (formatting_cols or {}).items():
         styled_df = styled_df.set_properties(
@@ -148,7 +151,7 @@ def make_gradient_table(
     styled_df = styled_df.background_gradient(
         cmap=cmap,
         axis=0,
-        subset=(grad_index, stat_columns)
+        subset=(grad_index, gradient_stat_columns)
     )
     return styled_df
 
@@ -257,6 +260,9 @@ def main():
 
     raw_df = prepare_df_pass_at_k(main_df[main_df.name.isin(runs_to_keep)])
     raw_df = get_pass_at_k_df(raw_df)
+    make_gradient_table(raw_df,
+                        [],
+                        ['pass@1','pass@10','pass@100'])
     print(len(raw_df))
 
 

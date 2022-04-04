@@ -165,7 +165,7 @@ def setup_hf_pretrain(cfg, tokenizer, train_args, prompt_fn):
     def tokenize(ex, text_key):
         return tokenizer(ex[text_key], add_special_tokens=False)
 
-    train_dataset = raw_train_dataset.shuffle(seed=cfg.seed, buffer_size=2500).map(
+    train_dataset = raw_train_dataset.shuffle(seed=cfg.seed, buffer_size=100000).map(
         lambda e: tokenize(e, cfg.task.train.text_key),
         batched=True
     )
@@ -178,6 +178,7 @@ def setup_hf_pretrain(cfg, tokenizer, train_args, prompt_fn):
         split=cfg.task.validation.split,
     )
     if cfg.task.validation.max_val_samples > 0:
+        logger.info(f"Selecting {cfg.task.validation.max_val_samples} for debug")
         raw_eval_dataset = raw_eval_dataset.select(range(cfg.task.validation.max_val_samples))
 
     raw_eval_dataset = raw_eval_dataset.shuffle(seed=cfg.seed).map(
@@ -193,10 +194,11 @@ def setup_hf_pretrain(cfg, tokenizer, train_args, prompt_fn):
     )
     return HFIterableWrapper(
         train_dataset,
-        cfg.objective,
-        concat_delim,
-        tokenizer.eos_token_id,
-        ['input_ids'],
+        tokenizer=tokenizer,
+        objective=cfg.objective,
+        field_concat_tokens=concat_delim,
+        concat_token=tokenizer.eos_token_id,
+        input_fields=['input_ids'],
         sequence_length=cfg.task.sequence_length
     ), eval_dataset, None
 

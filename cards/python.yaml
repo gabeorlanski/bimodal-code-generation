@@ -1,6 +1,6 @@
 starting_commands: templates/commands/sbatch_experiment.txt
 experiments:
-  PythonBaseline:
+  PythonBaseline.LowLR:
     description: "Test Finetuning on github python"
     overrides:
       ++device: 0
@@ -35,7 +35,6 @@ experiments:
         validation:
           dataset: lvwerra/codeparrot-clean-valid
           text_key: content
-          max_val_samples: 2500
           split: train
     ablations:
       - Model:
@@ -74,6 +73,7 @@ experiments:
           training:
             dataloader_num_workers: 0
             fp16_opt_level: O1
+            learning_rate: 1.0e-06
           task: hf_pretrain
       - name: FineTune
         add_name: False
@@ -104,7 +104,7 @@ experiments:
         num_return_sequences: 200
         task_name: MBPP
         train_sbatch: train_single_gpu
-        pretrain_time: "32:00:00"
+        pretrain_time: "48:00:00"
         use_cds: True
       fields:
         - model_path

@@ -31,6 +31,7 @@ class HFIterableWrapper(IterableDataset):
     def __init__(
             self,
             hf_dataset,
+            tokenizer,
             objective,
             field_concat_tokens,
             concat_token,
@@ -45,6 +46,7 @@ class HFIterableWrapper(IterableDataset):
         self.field_concat_tokens = field_concat_tokens
         self.concat_token = concat_token
         self.sequence_length = sequence_length
+        self.tokenizer = tokenizer
 
     def __iter__(self):
         data_iter = iter(self.ds)
@@ -153,7 +155,6 @@ class CustomTrainer(Seq2SeqTrainer):
                 self.state.global_step / elapsed_start, 3
             )
             logs['train_ram_pct'] = psutil.virtual_memory()[2]
-
 
             self.last_runtime_step = self.state.global_step
             self.time_last_log = datetime.utcnow()
