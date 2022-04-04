@@ -1,0 +1,8 @@
+basic:
+  template: 'You are an expert Python programmer, and here is your task: {{input_sequence}}
+  
+  '
+basic_with_solution:
+  template: "You are an expert Python programmer, and here is your task: {{input_sequence}} 
+  
+  # Solution:{{ '\n' }}"

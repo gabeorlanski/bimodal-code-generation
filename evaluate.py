@@ -203,6 +203,7 @@ def eval_from_checkpoint(
         task_path.open('r'),
         yaml.Loader
     )
+
     train_dir = Path(train_dir).resolve().absolute()
     if cfg_path is None:
         train_config_path = train_dir.joinpath('config.yaml')
@@ -236,6 +237,7 @@ def eval_from_checkpoint(
             cfg.is_checkpoint = True
         else:
             cfg.model_path = None
+            
         cfg.task = task_cfg
 
     evaluate_from_ctx_and_cfg(ctx, cfg)

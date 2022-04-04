@@ -3,12 +3,8 @@ name: mbpp
 params:
   remove_carriage_return: False
 
-preprocessors:
-  - add-prefix:
-      prefix: "You are an expert Python programmer, and here is your task: "
-postprocessors:
-  - split:
-      split_phrase: "#Solution:"
+preprocessors: []
+postprocessors: []
 metrics:
   - exact-match
   - bleu
