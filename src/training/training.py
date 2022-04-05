@@ -165,7 +165,7 @@ def setup_hf_pretrain(cfg, tokenizer, train_args, prompt_fn):
     def tokenize(ex, text_key):
         return tokenizer(ex[text_key], add_special_tokens=False)
 
-    train_dataset = raw_train_dataset.shuffle(seed=cfg.seed, buffer_size=100000).map(
+    train_dataset = raw_train_dataset.shuffle(seed=cfg.seed, buffer_size=1000).map(
         lambda e: tokenize(e, cfg.task.train.text_key),
         batched=True
     )

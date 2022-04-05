@@ -36,7 +36,7 @@ experiments:
           dataset: lvwerra/codeparrot-clean-valid
           text_key: content
           split: train
-          max_val_samples: 2500
+          max_val_samples: 5000
     ablations:
       - Model:
           Neo125M:
@@ -74,7 +74,11 @@ experiments:
           training:
             dataloader_num_workers: 0
             fp16_opt_level: O1
-            learning_rate: 1.0e-06
+            learning_rate: 5.0e-07
+            warmup_steps: 750
+            eval_steps: 500
+            lr_scheduler_type: cosine
+
           task: hf_pretrain
       - name: FineTune
         add_name: False
