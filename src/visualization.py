@@ -118,15 +118,16 @@ def make_gradient_table(
         rename_columns=None,
         formatting_cols=None,
         no_grad_rows=None,
-        cmap=None
+        cmap=None,
+        index_name='display_name'
 ):
     rename_columns = rename_columns or {}
     float_columns = float_columns or []
-    col_to_keep = [*list(rename_columns), *columns_keep,*float_columns,*gradient_stat_columns]
+    col_to_keep = [index_name,*list(rename_columns), *columns_keep,*float_columns,*gradient_stat_columns]
 
     filtered_df = raw_df[col_to_keep]
     if no_grad_rows:
-        grad_index = filtered_df[~filtered_df['display_name'].isin(no_grad_rows)].index
+        grad_index = filtered_df[~filtered_df[index_name].isin(no_grad_rows)].index
     else:
         grad_index = filtered_df.index
     filtered_df = filtered_df[col_to_keep].rename(columns=rename_columns)

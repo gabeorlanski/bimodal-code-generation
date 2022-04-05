@@ -36,6 +36,7 @@ experiments:
           dataset: lvwerra/codeparrot-clean-valid
           text_key: content
           split: train
+          max_val_samples: 2500
     ablations:
       - Model:
           Neo125M:
