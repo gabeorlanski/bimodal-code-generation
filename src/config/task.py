@@ -135,12 +135,12 @@ def load_task_from_cfg(
     )
 
 
-def load_tokenizer_from_cfg(cfg, tokenizer_kwargs=None):
+def load_tokenizer_from_cfg(cfg, tokenizer_kwargs=None,force_fast=False):
     if tokenizer_kwargs is None:
         tokenizer_kwargs = {}
     return AutoTokenizer.from_pretrained(
         cfg['model'],
-        use_fast=os.environ.get('DISABLE_FAST_TOK', 'false') != 'true',
+        use_fast=os.environ.get('DISABLE_FAST_TOK', 'false') != 'true' or force_fast,
         **tokenizer_kwargs
     )
 

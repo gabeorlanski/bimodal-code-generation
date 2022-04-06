@@ -163,15 +163,24 @@ def setup_hf_pretrain(cfg, tokenizer, train_args, prompt_fn):
     )
 
     def tokenize(ex, text_key):
-        return tokenizer(ex[text_key], add_special_tokens=False)
+        return {'input_ids': tokenizer(ex[text_key], add_special_tokens=False)['input_ids']}
 
     train_dataset = raw_train_dataset.shuffle(seed=cfg.seed, buffer_size=1000).map(
         lambda e: tokenize(e, cfg.task.train.text_key),
-        batched=True
+        batched=True,
+        batch_size=100
     )
     for k in cfg.task.train.columns_remove:
         train_dataset = train_dataset.remove_columns(k)
 
+    if cfg.task.train.get('max_train_samples', -1) > 0:
+        logger.info(f"Taking {cfg.task.train.get('max_train_samples')} from train")
+        train_dataset = train_dataset.take(cfg.task.train.get('max_train_samples'))
+
+    # train_dataset = train_dataset.map(
+    #     group_texts,
+    #     batched=True
+    # )
     raw_eval_dataset = load_dataset(
         cfg.task.validation.dataset,
         cfg.task.validation.subset,
@@ -336,7 +345,7 @@ def train_model(cfg: DictConfig, train_args):
     is_non_registered_task = False
     if cfg.task.name in NON_REGISTERED_TASKS:
         is_non_registered_task = True
-        tokenizer = config.load_tokenizer_from_cfg(cfg)
+        tokenizer = config.load_tokenizer_from_cfg(cfg, force_fast=cfg.task.name == 'hf_pretrain')
         task = None  # type: ignore
     else:
         task: Task = config.load_task_from_cfg(cfg)

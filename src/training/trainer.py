@@ -37,7 +37,8 @@ class HFIterableWrapper(IterableDataset):
             concat_token,
             input_fields,
             sequence_length=1024,
-            buffer=1000
+            buffer=1000,
+            infinite=True
     ):
         self.ds = hf_dataset
         self.buffer = buffer
@@ -47,6 +48,7 @@ class HFIterableWrapper(IterableDataset):
         self.concat_token = concat_token
         self.sequence_length = sequence_length
         self.tokenizer = tokenizer
+        self.infinite = infinite
 
     def __iter__(self):
         data_iter = iter(self.ds)

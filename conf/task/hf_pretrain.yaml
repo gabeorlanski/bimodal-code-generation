@@ -6,6 +6,7 @@ train:
   split: train
   text_key: ???
   columns_remove: []
+  max_train_samples: -1
 validation:
   dataset: ${..train.dataset}
   subset: ${..train.subset}
