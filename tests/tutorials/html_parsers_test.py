@@ -95,80 +95,45 @@ def test_lxml(tutorial_fixtures_path):
 
 
 def test_sympy(tutorial_fixtures_path):
-    result = html_parsers.parse_sympy_file(
+    parser = html_parsers.SympyParser()
+    result = parser(
         tutorial_fixtures_path.joinpath('sympy.html').read_text()
     )
 
-    assert len(result) == 3
+    assert len(result) == 1
     assert result[0] == [
         {
-            'id'            : 2,
-            'parent_id'     : 0,
-            'section_id'    : 1,
-            'child_idx'     : 3,
-            'section_str_id': 'preliminaries',
-            'section_title' : 'Preliminaries',
-            'text'          : 'P0',
-            'tag'           : 'p'
+            'id'            : 2, 'parent_id': 0, 'section_id': 1,
+            'section_str_id': 'preliminaries', 'child_idx': 3,
+            'section_title' : 'Preliminaries', 'text': 'P0', 'tag': 'p'
         }, {
-            'id'            : 3,
-            'parent_id'     : 0,
-            'section_id'    : 1,
-            'child_idx'     : 5,
-            'section_str_id': 'preliminaries',
-            'section_title' : 'Preliminaries',
-            'text'          : 'P1',
-            'tag'           : 'p'
-        }
-    ]
-    assert result[1] == [
-        {
-            'id'            : 5,
-            'parent_id'     : 0,
-            'section_id'    : 4,
-            'child_idx'     : 3,
-            'section_str_id': 'installation',
-            'section_title' : 'Installation',
-            'text'          : 'P0',
-            'tag'           : 'p'
+            'id'            : 3, 'parent_id': 0, 'section_id': 1,
+            'section_str_id': 'preliminaries', 'child_idx': 5,
+            'section_title' : 'Preliminaries', 'text': 'P1', 'tag': 'p'
         }, {
-            'id'            : 6,
-            'parent_id'     : 1,
-            'section_id'    : 4,
-            'child_idx'     : 5,
-            'section_str_id': 'installation',
+            'id'            : 5, 'parent_id': 1, 'section_id': 4,
+            'section_str_id': 'installation', 'child_idx': 5,
+            'section_title' : 'Installation', 'text': 'P1', 'tag': 'p'
+        }, {
+            'id'            : 6, 'parent_id': 1, 'section_id': 4,
+            'section_str_id': 'installation', 'child_idx': 7,
+            'section_title' : 'Installation', 'text': 'P2', 'tag': 'p'
+        }, {
+            'id'            : 7, 'parent_id': 1, 'section_id': 4,
+            'section_str_id': 'installation', 'child_idx': 9,
             'section_title' : 'Installation',
-            'text'          : '''>>> from sympy import *\n>>> x = symbols('x')\nResult\n''',
+            'text'          : ">>> from sympy import *\n>>> x = symbols('x')\nResult\n",
             'tag'           : 'code'
         }, {
-            'id'            : 7,
-            'parent_id'     : 0,
-            'section_id'    : 4,
-            'child_idx'     : 7,
-            'section_str_id': 'installation',
-            'section_title' : 'Installation',
-            'text'          : 'P3',
-            'tag'           : 'p'
+            'id'            : 8, 'parent_id': 1, 'section_id': 4,
+            'section_str_id': 'installation', 'child_idx': 11,
+            'section_title' : 'Installation', 'text': 'P3', 'tag': 'p'
         }, {
-            'id'            : 8,
-            'parent_id'     : 0,
-            'section_id'    : 1,
-            'child_idx'     : 9,
-            'section_str_id': 'installation',
-            'section_title' : 'Installation',
-            'text'          : 'P4',
-            'tag'           : 'p'
-        }
-    ]
-    assert result[2] == [
-        {
-            'id'            : 10,
-            'parent_id'     : 0,
-            'section_id'    : 9,
-            'child_idx'     : 3,
-            'section_str_id': 'exercises',
-            'section_title' : 'Exercises',
-            'text'          : 'Exercises P',
-            'tag'           : 'p'
-        }
-    ]
+            'id'            : 9, 'parent_id': 1, 'section_id': 4,
+            'section_str_id': 'installation', 'child_idx': 13,
+            'section_title' : 'Installation', 'text': 'P4', 'tag': 'p'
+        }, {
+            'id'            : 11, 'parent_id': 1, 'section_id': 10,
+            'section_str_id': 'exercises', 'child_idx': 3,
+            'section_title' : 'Exercises', 'text': 'Exercises P', 'tag': 'p'
+        }]

@@ -44,19 +44,22 @@ class TutorialHTMLParser:
 
     # Overwrite these functions if the tutorial requires specific parsing.
     def parse_code(self, tag: Tag) -> str:
-        return unidecode(tag.get_text())
+        return self.clean_text(tag.get_text())
 
     def parse_list(self, tag: Tag) -> str:
         list_items = []
         for line in tag.find_all('li'):
             list_items.append(f"* {line.text}")
-        return unidecode('\n'.join(list_items))
+        return self.clean_text('\n'.join(list_items))
 
     def parse_paragraph(self, tag: Tag) -> str:
         return DOUBLE_WHITESPACE.sub(
             ' ',
-            unidecode(tag.get_text()).replace('\n', ' ')
+            self.clean_text(tag.get_text()).replace('\n', ' ')
         )
+
+    def parse_title(self, tag: Tag) -> str:
+        return self.clean_text(tag.get_text())
 
     def get_header_and_sections(self, soup):
         """
@@ -68,6 +71,10 @@ class TutorialHTMLParser:
 
         """
         raise NotImplementedError()
+
+    @staticmethod
+    def clean_text(text):
+        return unidecode(text)
 
     #####################################################################
     # THESE ARE NOT TO BE IMPLEMENTED BY SUBCLASSES                     #
@@ -89,13 +96,13 @@ class TutorialHTMLParser:
                 continue
             if tag.name in ['h1', 'h2', 'h3', 'h4']:
                 assert section_title is None
-                section_title = tag.get_text()
+                section_title = self.parse_title(tag)
                 continue
 
             logger.debug(f"{self.NAME}: Parsing child {i} of {section_title} for {parent_id}")
             tag_type = self.get_type_of_tag(tag)
             if tag_type == TagType.SECTION:
-                logger.info(f"Found subsection in {section_title}")
+                logger.debug(f"Found subsection in {section_title}")
                 for child_idx, child in self.parse_section(
                         section=tag,
                         parent_id=section_id,
@@ -125,6 +132,7 @@ class TutorialHTMLParser:
                     out['text'] = self.parse_list(tag)
                     out['tag'] = 'p'
                 elif tag_type == TagType.IGNORED:
+                    id_counter -= 1
                     continue
                 else:
                     print(tag.name)
@@ -161,6 +169,11 @@ class LXMLParser(TutorialHTMLParser):
                 return TagType.SECTION
             elif 'syntax' in tag_classes:
                 return TagType.CODE
+            elif 'note' in tag_classes:
+                return TagType.PARAGRAPH
+        elif tag.name == 'pre':
+            if 'literal-block' in tag_classes:
+                return TagType.CODE
         elif tag.name == 'p':
             return TagType.PARAGRAPH
         elif tag.name in ['ul', 'ol', 'blockquote']:
@@ -179,3 +192,42 @@ class LXMLParser(TutorialHTMLParser):
 
         return [], body.find_all('div', {'class': 'section'}, recursive=False)
 
+
+class SympyParser(TutorialHTMLParser):
+    NAME = "Sympy"
+
+    def parse_code(self, tag: Tag) -> str:
+        code_block = tag.find('pre')
+        assert code_block is not None
+        return self.clean_text(code_block.get_text()).lstrip()
+
+    def parse_title(self, tag: Tag) -> str:
+        header_link = tag.find('a')
+        if header_link is not None:
+            header_link.extract()
+        return self.clean_text(tag.get_text())
+
+    def get_type_of_tag(self, tag: Tag) -> TagType:
+        tag_classes = tag.attrs.get('class', [])
+        if tag.name == 'section':
+            return TagType.SECTION
+        elif tag.name == 'div':
+            if 'doctest' in tag_classes:
+                return TagType.CODE
+        elif tag.name == 'p':
+            return TagType.PARAGRAPH
+        elif tag.name in ['ul', 'ol', 'blockquote']:
+            return TagType.LIST
+        elif tag.name in ['table', 'img', 'dl', 'aside']:
+            return TagType.IGNORED
+
+        return TagType.UNKNOWN
+
+    def get_header_and_sections(self, soup) -> Tuple[List[Tag], List[Tag]]:
+
+        body = soup.find(
+            'div',
+            {'class': 'body'}
+        )
+
+        return [], body.find_all('section', recursive=False)

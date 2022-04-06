@@ -1,0 +1,23 @@
+lxml:
+  developing_with_lxml:
+    url: https://lxml.de
+    pages:
+      tutorial: tutorial.html
+      api: api.html
+      parsing: parsing.html
+      validation: validation.html
+      xpathxslt: xpathxslt.html
+      objectify: objectify.html
+      lxmlhtml: lxmlhtml.html
+      cssselect: cssselect.html
+      elementsoup: elementsoup.html
+      html5parser: html5parser.html
+  extending_lxml:
+    url: https://lxml.de
+    pages:
+      resolvers: resolvers.html
+      extensions: extensions.html
+      element_classes: element_classes.html
+      sax: sax.html
+
+
