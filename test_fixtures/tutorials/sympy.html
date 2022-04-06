@@ -1,0 +1,1035 @@
+<!DOCTYPE html>
+<!-- saved from url=(0057)https://docs.sympy.org/latest/tutorial/preliminaries.html -->
+<html lang="en">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/">
+
+    <title>Preliminaries — SymPy 1.10.1 documentation</title>
+    <link rel="stylesheet" type="text/css" href="./sympy_files/pygments.css">
+    <link rel="stylesheet" type="text/css" href="./sympy_files/default.css">
+    <link rel="stylesheet" type="text/css" href="./sympy_files/graphviz.css">
+    <link rel="stylesheet" type="text/css" href="./sympy_files/plot_directive.css">
+    <link rel="stylesheet" type="text/css" href="./sympy_files/live-core.css">
+    <link rel="stylesheet" type="text/css" href="./sympy_files/live-autocomplete.css">
+    <link rel="stylesheet" type="text/css" href="./sympy_files/live-sphinx.css">
+
+    <script data-url_root="../" id="documentation_options"
+            src="./sympy_files/documentation_options.js"></script>
+    <script src="./sympy_files/jquery.js"></script>
+    <script src="./sympy_files/underscore.js"></script>
+    <script src="./sympy_files/doctools.js"></script>
+    <script src="./sympy_files/utilities.js"></script>
+    <script src="./sympy_files/classy.js"></script>
+    <script src="./sympy_files/live-core.js"></script>
+    <script src="./sympy_files/live-autocomplete.js"></script>
+    <script src="./sympy_files/live-sphinx.js"></script>
+    <script>window.MathJax = {
+        "tex": {
+            "inlineMath": [["\\(", "\\)"]],
+            "displayMath": [["\\[", "\\]"]]
+        }, "options": {"processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}
+    }</script>
+    <script defer="defer" src="./sympy_files/tex-mml-chtml.js"></script>
+
+    <link rel="shortcut icon"
+          href="https://docs.sympy.org/latest/_static/sympy-notailtext-favicon.ico">
+    <link href="https://docs.sympy.org/latest/tutorial/preliminaries.html" rel="canonical">
+
+    <link rel="index" title="Index" href="https://docs.sympy.org/latest/genindex.html">
+    <link rel="search" title="Search" href="https://docs.sympy.org/latest/search.html">
+    <link rel="next" title="Introduction" href="https://docs.sympy.org/latest/tutorial/intro.html">
+    <link rel="prev" title="SymPy Tutorial"
+          href="https://docs.sympy.org/latest/tutorial/index.html">
+    <style type="text/css">.CtxtMenu_InfoClose {
+        top: .2em;
+        right: .2em;
+    }
+
+    .CtxtMenu_InfoContent {
+        overflow: auto;
+        text-align: left;
+        font-size: 80%;
+        padding: .4em .6em;
+        border: 1px inset;
+        margin: 1em 0px;
+        max-height: 20em;
+        max-width: 30em;
+        background-color: #EEEEEE;
+        white-space: normal;
+    }
+
+    .CtxtMenu_Info.CtxtMenu_MousePost {
+        outline: none;
+    }
+
+    .CtxtMenu_Info {
+        position: fixed;
+        left: 50%;
+        width: auto;
+        text-align: center;
+        border: 3px outset;
+        padding: 1em 2em;
+        background-color: #DDDDDD;
+        color: black;
+        cursor: default;
+        font-family: message-box;
+        font-size: 120%;
+        font-style: normal;
+        text-indent: 0;
+        text-transform: none;
+        line-height: normal;
+        letter-spacing: normal;
+        word-spacing: normal;
+        word-wrap: normal;
+        white-space: nowrap;
+        float: none;
+        z-index: 201;
+        border-radius: 15px; /* Opera 10.5 and IE9 */
+        -webkit-border-radius: 15px; /* Safari and Chrome */
+        -moz-border-radius: 15px; /* Firefox */
+        -khtml-border-radius: 15px; /* Konqueror */
+        box-shadow: 0px 10px 20px #808080; /* Opera 10.5 and IE9 */
+        -webkit-box-shadow: 0px 10px 20px #808080; /* Safari 3 & Chrome */
+        -moz-box-shadow: 0px 10px 20px #808080; /* Forefox 3.5 */
+        -khtml-box-shadow: 0px 10px 20px #808080; /* Konqueror */
+        filter: progid:DXImageTransform.Microsoft.dropshadow(OffX=2, OffY=2, Color="gray", Positive="true"); /* IE */
+    }
+    </style>
+    <style type="text/css">.CtxtMenu_MenuClose {
+        position: absolute;
+        cursor: pointer;
+        display: inline-block;
+        border: 2px solid #AAA;
+        border-radius: 18px;
+        -webkit-border-radius: 18px; /* Safari and Chrome */
+        -moz-border-radius: 18px; /* Firefox */
+        -khtml-border-radius: 18px; /* Konqueror */
+        font-family: "Courier New", Courier;
+        font-size: 24px;
+        color: #F0F0F0
+    }
+
+    .CtxtMenu_MenuClose span {
+        display: block;
+        background-color: #AAA;
+        border: 1.5px solid;
+        border-radius: 18px;
+        -webkit-border-radius: 18px; /* Safari and Chrome */
+        -moz-border-radius: 18px; /* Firefox */
+        -khtml-border-radius: 18px; /* Konqueror */
+        line-height: 0;
+        padding: 8px 0 6px /* may need to be browser-specific */
+    }
+
+    .CtxtMenu_MenuClose:hover {
+        color: white !important;
+        border: 2px solid #CCC !important
+    }
+
+    .CtxtMenu_MenuClose:hover span {
+        background-color: #CCC !important
+    }
+
+    .CtxtMenu_MenuClose:hover:focus {
+        outline: none
+    }
+    </style>
+    <style type="text/css">.CtxtMenu_Menu {
+        position: absolute;
+        background-color: white;
+        color: black;
+        width: auto;
+        padding: 5px 0px;
+        border: 1px solid #CCCCCC;
+        margin: 0;
+        cursor: default;
+        font: menu;
+        text-align: left;
+        text-indent: 0;
+        text-transform: none;
+        line-height: normal;
+        letter-spacing: normal;
+        word-spacing: normal;
+        word-wrap: normal;
+        white-space: nowrap;
+        float: none;
+        z-index: 201;
+        border-radius: 5px; /* Opera 10.5 and IE9 */
+        -webkit-border-radius: 5px; /* Safari and Chrome */
+        -moz-border-radius: 5px; /* Firefox */
+        -khtml-border-radius: 5px; /* Konqueror */
+        box-shadow: 0px 10px 20px #808080; /* Opera 10.5 and IE9 */
+        -webkit-box-shadow: 0px 10px 20px #808080; /* Safari 3 & Chrome */
+        -moz-box-shadow: 0px 10px 20px #808080; /* Forefox 3.5 */
+        -khtml-box-shadow: 0px 10px 20px #808080; /* Konqueror */
+    }
+
+    .CtxtMenu_MenuItem {
+        padding: 1px 2em;
+        background: transparent;
+    }
+
+    .CtxtMenu_MenuArrow {
+        position: absolute;
+        right: .5em;
+        padding-top: .25em;
+        color: #666666;
+        font-family: null;
+        font-size: .75em
+    }
+
+    .CtxtMenu_MenuActive .CtxtMenu_MenuArrow {
+        color: white
+    }
+
+    .CtxtMenu_MenuArrow.CtxtMenu_RTL {
+        left: .5em;
+        right: auto
+    }
+
+    .CtxtMenu_MenuCheck {
+        position: absolute;
+        left: .7em;
+        font-family: null
+    }
+
+    .CtxtMenu_MenuCheck.CtxtMenu_RTL {
+        right: .7em;
+        left: auto
+    }
+
+    .CtxtMenu_MenuRadioCheck {
+        position: absolute;
+        left: .7em;
+    }
+
+    .CtxtMenu_MenuRadioCheck.CtxtMenu_RTL {
+        right: .7em;
+        left: auto
+    }
+
+    .CtxtMenu_MenuInputBox {
+        padding-left: 1em;
+        right: .5em;
+        color: #666666;
+        font-family: null;
+    }
+
+    .CtxtMenu_MenuInputBox.CtxtMenu_RTL {
+        left: .1em;
+    }
+
+    .CtxtMenu_MenuComboBox {
+        left: .1em;
+        padding-bottom: .5em;
+    }
+
+    .CtxtMenu_MenuSlider {
+        left: .1em;
+    }
+
+    .CtxtMenu_SliderValue {
+        position: absolute;
+        right: .1em;
+        padding-top: .25em;
+        color: #333333;
+        font-size: .75em
+    }
+
+    .CtxtMenu_SliderBar {
+        outline: none;
+        background: #d3d3d3
+    }
+
+    .CtxtMenu_MenuLabel {
+        padding: 1px 2em 3px 1.33em;
+        font-style: italic
+    }
+
+    .CtxtMenu_MenuRule {
+        border-top: 1px solid #DDDDDD;
+        margin: 4px 3px;
+    }
+
+    .CtxtMenu_MenuDisabled {
+        color: GrayText
+    }
+
+    .CtxtMenu_MenuActive {
+        background-color: #606872;
+        color: white;
+    }
+
+    .CtxtMenu_MenuDisabled:focus {
+        background-color: #E8E8E8
+    }
+
+    .CtxtMenu_MenuLabel:focus {
+        background-color: #E8E8E8
+    }
+
+    .CtxtMenu_ContextMenu:focus {
+        outline: none
+    }
+
+    .CtxtMenu_ContextMenu .CtxtMenu_MenuItem:focus {
+        outline: none
+    }
+
+    .CtxtMenu_SelectionMenu {
+        position: relative;
+        float: left;
+        border-bottom: none;
+        -webkit-box-shadow: none;
+        -webkit-border-radius: 0px;
+    }
+
+    .CtxtMenu_SelectionItem {
+        padding-right: 1em;
+    }
+
+    .CtxtMenu_Selection {
+        right: 40%;
+        width: 50%;
+    }
+
+    .CtxtMenu_SelectionBox {
+        padding: 0em;
+        max-height: 20em;
+        max-width: none;
+        background-color: #FFFFFF;
+    }
+
+    .CtxtMenu_SelectionDivider {
+        clear: both;
+        border-top: 2px solid #000000;
+    }
+
+    .CtxtMenu_Menu .CtxtMenu_MenuClose {
+        top: -10px;
+        left: -10px
+    }
+    </style>
+    <style id="MJX-CHTML-styles">
+        mjx-container[jax="CHTML"] {
+            line-height: 0;
+        }
+
+        mjx-container [space="1"] {
+            margin-left: .111em;
+        }
+
+        mjx-container [space="2"] {
+            margin-left: .167em;
+        }
+
+        mjx-container [space="3"] {
+            margin-left: .222em;
+        }
+
+        mjx-container [space="4"] {
+            margin-left: .278em;
+        }
+
+        mjx-container [space="5"] {
+            margin-left: .333em;
+        }
+
+        mjx-container [rspace="1"] {
+            margin-right: .111em;
+        }
+
+        mjx-container [rspace="2"] {
+            margin-right: .167em;
+        }
+
+        mjx-container [rspace="3"] {
+            margin-right: .222em;
+        }
+
+        mjx-container [rspace="4"] {
+            margin-right: .278em;
+        }
+
+        mjx-container [rspace="5"] {
+            margin-right: .333em;
+        }
+
+        mjx-container [size="s"] {
+            font-size: 70.7%;
+        }
+
+        mjx-container [size="ss"] {
+            font-size: 50%;
+        }
+
+        mjx-container [size="Tn"] {
+            font-size: 60%;
+        }
+
+        mjx-container [size="sm"] {
+            font-size: 85%;
+        }
+
+        mjx-container [size="lg"] {
+            font-size: 120%;
+        }
+
+        mjx-container [size="Lg"] {
+            font-size: 144%;
+        }
+
+        mjx-container [size="LG"] {
+            font-size: 173%;
+        }
+
+        mjx-container [size="hg"] {
+            font-size: 207%;
+        }
+
+        mjx-container [size="HG"] {
+            font-size: 249%;
+        }
+
+        mjx-container [width="full"] {
+            width: 100%;
+        }
+
+        mjx-box {
+            display: inline-block;
+        }
+
+        mjx-block {
+            display: block;
+        }
+
+        mjx-itable {
+            display: inline-table;
+        }
+
+        mjx-row {
+            display: table-row;
+        }
+
+        mjx-row > * {
+            display: table-cell;
+        }
+
+        mjx-mtext {
+            display: inline-block;
+        }
+
+        mjx-mstyle {
+            display: inline-block;
+        }
+
+        mjx-merror {
+            display: inline-block;
+            color: red;
+            background-color: yellow;
+        }
+
+        mjx-mphantom {
+            visibility: hidden;
+        }
+
+        _::-webkit-full-page-media, _:future, :root mjx-container {
+            will-change: opacity;
+        }
+
+        mjx-assistive-mml {
+            position: absolute !important;
+            top: 0px;
+            left: 0px;
+            clip: rect(1px, 1px, 1px, 1px);
+            padding: 1px 0px 0px 0px !important;
+            border: 0px !important;
+            display: block !important;
+            width: auto !important;
+            overflow: hidden !important;
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            -khtml-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+        }
+
+        mjx-assistive-mml[display="block"] {
+            width: 100% !important;
+        }
+
+        mjx-math {
+            display: inline-block;
+            text-align: left;
+            line-height: 0;
+            text-indent: 0;
+            font-style: normal;
+            font-weight: normal;
+            font-size: 100%;
+            font-size-adjust: none;
+            letter-spacing: normal;
+            word-wrap: normal;
+            word-spacing: normal;
+            white-space: nowrap;
+            direction: ltr;
+            padding: 1px 0;
+        }
+
+        mjx-container[jax="CHTML"][display="true"] {
+            display: block;
+            text-align: center;
+            margin: 1em 0;
+        }
+
+        mjx-container[jax="CHTML"][display="true"][width="full"] {
+            display: flex;
+        }
+
+        mjx-container[jax="CHTML"][display="true"] mjx-math {
+            padding: 0;
+        }
+
+        mjx-container[jax="CHTML"][justify="left"] {
+            text-align: left;
+        }
+
+        mjx-container[jax="CHTML"][justify="right"] {
+            text-align: right;
+        }
+
+        mjx-TeXAtom {
+            display: inline-block;
+            text-align: left;
+        }
+
+        mjx-mi {
+            display: inline-block;
+            text-align: left;
+        }
+
+        mjx-c {
+            display: inline-block;
+        }
+
+        mjx-utext {
+            display: inline-block;
+            padding: .75em 0 .2em 0;
+        }
+
+        mjx-mspace {
+            display: inline-block;
+            text-align: left;
+        }
+
+        mjx-mpadded {
+            display: inline-block;
+            text-align: left;
+        }
+
+        mjx-rbox {
+            display: inline-block;
+            position: relative;
+        }
+
+        mjx-c::before {
+            display: block;
+            width: 0;
+        }
+
+        .MJX-TEX {
+            font-family: MJXZERO, MJXTEX;
+        }
+
+        .TEX-B {
+            font-family: MJXZERO, MJXTEX-B;
+        }
+
+        .TEX-I {
+            font-family: MJXZERO, MJXTEX-I;
+        }
+
+        .TEX-MI {
+            font-family: MJXZERO, MJXTEX-MI;
+        }
+
+        .TEX-BI {
+            font-family: MJXZERO, MJXTEX-BI;
+        }
+
+        .TEX-S1 {
+            font-family: MJXZERO, MJXTEX-S1;
+        }
+
+        .TEX-S2 {
+            font-family: MJXZERO, MJXTEX-S2;
+        }
+
+        .TEX-S3 {
+            font-family: MJXZERO, MJXTEX-S3;
+        }
+
+        .TEX-S4 {
+            font-family: MJXZERO, MJXTEX-S4;
+        }
+
+        .TEX-A {
+            font-family: MJXZERO, MJXTEX-A;
+        }
+
+        .TEX-C {
+            font-family: MJXZERO, MJXTEX-C;
+        }
+
+        .TEX-CB {
+            font-family: MJXZERO, MJXTEX-CB;
+        }
+
+        .TEX-FR {
+            font-family: MJXZERO, MJXTEX-FR;
+        }
+
+        .TEX-FRB {
+            font-family: MJXZERO, MJXTEX-FRB;
+        }
+
+        .TEX-SS {
+            font-family: MJXZERO, MJXTEX-SS;
+        }
+
+        .TEX-SSB {
+            font-family: MJXZERO, MJXTEX-SSB;
+        }
+
+        .TEX-SSI {
+            font-family: MJXZERO, MJXTEX-SSI;
+        }
+
+        .TEX-SC {
+            font-family: MJXZERO, MJXTEX-SC;
+        }
+
+        .TEX-T {
+            font-family: MJXZERO, MJXTEX-T;
+        }
+
+        .TEX-V {
+            font-family: MJXZERO, MJXTEX-V;
+        }
+
+        .TEX-VB {
+            font-family: MJXZERO, MJXTEX-VB;
+        }
+
+        mjx-stretchy-v mjx-c, mjx-stretchy-h mjx-c {
+            font-family: MJXZERO, MJXTEX-S1, MJXTEX-S4, MJXTEX, MJXTEX-A ! important;
+        }
+
+        @font-face /* 0 */ {
+            font-family: MJXZERO;
+            src: url("https://cdn.jsdelivr.net/npm/mathjax@3/es5/output/chtml/fonts/woff-v2/MathJax_Zero.woff") format("woff");
+        }
+
+        @font-face /* 1 */ {
+            font-family: MJXTEX;
+            src: url("https://cdn.jsdelivr.net/npm/mathjax@3/es5/output/chtml/fonts/woff-v2/MathJax_Main-Regular.woff") format("woff");
+        }
+
+        @font-face /* 2 */ {
+            font-family: MJXTEX-B;
+            src: url("https://cdn.jsdelivr.net/npm/mathjax@3/es5/output/chtml/fonts/woff-v2/MathJax_Main-Bold.woff") format("woff");
+        }
+
+        @font-face /* 3 */ {
+            font-family: MJXTEX-I;
+            src: url("https://cdn.jsdelivr.net/npm/mathjax@3/es5/output/chtml/fonts/woff-v2/MathJax_Math-Italic.woff") format("woff");
+        }
+
+        @font-face /* 4 */ {
+            font-family: MJXTEX-MI;
+            src: url("https://cdn.jsdelivr.net/npm/mathjax@3/es5/output/chtml/fonts/woff-v2/MathJax_Main-Italic.woff") format("woff");
+        }
+
+        @font-face /* 5 */ {
+            font-family: MJXTEX-BI;
+            src: url("https://cdn.jsdelivr.net/npm/mathjax@3/es5/output/chtml/fonts/woff-v2/MathJax_Math-BoldItalic.woff") format("woff");
+        }
+
+        @font-face /* 6 */ {
+            font-family: MJXTEX-S1;
+            src: url("https://cdn.jsdelivr.net/npm/mathjax@3/es5/output/chtml/fonts/woff-v2/MathJax_Size1-Regular.woff") format("woff");
+        }
+
+        @font-face /* 7 */ {
+            font-family: MJXTEX-S2;
+            src: url("https://cdn.jsdelivr.net/npm/mathjax@3/es5/output/chtml/fonts/woff-v2/MathJax_Size2-Regular.woff") format("woff");
+        }
+
+        @font-face /* 8 */ {
+            font-family: MJXTEX-S3;
+            src: url("https://cdn.jsdelivr.net/npm/mathjax@3/es5/output/chtml/fonts/woff-v2/MathJax_Size3-Regular.woff") format("woff");
+        }
+
+        @font-face /* 9 */ {
+            font-family: MJXTEX-S4;
+            src: url("https://cdn.jsdelivr.net/npm/mathjax@3/es5/output/chtml/fonts/woff-v2/MathJax_Size4-Regular.woff") format("woff");
+        }
+
+        @font-face /* 10 */ {
+            font-family: MJXTEX-A;
+            src: url("https://cdn.jsdelivr.net/npm/mathjax@3/es5/output/chtml/fonts/woff-v2/MathJax_AMS-Regular.woff") format("woff");
+        }
+
+        @font-face /* 11 */ {
+            font-family: MJXTEX-C;
+            src: url("https://cdn.jsdelivr.net/npm/mathjax@3/es5/output/chtml/fonts/woff-v2/MathJax_Calligraphic-Regular.woff") format("woff");
+        }
+
+        @font-face /* 12 */ {
+            font-family: MJXTEX-CB;
+            src: url("https://cdn.jsdelivr.net/npm/mathjax@3/es5/output/chtml/fonts/woff-v2/MathJax_Calligraphic-Bold.woff") format("woff");
+        }
+
+        @font-face /* 13 */ {
+            font-family: MJXTEX-FR;
+            src: url("https://cdn.jsdelivr.net/npm/mathjax@3/es5/output/chtml/fonts/woff-v2/MathJax_Fraktur-Regular.woff") format("woff");
+        }
+
+        @font-face /* 14 */ {
+            font-family: MJXTEX-FRB;
+            src: url("https://cdn.jsdelivr.net/npm/mathjax@3/es5/output/chtml/fonts/woff-v2/MathJax_Fraktur-Bold.woff") format("woff");
+        }
+
+        @font-face /* 15 */ {
+            font-family: MJXTEX-SS;
+            src: url("https://cdn.jsdelivr.net/npm/mathjax@3/es5/output/chtml/fonts/woff-v2/MathJax_SansSerif-Regular.woff") format("woff");
+        }
+
+        @font-face /* 16 */ {
+            font-family: MJXTEX-SSB;
+            src: url("https://cdn.jsdelivr.net/npm/mathjax@3/es5/output/chtml/fonts/woff-v2/MathJax_SansSerif-Bold.woff") format("woff");
+        }
+
+        @font-face /* 17 */ {
+            font-family: MJXTEX-SSI;
+            src: url("https://cdn.jsdelivr.net/npm/mathjax@3/es5/output/chtml/fonts/woff-v2/MathJax_SansSerif-Italic.woff") format("woff");
+        }
+
+        @font-face /* 18 */ {
+            font-family: MJXTEX-SC;
+            src: url("https://cdn.jsdelivr.net/npm/mathjax@3/es5/output/chtml/fonts/woff-v2/MathJax_Script-Regular.woff") format("woff");
+        }
+
+        @font-face /* 19 */ {
+            font-family: MJXTEX-T;
+            src: url("https://cdn.jsdelivr.net/npm/mathjax@3/es5/output/chtml/fonts/woff-v2/MathJax_Typewriter-Regular.woff") format("woff");
+        }
+
+        @font-face /* 20 */ {
+            font-family: MJXTEX-V;
+            src: url("https://cdn.jsdelivr.net/npm/mathjax@3/es5/output/chtml/fonts/woff-v2/MathJax_Vector-Regular.woff") format("woff");
+        }
+
+        @font-face /* 21 */ {
+            font-family: MJXTEX-VB;
+            src: url("https://cdn.jsdelivr.net/npm/mathjax@3/es5/output/chtml/fonts/woff-v2/MathJax_Vector-Bold.woff") format("woff");
+        }
+
+        mjx-c.mjx-c4C::before {
+            padding: 0.683em 0.625em 0 0;
+            content: "L";
+        }
+
+        mjx-c.mjx-c41::before {
+            padding: 0.716em 0.75em 0 0;
+            content: "A";
+        }
+
+        mjx-c.mjx-c54::before {
+            padding: 0.677em 0.722em 0 0;
+            content: "T";
+        }
+
+        mjx-c.mjx-c45::before {
+            padding: 0.68em 0.681em 0 0;
+            content: "E";
+        }
+
+        mjx-c.mjx-c58::before {
+            padding: 0.683em 0.75em 0 0;
+            content: "X";
+        }
+    </style>
+</head>
+<body data-new-gr-c-s-check-loaded="14.1055.0" data-gr-ext-installed="">
+<div class="related" role="navigation" aria-label="related navigation">
+    <h3>Navigation</h3>
+    <ul>
+        <li class="right" style="margin-right: 10px">
+            <a href="https://docs.sympy.org/latest/genindex.html" title="General Index"
+               accesskey="I">index</a></li>
+        <li class="right">
+            <a href="https://docs.sympy.org/latest/py-modindex.html" title="Python Module Index">modules</a>
+            |
+        </li>
+        <li class="right">
+            <a href="https://docs.sympy.org/latest/tutorial/intro.html" title="Introduction"
+               accesskey="N">next</a> |
+        </li>
+        <li class="right">
+            <a href="https://docs.sympy.org/latest/tutorial/index.html" title="SymPy Tutorial"
+               accesskey="P">previous</a> |
+        </li>
+        <li class="nav-item nav-item-0"><a href="https://docs.sympy.org/latest/index.html">SymPy
+            1.10.1 documentation</a> »
+        </li>
+        <li class="nav-item nav-item-1"><a href="https://docs.sympy.org/latest/tutorial/index.html"
+                                           accesskey="U">SymPy Tutorial</a> »
+        </li>
+        <li class="nav-item nav-item-this"><a
+                href="https://docs.sympy.org/latest/tutorial/preliminaries.html">Preliminaries</a>
+        </li>
+    </ul>
+</div>
+
+<div class="document">
+    <div class="documentwrapper">
+        <div class="bodywrapper">
+            <div class="body" role="main">
+
+                <section id="preliminaries">
+                    <h1>Preliminaries<a class="headerlink"
+                                        href="https://docs.sympy.org/latest/tutorial/preliminaries.html#preliminaries"
+                                        title="Permalink to this headline">¶</a></h1>
+                    <p>P0</p>
+                    <p>P1</p>
+                    <section id="installation">
+                        <h2>Installation<a class="headerlink"
+                                           href="https://docs.sympy.org/latest/tutorial/preliminaries.html#installation"
+                                           title="Permalink to this headline">¶</a></h2>
+                        <aside class="sidebar">
+                            <p class="sidebar-title">Quick Tip</p>
+                            <p>You do not need to install SymPy to try it. You can use the online
+                                shell
+                                at <a class="reference external" href="http://live.sympy.org/">http://live.sympy.org</a>,
+                                or the shell at the bottom right of this
+                                documentation page.</p>
+                        </aside>
+                        <p>P1</p>
+                        <p>P2</p>
+                        <div class="doctest highlight-default notranslate">
+                            <div class="sympy-live-eval-toolbar">
+                                <button class="sympy-live-eval-button">Run code block in SymPy
+                                    Live
+                                </button>
+                            </div>
+                            <div class="highlight">
+                                <pre>
+                                    <div
+                                    class="live-statement"><span></span><span class="gp">&gt;&gt;&gt; </span><span
+                                    class="kn">from</span> <span class="nn">sympy</span> <span
+                                    class="kn">import</span> <span class="o">*</span>
+</div><div class="live-statement"><span class="gp">&gt;&gt;&gt; </span><span
+                                    class="n">x</span> <span class="o">=</span> <span class="n">symbols</span><span
+                                    class="p">(</span><span class="s1">'x'</span><span
+                                    class="p">)</span>
+</div><div><span class="go">Result</span>
+</div></pre>
+                            </div>
+                        </div>
+                        <p>P3</p>
+                        <p>P4</p>
+                    </section>
+                    <section id="exercises">
+                        <h2>Exercises<a class="headerlink"
+                                        href="https://docs.sympy.org/latest/tutorial/preliminaries.html#exercises"
+                                        title="Permalink to this headline">¶</a></h2>
+                        <p>Exercises P</p>
+                    </section>
+                </section>
+
+
+                <div class="clearer"></div>
+            </div>
+        </div>
+    </div>
+    <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+            <p class="logo"><a href="https://docs.sympy.org/latest/index.html">
+                <img class="logo" src="./sympy_files/sympylogo.png" alt="Logo">
+            </a></p>
+            <div>
+                <h3><a href="https://docs.sympy.org/latest/index.html">Table of Contents</a></h3>
+                <ul>
+                    <li><a class="reference internal"
+                           href="https://docs.sympy.org/latest/tutorial/preliminaries.html#">Preliminaries</a>
+                        <ul>
+                            <li><a class="reference internal"
+                                   href="https://docs.sympy.org/latest/tutorial/preliminaries.html#installation">Installation</a>
+                            </li>
+                            <li><a class="reference internal"
+                                   href="https://docs.sympy.org/latest/tutorial/preliminaries.html#exercises">Exercises</a>
+                            </li>
+                        </ul>
+                    </li>
+                </ul>
+
+            </div>
+            <div>
+                <h4>Previous topic</h4>
+                <p class="topless"><a href="https://docs.sympy.org/latest/tutorial/index.html"
+                                      title="previous chapter">SymPy Tutorial</a></p>
+            </div>
+            <div>
+                <h4>Next topic</h4>
+                <p class="topless"><a href="https://docs.sympy.org/latest/tutorial/intro.html"
+                                      title="next chapter">Introduction</a></p>
+            </div>
+            <div role="note" aria-label="source link">
+                <h3>This Page</h3>
+                <ul class="this-page-menu">
+                    <li>
+                        <a href="https://docs.sympy.org/latest/_sources/tutorial/preliminaries.rst.txt"
+                           rel="nofollow">Show Source</a></li>
+                </ul>
+            </div>
+            <div id="searchbox" style="" role="search">
+                <h3 id="searchlabel">Quick search</h3>
+                <div class="searchformwrapper">
+                    <form class="search" action="https://docs.sympy.org/latest/search.html"
+                          method="get" data-dashlane-rid="f1657433b4796492" data-form-type="">
+                        <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off"
+                               autocorrect="off" autocapitalize="off" spellcheck="false"
+                               data-dashlane-rid="e93dda892ccf6e44" data-form-type="">
+                        <input type="submit" value="Go" data-dashlane-rid="b1b51c3e1127d93c"
+                               data-form-type="">
+                    </form>
+                </div>
+            </div>
+            <script>$('#searchbox').show(0);</script>
+        </div>
+    </div>
+    <div class="clearer"></div>
+</div>
+<div class="related" role="navigation" aria-label="related navigation">
+    <h3>Navigation</h3>
+    <ul>
+        <li class="right" style="margin-right: 10px">
+            <a href="https://docs.sympy.org/latest/genindex.html" title="General Index">index</a>
+        </li>
+        <li class="right">
+            <a href="https://docs.sympy.org/latest/py-modindex.html" title="Python Module Index">modules</a>
+            |
+        </li>
+        <li class="right">
+            <a href="https://docs.sympy.org/latest/tutorial/intro.html"
+               title="Introduction">next</a> |
+        </li>
+        <li class="right">
+            <a href="https://docs.sympy.org/latest/tutorial/index.html" title="SymPy Tutorial">previous</a>
+            |
+        </li>
+        <li class="nav-item nav-item-0"><a href="https://docs.sympy.org/latest/index.html">SymPy
+            1.10.1 documentation</a> »
+        </li>
+        <li class="nav-item nav-item-1"><a href="https://docs.sympy.org/latest/tutorial/index.html">SymPy
+            Tutorial</a> »
+        </li>
+        <li class="nav-item nav-item-this"><a
+                href="https://docs.sympy.org/latest/tutorial/preliminaries.html">Preliminaries</a>
+        </li>
+    </ul>
+</div>
+<div class="footer" role="contentinfo">
+    © Copyright 2022 SymPy Development Team.
+    Last updated on Mar 19, 2022.
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 4.4.0.
+</div>
+
+<div id="shell" style="display: block; width: 0px; height: 0px; opacity: 0;"
+     data-dashlane-rid="00aba2959c0ed2e1" data-form-type=""><h2><a href="https://live.sympy.org/">SymPy
+    Live Shell</a></h2>
+    <div class="sympy-live-output" style="">
+        <div>Python console for SymPy 1.5.1 (Python 2.7.18)
+
+            These commands were executed:
+            &gt;&gt;&gt; from __future__ import division
+            &gt;&gt;&gt; from sympy import *
+            &gt;&gt;&gt; x, y, z, t = symbols('x y z t')
+            &gt;&gt;&gt; k, m, n = symbols('k m n', integer=True)
+            &gt;&gt;&gt; f, g, h = symbols('f g h', cls=Function)
+
+        </div>
+    </div>
+    <textarea class="sympy-live-caret" rows="4" readonly="readonly"
+              data-dashlane-rid="4a8bd497d0827102"
+              data-form-type="">&gt;&gt;&gt;</textarea><textarea class="sympy-live-prompt" rows="4"
+                                                                 spellcheck="false"
+                                                                 autocorrect="off"
+                                                                 autocapitalize="off" readonly=""
+                                                                 data-dashlane-rid="de86dc57ce6512d9"
+                                                                 data-form-type=""></textarea>
+    <div class="sympy-live-autocompletions-container">
+        <div class="sympy-live-completions-toolbar">
+            <button id="sympy-live-completions-toggle" class="disabled"><i
+                    class="icon-caret-down"></i></button>
+            <button class="disabled" id="sympy-live-completions-prev" data-dashlane-label="true"
+                    data-dashlane-rid="416e14e1c3b703ad" data-form-type=""><i
+                    class="icon-angle-left"></i></button>
+            <button class="disabled" id="sympy-live-completions-next" data-dashlane-label="true"
+                    data-dashlane-rid="f739553afe25ca91" data-form-type=""><i
+                    class="icon-angle-right"></i></button>
+        </div>
+        <ol class="sympy-live-completions"><em>Completions here</em></ol>
+    </div>
+    <p class="sympy-live-toolbar" id="sympy-live-toolbar-main">
+        <button>Evaluate</button>
+        <button>Clear</button>
+        <button id="fullscreen-button">Go to SymPy Live</button>
+        <button id="make-one-off-button"
+                title="Make a URL that evaluates the session history"></button>
+    </p>
+    <div id="settings">
+        <h3 class="shown">
+            <div class="arrow"></div>
+            Settings
+        </h3>
+        <div class="content"><p>
+            <div><label for="output-format">Output Format</label><select id="output-format">
+                <option value="repr">Repr</option>
+                <option value="str">Str</option>
+                <option value="ascii">ASCII</option>
+                <option value="unicode">Unicode</option>
+                <option value="latex">LaTeX</option>
+            </select></div>
+            <div><label for="submit-behavior">Submit with</label><select id="submit-behavior">
+                <option value="enter">Enter</option>
+                <option value="shift-enter">Shift-Enter</option>
+            </select></div>
+            <div><label for="privacy">Privacy</label><select id="privacy">
+                <option value="on">On</option>
+                <option value="off">Off</option>
+            </select></div>
+            <div><label for="autocomplete">Complete with</label><select id="autocomplete">
+                <option value="tab">Tab</option>
+                <option value="ctrl-space">Ctrl-Space</option>
+            </select></div>
+            <div><span>Ctrl-Up/Down for history</span></div>
+            <div><label for="evalMode">Evaluation Mode:</label><select id="evalMode">
+                <option value="eval">Evaluate</option>
+                <option value="copy">Copy</option>
+            </select></div>
+            <div><label for="dockMode">Dock to Right</label><input id="dockMode" type="checkbox">
+            </div>
+            </p></div>
+    </div>
+</div>
+<button id="toggleShell" class="">
+    <div class="arrow"></div>
+    <span>Show SymPy Live Shell</span></button>
+</body>
+<grammarly-desktop-integration data-grammarly-shadow-root="true"></grammarly-desktop-integration>
+</html>
