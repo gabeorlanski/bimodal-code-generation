@@ -29,7 +29,7 @@ metrics:
 - bleu
 model: gpt2
 model_path: null
-name: PythonBaseline.LowLR.ParrotSmall
+name: TestGPT2
 num_proc: 4
 numpy_seed: 2
 objective: lm
