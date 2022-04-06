@@ -27,12 +27,20 @@ def get_snippets(code_str):
                 code.append(line[num_leading_space + 3:])
 
         if output.strip():
-            out.append({'context': block, 'code': '\n'.join(code), 'result': output.rstrip()})
-            block = []
+            if not block and out:
+                out[-1]['code'].extend(code)
+                out[-1]['result'].append(output.rstrip())
+            else:
+                out.append({'context': block, 'code': code, 'result': [output.rstrip()]})
+                block = []
         else:
             block.append('\n'.join(code))
     if block:
-        out.append({'context': block, 'code': None, 'result': output.rstrip()})
+        out.append({
+                       'context': block,
+                       'code'   : None,
+                       'result' : [output.rstrip()] if output.strip() else []
+                   })
     return out
 
 
@@ -80,12 +88,10 @@ def get_code_from_parsed_tutorial(name, parsed_tutorial, context=None):
     context = context or []
     for section_num, section in enumerate(parsed_tutorial):
 
-        for i, snip in get_snippets_from_sections(
-                section,
-                context,
-                sections_use_parent_ctx=['Elements are lists']
-        ):
+        for i, tag in enumerate(section):
+            if tag['tag'] != 'code' or '>>>' not in tag['text']:
+                continue
             total_updated += 1
-            section[i].update(snip)
+            section[i]['snippets'] = get_snippets(tag['text'])
     logger.debug(f"{name} had {total_updated} total code snippets")
     return total_updated, parsed_tutorial

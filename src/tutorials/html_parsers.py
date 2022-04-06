@@ -110,8 +110,12 @@ class TutorialHTMLParser:
                 ):
                     id_counter = child_idx
                     yield child_idx, child
+            elif not self.clean_text(tag.get_text()).strip():
+                id_counter -= 1
+                continue
             else:
-                assert section_title is not None
+                if section_title is None:
+                    raise ValueError('section is none')
                 id_counter += 1
                 out = {
                     'id'            : id_counter,
@@ -195,6 +199,16 @@ class LXMLParser(TutorialHTMLParser):
 
 class SympyParser(TutorialHTMLParser):
     NAME = "Sympy"
+    SPECIAL_PARAGRAPH_CLASSES = [
+        'math',
+        'admonition',
+        'topic'
+    ]
+    SPECIAL_CODE_CLASSES = [
+        'doctest',
+        'highlight-default',
+        'highlight-C'
+    ]
 
     def parse_code(self, tag: Tag) -> str:
         code_block = tag.find('pre')
@@ -212,8 +226,12 @@ class SympyParser(TutorialHTMLParser):
         if tag.name == 'section':
             return TagType.SECTION
         elif tag.name == 'div':
-            if 'doctest' in tag_classes:
+            if any(c in tag_classes for c in self.SPECIAL_CODE_CLASSES):
                 return TagType.CODE
+            elif any(c in tag_classes for c in self.SPECIAL_PARAGRAPH_CLASSES):
+                return TagType.PARAGRAPH
+            elif 'graphviz' in tag_classes:
+                return TagType.IGNORED
         elif tag.name == 'p':
             return TagType.PARAGRAPH
         elif tag.name in ['ul', 'ol', 'blockquote']:

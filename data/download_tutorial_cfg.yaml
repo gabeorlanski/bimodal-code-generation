@@ -20,4 +20,33 @@ lxml:
       element_classes: element_classes.html
       sax: sax.html
 
+sympy:
+  tutorial:
+    url: https://docs.sympy.org/latest/tutorial/
+    pages:
+      preliminaries: preliminaries.html
+      intro: intro.html
+      gotchas: gotchas.html
+      basic_operations: basic_operations.html
+      printing: printing.html
+      simplification: simplification.html
+      calculus: calculus.html
+      solvers: solvers.html
+      matrices: matrices.html
+      manipulation: manipulation.html
+  guides:
+    url: https://docs.sympy.org/latest/guides/
+    pages:
+      assumptions: assumptions.html
+      booleans: booleans.html
+  explanation:
+    url: https://docs.sympy.org/latest/explanation/
+    pages:
+      gotchas: gotchas.html
+  special_topics:
+    url: https://docs.sympy.org/latest/explanation/special_topics/
+    pages:
+      finite_diff_derivatives: finite_diff_derivatives.html
+      classification: classification.html
+
 
