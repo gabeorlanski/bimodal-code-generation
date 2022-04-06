@@ -1,13 +1,12 @@
 starting_commands: templates/commands/sbatch_experiment.txt
 experiments:
-  PythonBaseline.LowLR:
+  PythonBaseline:
     description: "Test Finetuning on github python"
     overrides:
       ++device: 0
       is_checkpoint: true
       objective: lm
       ++tracking.tags:
-        - O2
         - Github
       ++evaluation:
         num_generate_per_step: 200
@@ -39,21 +38,31 @@ experiments:
           max_val_samples: 5000
     ablations:
       - Model:
-          Neo125M:
-            description: GPT Neo 125M
-            overrides:
-              ++model: 'EleutherAI/gpt-neo-125M'
-            step_overrides:
-              PreTrain:
-                ++training.batch_size: 32
-                ++training.gradient_accumulation_steps: 1
-                ++training.gradient_checkpointing: True
-                ++training.fp16_opt_level: "O0"
+#          Neo125M:
+#            description: GPT Neo 125M
+#            overrides:
+#              ++model: 'EleutherAI/gpt-neo-125M'
+#            step_overrides:
+#              PreTrain:
+#                ++training.batch_size: 32
+#                ++training.gradient_accumulation_steps: 1
+#                ++training.gradient_checkpointing: True
+#                ++training.fp16_opt_level: "O0"
+#
+#          ParrotSmall:
+#            description: CodeParrot Small
+#            overrides:
+#              ++model: 'lvwerra/codeparrot-small'
+#            step_overrides:
+#              PreTrain:
+#                ++training.batch_size: 32
+#                ++training.gradient_accumulation_steps: 1
+#                ++training.gradient_checkpointing: True
 
-          ParrotSmall:
-            description: CodeParrot Small
+          GPT2:
+            description: GPT2 Base
             overrides:
-              ++model: 'lvwerra/codeparrot-small'
+              ++model: 'gpt2'
             step_overrides:
               PreTrain:
                 ++training.batch_size: 32
@@ -74,7 +83,7 @@ experiments:
           training:
             dataloader_num_workers: 0
             fp16_opt_level: O1
-            learning_rate: 5.0e-07
+            learning_rate: 5.0e-05
             warmup_steps: 750
             eval_steps: 500
             lr_scheduler_type: cosine
