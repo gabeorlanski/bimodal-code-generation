@@ -18,3 +18,4 @@ params:
   highest_is_best: False
   allow_negative_best_answer: False
   worst_is_best: False
+  relative_quality: False

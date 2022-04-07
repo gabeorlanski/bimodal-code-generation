@@ -20,3 +20,7 @@ base:
   template: '{{ input_sequence }}
 
 {{ context }}'
+quality_before:
+  template: "{{ quality }} SOLUTION
+
+  {{ input_sequence|trim}}{{ '\n' }}"

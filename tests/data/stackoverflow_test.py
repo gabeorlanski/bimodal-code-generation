@@ -116,7 +116,7 @@ class TestStackOverflowProcessor:
         if repeat_prompt:
             for i, v in enumerate(quality_strs):
                 if i > 0 and not repeat_question:
-                    prompt_kwargs['question'] = None
+                    prompt_kwargs['context'] = None
                 prompt_kwargs['quality'] = v[0]
                 prompt_kwargs['answer_score'] = v[1]
                 expected_inputs.append(
@@ -178,3 +178,64 @@ class TestStackOverflowProcessor:
             assert result == "<p>NL Inline Code\nNL 2</p>"
         else:
             assert result == "<code>CodeBlock</code>"
+
+    def test_relative_quality(self):
+        sample = {
+            "line" : 5991, "body": "<p>Body</p>", "type": 1, "id": "13454",
+            "date" : "2008-08-17T01:23:50.067", "score": 13, "comment_count": 0,
+            "tags" : ["python", "string", "escaping"], "title": "Title", "answer_count": 5,
+            "views": 8027, "accepted_answer": "13456", "answers": {
+                "13608"   : {
+                    "line"     : 6083, "body": "<pre><code>Answer 1</code></pre>", "type": 2,
+                    "id"       : "13608",
+                    "date"     : "2009-11-17T12:55:25.100", "score": -1, "comment_count": 0,
+                    "parent_id": "13454"
+                }, "13456": {
+                    "line"     : 5993, "body": "<p>Answer 2</p>", "type": 2, "id": "13456",
+                    "date"     : "2009-11-17T01:26:52.043", "score": 0, "comment_count": 0,
+                    "parent_id": "13454"
+                }, "13598": {
+                    "line"     : 6077, "body": "<p>Answer 3</p>", "type": 2, "id": "13598",
+                    "date"     : "2009-11-17T12:15:13.170", "score": 10, "comment_count": 0,
+                    "parent_id": "13454"
+                }
+            }
+        }
+
+        prompt_fn = MagicMock()
+        prompt_fn.side_effect = lambda f: (
+            f"{f['quality']} {f['input_sequence']} {f['context']}"
+        )
+        processor = stackoverflow.StackOverflowProcessor(
+            prompt_fn=prompt_fn,
+            relative_quality=True,
+            repeat_prompt_each_answer=True
+        )
+        expected_qualities = [
+            'BEST',
+            '2ND',
+            '3RD'
+        ]
+
+        expected_inputs = []
+        prompt_kwargs = {
+            "input_sequence": "Title",
+            "question_score": "13",
+            "context"       : "Body",
+            "tags"          : "python,string,escaping",
+        }
+        for q in expected_qualities:
+            prompt_kwargs['quality'] = q
+            expected_inputs.append(prompt_fn.side_effect(prompt_kwargs))
+
+        expected_answers = [
+            "Answer 2",
+            "Answer 3",
+            "Answer 1"
+        ]
+        result = processor(sample)
+        assert len(result) == len(expected_inputs)
+        for i, (actual, expected_input, expected_answer) in enumerate(
+                zip(result, expected_inputs, expected_answers)):
+            assert actual['input'] == expected_input, i
+            assert actual['labels'] == expected_answer, i

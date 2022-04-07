@@ -14,6 +14,23 @@ logger = logging.getLogger(__name__)
 logging.getLogger("transformers.tokenization_utils").setLevel(logging.ERROR)
 
 
+def make_ordinal(n):
+    '''
+    Convert an integer into its ordinal representation::
+
+        make_ordinal(0)   => '0th'
+        make_ordinal(3)   => '3rd'
+        make_ordinal(122) => '122nd'
+        make_ordinal(213) => '213th'
+    '''
+    n = int(n)
+    if 11 <= (n % 100) <= 13:
+        suffix = 'th'
+    else:
+        suffix = ['th', 'st', 'nd', 'rd', 'th'][min(n % 10, 4)]
+    return str(n) + suffix
+
+
 class StackOverflowProcessor:
     def __init__(
             self,
@@ -33,7 +50,8 @@ class StackOverflowProcessor:
             highest_is_best: bool = False,
             allow_negative_best_answer: bool = False,
             worst_is_best: bool = False,
-            add_body_to_input_sequence: bool = False
+            add_body_to_input_sequence: bool = False,
+            relative_quality: bool = False
     ):
         self.answer_sorting = answer_sorting.lower()
         if self.answer_sorting not in ['ascending', 'descending', 'accepted']:
@@ -54,6 +72,7 @@ class StackOverflowProcessor:
         self.worst_is_best = worst_is_best
         self.allow_negative_best_answer = allow_negative_best_answer
         self.add_body_to_input_sequence = add_body_to_input_sequence
+        self.relative_quality = relative_quality
         if wrap_answer_character:
             if wrap_answer_character.upper() in ['BLOCK', 'LINE']:
                 self.wrap_answer_character = wrap_answer_character.upper()
@@ -151,23 +170,26 @@ class StackOverflowProcessor:
             'question_date' : question_date
         }
 
-    def process_answer(self, answer: List[Tag], score, date, is_best_answer):
+    def get_quality_from_answer(self, idx, score, is_best_answer):
+        if not self.relative_quality:
+            if is_best_answer:
+                return 'BEST'
+            elif score >= self.top_answer_cutoff:
+                return 'GREAT'
+            elif score >= self.good_answer_cutoff:
+                return "GOOD"
+            elif score <= self.bad_answer_cutoff:
+                return "BAD"
+            return "OK"
+        else:
+            if is_best_answer:
+                return "BEST"
+            return make_ordinal(idx + 1).upper()
+
+    def process_answer(self, answer: List[Tag], quality_str, date):
 
         if not answer:
             return self.no_answer_str
-
-        quality_str = None
-        if self.good_answer_cutoff is not None and self.bad_answer_cutoff is not None:
-            if is_best_answer:
-                quality_str = 'BEST'
-            elif score >= self.top_answer_cutoff:
-                quality_str = 'GREAT'
-            elif score >= self.good_answer_cutoff:
-                quality_str = "GOOD"
-            elif score <= self.bad_answer_cutoff:
-                quality_str = "BAD"
-            else:
-                quality_str = "OK"
 
         return self.turn_body_into_str(answer), {
             'quality'    : quality_str,
@@ -283,8 +305,9 @@ class StackOverflowProcessor:
 
             answers_processed.append(
                 self.process_answer(
-                    answer['body'], answer['score'], answer['date'],
-                    is_best_answer
+                    answer['body'],
+                    self.get_quality_from_answer(i, answer['score'], is_best_answer),
+                    answer['date']
                 )
             )
 

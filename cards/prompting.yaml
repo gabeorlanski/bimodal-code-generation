@@ -24,16 +24,17 @@ experiments:
       ++prompts:
         file: templates/so_prompts.yaml
       ++processor.params.remove_modality: "NL"
+      ++processor.params.relative_quality: True
     ablations:
       - Model:
-#          Neo125M:
-#            description: GPT Neo 125M
-#            overrides:
-#              ++model: 'EleutherAI/gpt-neo-125M'
-#            step_overrides:
-#              PreTrain:
-#                ++training.batch_size: 32
-#                ++training.gradient_accumulation_steps: 1
+          Neo125M:
+            description: GPT Neo 125M
+            overrides:
+              ++model: 'EleutherAI/gpt-neo-125M'
+            step_overrides:
+              PreTrain:
+                ++training.batch_size: 32
+                ++training.gradient_accumulation_steps: 1
           ParrotSmall:
             description: CodeParrot Small
             overrides:
@@ -59,20 +60,25 @@ experiments:
 #            hypothesis: Slight Improvement B/C of "TITLE"
 #            prompts.pipe:
 #              - quality_after
-          AnswerYearMonth:
-            description: The year and month of the answer followed by the title
-            hypothesis: 'Should improve results as it handles the issue of deprecated code,
-            should also be better than the question date'
+#          AnswerYearMonth:
+#            description: The year and month of the answer followed by the title
+#            hypothesis: 'Should improve results as it handles the issue of deprecated code,
+#            should also be better than the question date'
+#            prompts.pipe:
+#              - answer_date_before
+#            ++processor.params.date_format_str: "%Y-%m"
+#          QuestionYearMonth:
+#            description: The year and month of the question followed by the title
+#            hypothesis: 'Should improve results as it handles the issue of deprecated code,
+#            should also be worse than the answer date'
+#            prompts.pipe:
+#              - question_date_before
+#            ++processor.params.date_format_str: "%Y-%m"
+          QualityBefore:
+            description: The quality adjective based on the answers score followed by the title
+            hypothesis: Slight Improvement B/C of The Relative Quality
             prompts.pipe:
-              - answer_date_before
-            ++processor.params.date_format_str: "%Y-%m"
-          QuestionYearMonth:
-            description: The year and month of the question followed by the title
-            hypothesis: 'Should improve results as it handles the issue of deprecated code,
-            should also be worse than the answer date'
-            prompts.pipe:
-              - question_date_before
-            ++processor.params.date_format_str: "%Y-%m"
+              - quality_before
     steps:
       - name: PreTrain
         description: Finetune on the SO Data
