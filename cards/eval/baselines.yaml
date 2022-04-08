@@ -67,7 +67,7 @@ experiments:
         group: HUMAN_EVAL
         overrides:
           task: human_eval
-          ++is_checkpoint: true
+          ++is_checkpoint: false
           ++model_path: outputs/so/${..__META__.ablation.name}/best_model
           tracking:
             log_model: False
