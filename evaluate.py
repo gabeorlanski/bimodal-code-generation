@@ -219,6 +219,7 @@ def eval_from_checkpoint(
     )
 
     if not cfg.get('zero_shot', False):
+        print("USING ZERO SHOT MODE")
         if train_dir.stem != 'best_model':
             best_model_path = train_dir.joinpath('best_model')
         else:
