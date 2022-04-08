@@ -42,11 +42,16 @@ experiments:
             description: GPT2 Base
             overrides:
               ++model: 'gpt2'
+              ++evaluation:
+                num_generate_per_step: 175
+                remove_input_ids: True
+                seq_per_sample: 200
             step_overrides:
               PreTrain:
                 ++training.batch_size: 32
                 ++training.gradient_accumulation_steps: 1
                 ++training.gradient_checkpointing: True
+
     steps:
       - name: PreTrain
         description: Finetune on the SO Data
