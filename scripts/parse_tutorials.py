@@ -45,20 +45,41 @@ def parse_tutorials(debug, input_path, output_path):
     logger.info(f"Parsing tutorials from {input_path}")
     logger.info(f"Saving to {output_path}")
 
+    cfg = yaml.load(
+        PROJECT_ROOT.joinpath(input_path).open('r'),
+        yaml.Loader
+    )
+
+    maps_path = PROJECT_ROOT.joinpath('data', 'crawled_maps')
+    crawled_path = PROJECT_ROOT.joinpath('data', 'crawled_tutorials')
+
     if not output_path.exists():
         output_path.mkdir(parents=True)
+    logger.info(f"{len(cfg)} total unique domains to parse")
+    for domain, groups in cfg.items():
+        logger.info(f"Looking for {len(groups)} group(s) for {domain}")
+        path_to_name = {}
+        for g, paths in groups.items():
+            path_to_use = paths['path'] + '/' if paths['path'] != '/' else '/'
+            for n, f in paths['pages'].items():
+                path_to_name[f"{path_to_use}{f}"] = f"{g}_{n}"
 
-    domains = list(input_path.glob('*'))
-    logger.info(f"{len(domains)} total unique domains to parse")
-    for domain_path in domains:
-        domain = domain_path.stem
+        json_map = json.loads(maps_path.joinpath(f'{domain}.json').read_text())
+
+        to_parse = {}
+        found = []
+        for d in json_map:
+            url_path = urlparse(d['url']).path
+            if url_path in path_to_name:
+                if path_to_name[url_path] in found:
+                    raise ValueError("!!!DUPLICATES!!!")
+                found.append(path_to_name[url_path])
+                to_parse[d['cleaned_name']] = path_to_name[url_path]
+
+        logger.info(f"{len(found)}/{len(path_to_name)} found")
         parser = get_parser_for_domain(domain)
 
-        files = list(domain_path.glob('*'))
-        logger.info(
-            f"Parsing {len(files)} file{'s' if len(files) > 1 else ''} "
-            f"for {domain_path.stem}"
-        )
+        files = {crawled_path.joinpath(domain, p): v for p, v in to_parse.items()}
 
         domain_out = output_path.joinpath(domain)
         if domain_out.exists():
@@ -69,7 +90,7 @@ def parse_tutorials(debug, input_path, output_path):
 
         total_elements_found = 0
         total_code_found = 0
-        for file in tqdm(files, desc='parsing'):
+        for file, out_name in tqdm(files.items(), desc='parsing'):
             try:
                 parsed = parser(file.read_text())
             except Exception as e:
@@ -78,7 +99,8 @@ def parse_tutorials(debug, input_path, output_path):
             total_elements_found += sum(map(len, parsed))
             code_found, parsed = get_code_from_parsed_tutorial(file.stem, parsed)
             total_code_found += code_found
-            with domain_out.joinpath(f'{file.stem}.json').open('w') as f:
+
+            with domain_out.joinpath(f'{out_name}.json').open('w') as f:
                 json.dump(parsed, f, indent=True)
 
         logger.info(f"{total_elements_found} total elements found for {domain}")

@@ -13,7 +13,7 @@ echo "#!/bin/bash" >> {{cancel_file}}
 he_so{{idx}}=$(sbatch --job-name='{{ job_name }}_he' \
 	--time={{ finetune_time }} \
 	--parsable \
-	eval.sbatch {{FineTune.model_path}} human_eval {{ PreTrain.path }})
+	eval.sbatch {{FineTune.model_path}} human_eval {{ HEEval.path }})
 echo "Submitted HumanEval (id=$he_so{{idx}})"
 echo "scancel $he_so{{idx}}" >> {{cancel_file}}
 

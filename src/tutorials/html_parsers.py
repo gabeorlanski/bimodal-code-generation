@@ -17,6 +17,15 @@ GET_CODE_BLOCK = re.compile(
 DOUBLE_WHITESPACE = re.compile(r'\s{2,}', flags=re.MULTILINE)
 REMOVE_PRINT = re.compile(r'print\(([^\n]+)\)', flags=re.DOTALL)
 
+__all__ = [
+    "TagType",
+    "TutorialHTMLParser",
+    "SympyParser",
+    "LXMLParser",
+    "PassLibParser",
+    "PyNaClParser"
+]
+
 
 class TagType(Enum):
     PARAGRAPH = auto()
@@ -29,6 +38,27 @@ class TagType(Enum):
 
 class TutorialHTMLParser:
     NAME = None
+
+    PARAGRAPH_CLASSES = [
+        'math',
+        'admonition',
+        'topic',
+        'versionadded',
+        'versionchanged',
+        'note',
+        'deprecated'
+    ]
+    CODE_CLASSES = [
+        'doctest',
+        'syntax',
+    ]
+    IGNORED_CLASSES = [
+        'toctree-wrapper',
+        'graphviz'
+    ]
+    IGNORED_TAGS = [
+        'figure'
+    ]
 
     def get_type_of_tag(self, tag: Tag) -> TagType:
         """
@@ -76,6 +106,21 @@ class TutorialHTMLParser:
     def clean_text(text):
         return unidecode(text)
 
+    def get_type_from_div_tag(self, tag) -> TagType:
+        tag_classes = tag.attrs.get('class', [])
+        if any('highlight-' in c for c in tag_classes):
+            return TagType.CODE
+
+        if any(c in tag_classes for c in self.CODE_CLASSES):
+            return TagType.CODE
+
+        elif any(c in tag_classes for c in self.PARAGRAPH_CLASSES):
+            return TagType.PARAGRAPH
+
+        elif any(c in tag_classes for c in self.IGNORED_CLASSES):
+            return TagType.IGNORED
+        return TagType.UNKNOWN
+
     #####################################################################
     # THESE ARE NOT TO BE IMPLEMENTED BY SUBCLASSES                     #
     #####################################################################
@@ -91,12 +136,17 @@ class TutorialHTMLParser:
         id_counter += 1
         section_id = id_counter
         section_title = None
+        header_tag = [f'h{j}' for j in range(15)]
         for i, tag in enumerate(section.children):
             if isinstance(tag, NavigableString):
                 continue
-            if tag.name in ['h1', 'h2', 'h3', 'h4']:
+            if tag.name in header_tag:
                 assert section_title is None
                 section_title = self.parse_title(tag)
+                continue
+
+            if tag.name in self.IGNORED_TAGS:
+                logger.debug(f"Skipping {tag.name} at {i}. In Ignored")
                 continue
 
             logger.debug(f"{self.NAME}: Parsing child {i} of {section_title} for {parent_id}")
@@ -139,8 +189,8 @@ class TutorialHTMLParser:
                     id_counter -= 1
                     continue
                 else:
-                    print(tag.name)
-                    print(tag.attrs)
+                    logger.error(tag.text)
+                    logger.error(tag.attrs)
                     raise ValueError(f'Unknown tag type {tag.name}')
 
                 yield id_counter, out
@@ -175,6 +225,7 @@ class LXMLParser(TutorialHTMLParser):
                 return TagType.CODE
             elif 'note' in tag_classes:
                 return TagType.PARAGRAPH
+            return self.get_type_from_div_tag(tag)
         elif tag.name == 'pre':
             if 'literal-block' in tag_classes:
                 return TagType.CODE
@@ -198,17 +249,7 @@ class LXMLParser(TutorialHTMLParser):
 
 
 class SympyParser(TutorialHTMLParser):
-    NAME = "Sympy"
-    SPECIAL_PARAGRAPH_CLASSES = [
-        'math',
-        'admonition',
-        'topic'
-    ]
-    SPECIAL_CODE_CLASSES = [
-        'doctest',
-        'highlight-default',
-        'highlight-C'
-    ]
+    NAME = "sympy"
 
     def parse_code(self, tag: Tag) -> str:
         code_block = tag.find('pre')
@@ -222,16 +263,10 @@ class SympyParser(TutorialHTMLParser):
         return self.clean_text(tag.get_text())
 
     def get_type_of_tag(self, tag: Tag) -> TagType:
-        tag_classes = tag.attrs.get('class', [])
         if tag.name == 'section':
             return TagType.SECTION
         elif tag.name == 'div':
-            if any(c in tag_classes for c in self.SPECIAL_CODE_CLASSES):
-                return TagType.CODE
-            elif any(c in tag_classes for c in self.SPECIAL_PARAGRAPH_CLASSES):
-                return TagType.PARAGRAPH
-            elif 'graphviz' in tag_classes:
-                return TagType.IGNORED
+            return self.get_type_from_div_tag(tag)
         elif tag.name == 'p':
             return TagType.PARAGRAPH
         elif tag.name in ['ul', 'ol', 'blockquote']:
@@ -246,6 +281,83 @@ class SympyParser(TutorialHTMLParser):
         body = soup.find(
             'div',
             {'class': 'body'}
+        )
+
+        return [], body.find_all('section', recursive=False)
+
+
+class PassLibParser(TutorialHTMLParser):
+    NAME = "passlib"
+
+    def parse_code(self, tag: Tag) -> str:
+        code_block = tag.find('pre')
+        assert code_block is not None
+        return self.clean_text(code_block.get_text()).lstrip()
+
+    def parse_title(self, tag: Tag) -> str:
+        header_link = tag.find('a')
+        if header_link is not None:
+            header_link.extract()
+        return self.clean_text(tag.get_text())
+
+    def get_type_of_tag(self, tag: Tag) -> TagType:
+        tag_classes = tag.attrs.get('class', [])
+        if tag.name == 'div':
+            if 'section' in tag_classes:
+                return TagType.SECTION
+            return self.get_type_from_div_tag(tag)
+        elif tag.name == 'p':
+            return TagType.PARAGRAPH
+        elif tag.name in ['ul', 'ol', 'blockquote']:
+            return TagType.LIST
+        elif tag.name in ['table', 'img', 'dl', 'aside']:
+            return TagType.IGNORED
+
+        return TagType.UNKNOWN
+
+    def get_header_and_sections(self, soup) -> Tuple[List[Tag], List[Tag]]:
+
+        body = soup.find(
+            'div',
+            {'class': 'body'}
+        )
+
+        return [], body.find_all('div', {'class': 'section'}, recursive=False)
+
+
+class PyNaClParser(TutorialHTMLParser):
+    NAME = "pynacl"
+
+    def parse_code(self, tag: Tag) -> str:
+        code_block = tag.find('pre')
+        assert code_block is not None
+        return self.clean_text(code_block.get_text()).lstrip()
+
+    def parse_title(self, tag: Tag) -> str:
+        header_link = tag.find('a')
+        if header_link is not None:
+            header_link.extract()
+        return self.clean_text(tag.get_text())
+
+    def get_type_of_tag(self, tag: Tag) -> TagType:
+        if tag.name == 'section':
+            return TagType.SECTION
+        elif tag.name == 'div':
+            return self.get_type_from_div_tag(tag)
+        elif tag.name == 'p':
+            return TagType.PARAGRAPH
+        elif tag.name in ['ul', 'ol', 'blockquote']:
+            return TagType.LIST
+        elif tag.name in ['table', 'img', 'dl', 'aside']:
+            return TagType.IGNORED
+
+        return TagType.UNKNOWN
+
+    def get_header_and_sections(self, soup) -> Tuple[List[Tag], List[Tag]]:
+
+        body = soup.find(
+            'div',
+            {'itemprop': 'articleBody'}
         )
 
         return [], body.find_all('section', recursive=False)

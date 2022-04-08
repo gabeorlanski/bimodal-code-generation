@@ -1,6 +1,6 @@
 starting_commands: templates/commands/sbatch_experiment.txt
 experiments:
-  PythonBaseline.WSolution:
+  PythonBaseline:
     description: "Test Finetuning on github python"
     overrides:
       ++device: 0
@@ -39,22 +39,31 @@ experiments:
           split: train
     ablations:
       - Model:
-          Neo125M:
-            description: GPT Neo 125M
+          #          Neo125M:
+          #            description: GPT Neo 125M
+          #            overrides:
+          #              ++model: 'EleutherAI/gpt-neo-125M'
+          #              ++training.gradient_checkpointing: True
+          #            step_overrides:
+          #              PreTrain:
+          #                ++training.batch_size: 32
+          #                ++training.gradient_accumulation_steps: 1
+          #                ++training.gradient_checkpointing: True
+          #                ++training.fp16_opt_level: "O0"
+          #
+          #          ParrotSmall:
+          #            description: CodeParrot Small
+          #            overrides:
+          #              ++model: 'lvwerra/codeparrot-small'
+          #            step_overrides:
+          #              PreTrain:
+          #                ++training.batch_size: 32
+          #                ++training.gradient_accumulation_steps: 1
+          #                ++training.gradient_checkpointing: True
+          GPT2:
+            description: GPT2 Base
             overrides:
-              ++model: 'EleutherAI/gpt-neo-125M'
-              ++training.gradient_checkpointing: True
-            step_overrides:
-              PreTrain:
-                ++training.batch_size: 32
-                ++training.gradient_accumulation_steps: 1
-                ++training.gradient_checkpointing: True
-                ++training.fp16_opt_level: "O0"
-
-          ParrotSmall:
-            description: CodeParrot Small
-            overrides:
-              ++model: 'lvwerra/codeparrot-small'
+              ++model: 'gpt2'
             step_overrides:
               PreTrain:
                 ++training.batch_size: 32
@@ -72,16 +81,33 @@ experiments:
             log_model: True
           is_checkpoint: true
           ++task.sequence_length: 1024
+          ++model_path: outputs/so/PythonBaseline.${..__META__.ablation.name}/checkpoints/checkpoint-25000
           training:
             dataloader_num_workers: 0
             fp16_opt_level: O1
           task: hf_pretrain
+      - name: HEEval
+        description: Evaluate the model on HumanEval
+        base: mbpp_finetune
+        group: HUMAN_EVAL
+        overrides:
+          task: human_eval
+          ++is_checkpoint: true
+          ++model_path: outputs/so/PythonBaseline.${..__META__.ablation.name}/checkpoints/checkpoint-25000
+          tracking:
+            log_model: False
+            watch: null
+            watch: null
       - name: FineTune
         add_name: False
         description: Finetune on the MBPP Data
         base: mbpp_finetune
         group: MBPP
         overrides:
+          ++prompts:
+            file: templates/mbpp_prompts.yaml
+            pipe:
+              - basic_with_solution
           task: mbpp
           ++is_checkpoint: True
           ++model_path: outputs/so/PythonBaseline.${..__META__.ablation.name}/checkpoints/checkpoint-25000
@@ -93,6 +119,10 @@ experiments:
         base: mbpp_finetune
         group: MBPP
         overrides:
+          ++prompts:
+            file: templates/mbpp_prompts.yaml
+            pipe:
+              - basic_with_solution
           task: mbpp
           ++is_checkpoint: true
           ++model_path: outputs/mbpp/PythonBaseline.${..__META__.ablation.name}/best_model
@@ -105,7 +135,7 @@ experiments:
             pipe:
               - basic_with_solution
     command:
-      file: templates/commands/mbpp_eval.txt
+      file: templates/commands/evaluate_model.txt
       kwargs:
         num_return_sequences: 200
         task_name: MBPP

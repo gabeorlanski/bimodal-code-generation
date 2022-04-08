@@ -15,8 +15,9 @@ logger = logging.getLogger()
 class TutorialSpider(CrawlSpider):
     name = 'docspider'
 
-    def __init__(self, out_name, output_path, url, allowed_path, *a, **kw):
+    def __init__(self, out_name, output_path, url, allowed_path, disallow=None, *a, **kw):
         super().__init__(*a, **kw)
+        disallow = disallow or []
 
         if not url.startswith('http://') and not url.startswith('https://'):
             url = 'http://%s/' % url
@@ -27,7 +28,8 @@ class TutorialSpider(CrawlSpider):
         self.allowed_path = allowed_path
         self.link_extractor = LinkExtractor(
             allow=urljoin(urlparse(url).hostname, allowed_path) + r'/.*',
-            deny_extensions=IGNORED_EXTENSIONS + ['php', 'rst', 'txt']
+            deny=disallow,
+            deny_extensions=IGNORED_EXTENSIONS + ['php', 'rst', 'txt', 'tgz', 'asc', 'gz']
         )
         self.cookies_seen = set()
 
@@ -48,8 +50,9 @@ class TutorialSpider(CrawlSpider):
         @scrapes url title foo
         """
         cleaned_name = urlparse(response.url).path[1:]
-        assert self.allowed_path in cleaned_name
-        cleaned_name = cleaned_name[len(self.allowed_path):]
+        if self.allowed_path:
+            assert self.allowed_path in cleaned_name
+            cleaned_name = cleaned_name[len(self.allowed_path):]
         if cleaned_name.startswith('/'):
             cleaned_name = cleaned_name[1:]
         if not cleaned_name:
@@ -57,8 +60,11 @@ class TutorialSpider(CrawlSpider):
         cleaned_name = cleaned_name.replace('/', '_')
         if not cleaned_name.endswith('.html'):
             cleaned_name = f'{cleaned_name}.html'
-        logger.info(f'Saving {cleaned_name}')
         out_file = self.output_path.joinpath(cleaned_name)
+        if out_file.exists():
+            logger.warning(f"Not saving {response.url} as it is a duplicate")
+            return []
+        logger.info(f'Saving {cleaned_name}')
         with out_file.open('w') as f:
             f.write(response.text.strip())
         page = self._get_item(response, cleaned_name)

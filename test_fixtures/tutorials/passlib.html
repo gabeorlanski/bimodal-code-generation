@@ -1,0 +1,178 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+        "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en">
+<head>
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge"/>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+    <title>PasswordHash Tutorial &#8212; Passlib v1.7.4 Documentation</title>
+    <link rel="stylesheet" href="../_static/cloud.css" type="text/css"/>
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css"/>
+    <link rel="stylesheet" type="text/css" href="../_static/table_styling.css"/>
+    <link rel="stylesheet" type="text/css"
+          href="https://assets.readthedocs.org/static/css/badge_only.css"/>
+    <link rel="stylesheet" type="text/css"
+          href="https://fonts.googleapis.com/css?family=Noticia+Text:400,i,b,bi|Open+Sans:400,i,b,bi|Roboto+Mono:400,i,b,bi&display=swap"/>
+
+    <script type="text/javascript" id="documentation_options" data-url_root="../"
+            src="../_static/documentation_options.js"></script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <script type="text/javascript" src="../_static/language_data.js"></script>
+    <script async="async" type="text/javascript"
+            src="https://assets.readthedocs.org/static/javascript/readthedocs-doc-embed.js"></script>
+
+
+    <script type="text/javascript" src="../_static/jquery.cookie.js"></script>
+
+
+    <script type="text/javascript" src="../_static/cloud.base.js"></script>
+
+
+    <script type="text/javascript" src="../_static/cloud.js"></script>
+
+
+    <link rel="shortcut icon" href="../_static/logo.ico"/>
+    <link rel="index" title="Index" href="../genindex.html"/>
+    <link rel="search" title="Search" href="../search.html"/>
+    <link rel="copyright" title="Copyright" href="../copyright.html"/>
+    <link rel="next" title="CryptContext Tutorial" href="context-tutorial.html"/>
+    <link rel="prev" title="New Application Quickstart Guide" href="quickstart.html"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <!-- RTD Extra Head -->
+
+    <!--
+    Always link to the latest version, as canonical.
+    http://docs.readthedocs.org/en/latest/canonical.html
+    -->
+    <link rel="canonical" href="https://passlib.readthedocs.io/en/stable/narr/hash-tutorial.html"/>
+
+    <link rel="stylesheet"
+          href="https://assets.readthedocs.org/static/css/readthedocs-doc-embed.css"
+          type="text/css"/>
+
+    <script type="text/javascript" src="../_static/readthedocs-data.js"></script>
+
+    <!-- Add page-specific data, which must exist in the page js, not global -->
+    <script type="text/javascript">
+        READTHEDOCS_DATA['page'] = "narr/hash-tutorial"
+        READTHEDOCS_DATA['source_suffix'] = ".rst"
+    </script>
+
+    <script type="text/javascript"
+            src="https://assets.readthedocs.org/static/javascript/readthedocs-analytics.js"
+            async="async"></script>
+
+    <!-- end RTD <extrahead> -->
+</head>
+<body>
+<div class="relbar-top">
+
+    <div class="related" role="navigation" aria-label="related navigation">
+        <h3>Navigation</h3>
+        <ul>
+            <li class="right" style="margin-right: 10px">
+                <a href="../genindex.html" title="General Index"
+                   accesskey="I">index</a></li>
+            <li class="right">
+                <a href="../py-modindex.html" title="Python Module Index"
+                >modules</a> &nbsp; &nbsp;
+            </li>
+            <li class="right">
+                <a href="../contents.html" title="Table Of Contents"
+                   accesskey="C">toc</a> &nbsp; &nbsp;
+            </li>
+            <li class="right">
+                <a href="context-tutorial.html" title="CryptContext Tutorial"
+                   accesskey="N">next</a> &nbsp; &nbsp;
+            </li>
+            <li class="right">
+                <a href="quickstart.html" title="New Application Quickstart Guide"
+                   accesskey="P">previous</a> &nbsp; &nbsp;
+            </li>
+            <li><a href="../index.html">Passlib 1.7 Documentation</a> &#187;</li>
+
+            <li class="nav-item nav-item-1"><a href="index.html" accesskey="U">Walkthrough &amp;
+                Tutorials</a> &#187;
+            </li>
+        </ul>
+    </div>
+</div>
+
+
+<div class="document">
+    <div class="documentwrapper">
+        <div class="bodywrapper">
+            <div class="body" role="main">
+                <div class="section" id="hashing-verifying">
+                    <div class="section" id="hashing">
+                        <h3>Hashing<a class="headerlink" href="#hashing"
+                                      title="Permalink to this headline">¶</a></h3>
+                        <p>First, import the desired hash. The following example uses the <a
+                                class="reference internal"
+                                href="../lib/passlib.hash.pbkdf2_digest.html#passlib.hash.pbkdf2_sha256"
+                                title="passlib.hash.pbkdf2_sha256"><code
+                                class="xref py py-class docutils literal notranslate"><span
+                                class="pre">pbkdf2_sha256</span></code></a> class
+                            (which derives from <code
+                                    class="xref py py-class docutils literal notranslate"><span
+                                    class="pre">PasswordHash</span></code>):</p>
+                        <div class="highlight-default notranslate">
+                            <div class="highlight"><pre><span></span><span
+                                    class="gp">&gt;&gt;&gt; </span><span class="c1"># import the desired hasher</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span
+                                        class="nn">passlib.hash</span> <span
+                                        class="kn">import</span> <span
+                                        class="n">pbkdf2_sha256</span>
+</pre>
+                            </div>
+                        </div>
+                        <p>Use <a class="reference internal"
+                                  href="../lib/passlib.ifc.html#passlib.ifc.PasswordHash.hash"
+                                  title="passlib.ifc.PasswordHash.hash"><code
+                                class="xref py py-meth docutils literal notranslate"><span
+                                class="pre">PasswordHash.hash()</span></code></a> to hash a
+                            password. This call takes care of unicode encoding,
+                            picking default rounds values, and generating a random salt:</p>
+                        <div class="highlight-default notranslate">
+                            <div class="highlight"><pre><span></span><span
+                                    class="gp">&gt;&gt;&gt; </span><span
+                                    class="nb">hash</span> <span class="o">=</span> <span class="n">pbkdf2_sha256</span><span
+                                    class="o">.</span><span class="n">hash</span><span
+                                    class="p">(</span><span
+                                    class="s2">&quot;password&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">hash</span>
+<span class="go">&#39;$pbkdf2-sha256$29000$9t7be09prfXee2/NOUeotQ$Y.RDnnq8vsezSZSKy1QNy6xhKPdoBIwc.0XDdRm9sJ8&#39;</span>
+</pre>
+                            </div>
+                        </div>
+                        <p>Note that since each call generates a new salt, the contents of the
+                            resulting
+                            hash will differ between calls (despite using the same password as
+                            input):</p>
+                        <div class="highlight-default notranslate">
+                            <div class="highlight"><pre><span></span><span
+                                    class="gp">&gt;&gt;&gt; </span><span
+                                    class="n">hash2</span> <span class="o">=</span> <span class="n">pbkdf2_sha256</span><span
+                                    class="o">.</span><span class="n">hash</span><span
+                                    class="p">(</span><span
+                                    class="s2">&quot;password&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">hash2</span>
+<span class="go">&#39;$pbkdf2-sha256$29000$V0rJeS.FcO4dw/h/D6E0Bg$FyLs7omUppxzXkARJQSl.ozcEOhgp3tNgNsKIAhKmp8&#39;</span>
+<span class="go">                      ^^^^^^^^^^^^^^^^^^^^^^</span>
+</pre>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+
+        </div>
+    </div>
+</div>
+</div>
+</body>
+</html>

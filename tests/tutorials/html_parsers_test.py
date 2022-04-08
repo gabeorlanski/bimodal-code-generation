@@ -137,3 +137,51 @@ def test_sympy(tutorial_fixtures_path):
             'section_str_id': 'exercises', 'child_idx': 3,
             'section_title' : 'Exercises', 'text': 'Exercises P', 'tag': 'p'
         }]
+
+
+def test_passlib(tutorial_fixtures_path):
+    parser = html_parsers.PassLibParser()
+    result = parser(
+        tutorial_fixtures_path.joinpath('passlib.html').read_text()
+    )
+
+    assert len(result) == 1
+    assert result[0] == [
+        {
+            'id'            : 3, 'parent_id': 1, 'section_id': 2,
+            'section_str_id': 'hashing', 'child_idx': 3,
+            'section_title' : 'Hashing',
+            'text'          : 'First, import the desired hash. The following example uses the pbkdf2_sha256 class (which derives from PasswordHash):',
+            'tag'           : 'p'
+        }, {
+            'id'            : 4, 'parent_id': 1, 'section_id': 2,
+            'section_str_id': 'hashing', 'child_idx': 5,
+            'section_title' : 'Hashing',
+            'text'          : '>>> # import the desired hasher\n>>> from passlib.hash import pbkdf2_sha256\n',
+            'tag'           : 'code'
+        }, {
+            'id'            : 5, 'parent_id': 1, 'section_id': 2,
+            'section_str_id': 'hashing', 'child_idx': 7,
+            'section_title' : 'Hashing',
+            'text'          : 'Use PasswordHash.hash() to hash a password. This call takes care of unicode encoding, picking default rounds values, and generating a random salt:',
+            'tag'           : 'p'
+        }, {
+            'id'            : 6, 'parent_id': 1, 'section_id': 2,
+            'section_str_id': 'hashing', 'child_idx': 9,
+            'section_title' : 'Hashing',
+            'text'          : '>>> hash = pbkdf2_sha256.hash("password")\n>>> hash\n\'$pbkdf2-sha256$29000$9t7be09prfXee2/NOUeotQ$Y.RDnnq8vsezSZSKy1QNy6xhKPdoBIwc.0XDdRm9sJ8\'\n',
+            'tag'           : 'code'
+        }, {
+            'id'            : 7, 'parent_id': 1, 'section_id': 2,
+            'section_str_id': 'hashing', 'child_idx': 11,
+            'section_title' : 'Hashing',
+            'text'          : 'Note that since each call generates a new salt, the contents of the resulting hash will differ between calls (despite using the same password as input):',
+            'tag'           : 'p'
+        }, {
+            'id'            : 8, 'parent_id': 1, 'section_id': 2,
+            'section_str_id': 'hashing', 'child_idx': 13,
+            'section_title' : 'Hashing',
+            'text'          : '>>> hash2 = pbkdf2_sha256.hash("password")\n>>> hash2\n\'$pbkdf2-sha256$29000$V0rJeS.FcO4dw/h/D6E0Bg$FyLs7omUppxzXkARJQSl.ozcEOhgp3tNgNsKIAhKmp8\'\n                      ^^^^^^^^^^^^^^^^^^^^^^\n',
+            'tag'           : 'code'
+        }
+    ]

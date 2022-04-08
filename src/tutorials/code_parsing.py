@@ -1,9 +1,10 @@
 import logging
 import re
 from copy import deepcopy
+import ast
 
 GET_CODE_BLOCK = re.compile(
-    r'>>>( *)((?:[^\n])+(?:\n\.\.\. ?[^\n]+)*)+(?:\n((?:(?!>>>)[^\n]+\n?)+)\n?)?',
+    r'>>>( *)((?:[^\n])+(?:\n\.\.\. ?[^\n]*)*)+(?:\n((?:(?!>>>)[^\n]+\n?)+)\n?)?',
     flags=re.MULTILINE
 )
 
@@ -27,20 +28,20 @@ def get_snippets(code_str):
                 code.append(line[num_leading_space + 3:])
 
         if output.strip():
-            if not block and out:
-                out[-1]['code'].extend(code)
-                out[-1]['result'].append(output.rstrip())
-            else:
-                out.append({'context': block, 'code': code, 'result': [output.rstrip()]})
-                block = []
+            # if not block and out:
+            #     out[-1]['code'].extend(code)
+            #     out[-1]['result'].append(output.rstrip())
+            # else:
+            out.append({'context': block, 'code': code, 'result': [output.rstrip()]})
+            block = []
         else:
             block.append('\n'.join(code))
     if block:
         out.append({
-                       'context': block,
-                       'code'   : None,
-                       'result' : [output.rstrip()] if output.strip() else []
-                   })
+            'context': block,
+            'code'   : [],
+            'result' : [output.rstrip()] if output.strip() else []
+        })
     return out
 
 
@@ -71,9 +72,9 @@ def get_snippets_from_sections(
 
         for block in get_snippets(span['text']):
             block_context = block.pop('context')
-            if block['result'] and block['code'] is not None:
+            if block['result'] and block['code']:
                 #                 block['context'] =
-                block['code'] = block_context + [block['code']]
+                block['code'] = block_context + block['code']
 
                 section_snippets.append((i, {
                     'context': deepcopy(section_contexts[section_id]),
@@ -86,12 +87,20 @@ def get_snippets_from_sections(
 def get_code_from_parsed_tutorial(name, parsed_tutorial, context=None):
     total_updated = 0
     context = context or []
-    for section_num, section in enumerate(parsed_tutorial):
 
-        for i, tag in enumerate(section):
-            if tag['tag'] != 'code' or '>>>' not in tag['text']:
-                continue
+    for section_num, section in enumerate(parsed_tutorial):
+        section_context = []
+
+        for i, snip in get_snippets_from_sections(
+                section,
+                context,
+        ):
+            if 'snippets' not in section[i]:
+                section[i]['snippets'] = [snip]
+            else:
+                section[i]['snippets'].append(snip)
             total_updated += 1
-            section[i]['snippets'] = get_snippets(tag['text'])
+        parsed_tutorial[section_num] = section
+
     logger.debug(f"{name} had {total_updated} total code snippets")
     return total_updated, parsed_tutorial

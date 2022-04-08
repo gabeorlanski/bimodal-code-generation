@@ -1,0 +1,68 @@
+lxml:
+  developing_with_lxml:
+    path: /
+    pages:
+      tutorial: tutorial.html
+      api: api.html
+      parsing: parsing.html
+      validation: validation.html
+      xpathxslt: xpathxslt.html
+      objectify: objectify.html
+      lxmlhtml: lxmlhtml.html
+      cssselect: cssselect.html
+      elementsoup: elementsoup.html
+      html5parser: html5parser.html
+  extending_lxml:
+    path: /
+    pages:
+      resolvers: resolvers.html
+      extensions: extensions.html
+      element_classes: element_classes.html
+      sax: sax.html
+
+sympy:
+  tutorial:
+    path: /latest/tutorial
+    pages:
+      preliminaries: preliminaries.html
+      intro: intro.html
+      gotchas: gotchas.html
+      basic_operations: basic_operations.html
+      printing: printing.html
+      simplification: simplification.html
+      calculus: calculus.html
+      solvers: solvers.html
+      matrices: matrices.html
+      manipulation: manipulation.html
+  guides:
+    path: /latest/guides
+    pages:
+      assumptions: assumptions.html
+      booleans: booleans.html
+  explanation:
+    path: /latest/explanation
+    pages:
+      gotchas: gotchas.html
+  special_topics:
+    path: /latest/explanation/special_topics
+    pages:
+      finite_diff_derivatives: finite_diff_derivatives.html
+      classification: classification.html
+
+
+passlib:
+  tutorial:
+    path: /en/stable/narr
+    pages:
+      password_hash: hash-tutorial.html
+      crypt_context: context-tutorial.html
+      totp: totp-tutorial.html
+
+pynacl:
+  tutorial:
+    path: /en/latest
+    pages:
+      public_key: public/
+      secret_key: secret/
+      digital_signature: signing/
+      password_hashing: password_hashing/
