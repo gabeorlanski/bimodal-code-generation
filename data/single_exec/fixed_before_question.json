@@ -1,0 +1,4765 @@
+{
+ "overview": {
+  "valid_syntax_pct_mean": 48.140243902439025,
+  "preds_total": 32800,
+  "all_invalid": 12,
+  "all_valid": 11,
+  "runtime_error_pct_mean": 4.972560975609756,
+  "runtime_mean": 0.0008548154945687602,
+  "runtime_execution_mean": 0.00030772820595772034,
+  "pass@1": 0.7560975609756099,
+  "pass@5": 3.023175139986647,
+  "pass@10": 4.776795059599952,
+  "pass@25": 7.215443741205157,
+  "pass@50": 8.827691013399756,
+  "pass@100": 10.478600347359619,
+  "problems_correct_pct": 12.804878048780488,
+  "runtime_error_pct_ovr": 4.957317073170732,
+  "correct_pct_ovr": 0.7560975609756098,
+  "failed_tests_pct_ovr": 42.40548780487805,
+  "syntax_error_pct_ovr": 51.88109756097561
+ },
+ "results_by_task_id": {
+  "HumanEval/0": {
+   "correct": 0,
+   "total": 200,
+   "error_types": {
+    "SyntaxError": 31,
+    "Failed Tests": 169
+   },
+   "error_messages": {},
+   "runtimes_by_type": {
+    "Failed Tests": 0.00046007590886403823
+   },
+   "correct_pct": 0.0,
+   "runtime_error_pct": 0.0,
+   "runtime": 0.00046007590886403823,
+   "execution_runtime": 6.0
+  },
+  "HumanEval/1": {
+   "correct": 0,
+   "total": 200,
+   "error_types": {
+    "SyntaxError": 157,
+    "Failed Tests": 40,
+    "NameError": 1,
+    "IndexError": 2
+   },
+   "error_messages": {
+    "26": "NameError: name 'paren_' is not defined",
+    "30": "SyntaxError: import * only allowed at module level (<string>, line 4)",
+    "31": "IndexError: list index out of range",
+    "34": "IndexError: list index out of range"
+   },
+   "runtimes_by_type": {
+    "Failed Tests": 0.006685763597488403,
+    "NameError": 0.00052642822265625,
+    "SyntaxError": 0.00044083595275878906,
+    "IndexError": 0.0005477666854858398
+   },
+   "correct_pct": 0.0,
+   "runtime_error_pct": 2.0,
+   "runtime": 0.006124848669225519,
+   "execution_runtime": 6.0
+  },
+  "HumanEval/2": {
+   "correct": 0,
+   "total": 200,
+   "error_types": {
+    "SyntaxError": 127,
+    "Failed Tests": 72,
+    "NameError": 1
+   },
+   "error_messages": {
+    "62": "NameError: name 'decimals' is not defined"
+   },
+   "runtimes_by_type": {
+    "Failed Tests": 0.0002727044953240289,
+    "NameError": 0.00035572052001953125
+   },
+   "correct_pct": 0.0,
+   "runtime_error_pct": 0.5,
+   "runtime": 0.0002738417011417755,
+   "execution_runtime": 6.0
+  },
+  "HumanEval/3": {
+   "correct": 0,
+   "total": 200,
+   "error_types": {
+    "SyntaxError": 79,
+    "Failed Tests": 113,
+    "IndexError": 2,
+    "NameError": 6
+   },
+   "error_messages": {
+    "4": "IndexError: list index out of range",
+    "20": "NameError: name 'below_zero' is not defined",
+    "47": "NameError: name 'below_zero' is not defined",
+    "62": "NameError: name 'operation' is not defined",
+    "70": "NameError: name 'operation' is not defined",
+    "82": "NameError: name 'below_zero' is not defined",
+    "83": "NameError: name 'below_zero' is not defined",
+    "97": "IndexError: list index out of range"
+   },
+   "runtimes_by_type": {
+    "Failed Tests": 0.0003558576634499879,
+    "IndexError": 0.00034546852111816406,
+    "NameError": 0.0003668864568074544
+   },
+   "correct_pct": 0.0,
+   "runtime_error_pct": 4.0,
+   "runtime": 0.0003562328244043776,
+   "execution_runtime": 6.0
+  },
+  "HumanEval/4": {
+   "correct": 0,
+   "total": 200,
+   "error_types": {
+    "SyntaxError": 32,
+    "TypeError": 156,
+    "NameError": 6,
+    "Failed Tests": 4,
+    "IndexError": 1,
+    "ImportError": 1
+   },
+   "error_messages": {
+    "0": "TypeError: unsupported operand type(s) for -: 'NoneType' and 'float'",
+    "1": "TypeError: unsupported operand type(s) for -: 'NoneType' and 'float'",
+    "2": "TypeError: unsupported operand type(s) for -: 'NoneType' and 'float'",
+    "3": "TypeError: unsupported operand type(s) for -: 'NoneType' and 'float'",
+    "4": "TypeError: 'float' object is not iterable",
+    "5": "NameError: name 'x' is not defined",
+    "6": "TypeError: unsupported operand type(s) for -: 'NoneType' and 'float'",
+    "7": "TypeError: unsupported operand type(s) for -: 'NoneType' and 'float'",
+    "8": "TypeError: unsupported operand type(s) for -: 'NoneType' and 'float'",
+    "10": "TypeError: unsupported operand type(s) for -: 'NoneType' and 'float'",
+    "11": "TypeError: unsupported operand type(s) for -: 'NoneType' and 'float'",
+    "12": "TypeError: unsupported operand type(s) for -: 'NoneType' and 'float'",
+    "13": "TypeError: unsupported operand type(s) for -: 'NoneType' and 'float'",
+    "14": "TypeError: unsupported operand type(s) for -: 'NoneType' and 'float'",
+    "15": "TypeError: unsupported operand type(s) for -: 'NoneType' and 'float'",
+    "16": "TypeError: unsupported operand type(s) for -: 'NoneType' and 'float'",
+    "17": "TypeError: unsupported operand type(s) for -: 'NoneType' and 'float'",
+    "18": "NameError: name 'x' is not defined",
+    "19": "TypeError: unsupported operand type(s) for -: 'NoneType' and 'float'",
+    "20": "TypeError: unsupported operand type(s) for -: 'NoneType' and 'float'",
+    "21": "TypeError: unsupported operand type(s) for -: 'NoneType' and 'float'",
+    "22": "NameError: name 'x' is not defined",
+    "23": "TypeError: unsupported operand type(s) for -: 'NoneType' and 'float'",
+    "24": "TypeError: unsupported operand type(s) for -: 'NoneType' and 'float'",
+    "25": "TypeError: unsupported operand type(s) for -: 'NoneType' and 'float'",
+    "26": "TypeError: unsupported operand type(s) for -: 'NoneType' and 'float'",
+    "27": "NameError: name 'x' is not defined",
+    "28": "TypeError: unsupported operand type(s) for -: 'NoneType' and 'float'",
+    "29": "TypeError: unsupported operand type(s) for -: 'NoneType' and 'float'",
+    "30": "TypeError: unsupported operand type(s) for -: 'NoneType' and 'float'",
+    "31": "TypeError: unsupported operand type(s) for -: 'NoneType' and 'float'",
+    "32": "TypeError: unsupported operand type(s) for -: 'NoneType' and 'float'",
+    "33": "TypeError: unsupported operand type(s) for -: 'NoneType' and 'float'",
+    "34": "TypeError: unsupported operand type(s) for -: 'NoneType' and 'float'",
+    "35": "TypeError: unsupported operand type(s) for -: 'NoneType' and 'float'",
+    "36": "TypeError: unsupported operand type(s) for -: 'NoneType' and 'float'",
+    "37": "TypeError: unsupported operand type(s) for -: 'NoneType' and 'float'",
+    "38": "TypeError: unsupported operand type(s) for -: 'NoneType' and 'float'",
+    "39": "TypeError: unsupported operand type(s) for -: 'NoneType' and 'float'",
+    "40": "TypeError: unsupported operand type(s) for -: 'NoneType' and 'float'",
+    "41": "TypeError: unsupported operand type(s) for -: 'NoneType' and 'float'",
+    "42": "TypeError: unsupported operand type(s) for -: 'NoneType' and 'float'",
+    "43": "TypeError: unsupported operand type(s) for -: 'NoneType' and 'float'",
+    "44": "TypeError: unsupported operand type(s) for -: 'NoneType' and 'float'",
+    "45": "TypeError: unsupported operand type(s) for -: 'NoneType' and 'float'",
+    "46": "TypeError: unsupported operand type(s) for -: 'NoneType' and 'float'",
+    "47": "TypeError: unsupported operand type(s) for -: 'NoneType' and 'float'",
+    "48": "TypeError: unsupported operand type(s) for -: 'NoneType' and 'float'",
+    "49": "TypeError: unsupported operand type(s) for -: 'NoneType' and 'float'",
+    "50": "TypeError: unsupported operand type(s) for -: 'NoneType' and 'float'",
+    "51": "TypeError: unsupported operand type(s) for -: 'NoneType' and 'float'",
+    "52": "TypeError: unsupported operand type(s) for -: 'NoneType' and 'float'",
+    "53": "TypeError: unsupported operand type(s) for -: 'NoneType' and 'float'",
+    "54": "TypeError: unsupported operand type(s) for -: 'NoneType' and 'float'",
+    "55": "TypeError: unsupported operand type(s) for -: 'NoneType' and 'float'",
+    "56": "TypeError: unsupported operand type(s) for -: 'NoneType' and 'float'",
+    "57": "TypeError: unsupported operand type(s) for -: 'NoneType' and 'float'",
+    "58": "TypeError: unsupported operand type(s) for -: 'NoneType' and 'float'",
+    "59": "TypeError: unsupported operand type(s) for -: 'NoneType' and 'float'",
+    "60": "TypeError: unsupported operand type(s) for -: 'NoneType' and 'float'",
+    "61": "TypeError: unsupported operand type(s) for -: 'NoneType' and 'float'",
+    "62": "TypeError: unsupported operand type(s) for -: 'NoneType' and 'float'",
+    "63": "TypeError: unsupported operand type(s) for -: 'NoneType' and 'float'",
+    "64": "TypeError: unsupported operand type(s) for -: 'NoneType' and 'float'",
+    "65": "TypeError: unsupported operand type(s) for -: 'NoneType' and 'float'",
+    "66": "TypeError: unsupported operand type(s) for -: 'NoneType' and 'float'",
+    "67": "TypeError: unsupported operand type(s) for -: 'NoneType' and 'float'",
+    "68": "TypeError: unsupported operand type(s) for -: 'NoneType' and 'float'",
+    "69": "TypeError: unsupported operand type(s) for -: 'NoneType' and 'float'",
+    "70": "TypeError: unsupported operand type(s) for -: 'NoneType' and 'float'",
+    "71": "TypeError: unsupported operand type(s) for -: 'NoneType' and 'float'",
+    "72": "TypeError: unsupported operand type(s) for -: 'NoneType' and 'float'",
+    "73": "TypeError: unsupported operand type(s) for -: 'NoneType' and 'float'",
+    "74": "TypeError: unsupported operand type(s) for -: 'NoneType' and 'float'",
+    "75": "TypeError: unsupported operand type(s) for -: 'NoneType' and 'float'",
+    "76": "NameError: name 'x' is not defined",
+    "77": "TypeError: unsupported operand type(s) for -: 'NoneType' and 'float'",
+    "78": "TypeError: unsupported operand type(s) for +: 'int' and 'list'",
+    "79": "TypeError: unsupported operand type(s) for -: 'NoneType' and 'float'",
+    "80": "TypeError: unsupported operand type(s) for -: 'NoneType' and 'float'",
+    "81": "TypeError: unsupported operand type(s) for -: 'NoneType' and 'float'",
+    "83": "IndexError: list index out of range",
+    "84": "TypeError: unsupported operand type(s) for -: 'NoneType' and 'float'",
+    "85": "TypeError: unsupported operand type(s) for -: 'NoneType' and 'float'",
+    "86": "TypeError: unsupported operand type(s) for -: 'NoneType' and 'float'",
+    "87": "TypeError: unsupported operand type(s) for -: 'NoneType' and 'float'",
+    "88": "TypeError: unsupported operand type(s) for -: 'NoneType' and 'float'",
+    "89": "TypeError: unsupported operand type(s) for -: 'NoneType' and 'float'",
+    "90": "TypeError: unsupported operand type(s) for -: 'NoneType' and 'float'",
+    "91": "TypeError: unsupported operand type(s) for -: 'NoneType' and 'float'",
+    "92": "TypeError: unsupported operand type(s) for -: 'NoneType' and 'float'",
+    "93": "TypeError: unsupported operand type(s) for -: 'NoneType' and 'float'",
+    "94": "ImportError: cannot import name 'mad' from 'scipy.stats' (/home/gabe/miniconda3/envs/go-research-project/lib/python3.8/site-packages/scipy/stats/__init__.py)",
+    "95": "TypeError: unsupported operand type(s) for -: 'NoneType' and 'float'",
+    "96": "TypeError: unsupported operand type(s) for -: 'NoneType' and 'float'",
+    "97": "TypeError: unsupported operand type(s) for -: 'NoneType' and 'float'",
+    "98": "TypeError: unsupported operand type(s) for -: 'NoneType' and 'float'",
+    "99": "TypeError: unsupported operand type(s) for -: 'NoneType' and 'float'",
+    "100": "TypeError: unsupported operand type(s) for -: 'NoneType' and 'float'",
+    "101": "TypeError: unsupported operand type(s) for -: 'NoneType' and 'float'",
+    "102": "TypeError: unsupported operand type(s) for -: 'NoneType' and 'float'",
+    "103": "TypeError: unsupported operand type(s) for -: 'NoneType' and 'float'",
+    "104": "TypeError: unsupported operand type(s) for -: 'NoneType' and 'float'",
+    "105": "TypeError: unsupported operand type(s) for -: 'NoneType' and 'float'",
+    "106": "TypeError: unsupported operand type(s) for -: 'NoneType' and 'float'",
+    "107": "TypeError: unsupported operand type(s) for -: 'NoneType' and 'float'",
+    "108": "NameError: name 'x' is not defined",
+    "109": "TypeError: unsupported operand type(s) for -: 'NoneType' and 'float'",
+    "110": "TypeError: unsupported operand type(s) for -: 'NoneType' and 'float'",
+    "111": "TypeError: unsupported operand type(s) for -: 'NoneType' and 'float'",
+    "112": "TypeError: unsupported operand type(s) for -: 'NoneType' and 'float'",
+    "113": "TypeError: unsupported operand type(s) for -: 'NoneType' and 'float'",
+    "114": "TypeError: unsupported operand type(s) for -: 'NoneType' and 'float'",
+    "115": "TypeError: unsupported operand type(s) for -: 'NoneType' and 'float'",
+    "116": "TypeError: unsupported operand type(s) for -: 'NoneType' and 'float'",
+    "117": "TypeError: unsupported operand type(s) for -: 'NoneType' and 'float'",
+    "118": "TypeError: unsupported operand type(s) for -: 'NoneType' and 'float'",
+    "119": "TypeError: unsupported operand type(s) for -: 'NoneType' and 'float'",
+    "120": "TypeError: unsupported operand type(s) for -: 'NoneType' and 'float'",
+    "121": "TypeError: unsupported operand type(s) for -: 'NoneType' and 'float'",
+    "122": "TypeError: unsupported operand type(s) for -: 'NoneType' and 'float'",
+    "123": "TypeError: unsupported operand type(s) for -: 'NoneType' and 'float'",
+    "124": "TypeError: unsupported operand type(s) for -: 'NoneType' and 'float'",
+    "125": "TypeError: unsupported operand type(s) for -: 'NoneType' and 'float'",
+    "126": "TypeError: unsupported operand type(s) for -: 'NoneType' and 'float'",
+    "127": "TypeError: unsupported operand type(s) for -: 'NoneType' and 'float'",
+    "128": "TypeError: unsupported operand type(s) for -: 'NoneType' and 'float'",
+    "129": "TypeError: unsupported operand type(s) for -: 'NoneType' and 'float'",
+    "130": "TypeError: unsupported operand type(s) for -: 'NoneType' and 'float'",
+    "131": "TypeError: unsupported operand type(s) for -: 'NoneType' and 'float'",
+    "132": "TypeError: unsupported operand type(s) for -: 'NoneType' and 'float'",
+    "133": "TypeError: unsupported operand type(s) for -: 'NoneType' and 'float'",
+    "134": "TypeError: unsupported operand type(s) for -: 'NoneType' and 'float'",
+    "135": "TypeError: unsupported operand type(s) for -: 'NoneType' and 'float'",
+    "136": "TypeError: unsupported operand type(s) for -: 'NoneType' and 'float'",
+    "137": "TypeError: unsupported operand type(s) for -: 'NoneType' and 'float'",
+    "138": "TypeError: unsupported operand type(s) for -: 'NoneType' and 'float'",
+    "139": "TypeError: unsupported operand type(s) for -: 'NoneType' and 'float'",
+    "140": "TypeError: unsupported operand type(s) for -: 'NoneType' and 'float'",
+    "141": "TypeError: unsupported operand type(s) for -: 'NoneType' and 'float'",
+    "142": "TypeError: unsupported operand type(s) for -: 'NoneType' and 'float'",
+    "143": "TypeError: unsupported operand type(s) for /: 'tuple' and 'tuple'",
+    "145": "TypeError: unsupported operand type(s) for -: 'NoneType' and 'float'",
+    "146": "TypeError: unsupported operand type(s) for -: 'NoneType' and 'float'",
+    "147": "TypeError: unsupported operand type(s) for -: 'NoneType' and 'float'",
+    "148": "TypeError: unsupported operand type(s) for -: 'NoneType' and 'float'",
+    "149": "TypeError: unsupported operand type(s) for -: 'NoneType' and 'float'",
+    "150": "TypeError: unsupported operand type(s) for -: 'NoneType' and 'float'",
+    "151": "TypeError: unsupported operand type(s) for -: 'NoneType' and 'float'",
+    "152": "TypeError: unsupported operand type(s) for -: 'NoneType' and 'float'",
+    "153": "TypeError: unsupported operand type(s) for -: 'NoneType' and 'float'",
+    "154": "TypeError: unsupported operand type(s) for -: 'NoneType' and 'float'",
+    "155": "TypeError: unsupported operand type(s) for -: 'NoneType' and 'float'",
+    "156": "TypeError: unsupported operand type(s) for -: 'NoneType' and 'float'",
+    "157": "TypeError: unsupported operand type(s) for -: 'NoneType' and 'float'",
+    "158": "TypeError: unsupported operand type(s) for -: 'NoneType' and 'float'",
+    "159": "TypeError: unsupported operand type(s) for -: 'NoneType' and 'float'",
+    "160": "TypeError: unsupported operand type(s) for -: 'NoneType' and 'float'",
+    "161": "TypeError: unsupported operand type(s) for -: 'NoneType' and 'float'",
+    "162": "TypeError: unsupported operand type(s) for -: 'NoneType' and 'float'",
+    "163": "TypeError: unsupported operand type(s) for -: 'NoneType' and 'float'",
+    "164": "TypeError: unsupported operand type(s) for -: 'NoneType' and 'float'",
+    "166": "TypeError: unsupported operand type(s) for -: 'NoneType' and 'float'",
+    "167": "TypeError: unsupported operand type(s) for -: 'NoneType' and 'float'"
+   },
+   "runtimes_by_type": {
+    "TypeError": 0.002506363086211376,
+    "NameError": 0.00045601526896158856,
+    "Failed Tests": 0.000471651554107666,
+    "IndexError": 0.00043463706970214844,
+    "ImportError": 0.0005500316619873047
+   },
+   "correct_pct": 0.0,
+   "runtime_error_pct": 82.0,
+   "runtime": 0.0023607143333980013,
+   "execution_runtime": 6.0
+  },
+  "HumanEval/5": {
+   "correct": 0,
+   "total": 200,
+   "error_types": {
+    "SyntaxError": 63,
+    "Failed Tests": 125,
+    "UnboundLocalError": 2,
+    "IndexError": 1,
+    "ValueError": 4,
+    "RecursionError": 3,
+    "TypeError": 2
+   },
+   "error_messages": {
+    "3": "UnboundLocalError: local variable 'i' referenced before assignment",
+    "9": "UnboundLocalError: local variable 'i' referenced before assignment",
+    "27": "IndexError: list index out of range",
+    "42": "ValueError: Number of elements must be at least 2",
+    "43": "RecursionError: maximum recursion depth exceeded while calling a Python object",
+    "48": "TypeError: object of type 'int' has no len()",
+    "63": "TypeError: object of type 'int' has no len()",
+    "69": "ValueError: Numbers must be greater than 0",
+    "76": "ValueError: intersperse() takes at least 2 numbers",
+    "111": "RecursionError: maximum recursion depth exceeded while calling a Python object",
+    "115": "ValueError: number must be odd",
+    "134": "RecursionError: maximum recursion depth exceeded while calling a Python object"
+   },
+   "runtimes_by_type": {
+    "Failed Tests": 0.0003758544921875,
+    "UnboundLocalError": 0.0004086494445800781,
+    "IndexError": 0.00039124488830566406,
+    "ValueError": 0.0003923773765563965,
+    "RecursionError": 0.004214286804199219,
+    "TypeError": 0.00040709972381591797
+   },
+   "correct_pct": 0.0,
+   "runtime_error_pct": 6.0,
+   "runtime": 0.0004614374063310832,
+   "execution_runtime": 6.0
+  },
+  "HumanEval/6": {
+   "correct": 0,
+   "total": 200,
+   "error_types": {
+    "SyntaxError": 133,
+    "Failed Tests": 41,
+    "ValueError": 22,
+    "RecursionError": 1,
+    "IndexError": 3
+   },
+   "error_messages": {
+    "2": "ValueError: invalid literal for int() with base 10: '(()())'",
+    "3": "ValueError: invalid literal for int() with base 10: '(()())'",
+    "4": "RecursionError: maximum recursion depth exceeded while calling a Python object",
+    "7": "ValueError: invalid literal for int() with base 10: ')) '",
+    "10": "ValueError: invalid literal for int() with base 10: '(()())'",
+    "11": "ValueError: invalid literal for int() with base 10: '(()())'",
+    "14": "IndexError: list index out of range",
+    "19": "ValueError: invalid literal for int() with base 10: '(()())'",
+    "21": "ValueError: invalid literal for int() with base 10: '(()())'",
+    "22": "IndexError: list index out of range",
+    "24": "ValueError: invalid literal for int() with base 10: '(()())'",
+    "30": "ValueError: invalid literal for int() with base 10: '(()())'",
+    "31": "ValueError: invalid literal for int() with base 10: '(()())'",
+    "33": "ValueError: invalid literal for int() with base 10: '(()())'",
+    "36": "ValueError: invalid literal for int() with base 10: '(()())'",
+    "37": "ValueError: invalid literal for int() with base 10: '()())'",
+    "39": "ValueError: invalid literal for int() with base 10: '(()())'",
+    "43": "IndexError: string index out of range",
+    "48": "ValueError: invalid literal for int() with base 10: '(()()) ((())) () ((())()())'",
+    "53": "ValueError: invalid literal for int() with base 10: '(()())'",
+    "54": "ValueError: invalid literal for int() with base 10: '(()())'",
+    "56": "ValueError: invalid literal for int() with base 10: '(()())'",
+    "60": "ValueError: invalid literal for int() with base 10: '(()())'",
+    "61": "ValueError: invalid literal for int() with base 10: '(()())'",
+    "62": "ValueError: invalid literal for int() with base 10: '(()())'",
+    "64": "ValueError: invalid literal for int() with base 10: '(()())'"
+   },
+   "runtimes_by_type": {
+    "Failed Tests": 0.00032116727131169015,
+    "ValueError": 0.0003745447505604137,
+    "RecursionError": 0.0014498233795166016,
+    "IndexError": 0.0004028479258219401
+   },
+   "correct_pct": 0.0,
+   "runtime_error_pct": 13.0,
+   "runtime": 0.00035919716109090777,
+   "execution_runtime": 6.0
+  },
+  "HumanEval/7": {
+   "correct": 19,
+   "total": 200,
+   "error_types": {
+    "SyntaxError": 57,
+    "Failed Tests": 124
+   },
+   "error_messages": {},
+   "runtimes_by_type": {
+    "Failed Tests": 0.0004050981613897508,
+    "Passed": 0.00039573719626978825
+   },
+   "correct_pct": 9.5,
+   "runtime_error_pct": 0.0,
+   "runtime": 0.00040385439679339213,
+   "execution_runtime": 0.00039573719626978825
+  },
+  "HumanEval/8": {
+   "correct": 0,
+   "total": 200,
+   "error_types": {
+    "SyntaxError": 49,
+    "Failed Tests": 145,
+    "RecursionError": 6
+   },
+   "error_messages": {
+    "22": "RecursionError: maximum recursion depth exceeded",
+    "29": "RecursionError: maximum recursion depth exceeded",
+    "35": "RecursionError: maximum recursion depth exceeded",
+    "57": "RecursionError: maximum recursion depth exceeded while calling a Python object",
+    "60": "RecursionError: maximum recursion depth exceeded",
+    "108": "RecursionError: maximum recursion depth exceeded"
+   },
+   "runtimes_by_type": {
+    "Failed Tests": 0.00039536706332502696,
+    "RecursionError": 0.002724329630533854
+   },
+   "correct_pct": 0.0,
+   "runtime_error_pct": 3.0,
+   "runtime": 0.0004879086222869671,
+   "execution_runtime": 6.0
+  },
+  "HumanEval/9": {
+   "correct": 0,
+   "total": 200,
+   "error_types": {
+    "SyntaxError": 102,
+    "Failed Tests": 84,
+    "NameError": 1,
+    "IndexError": 6,
+    "RecursionError": 1,
+    "ValueError": 3,
+    "TypeError": 3
+   },
+   "error_messages": {
+    "5": "NameError: name 'number' is not defined",
+    "13": "IndexError: list index out of range",
+    "19": "IndexError: list index out of range",
+    "30": "RecursionError: maximum recursion depth exceeded while calling a Python object",
+    "36": "ValueError: max() arg is an empty sequence",
+    "45": "ValueError: max() arg is an empty sequence",
+    "46": "TypeError: 'int' object is not iterable",
+    "66": "IndexError: list index out of range",
+    "74": "IndexError: list index out of range",
+    "81": "TypeError: unsupported operand type(s) for +: 'int' and 'list'",
+    "85": "IndexError: list index out of range",
+    "86": "ValueError: Number of numbers must be greater than 1",
+    "87": "IndexError: list index out of range",
+    "89": "TypeError: 'int' object is not iterable"
+   },
+   "runtimes_by_type": {
+    "Failed Tests": 0.00038879825955345516,
+    "NameError": 0.0003643035888671875,
+    "IndexError": 0.00041794776916503906,
+    "RecursionError": 0.006373167037963867,
+    "ValueError": 0.0004057884216308594,
+    "TypeError": 0.00036716461181640625
+   },
+   "correct_pct": 0.0,
+   "runtime_error_pct": 7.000000000000001,
+   "runtime": 0.0004512558178025849,
+   "execution_runtime": 6.0
+  },
+  "HumanEval/10": {
+   "correct": 0,
+   "total": 200,
+   "error_types": {
+    "SyntaxError": 163,
+    "NameError": 37
+   },
+   "error_messages": {
+    "0": "NameError: name 'make_palindrome' is not defined",
+    "1": "NameError: name 'make_palindrome' is not defined",
+    "2": "NameError: name 'make_palindrome' is not defined",
+    "3": "NameError: name 'make_palindrome' is not defined",
+    "4": "NameError: name 'make_palindrome' is not defined",
+    "5": "NameError: name 'make_palindrome' is not defined",
+    "6": "NameError: name 'make_palindrome' is not defined",
+    "7": "NameError: name 'make_palindrome' is not defined",
+    "8": "NameError: name 'make_palindrome' is not defined",
+    "9": "NameError: name 'make_palindrome' is not defined",
+    "10": "NameError: name 'make_palindrome' is not defined",
+    "11": "NameError: name 'make_palindrome' is not defined",
+    "12": "NameError: name 'make_palindrome' is not defined",
+    "13": "NameError: name 'make_palindrome' is not defined",
+    "14": "NameError: name 'make_palindrome' is not defined",
+    "15": "NameError: name 'make_palindrome' is not defined",
+    "16": "NameError: name 'make_palindrome' is not defined",
+    "17": "NameError: name 'make_palindrome' is not defined",
+    "18": "NameError: name 'make_palindrome' is not defined",
+    "19": "NameError: name 'make_palindrome' is not defined",
+    "20": "NameError: name 'make_palindrome' is not defined",
+    "21": "NameError: name 'make_palindrome' is not defined",
+    "22": "NameError: name 'make_palindrome' is not defined",
+    "23": "NameError: name 'make_palindrome' is not defined",
+    "24": "NameError: name 'make_palindrome' is not defined",
+    "25": "NameError: name 'make_palindrome' is not defined",
+    "26": "NameError: name 'make_palindrome' is not defined",
+    "27": "NameError: name 'make_palindrome' is not defined",
+    "28": "NameError: name 'make_palindrome' is not defined",
+    "29": "NameError: name 'make_palindrome' is not defined",
+    "30": "NameError: name 'make_palindrome' is not defined",
+    "31": "NameError: name 'make_palindrome' is not defined",
+    "32": "NameError: name 'make_palindrome' is not defined",
+    "33": "NameError: name 'make_palindrome' is not defined",
+    "34": "NameError: name 'make_palindrome' is not defined",
+    "35": "NameError: name 'make_palindrome' is not defined",
+    "36": "NameError: name 'make_palindrome' is not defined"
+   },
+   "runtimes_by_type": {
+    "NameError": 0.0003068640425398543
+   },
+   "correct_pct": 0.0,
+   "runtime_error_pct": 18.5,
+   "runtime": 0.0003068640425398543,
+   "execution_runtime": 6.0
+  },
+  "HumanEval/11": {
+   "correct": 1,
+   "total": 200,
+   "error_types": {
+    "SyntaxError": 152,
+    "Failed Tests": 35,
+    "TypeError": 10,
+    "RecursionError": 2
+   },
+   "error_messages": {
+    "3": "TypeError: <lambda>() takes 1 positional argument but 2 were given",
+    "6": "TypeError: unsupported operand type(s) for ^: 'map' and 'map'",
+    "13": "RecursionError: maximum recursion depth exceeded in comparison",
+    "14": "TypeError: unsupported operand type(s) for ^: 'str' and 'str'",
+    "23": "TypeError: unsupported operand type(s) for ^: 'str' and 'str'",
+    "28": "TypeError: unsupported operand type(s) for ^: 'str' and 'str'",
+    "30": "TypeError: unsupported operand type(s) for ^: 'str' and 'str'",
+    "31": "TypeError: decoding str is not supported",
+    "37": "TypeError: ord() expected a character, but string of length 6 found",
+    "39": "RecursionError: maximum recursion depth exceeded in comparison",
+    "42": "TypeError: unsupported operand type(s) for ^: 'str' and 'str'",
+    "43": "TypeError: unsupported operand type(s) for ^: 'str' and 'str'"
+   },
+   "runtimes_by_type": {
+    "Failed Tests": 0.00029395648411342074,
+    "TypeError": 0.0003107309341430664,
+    "RecursionError": 0.0018347501754760742,
+    "Passed": 0.0002655982971191406
+   },
+   "correct_pct": 0.5,
+   "runtime_error_pct": 6.0,
+   "runtime": 0.00036106010278066,
+   "execution_runtime": 0.0002655982971191406
+  },
+  "HumanEval/12": {
+   "correct": 1,
+   "total": 200,
+   "error_types": {
+    "SyntaxError": 85,
+    "Failed Tests": 102,
+    "NameError": 1,
+    "ValueError": 2,
+    "RecursionError": 5,
+    "TypeError": 3,
+    "UnboundLocalError": 1
+   },
+   "error_messages": {
+    "7": "NameError: name 'list_of_strings' is not defined",
+    "19": "ValueError: max() arg is an empty sequence",
+    "32": "RecursionError: maximum recursion depth exceeded",
+    "33": "RecursionError: maximum recursion depth exceeded while calling a Python object",
+    "50": "RecursionError: maximum recursion depth exceeded while calling a Python object",
+    "60": "TypeError: longest() got an unexpected keyword argument 'key'",
+    "71": "ValueError: max() arg is an empty sequence",
+    "83": "RecursionError: maximum recursion depth exceeded while calling a Python object",
+    "100": "TypeError: object of type 'NoneType' has no len()",
+    "109": "TypeError: object of type 'int' has no len()",
+    "110": "UnboundLocalError: local variable 'longest' referenced before assignment",
+    "113": "RecursionError: maximum recursion depth exceeded"
+   },
+   "runtimes_by_type": {
+    "Failed Tests": 0.0003656172284892961,
+    "NameError": 0.0004603862762451172,
+    "ValueError": 0.0004884004592895508,
+    "RecursionError": 0.001782846450805664,
+    "TypeError": 0.0004203319549560547,
+    "Passed": 0.0003216266632080078,
+    "UnboundLocalError": 0.0004031658172607422
+   },
+   "correct_pct": 0.5,
+   "runtime_error_pct": 6.0,
+   "runtime": 0.00043156665304432747,
+   "execution_runtime": 0.0003216266632080078
+  },
+  "HumanEval/13": {
+   "correct": 0,
+   "total": 200,
+   "error_types": {
+    "SyntaxError": 93,
+    "Failed Tests": 85,
+    "RecursionError": 21,
+    "ZeroDivisionError": 1
+   },
+   "error_messages": {
+    "3": "RecursionError: maximum recursion depth exceeded in comparison",
+    "6": "RecursionError: maximum recursion depth exceeded in comparison",
+    "9": "RecursionError: maximum recursion depth exceeded in comparison",
+    "16": "RecursionError: maximum recursion depth exceeded in comparison",
+    "18": "RecursionError: maximum recursion depth exceeded in comparison",
+    "23": "RecursionError: maximum recursion depth exceeded in comparison",
+    "26": "RecursionError: maximum recursion depth exceeded in comparison",
+    "27": "RecursionError: maximum recursion depth exceeded in comparison",
+    "30": "RecursionError: maximum recursion depth exceeded in comparison",
+    "34": "RecursionError: maximum recursion depth exceeded in comparison",
+    "37": "RecursionError: maximum recursion depth exceeded in comparison",
+    "44": "RecursionError: maximum recursion depth exceeded while calling a Python object",
+    "46": "RecursionError: maximum recursion depth exceeded in comparison",
+    "60": "RecursionError: maximum recursion depth exceeded in comparison",
+    "79": "RecursionError: maximum recursion depth exceeded in comparison",
+    "86": "RecursionError: maximum recursion depth exceeded in comparison",
+    "88": "RecursionError: maximum recursion depth exceeded in comparison",
+    "90": "RecursionError: maximum recursion depth exceeded in comparison",
+    "91": "RecursionError: maximum recursion depth exceeded in comparison",
+    "92": "ZeroDivisionError: integer division or modulo by zero",
+    "94": "RecursionError: maximum recursion depth exceeded in comparison",
+    "102": "RecursionError: maximum recursion depth exceeded in comparison"
+   },
+   "runtimes_by_type": {
+    "Failed Tests": 0.00026785906623391545,
+    "RecursionError": 0.0019939172835577103,
+    "ZeroDivisionError": 0.0003924369812011719
+   },
+   "correct_pct": 0.0,
+   "runtime_error_pct": 11.0,
+   "runtime": 0.0006077824351943541,
+   "execution_runtime": 6.0
+  },
+  "HumanEval/14": {
+   "correct": 0,
+   "total": 200,
+   "error_types": {
+    "SyntaxError": 122,
+    "Failed Tests": 76,
+    "IndexError": 2
+   },
+   "error_messages": {
+    "58": "IndexError: string index out of range",
+    "66": "IndexError: string index out of range"
+   },
+   "runtimes_by_type": {
+    "Failed Tests": 0.00034200517754805714,
+    "IndexError": 0.00038373470306396484
+   },
+   "correct_pct": 0.0,
+   "runtime_error_pct": 1.0,
+   "runtime": 0.0003430751653817984,
+   "execution_runtime": 6.0
+  },
+  "HumanEval/15": {
+   "correct": 0,
+   "total": 200,
+   "error_types": {
+    "SyntaxError": 147,
+    "Failed Tests": 52,
+    "ValueError": 1
+   },
+   "error_messages": {
+    "7": "ValueError: n must be positive"
+   },
+   "runtimes_by_type": {
+    "Failed Tests": 0.0002780785927405724,
+    "ValueError": 0.0002903938293457031
+   },
+   "correct_pct": 0.0,
+   "runtime_error_pct": 0.5,
+   "runtime": 0.0002783109556953862,
+   "execution_runtime": 6.0
+  },
+  "HumanEval/16": {
+   "correct": 1,
+   "total": 200,
+   "error_types": {
+    "SyntaxError": 65,
+    "Failed Tests": 133,
+    "RecursionError": 1
+   },
+   "error_messages": {
+    "17": "RecursionError: maximum recursion depth exceeded while calling a Python object"
+   },
+   "runtimes_by_type": {
+    "Failed Tests": 0.0002847219768323396,
+    "RecursionError": 0.0017859935760498047,
+    "Passed": 0.00027060508728027344
+   },
+   "correct_pct": 0.5,
+   "runtime_error_pct": 0.5,
+   "runtime": 0.00029573793764467595,
+   "execution_runtime": 0.00027060508728027344
+  },
+  "HumanEval/17": {
+   "correct": 0,
+   "total": 200,
+   "error_types": {
+    "SyntaxError": 105,
+    "Failed Tests": 81,
+    "NameError": 2,
+    "ValueError": 10,
+    "IndexError": 2
+   },
+   "error_messages": {
+    "3": "NameError: name 'notes' is not defined",
+    "6": "ValueError: invalid literal for int() with base 10: 'o o'",
+    "7": "NameError: name 'music_' is not defined",
+    "20": "ValueError: invalid literal for int() with base 10: ''",
+    "23": "IndexError: list index out of range",
+    "26": "ValueError: invalid literal for int() with base 10: ''",
+    "31": "IndexError: list index out of range",
+    "32": "ValueError: invalid literal for int() with base 10: 'o o o o'",
+    "33": "ValueError: invalid literal for int() with base 10: ''",
+    "38": "ValueError: invalid literal for int() with base 10: 'o o o o'",
+    "39": "ValueError: invalid literal for int() with base 10: ''",
+    "64": "SyntaxError: from __future__ imports must occur at the beginning of the file (<string>, line 5)",
+    "76": "ValueError: invalid literal for int() with base 10: 'o'",
+    "92": "ValueError: invalid literal for int() with base 10: ''",
+    "93": "ValueError: invalid literal for int() with base 10: ''"
+   },
+   "runtimes_by_type": {
+    "Failed Tests": 0.0003772341174843871,
+    "NameError": 0.0004538297653198242,
+    "ValueError": 0.00041840076446533205,
+    "IndexError": 0.00045931339263916016,
+    "SyntaxError": 0.00027060508728027344
+   },
+   "correct_pct": 0.0,
+   "runtime_error_pct": 7.5,
+   "runtime": 0.00038371731837590534,
+   "execution_runtime": 6.0
+  },
+  "HumanEval/18": {
+   "correct": 1,
+   "total": 200,
+   "error_types": {
+    "SyntaxError": 79,
+    "Failed Tests": 118,
+    "NameError": 1,
+    "RecursionError": 1
+   },
+   "error_messages": {
+    "103": "NameError: name 're' is not defined",
+    "110": "RecursionError: maximum recursion depth exceeded"
+   },
+   "runtimes_by_type": {
+    "Failed Tests": 0.00028996346360546046,
+    "Passed": 0.0002918243408203125,
+    "NameError": 0.00030732154846191406,
+    "RecursionError": 0.0020813941955566406
+   },
+   "correct_pct": 0.5,
+   "runtime_error_pct": 1.0,
+   "runtime": 0.0003049275106634975,
+   "execution_runtime": 0.0002918243408203125
+  },
+  "HumanEval/19": {
+   "correct": 0,
+   "total": 200,
+   "error_types": {
+    "SyntaxError": 133,
+    "Failed Tests": 39,
+    "OSError": 16,
+    "IndexError": 3,
+    "ValueError": 9
+   },
+   "error_messages": {
+    "5": "OSError: ",
+    "6": "IndexError: list index out of range",
+    "8": "OSError: ",
+    "10": "OSError: ",
+    "12": "OSError: ",
+    "14": "ValueError: invalid literal for int() with base 10: 'three'",
+    "15": "OSError: ",
+    "16": "OSError: ",
+    "17": "OSError: ",
+    "19": "ValueError: invalid literal for int() with base 10: 'three'",
+    "20": "ValueError: invalid literal for int() with base 10: 'three'",
+    "23": "OSError: ",
+    "24": "IndexError: list index out of range",
+    "27": "ValueError: invalid literal for int() with base 10: 'three'",
+    "28": "ValueError: invalid literal for int() with base 10: 'three'",
+    "30": "OSError: ",
+    "33": "ValueError: invalid literal for int() with base 10: 'three'",
+    "37": "OSError: ",
+    "41": "OSError: ",
+    "42": "OSError: ",
+    "43": "OSError: ",
+    "51": "OSError: ",
+    "53": "ValueError: Not a space-delimited number: three",
+    "55": "ValueError: invalid literal for int() with base 10: 't'",
+    "58": "OSError: ",
+    "60": "OSError: ",
+    "61": "IndexError: list index out of range",
+    "62": "ValueError: invalid literal for int() with base 10: 'three'"
+   },
+   "runtimes_by_type": {
+    "Failed Tests": 0.000311582516401242,
+    "OSError": 0.0003368854522705078,
+    "IndexError": 0.00035381317138671875,
+    "ValueError": 0.0003502898746066623
+   },
+   "correct_pct": 0.0,
+   "runtime_error_pct": 14.000000000000002,
+   "runtime": 0.0003247154292775624,
+   "execution_runtime": 6.0
+  },
+  "HumanEval/20": {
+   "correct": 0,
+   "total": 200,
+   "error_types": {
+    "SyntaxError": 104,
+    "Failed Tests": 89,
+    "RecursionError": 2,
+    "IndexError": 2,
+    "TypeError": 3
+   },
+   "error_messages": {
+    "4": "RecursionError: maximum recursion depth exceeded",
+    "21": "IndexError: list index out of range",
+    "26": "TypeError: unsupported operand type(s) for -: 'tuple' and 'tuple'",
+    "37": "TypeError: '<' not supported between instances of 'float' and 'NoneType'",
+    "46": "TypeError: find_closest_elements() takes 1 positional argument but 2 were given",
+    "83": "IndexError: list index out of range",
+    "89": "RecursionError: maximum recursion depth exceeded"
+   },
+   "runtimes_by_type": {
+    "Failed Tests": 0.000531491268886609,
+    "RecursionError": 0.0028336048126220703,
+    "IndexError": 0.0005840063095092773,
+    "TypeError": 0.0005614757537841797
+   },
+   "correct_pct": 0.0,
+   "runtime_error_pct": 3.5000000000000004,
+   "runtime": 0.0005814830462137858,
+   "execution_runtime": 6.0
+  },
+  "HumanEval/21": {
+   "correct": 0,
+   "total": 200,
+   "error_types": {
+    "SyntaxError": 46,
+    "RecursionError": 33,
+    "Failed Tests": 115,
+    "TypeError": 5,
+    "AttributeError": 1
+   },
+   "error_messages": {
+    "0": "RecursionError: maximum recursion depth exceeded while calling a Python object",
+    "2": "RecursionError: maximum recursion depth exceeded",
+    "8": "RecursionError: maximum recursion depth exceeded",
+    "11": "RecursionError: maximum recursion depth exceeded",
+    "17": "TypeError: 'float' object is not iterable",
+    "18": "TypeError: numbers must be an integer",
+    "20": "RecursionError: maximum recursion depth exceeded",
+    "23": "TypeError: type list doesn't define __round__ method",
+    "45": "RecursionError: maximum recursion depth exceeded",
+    "46": "RecursionError: maximum recursion depth exceeded",
+    "57": "AttributeError: 'float' object has no attribute 'count'",
+    "58": "RecursionError: maximum recursion depth exceeded",
+    "59": "RecursionError: maximum recursion depth exceeded",
+    "62": "RecursionError: maximum recursion depth exceeded",
+    "64": "RecursionError: maximum recursion depth exceeded",
+    "65": "RecursionError: maximum recursion depth exceeded",
+    "70": "RecursionError: maximum recursion depth exceeded",
+    "73": "RecursionError: maximum recursion depth exceeded",
+    "74": "RecursionError: maximum recursion depth exceeded",
+    "80": "RecursionError: maximum recursion depth exceeded",
+    "81": "TypeError: 'float' object is not iterable",
+    "82": "RecursionError: maximum recursion depth exceeded",
+    "83": "TypeError: 'float' object is not iterable",
+    "84": "RecursionError: maximum recursion depth exceeded",
+    "85": "RecursionError: maximum recursion depth exceeded",
+    "94": "RecursionError: maximum recursion depth exceeded",
+    "98": "RecursionError: maximum recursion depth exceeded",
+    "104": "RecursionError: maximum recursion depth exceeded",
+    "107": "RecursionError: maximum recursion depth exceeded",
+    "110": "RecursionError: maximum recursion depth exceeded",
+    "111": "RecursionError: maximum recursion depth exceeded",
+    "117": "RecursionError: maximum recursion depth exceeded",
+    "123": "RecursionError: maximum recursion depth exceeded",
+    "128": "RecursionError: maximum recursion depth exceeded",
+    "129": "RecursionError: maximum recursion depth exceeded",
+    "136": "RecursionError: maximum recursion depth exceeded",
+    "138": "RecursionError: maximum recursion depth exceeded",
+    "152": "RecursionError: maximum recursion depth exceeded",
+    "153": "RecursionError: maximum recursion depth exceeded"
+   },
+   "runtimes_by_type": {
+    "RecursionError": 0.003921125874374852,
+    "Failed Tests": 0.0005032124726668648,
+    "TypeError": 0.000565481185913086,
+    "AttributeError": 0.0005018711090087891
+   },
+   "correct_pct": 0.0,
+   "runtime_error_pct": 19.5,
+   "runtime": 0.0012376354886339857,
+   "execution_runtime": 6.0
+  },
+  "HumanEval/22": {
+   "correct": 5,
+   "total": 200,
+   "error_types": {
+    "SyntaxError": 65,
+    "Failed Tests": 128,
+    "ValueError": 2
+   },
+   "error_messages": {
+    "58": "ValueError: invalid literal for int() with base 10: 'adasd'",
+    "86": "ValueError: invalid literal for int() with base 10: 'adasd'"
+   },
+   "runtimes_by_type": {
+    "Failed Tests": 0.0003714337944984436,
+    "Passed": 0.0004444122314453125,
+    "ValueError": 0.00043082237243652344
+   },
+   "correct_pct": 2.5,
+   "runtime_error_pct": 1.0,
+   "runtime": 0.0003750165303548177,
+   "execution_runtime": 0.0004444122314453125
+  },
+  "HumanEval/23": {
+   "correct": 34,
+   "total": 200,
+   "error_types": {
+    "SyntaxError": 104,
+    "Failed Tests": 61,
+    "TypeError": 1
+   },
+   "error_messages": {
+    "66": "TypeError: string must be bytes or bytearray"
+   },
+   "runtimes_by_type": {
+    "Failed Tests": 0.0002675212797571401,
+    "Passed": 0.000247646780575023,
+    "TypeError": 0.00029468536376953125
+   },
+   "correct_pct": 17.0,
+   "runtime_error_pct": 0.5,
+   "runtime": 0.0002607653538386027,
+   "execution_runtime": 0.000247646780575023
+  },
+  "HumanEval/24": {
+   "correct": 0,
+   "total": 200,
+   "error_types": {
+    "SyntaxError": 109,
+    "ValueError": 2,
+    "Failed Tests": 88,
+    "OSError": 1
+   },
+   "error_messages": {
+    "0": "ValueError: n must be at least 2",
+    "10": "ValueError: n must be greater than 0",
+    "12": "OSError: "
+   },
+   "runtimes_by_type": {
+    "ValueError": 0.00027370452880859375,
+    "Failed Tests": 0.0002666684714230624,
+    "OSError": 0.0002613067626953125
+   },
+   "correct_pct": 0.0,
+   "runtime_error_pct": 1.5,
+   "runtime": 0.0002667641901707911,
+   "execution_runtime": 6.0
+  },
+  "HumanEval/25": {
+   "correct": 0,
+   "total": 200,
+   "error_types": {
+    "SyntaxError": 172,
+    "Failed Tests": 24,
+    "NameError": 4
+   },
+   "error_messages": {
+    "5": "NameError: name 'factorize' is not defined",
+    "11": "NameError: name 'factorize' is not defined",
+    "14": "NameError: name 'factorize' is not defined",
+    "20": "NameError: name 'factorize' is not defined"
+   },
+   "runtimes_by_type": {
+    "Failed Tests": 0.00040551026662190753,
+    "NameError": 0.0003947019577026367
+   },
+   "correct_pct": 0.0,
+   "runtime_error_pct": 2.0,
+   "runtime": 0.00040396622249058316,
+   "execution_runtime": 6.0
+  },
+  "HumanEval/26": {
+   "correct": 1,
+   "total": 200,
+   "error_types": {
+    "SyntaxError": 34,
+    "Failed Tests": 148,
+    "RecursionError": 14,
+    "ValueError": 2,
+    "IndexError": 1
+   },
+   "error_messages": {
+    "26": "RecursionError: maximum recursion depth exceeded",
+    "30": "ValueError: max() arg is an empty sequence",
+    "36": "RecursionError: maximum recursion depth exceeded",
+    "55": "RecursionError: maximum recursion depth exceeded",
+    "59": "RecursionError: maximum recursion depth exceeded",
+    "61": "RecursionError: maximum recursion depth exceeded",
+    "62": "RecursionError: maximum recursion depth exceeded",
+    "79": "RecursionError: maximum recursion depth exceeded",
+    "80": "RecursionError: maximum recursion depth exceeded",
+    "99": "IndexError: pop from empty list",
+    "104": "RecursionError: maximum recursion depth exceeded",
+    "110": "RecursionError: maximum recursion depth exceeded",
+    "117": "RecursionError: maximum recursion depth exceeded",
+    "133": "RecursionError: maximum recursion depth exceeded",
+    "148": "ValueError: list.remove(x): x not in list",
+    "156": "RecursionError: maximum recursion depth exceeded",
+    "164": "RecursionError: maximum recursion depth exceeded"
+   },
+   "runtimes_by_type": {
+    "Failed Tests": 0.0003688850918331662,
+    "RecursionError": 0.004364933286394391,
+    "ValueError": 0.00035321712493896484,
+    "Passed": 0.0003418922424316406,
+    "IndexError": 0.0003705024719238281
+   },
+   "correct_pct": 0.5,
+   "runtime_error_pct": 8.5,
+   "runtime": 0.0007055595696690571,
+   "execution_runtime": 0.0003418922424316406
+  },
+  "HumanEval/27": {
+   "correct": 1,
+   "total": 200,
+   "error_types": {
+    "SyntaxError": 107,
+    "Failed Tests": 92
+   },
+   "error_messages": {},
+   "runtimes_by_type": {
+    "Failed Tests": 0.0002706310023432193,
+    "Passed": 0.0002818107604980469
+   },
+   "correct_pct": 0.5,
+   "runtime_error_pct": 0.0,
+   "runtime": 0.00027075121479649695,
+   "execution_runtime": 0.0002818107604980469
+  },
+  "HumanEval/28": {
+   "correct": 40,
+   "total": 200,
+   "error_types": {
+    "SyntaxError": 80,
+    "Failed Tests": 80
+   },
+   "error_messages": {},
+   "runtimes_by_type": {
+    "Failed Tests": 0.00033926963806152344,
+    "Passed": 0.00032508373260498047
+   },
+   "correct_pct": 20.0,
+   "runtime_error_pct": 0.0,
+   "runtime": 0.00033454100290934247,
+   "execution_runtime": 0.00032508373260498047
+  },
+  "HumanEval/29": {
+   "correct": 26,
+   "total": 200,
+   "error_types": {
+    "SyntaxError": 53,
+    "Failed Tests": 117,
+    "RecursionError": 1,
+    "TypeError": 1,
+    "IndexError": 1,
+    "UnboundLocalError": 1
+   },
+   "error_messages": {
+    "55": "RecursionError: maximum recursion depth exceeded",
+    "57": "TypeError: can only concatenate list (not \"filter\") to list",
+    "96": "IndexError: list index out of range",
+    "106": "UnboundLocalError: local variable 'prefixes' referenced before assignment"
+   },
+   "runtimes_by_type": {
+    "Failed Tests": 0.000341594728649172,
+    "Passed": 0.00035307957575871394,
+    "RecursionError": 0.002720355987548828,
+    "TypeError": 0.00035119056701660156,
+    "IndexError": 0.0003790855407714844,
+    "UnboundLocalError": 0.0004878044128417969
+   },
+   "correct_pct": 13.0,
+   "runtime_error_pct": 2.0,
+   "runtime": 0.00036112305258407076,
+   "execution_runtime": 0.00035307957575871394
+  },
+  "HumanEval/30": {
+   "correct": 8,
+   "total": 200,
+   "error_types": {
+    "SyntaxError": 94,
+    "Failed Tests": 98
+   },
+   "error_messages": {},
+   "runtimes_by_type": {
+    "Passed": 0.0003338754177093506,
+    "Failed Tests": 0.00031312874385288784
+   },
+   "correct_pct": 4.0,
+   "runtime_error_pct": 0.0,
+   "runtime": 0.00031469453055903596,
+   "execution_runtime": 0.0003338754177093506
+  },
+  "HumanEval/31": {
+   "correct": 0,
+   "total": 200,
+   "error_types": {
+    "SyntaxError": 79,
+    "Failed Tests": 121
+   },
+   "error_messages": {},
+   "runtimes_by_type": {
+    "Failed Tests": 0.00029689024302585065
+   },
+   "correct_pct": 0.0,
+   "runtime_error_pct": 0.0,
+   "runtime": 0.00029689024302585065,
+   "execution_runtime": 6.0
+  },
+  "HumanEval/32": {
+   "correct": 0,
+   "total": 200,
+   "error_types": {
+    "SyntaxError": 163,
+    "NameError": 37
+   },
+   "error_messages": {
+    "0": "NameError: name 'find_zero' is not defined",
+    "1": "NameError: name 'find_zero' is not defined",
+    "2": "NameError: name 'find_zero' is not defined",
+    "3": "NameError: name 'poly' is not defined",
+    "4": "NameError: name 'find_zero' is not defined",
+    "5": "NameError: name 'find_zero' is not defined",
+    "6": "NameError: name 'x' is not defined",
+    "7": "NameError: name 'find_zero' is not defined",
+    "8": "NameError: name 'find_zero' is not defined",
+    "9": "NameError: name 'x' is not defined",
+    "10": "NameError: name 'find_zero' is not defined",
+    "11": "NameError: name 'find_zero' is not defined",
+    "12": "NameError: name 'find_zero' is not defined",
+    "13": "NameError: name 'x' is not defined",
+    "14": "NameError: name 'find_zero' is not defined",
+    "15": "NameError: name 'poly' is not defined",
+    "16": "NameError: name 'find_zero' is not defined",
+    "17": "NameError: name 'find_zero' is not defined",
+    "18": "NameError: name 'x' is not defined",
+    "19": "NameError: name 'find_zero' is not defined",
+    "20": "NameError: name 'find_zero' is not defined",
+    "21": "NameError: name 'find_zero' is not defined",
+    "22": "NameError: name 'find_zero' is not defined",
+    "23": "NameError: name 'find_zero' is not defined",
+    "24": "NameError: name 'find_zero' is not defined",
+    "25": "NameError: name 'find_zero' is not defined",
+    "26": "NameError: name 'find_zero' is not defined",
+    "27": "NameError: name 'find_zero' is not defined",
+    "28": "NameError: name 'find_zero' is not defined",
+    "29": "NameError: name 'x' is not defined",
+    "30": "NameError: name 'find_zero' is not defined",
+    "31": "NameError: name 'find_zero' is not defined",
+    "32": "NameError: name 'find_zero' is not defined",
+    "33": "NameError: name 'find_zero' is not defined",
+    "34": "NameError: name 'find_zero' is not defined",
+    "35": "NameError: name 'find_zero' is not defined",
+    "36": "NameError: name 'find_zero' is not defined"
+   },
+   "runtimes_by_type": {
+    "NameError": 0.0003872046599516997
+   },
+   "correct_pct": 0.0,
+   "runtime_error_pct": 18.5,
+   "runtime": 0.0003872046599516997,
+   "execution_runtime": 6.0
+  },
+  "HumanEval/33": {
+   "correct": 0,
+   "total": 200,
+   "error_types": {
+    "SyntaxError": 91,
+    "TypeError": 82,
+    "Failed Tests": 27
+   },
+   "error_messages": {
+    "0": "TypeError: 'NoneType' object is not iterable",
+    "1": "TypeError: 'NoneType' object is not iterable",
+    "2": "TypeError: 'NoneType' object is not iterable",
+    "3": "TypeError: 'NoneType' object is not iterable",
+    "4": "TypeError: 'NoneType' object is not iterable",
+    "5": "TypeError: 'NoneType' object is not iterable",
+    "6": "TypeError: 'NoneType' object is not iterable",
+    "7": "TypeError: 'NoneType' object is not iterable",
+    "10": "TypeError: 'NoneType' object is not iterable",
+    "11": "TypeError: 'NoneType' object is not iterable",
+    "12": "TypeError: 'NoneType' object is not iterable",
+    "13": "TypeError: 'NoneType' object is not iterable",
+    "15": "TypeError: 'NoneType' object is not iterable",
+    "16": "TypeError: 'NoneType' object is not iterable",
+    "18": "TypeError: 'NoneType' object is not iterable",
+    "19": "TypeError: 'NoneType' object is not iterable",
+    "21": "TypeError: 'NoneType' object is not iterable",
+    "22": "TypeError: 'NoneType' object is not iterable",
+    "23": "TypeError: 'NoneType' object is not iterable",
+    "24": "TypeError: 'NoneType' object is not iterable",
+    "25": "TypeError: 'NoneType' object is not iterable",
+    "26": "TypeError: 'NoneType' object is not iterable",
+    "27": "TypeError: 'NoneType' object is not iterable",
+    "29": "TypeError: 'NoneType' object is not iterable",
+    "30": "TypeError: 'NoneType' object is not iterable",
+    "31": "TypeError: 'NoneType' object is not iterable",
+    "32": "TypeError: 'NoneType' object is not iterable",
+    "33": "TypeError: 'NoneType' object is not iterable",
+    "34": "TypeError: 'NoneType' object is not iterable",
+    "35": "TypeError: 'NoneType' object is not iterable",
+    "37": "TypeError: 'NoneType' object is not iterable",
+    "38": "TypeError: 'NoneType' object is not iterable",
+    "39": "TypeError: 'int' object is not iterable",
+    "41": "TypeError: 'int' object is not iterable",
+    "43": "TypeError: 'NoneType' object is not iterable",
+    "44": "TypeError: 'NoneType' object is not iterable",
+    "45": "TypeError: 'NoneType' object is not iterable",
+    "46": "TypeError: 'NoneType' object is not iterable",
+    "47": "TypeError: 'NoneType' object is not iterable",
+    "50": "TypeError: 'NoneType' object is not iterable",
+    "51": "TypeError: 'NoneType' object is not iterable",
+    "52": "TypeError: 'NoneType' object is not iterable",
+    "55": "TypeError: 'NoneType' object is not iterable",
+    "57": "TypeError: 'NoneType' object is not iterable",
+    "58": "TypeError: 'NoneType' object is not iterable",
+    "59": "TypeError: 'NoneType' object is not iterable",
+    "60": "TypeError: 'NoneType' object is not iterable",
+    "61": "TypeError: 'NoneType' object is not iterable",
+    "62": "TypeError: 'NoneType' object is not iterable",
+    "63": "TypeError: 'NoneType' object is not iterable",
+    "66": "TypeError: 'NoneType' object is not iterable",
+    "67": "TypeError: 'NoneType' object is not iterable",
+    "68": "TypeError: 'NoneType' object is not iterable",
+    "69": "TypeError: 'NoneType' object is not iterable",
+    "70": "TypeError: 'NoneType' object is not iterable",
+    "72": "TypeError: 'NoneType' object is not iterable",
+    "73": "TypeError: 'NoneType' object is not iterable",
+    "76": "TypeError: 'NoneType' object is not iterable",
+    "78": "TypeError: 'NoneType' object is not iterable",
+    "79": "TypeError: 'NoneType' object is not iterable",
+    "81": "TypeError: 'NoneType' object is not iterable",
+    "82": "TypeError: 'NoneType' object is not iterable",
+    "83": "TypeError: 'NoneType' object is not iterable",
+    "84": "TypeError: 'int' object is not subscriptable",
+    "85": "TypeError: 'NoneType' object is not iterable",
+    "90": "TypeError: 'NoneType' object is not iterable",
+    "91": "TypeError: 'NoneType' object is not iterable",
+    "92": "TypeError: 'NoneType' object is not iterable",
+    "93": "TypeError: 'NoneType' object is not iterable",
+    "94": "TypeError: 'NoneType' object is not iterable",
+    "96": "TypeError: 'NoneType' object is not iterable",
+    "97": "TypeError: 'NoneType' object is not iterable",
+    "98": "TypeError: 'NoneType' object is not iterable",
+    "99": "TypeError: 'NoneType' object is not iterable",
+    "100": "TypeError: 'NoneType' object is not iterable",
+    "101": "TypeError: 'NoneType' object is not iterable",
+    "102": "TypeError: 'NoneType' object is not iterable",
+    "103": "TypeError: 'NoneType' object is not iterable",
+    "104": "TypeError: 'NoneType' object is not iterable",
+    "105": "TypeError: 'NoneType' object is not iterable",
+    "106": "TypeError: 'NoneType' object is not iterable",
+    "107": "TypeError: 'NoneType' object is not iterable"
+   },
+   "runtimes_by_type": {
+    "TypeError": 0.0005439141901527963,
+    "Failed Tests": 0.0005868894082528574
+   },
+   "correct_pct": 0.0,
+   "runtime_error_pct": 41.0,
+   "runtime": 0.0005545594276638206,
+   "execution_runtime": 6.0
+  },
+  "HumanEval/34": {
+   "correct": 27,
+   "total": 200,
+   "error_types": {
+    "SyntaxError": 152,
+    "Failed Tests": 20,
+    "IndexError": 1
+   },
+   "error_messages": {
+    "3": "IndexError: list index out of range"
+   },
+   "runtimes_by_type": {
+    "Failed Tests": 0.00025482177734375,
+    "Passed": 0.00023022404423466436,
+    "IndexError": 0.00031113624572753906
+   },
+   "correct_pct": 13.5,
+   "runtime_error_pct": 0.5,
+   "runtime": 0.00024215877056121826,
+   "execution_runtime": 0.00023022404423466436
+  },
+  "HumanEval/35": {
+   "correct": 17,
+   "total": 200,
+   "error_types": {
+    "SyntaxError": 156,
+    "Failed Tests": 25,
+    "RecursionError": 1,
+    "TypeError": 1
+   },
+   "error_messages": {
+    "13": "RecursionError: maximum recursion depth exceeded in comparison",
+    "30": "TypeError: 'int' object is not subscriptable"
+   },
+   "runtimes_by_type": {
+    "Passed": 0.0002797210917753332,
+    "Failed Tests": 0.0002597332000732422,
+    "RecursionError": 0.0024764537811279297,
+    "TypeError": 0.000308990478515625
+   },
+   "correct_pct": 8.5,
+   "runtime_error_pct": 1.0,
+   "runtime": 0.0003189552914012562,
+   "execution_runtime": 0.0002797210917753332
+  },
+  "HumanEval/36": {
+   "correct": 0,
+   "total": 200,
+   "error_types": {
+    "SyntaxError": 146,
+    "Failed Tests": 54
+   },
+   "error_messages": {},
+   "runtimes_by_type": {
+    "Failed Tests": 0.00027210624129683883
+   },
+   "correct_pct": 0.0,
+   "runtime_error_pct": 0.0,
+   "runtime": 0.00027210624129683883,
+   "execution_runtime": 6.0
+  },
+  "HumanEval/37": {
+   "correct": 0,
+   "total": 200,
+   "error_types": {
+    "SyntaxError": 77,
+    "TypeError": 82,
+    "Failed Tests": 40,
+    "NameError": 1
+   },
+   "error_messages": {
+    "0": "TypeError: 'NoneType' object is not iterable",
+    "1": "TypeError: 'NoneType' object is not iterable",
+    "3": "TypeError: 'NoneType' object is not iterable",
+    "4": "TypeError: 'NoneType' object is not iterable",
+    "5": "TypeError: 'NoneType' object is not iterable",
+    "6": "TypeError: 'NoneType' object is not iterable",
+    "7": "TypeError: 'NoneType' object is not iterable",
+    "9": "TypeError: 'NoneType' object is not iterable",
+    "10": "TypeError: 'NoneType' object is not iterable",
+    "14": "TypeError: 'NoneType' object is not iterable",
+    "17": "TypeError: 'NoneType' object is not iterable",
+    "19": "TypeError: 'NoneType' object is not iterable",
+    "20": "TypeError: 'NoneType' object is not iterable",
+    "22": "NameError: name 'odd_indexes' is not defined",
+    "23": "TypeError: 'NoneType' object is not iterable",
+    "24": "TypeError: 'NoneType' object is not iterable",
+    "25": "TypeError: 'NoneType' object is not iterable",
+    "26": "TypeError: 'NoneType' object is not iterable",
+    "27": "TypeError: 'NoneType' object is not iterable",
+    "28": "TypeError: 'int' object is not iterable",
+    "31": "TypeError: 'NoneType' object is not iterable",
+    "33": "TypeError: 'NoneType' object is not iterable",
+    "35": "TypeError: 'NoneType' object is not iterable",
+    "36": "TypeError: list indices must be integers or slices, not list",
+    "37": "TypeError: 'NoneType' object is not iterable",
+    "39": "TypeError: 'NoneType' object is not iterable",
+    "40": "TypeError: 'NoneType' object is not iterable",
+    "41": "TypeError: 'NoneType' object is not iterable",
+    "43": "TypeError: 'NoneType' object is not iterable",
+    "45": "TypeError: 'NoneType' object is not iterable",
+    "48": "TypeError: 'NoneType' object is not iterable",
+    "50": "TypeError: 'NoneType' object is not iterable",
+    "51": "TypeError: 'NoneType' object is not iterable",
+    "52": "TypeError: 'NoneType' object is not iterable",
+    "53": "TypeError: 'NoneType' object is not iterable",
+    "54": "TypeError: 'NoneType' object is not iterable",
+    "56": "TypeError: 'NoneType' object is not iterable",
+    "58": "TypeError: 'NoneType' object is not iterable",
+    "59": "TypeError: 'NoneType' object is not iterable",
+    "60": "TypeError: 'NoneType' object is not iterable",
+    "61": "TypeError: 'NoneType' object is not iterable",
+    "62": "TypeError: 'NoneType' object is not iterable",
+    "64": "TypeError: 'NoneType' object is not iterable",
+    "66": "TypeError: 'NoneType' object is not iterable",
+    "67": "TypeError: 'NoneType' object is not iterable",
+    "69": "TypeError: 'NoneType' object is not iterable",
+    "70": "TypeError: 'NoneType' object is not iterable",
+    "71": "TypeError: 'NoneType' object is not iterable",
+    "72": "TypeError: 'NoneType' object is not iterable",
+    "73": "TypeError: 'NoneType' object is not iterable",
+    "74": "TypeError: 'NoneType' object is not iterable",
+    "77": "TypeError: 'NoneType' object is not iterable",
+    "78": "TypeError: 'NoneType' object is not iterable",
+    "79": "TypeError: 'NoneType' object is not iterable",
+    "82": "TypeError: 'NoneType' object is not iterable",
+    "83": "TypeError: 'NoneType' object is not iterable",
+    "84": "TypeError: 'NoneType' object is not iterable",
+    "86": "TypeError: 'NoneType' object is not iterable",
+    "87": "TypeError: 'NoneType' object is not iterable",
+    "88": "TypeError: 'NoneType' object is not iterable",
+    "91": "TypeError: 'NoneType' object is not iterable",
+    "92": "TypeError: 'NoneType' object is not iterable",
+    "93": "TypeError: 'NoneType' object is not iterable",
+    "95": "TypeError: 'NoneType' object is not iterable",
+    "97": "TypeError: 'NoneType' object is not iterable",
+    "98": "TypeError: 'NoneType' object is not iterable",
+    "99": "TypeError: 'NoneType' object is not iterable",
+    "100": "TypeError: 'NoneType' object is not iterable",
+    "101": "TypeError: 'NoneType' object is not iterable",
+    "102": "TypeError: 'NoneType' object is not iterable",
+    "103": "TypeError: 'NoneType' object is not iterable",
+    "104": "TypeError: 'NoneType' object is not iterable",
+    "105": "TypeError: 'NoneType' object is not iterable",
+    "106": "TypeError: 'NoneType' object is not iterable",
+    "107": "TypeError: 'NoneType' object is not iterable",
+    "109": "TypeError: 'NoneType' object is not iterable",
+    "110": "TypeError: 'NoneType' object is not iterable",
+    "111": "TypeError: 'NoneType' object is not iterable",
+    "114": "TypeError: 'NoneType' object is not iterable",
+    "116": "TypeError: 'NoneType' object is not iterable",
+    "117": "TypeError: 'NoneType' object is not iterable",
+    "120": "TypeError: 'NoneType' object is not iterable",
+    "122": "TypeError: 'NoneType' object is not iterable"
+   },
+   "runtimes_by_type": {
+    "TypeError": 0.0003565898755701577,
+    "Failed Tests": 0.0003936886787414551,
+    "NameError": 0.00047326087951660156
+   },
+   "correct_pct": 0.0,
+   "runtime_error_pct": 41.5,
+   "runtime": 0.00036960307175551004,
+   "execution_runtime": 6.0
+  },
+  "HumanEval/38": {
+   "correct": 0,
+   "total": 200,
+   "error_types": {
+    "SyntaxError": 90,
+    "NameError": 110
+   },
+   "error_messages": {
+    "0": "NameError: name 'decode_cyclic' is not defined",
+    "1": "NameError: name 'decode_cyclic' is not defined",
+    "2": "NameError: name 'decode_cyclic' is not defined",
+    "3": "NameError: name 'decode_cyclic' is not defined",
+    "4": "NameError: name 'decode_cyclic' is not defined",
+    "5": "NameError: name 'decode_cyclic' is not defined",
+    "6": "NameError: name 'decode_cyclic' is not defined",
+    "7": "NameError: name 'decode_cyclic' is not defined",
+    "8": "NameError: name 'decode_cyclic' is not defined",
+    "9": "NameError: name 'decode_cyclic' is not defined",
+    "10": "NameError: name 'decode_cyclic' is not defined",
+    "11": "NameError: name 'decode_cyclic' is not defined",
+    "12": "NameError: name 'decode_cyclic' is not defined",
+    "13": "NameError: name 'decode_cyclic' is not defined",
+    "14": "NameError: name 'decode_cyclic' is not defined",
+    "15": "NameError: name 'decode_cyclic' is not defined",
+    "16": "NameError: name 'decode_cyclic' is not defined",
+    "17": "NameError: name 'decode_cyclic' is not defined",
+    "18": "NameError: name 'decode_cyclic' is not defined",
+    "19": "NameError: name 'decode_cyclic' is not defined",
+    "20": "NameError: name 'decode_cyclic' is not defined",
+    "21": "NameError: name 'decode_cyclic' is not defined",
+    "22": "NameError: name 'decode_cyclic' is not defined",
+    "23": "NameError: name 'decode_cyclic' is not defined",
+    "24": "NameError: name 'decode_cyclic' is not defined",
+    "25": "NameError: name 'decode_cyclic' is not defined",
+    "26": "NameError: name 'decode_cyclic' is not defined",
+    "27": "NameError: name 'decode_cyclic' is not defined",
+    "28": "NameError: name 'decode_cyclic' is not defined",
+    "29": "NameError: name 'decode_cyclic' is not defined",
+    "30": "NameError: name 'decode_cyclic' is not defined",
+    "31": "NameError: name 'decode_cyclic' is not defined",
+    "32": "NameError: name 'decode_cyclic' is not defined",
+    "33": "NameError: name 'decode_cyclic' is not defined",
+    "34": "NameError: name 'decode_cyclic' is not defined",
+    "35": "NameError: name 'decode_cyclic' is not defined",
+    "36": "NameError: name 'decode_cyclic' is not defined",
+    "37": "NameError: name 'decode_cyclic' is not defined",
+    "38": "NameError: name 'decode_cyclic' is not defined",
+    "39": "NameError: name 'decode_cyclic' is not defined",
+    "40": "NameError: name 'decode_cyclic' is not defined",
+    "41": "NameError: name 'decode_cyclic' is not defined",
+    "42": "NameError: name 'decode_cyclic' is not defined",
+    "43": "NameError: name 'decode_cyclic' is not defined",
+    "44": "NameError: name 'decode_cyclic' is not defined",
+    "45": "NameError: name 'decode_cyclic' is not defined",
+    "46": "NameError: name 'decode_cyclic' is not defined",
+    "47": "NameError: name 'decode_cyclic' is not defined",
+    "48": "NameError: name 'decode_cyclic' is not defined",
+    "49": "NameError: name 'decode_cyclic' is not defined",
+    "50": "NameError: name 'decode_cyclic' is not defined",
+    "51": "NameError: name 'decode_cyclic' is not defined",
+    "52": "NameError: name 'decode_cyclic' is not defined",
+    "53": "NameError: name 'decode_cyclic' is not defined",
+    "54": "NameError: name 'decode_cyclic' is not defined",
+    "55": "NameError: name 'decode_cyclic' is not defined",
+    "56": "NameError: name 'decode_cyclic' is not defined",
+    "57": "NameError: name 'decode_cyclic' is not defined",
+    "58": "NameError: name 'decode_cyclic' is not defined",
+    "59": "NameError: name 'decode_cyclic' is not defined",
+    "60": "NameError: name 'decode_cyclic' is not defined",
+    "61": "NameError: name 'decode_cyclic' is not defined",
+    "62": "NameError: name 'decode_cyclic' is not defined",
+    "63": "NameError: name 'decode_cyclic' is not defined",
+    "64": "NameError: name 'decode_cyclic' is not defined",
+    "65": "NameError: name 'decode_cyclic' is not defined",
+    "66": "NameError: name 'decode_cyclic' is not defined",
+    "67": "NameError: name 'decode_cyclic' is not defined",
+    "68": "NameError: name 'decode_cyclic' is not defined",
+    "69": "NameError: name 'decode_cyclic' is not defined",
+    "70": "NameError: name 'decode_cyclic' is not defined",
+    "71": "NameError: name 'decode_cyclic' is not defined",
+    "72": "NameError: name 'decode_cyclic' is not defined",
+    "73": "NameError: name 'decode_cyclic' is not defined",
+    "74": "NameError: name 'decode_cyclic' is not defined",
+    "75": "NameError: name 'decode_cyclic' is not defined",
+    "76": "NameError: name 'decode_cyclic' is not defined",
+    "77": "NameError: name 'decode_cyclic' is not defined",
+    "78": "NameError: name 'decode_cyclic' is not defined",
+    "79": "NameError: name 'decode_cyclic' is not defined",
+    "80": "NameError: name 'decode_cyclic' is not defined",
+    "81": "NameError: name 'decode_cyclic' is not defined",
+    "82": "NameError: name 'decode_cyclic' is not defined",
+    "83": "NameError: name 'decode_cyclic' is not defined",
+    "84": "NameError: name 'decode_cyclic' is not defined",
+    "85": "NameError: name 'decode_cyclic' is not defined",
+    "86": "NameError: name 'decode_cyclic' is not defined",
+    "87": "NameError: name 'decode_cyclic' is not defined",
+    "88": "NameError: name 'decode_cyclic' is not defined",
+    "89": "NameError: name 'decode_cyclic' is not defined",
+    "90": "NameError: name 'decode_cyclic' is not defined",
+    "91": "NameError: name 'decode_cyclic' is not defined",
+    "92": "NameError: name 'decode_cyclic' is not defined",
+    "93": "NameError: name 'decode_cyclic' is not defined",
+    "94": "NameError: name 'decode_cyclic' is not defined",
+    "95": "NameError: name 'decode_cyclic' is not defined",
+    "96": "NameError: name 'decode_cyclic' is not defined",
+    "97": "NameError: name 'decode_cyclic' is not defined",
+    "98": "NameError: name 'decode_cyclic' is not defined",
+    "99": "NameError: name 'decode_cyclic' is not defined",
+    "100": "NameError: name 'decode_cyclic' is not defined",
+    "101": "NameError: name 'decode_cyclic' is not defined",
+    "102": "NameError: name 'decode_cyclic' is not defined",
+    "103": "NameError: name 'decode_cyclic' is not defined",
+    "104": "NameError: name 'decode_cyclic' is not defined",
+    "105": "NameError: name 'decode_cyclic' is not defined",
+    "106": "NameError: name 'decode_cyclic' is not defined",
+    "107": "NameError: name 'decode_cyclic' is not defined",
+    "108": "NameError: name 'decode_cyclic' is not defined",
+    "109": "NameError: name 'decode_cyclic' is not defined"
+   },
+   "runtimes_by_type": {
+    "NameError": 0.0003662131049416282
+   },
+   "correct_pct": 0.0,
+   "runtime_error_pct": 55.00000000000001,
+   "runtime": 0.0003662131049416282,
+   "execution_runtime": 6.0
+  },
+  "HumanEval/39": {
+   "correct": 0,
+   "total": 200,
+   "error_types": {
+    "SyntaxError": 135,
+    "Failed Tests": 60,
+    "NameError": 5
+   },
+   "error_messages": {
+    "9": "NameError: name 'prime_fib' is not defined",
+    "27": "NameError: name 'prime_fib' is not defined",
+    "30": "NameError: name 'prime_fib' is not defined",
+    "49": "NameError: name 'prime_fib' is not defined",
+    "56": "NameError: name 'prime_fib' is not defined"
+   },
+   "runtimes_by_type": {
+    "Failed Tests": 0.00028812487920125326,
+    "NameError": 0.0003138065338134766
+   },
+   "correct_pct": 0.0,
+   "runtime_error_pct": 2.5,
+   "runtime": 0.0002901003910945012,
+   "execution_runtime": 6.0
+  },
+  "HumanEval/40": {
+   "correct": 0,
+   "total": 200,
+   "error_types": {
+    "SyntaxError": 58,
+    "Failed Tests": 134,
+    "TypeError": 5,
+    "RecursionError": 3
+   },
+   "error_messages": {
+    "11": "TypeError: 'int' object is not iterable",
+    "20": "TypeError: 'bool' object is not iterable",
+    "54": "TypeError: 'bool' object is not iterable",
+    "79": "TypeError: 'int' object is not iterable",
+    "94": "RecursionError: maximum recursion depth exceeded",
+    "96": "RecursionError: maximum recursion depth exceeded",
+    "124": "TypeError: object of type 'int' has no len()",
+    "131": "RecursionError: maximum recursion depth exceeded"
+   },
+   "runtimes_by_type": {
+    "Failed Tests": 0.0003488935641388395,
+    "TypeError": 0.00041980743408203124,
+    "RecursionError": 0.003635962804158529
+   },
+   "correct_pct": 0.0,
+   "runtime_error_pct": 4.0,
+   "runtime": 0.00042083565617950867,
+   "execution_runtime": 6.0
+  },
+  "HumanEval/41": {
+   "correct": 0,
+   "total": 200,
+   "error_types": {
+    "SyntaxError": 172,
+    "Failed Tests": 23,
+    "NameError": 5
+   },
+   "error_messages": {
+    "2": "NameError: name 'car_race_collision' is not defined",
+    "8": "NameError: name 'Car' is not defined",
+    "11": "NameError: name 'car_race_collision' is not defined",
+    "19": "NameError: name 'List' is not defined",
+    "23": "NameError: name 'car_race_collision' is not defined"
+   },
+   "runtimes_by_type": {
+    "Failed Tests": 0.00025628960650900137,
+    "NameError": 0.00029764175415039065
+   },
+   "correct_pct": 0.0,
+   "runtime_error_pct": 2.5,
+   "runtime": 0.00026367391858782085,
+   "execution_runtime": 6.0
+  },
+  "HumanEval/42": {
+   "correct": 14,
+   "total": 200,
+   "error_types": {
+    "SyntaxError": 114,
+    "Failed Tests": 69,
+    "IndexError": 3
+   },
+   "error_messages": {
+    "26": "IndexError: list index out of range",
+    "46": "IndexError: list index out of range",
+    "81": "IndexError: list index out of range"
+   },
+   "runtimes_by_type": {
+    "Failed Tests": 0.0002999202064845873,
+    "Passed": 0.00029168810163225444,
+    "IndexError": 0.00028888384501139325
+   },
+   "correct_pct": 7.000000000000001,
+   "runtime_error_pct": 1.5,
+   "runtime": 0.000298195107038631,
+   "execution_runtime": 0.00029168810163225444
+  },
+  "HumanEval/43": {
+   "correct": 0,
+   "total": 200,
+   "error_types": {
+    "SyntaxError": 90,
+    "Failed Tests": 107,
+    "TypeError": 3
+   },
+   "error_messages": {
+    "58": "TypeError: 'int' object is not iterable",
+    "85": "TypeError: 'bool' object is not iterable",
+    "99": "TypeError: 'int' object is not iterable"
+   },
+   "runtimes_by_type": {
+    "Failed Tests": 0.0003472466335118374,
+    "TypeError": 0.0004069010416666667
+   },
+   "correct_pct": 0.0,
+   "runtime_error_pct": 1.5,
+   "runtime": 0.00034887357191606,
+   "execution_runtime": 6.0
+  },
+  "HumanEval/44": {
+   "correct": 0,
+   "total": 200,
+   "error_types": {
+    "SyntaxError": 110,
+    "Failed Tests": 90
+   },
+   "error_messages": {},
+   "runtimes_by_type": {
+    "Failed Tests": 0.0003294785817464193
+   },
+   "correct_pct": 0.0,
+   "runtime_error_pct": 0.0,
+   "runtime": 0.0003294785817464193,
+   "execution_runtime": 6.0
+  },
+  "HumanEval/45": {
+   "correct": 0,
+   "total": 200,
+   "error_types": {
+    "SyntaxError": 75,
+    "Failed Tests": 116,
+    "TypeError": 9
+   },
+   "error_messages": {
+    "5": "TypeError: object of type 'int' has no len()",
+    "9": "TypeError: 'int' object is not iterable",
+    "14": "TypeError: 'int' object is not iterable",
+    "23": "TypeError: 'int' object is not iterable",
+    "39": "TypeError: 'int' object is not iterable",
+    "88": "TypeError: object of type 'int' has no len()",
+    "104": "TypeError: object of type 'int' has no len()",
+    "106": "TypeError: 'int' object is not iterable",
+    "114": "TypeError: 'int' object is not iterable"
+   },
+   "runtimes_by_type": {
+    "Failed Tests": 0.00024676117403753874,
+    "TypeError": 0.0003048049079047309
+   },
+   "correct_pct": 0.0,
+   "runtime_error_pct": 4.5,
+   "runtime": 0.00025094032287597656,
+   "execution_runtime": 6.0
+  },
+  "HumanEval/47": {
+   "correct": 0,
+   "total": 200,
+   "error_types": {
+    "SyntaxError": 105,
+    "Failed Tests": 95
+   },
+   "error_messages": {},
+   "runtimes_by_type": {
+    "Failed Tests": 0.00029504675614206414
+   },
+   "correct_pct": 0.0,
+   "runtime_error_pct": 0.0,
+   "runtime": 0.00029504675614206414,
+   "execution_runtime": 6.0
+  },
+  "HumanEval/48": {
+   "correct": 8,
+   "total": 200,
+   "error_types": {
+    "SyntaxError": 35,
+    "Failed Tests": 156,
+    "RecursionError": 1
+   },
+   "error_messages": {
+    "148": "RecursionError: maximum recursion depth exceeded in comparison"
+   },
+   "runtimes_by_type": {
+    "Failed Tests": 0.00027195459757095727,
+    "Passed": 0.00024142861366271973,
+    "RecursionError": 0.0029020309448242188
+   },
+   "correct_pct": 4.0,
+   "runtime_error_pct": 0.5,
+   "runtime": 0.0002864144065163352,
+   "execution_runtime": 0.00024142861366271973
+  },
+  "HumanEval/49": {
+   "correct": 1,
+   "total": 200,
+   "error_types": {
+    "SyntaxError": 88,
+    "Failed Tests": 111
+   },
+   "error_messages": {},
+   "runtimes_by_type": {
+    "Failed Tests": 0.0002741641826457805,
+    "Passed": 0.0003027915954589844
+   },
+   "correct_pct": 0.5,
+   "runtime_error_pct": 0.0,
+   "runtime": 0.00027441978454589844,
+   "execution_runtime": 0.0003027915954589844
+  },
+  "HumanEval/50": {
+   "correct": 0,
+   "total": 200,
+   "error_types": {
+    "SyntaxError": 60,
+    "NameError": 140
+   },
+   "error_messages": {
+    "0": "NameError: name 'decode_shift' is not defined",
+    "1": "NameError: name 'encode_shift' is not defined",
+    "2": "NameError: name 'decode_shift' is not defined",
+    "3": "NameError: name 'decode_shift' is not defined",
+    "4": "NameError: name 'decode_shift' is not defined",
+    "5": "NameError: name 'decode_shift' is not defined",
+    "6": "NameError: name 'decode_shift' is not defined",
+    "7": "NameError: name 'decode_shift' is not defined",
+    "8": "NameError: name 'decode_shift' is not defined",
+    "9": "NameError: name 'decode_shift' is not defined",
+    "10": "NameError: name 'decode_shift' is not defined",
+    "11": "NameError: name 'decode_shift' is not defined",
+    "12": "NameError: name 'decode_shift' is not defined",
+    "13": "NameError: name 'decode_shift' is not defined",
+    "14": "NameError: name 'decode_shift' is not defined",
+    "15": "NameError: name 'decode_shift' is not defined",
+    "16": "NameError: name 'decode_shift' is not defined",
+    "17": "NameError: name 'decode_shift' is not defined",
+    "18": "NameError: name 'decode_shift' is not defined",
+    "19": "NameError: name 'decode_shift' is not defined",
+    "20": "NameError: name 'decode_shift' is not defined",
+    "21": "NameError: name 'decode_shift' is not defined",
+    "22": "NameError: name 'decode_shift' is not defined",
+    "23": "NameError: name 'decode_shift' is not defined",
+    "24": "NameError: name 'decode_shift' is not defined",
+    "25": "NameError: name 'decode_shift' is not defined",
+    "26": "NameError: name 'decode_shift' is not defined",
+    "27": "NameError: name 'decode_shift' is not defined",
+    "28": "NameError: name 'decode_shift' is not defined",
+    "29": "NameError: name 'decode_shift' is not defined",
+    "30": "NameError: name 'decode_shift' is not defined",
+    "31": "NameError: name 'decode_shift' is not defined",
+    "32": "NameError: name 'decode_shift' is not defined",
+    "33": "NameError: name 'decode_shift' is not defined",
+    "34": "NameError: name 'decode_shift' is not defined",
+    "35": "NameError: name 'decode_shift' is not defined",
+    "36": "NameError: name 'decode_shift' is not defined",
+    "37": "NameError: name 'decode_shift' is not defined",
+    "38": "NameError: name 'decode_shift' is not defined",
+    "39": "NameError: name 'decode_shift' is not defined",
+    "40": "NameError: name 'decode_shift' is not defined",
+    "41": "NameError: name 'decode_shift' is not defined",
+    "42": "NameError: name 'decode_shift' is not defined",
+    "43": "NameError: name 'decode_shift' is not defined",
+    "44": "NameError: name 'decode_shift' is not defined",
+    "45": "NameError: name 'decode_shift' is not defined",
+    "46": "NameError: name 'decode_shift' is not defined",
+    "47": "NameError: name 'decode_shift' is not defined",
+    "48": "NameError: name 'decode_shift' is not defined",
+    "49": "NameError: name 'decode_shift' is not defined",
+    "50": "NameError: name 'decode_shift' is not defined",
+    "51": "NameError: name 'decode_shift' is not defined",
+    "52": "NameError: name 'decode_shift' is not defined",
+    "53": "NameError: name 'decode_shift' is not defined",
+    "54": "NameError: name 'decode_shift' is not defined",
+    "55": "NameError: name 'decode_shift' is not defined",
+    "56": "NameError: name 'decode_shift' is not defined",
+    "57": "NameError: name 'decode_shift' is not defined",
+    "58": "NameError: name 'decode_shift' is not defined",
+    "59": "NameError: name 'decode_shift' is not defined",
+    "60": "NameError: name 'decode_shift' is not defined",
+    "61": "NameError: name 'decode_shift' is not defined",
+    "62": "NameError: name 'decode_shift' is not defined",
+    "63": "NameError: name 'decode_shift' is not defined",
+    "64": "NameError: name 'decode_shift' is not defined",
+    "65": "NameError: name 'decode_shift' is not defined",
+    "66": "NameError: name 'decode_shift' is not defined",
+    "67": "NameError: name 'decode_shift' is not defined",
+    "68": "NameError: name 'decode_shift' is not defined",
+    "69": "NameError: name 'decode_shift' is not defined",
+    "70": "NameError: name 'decode_shift' is not defined",
+    "71": "NameError: name 'decode_shift' is not defined",
+    "72": "NameError: name 'decode_shift' is not defined",
+    "73": "NameError: name 'decode_shift' is not defined",
+    "74": "NameError: name 'decode_shift' is not defined",
+    "75": "NameError: name 'decode_shift' is not defined",
+    "76": "NameError: name 'decode_shift' is not defined",
+    "77": "NameError: name 'decode_shift' is not defined",
+    "78": "NameError: name 'decode_shift' is not defined",
+    "79": "NameError: name 'decode_shift' is not defined",
+    "80": "NameError: name 'decode_shift' is not defined",
+    "81": "NameError: name 'decode_shift' is not defined",
+    "82": "NameError: name 'decode_shift' is not defined",
+    "83": "NameError: name 'decode_shift' is not defined",
+    "84": "NameError: name 'decode_shift' is not defined",
+    "85": "NameError: name 'decode_shift' is not defined",
+    "86": "NameError: name 'decode_shift' is not defined",
+    "87": "NameError: name 'decode_shift' is not defined",
+    "88": "NameError: name 'decode_shift' is not defined",
+    "89": "NameError: name 'decode_shift' is not defined",
+    "90": "NameError: name 'decode_shift' is not defined",
+    "91": "NameError: name 'decode_shift' is not defined",
+    "92": "NameError: name 'decode_shift' is not defined",
+    "93": "NameError: name 'decode_shift' is not defined",
+    "94": "NameError: name 'decode_shift' is not defined",
+    "95": "NameError: name 'decode_shift' is not defined",
+    "96": "NameError: name 'decode_shift' is not defined",
+    "97": "NameError: name 'decode_shift' is not defined",
+    "98": "NameError: name 'decode_shift' is not defined",
+    "99": "NameError: name 'decode_shift' is not defined",
+    "100": "NameError: name 'decode_shift' is not defined",
+    "101": "NameError: name 'decode_shift' is not defined",
+    "102": "NameError: name 'decode_shift' is not defined",
+    "103": "NameError: name 'decode_shift' is not defined",
+    "104": "NameError: name 'decode_shift' is not defined",
+    "105": "NameError: name 'decode_shift' is not defined",
+    "106": "NameError: name 'decode_shift' is not defined",
+    "107": "NameError: name 'decode_shift' is not defined",
+    "108": "NameError: name 'decode_shift' is not defined",
+    "109": "NameError: name 'decode_shift' is not defined",
+    "110": "NameError: name 'decode_shift' is not defined",
+    "111": "NameError: name 'decode_shift' is not defined",
+    "112": "NameError: name 'decode_shift' is not defined",
+    "113": "NameError: name 'decode_shift' is not defined",
+    "114": "NameError: name 'decode_shift' is not defined",
+    "115": "NameError: name 'decode_shift' is not defined",
+    "116": "NameError: name 'decode_shift' is not defined",
+    "117": "NameError: name 'decode_shift' is not defined",
+    "118": "NameError: name 'decode_shift' is not defined",
+    "119": "NameError: name 'decode_shift' is not defined",
+    "120": "NameError: name 'decode_shift' is not defined",
+    "121": "NameError: name 'decode_shift' is not defined",
+    "122": "NameError: name 'decode_shift' is not defined",
+    "123": "NameError: name 'decode_shift' is not defined",
+    "124": "NameError: name 'decode_shift' is not defined",
+    "125": "NameError: name 'decode_shift' is not defined",
+    "126": "NameError: name 'decode_shift' is not defined",
+    "127": "NameError: name 'decode_shift' is not defined",
+    "128": "NameError: name 'decode_shift' is not defined",
+    "129": "NameError: name 'decode_shift' is not defined",
+    "130": "NameError: name 'decode_shift' is not defined",
+    "131": "NameError: name 'decode_shift' is not defined",
+    "132": "NameError: name 'decode_shift' is not defined",
+    "133": "NameError: name 'decode_shift' is not defined",
+    "134": "NameError: name 'decode_shift' is not defined",
+    "135": "NameError: name 'decode_shift' is not defined",
+    "136": "NameError: name 'decode_shift' is not defined",
+    "137": "NameError: name 'decode_shift' is not defined",
+    "138": "NameError: name 'decode_shift' is not defined",
+    "139": "NameError: name 'decode_shift' is not defined"
+   },
+   "runtimes_by_type": {
+    "NameError": 0.0003631676946367536
+   },
+   "correct_pct": 0.0,
+   "runtime_error_pct": 70.0,
+   "runtime": 0.0003631676946367536,
+   "execution_runtime": 6.0
+  },
+  "HumanEval/52": {
+   "correct": 5,
+   "total": 200,
+   "error_types": {
+    "SyntaxError": 103,
+    "Failed Tests": 82,
+    "NameError": 10
+   },
+   "error_messages": {
+    "13": "NameError: name 'below_threshold' is not defined",
+    "14": "NameError: name 'below_threshold' is not defined",
+    "37": "NameError: name 'below_threshold' is not defined",
+    "49": "NameError: name 'below_threshold' is not defined",
+    "52": "NameError: name 'below_threshold' is not defined",
+    "53": "NameError: name 'below_threshold' is not defined",
+    "63": "NameError: name 'l_list' is not defined",
+    "65": "NameError: name 'below_threshold' is not defined",
+    "75": "NameError: name 'below_threshold' is not defined",
+    "76": "NameError: name 'below_threshold' is not defined"
+   },
+   "runtimes_by_type": {
+    "Failed Tests": 0.0003025996975782441,
+    "NameError": 0.0003109455108642578,
+    "Passed": 0.0003028392791748047
+   },
+   "correct_pct": 2.5,
+   "runtime_error_pct": 5.0,
+   "runtime": 0.00030347244026734656,
+   "execution_runtime": 0.0003028392791748047
+  },
+  "HumanEval/53": {
+   "correct": 12,
+   "total": 200,
+   "error_types": {
+    "SyntaxError": 18,
+    "Failed Tests": 170
+   },
+   "error_messages": {},
+   "runtimes_by_type": {
+    "Failed Tests": 0.0002999403897453757,
+    "Passed": 0.0003924369812011719
+   },
+   "correct_pct": 6.0,
+   "runtime_error_pct": 0.0,
+   "runtime": 0.00030603906610509853,
+   "execution_runtime": 0.0003924369812011719
+  },
+  "HumanEval/54": {
+   "correct": 0,
+   "total": 200,
+   "error_types": {
+    "SyntaxError": 48,
+    "Failed Tests": 152
+   },
+   "error_messages": {},
+   "runtimes_by_type": {
+    "Failed Tests": 0.0002986710322530646
+   },
+   "correct_pct": 0.0,
+   "runtime_error_pct": 0.0,
+   "runtime": 0.0002986710322530646,
+   "execution_runtime": 6.0
+  },
+  "HumanEval/55": {
+   "correct": 2,
+   "total": 200,
+   "error_types": {
+    "SyntaxError": 164,
+    "Failed Tests": 30,
+    "RecursionError": 1,
+    "ValueError": 3
+   },
+   "error_messages": {
+    "4": "RecursionError: maximum recursion depth exceeded in comparison",
+    "10": "ValueError: n must be positive",
+    "30": "ValueError: n must be a positive integer",
+    "34": "ValueError: n must be at least 1"
+   },
+   "runtimes_by_type": {
+    "Failed Tests": 0.0002548456192016602,
+    "RecursionError": 0.0028839111328125,
+    "Passed": 0.0002740621566772461,
+    "ValueError": 0.00027219454447428387
+   },
+   "correct_pct": 1.0,
+   "runtime_error_pct": 2.0,
+   "runtime": 0.00033038854598999023,
+   "execution_runtime": 0.0002740621566772461
+  },
+  "HumanEval/56": {
+   "correct": 0,
+   "total": 200,
+   "error_types": {
+    "SyntaxError": 79,
+    "Failed Tests": 119,
+    "NameError": 2
+   },
+   "error_messages": {
+    "13": "NameError: name 'i' is not defined",
+    "21": "NameError: name 'bracket' is not defined"
+   },
+   "runtimes_by_type": {
+    "Failed Tests": 0.00028870486411727777,
+    "NameError": 0.00030040740966796875
+   },
+   "correct_pct": 0.0,
+   "runtime_error_pct": 1.0,
+   "runtime": 0.0002888982946222479,
+   "execution_runtime": 6.0
+  },
+  "HumanEval/57": {
+   "correct": 0,
+   "total": 200,
+   "error_types": {
+    "SyntaxError": 101,
+    "Failed Tests": 96,
+    "TypeError": 1,
+    "RecursionError": 1,
+    "IndexError": 1
+   },
+   "error_messages": {
+    "62": "TypeError: object of type 'int' has no len()",
+    "77": "RecursionError: maximum recursion depth exceeded",
+    "87": "IndexError: list index out of range"
+   },
+   "runtimes_by_type": {
+    "Failed Tests": 0.0003284066915512085,
+    "TypeError": 0.000370025634765625,
+    "RecursionError": 0.0035910606384277344,
+    "IndexError": 0.00031495094299316406
+   },
+   "correct_pct": 0.0,
+   "runtime_error_pct": 1.5,
+   "runtime": 0.0003616472687384095,
+   "execution_runtime": 6.0
+  },
+  "HumanEval/58": {
+   "correct": 24,
+   "total": 200,
+   "error_types": {
+    "SyntaxError": 133,
+    "Failed Tests": 40,
+    "TypeError": 3
+   },
+   "error_messages": {
+    "10": "TypeError: object of type 'int' has no len()",
+    "25": "TypeError: object of type 'int' has no len()",
+    "41": "TypeError: object of type 'int' has no len()"
+   },
+   "runtimes_by_type": {
+    "Failed Tests": 0.00034908652305603026,
+    "Passed": 0.0003111263116200765,
+    "TypeError": 0.0003609657287597656
+   },
+   "correct_pct": 12.0,
+   "runtime_error_pct": 1.5,
+   "runtime": 0.00033602074011048274,
+   "execution_runtime": 0.0003111263116200765
+  },
+  "HumanEval/59": {
+   "correct": 0,
+   "total": 200,
+   "error_types": {
+    "SyntaxError": 120,
+    "Failed Tests": 79,
+    "RecursionError": 1
+   },
+   "error_messages": {
+    "65": "RecursionError: maximum recursion depth exceeded in comparison"
+   },
+   "runtimes_by_type": {
+    "Failed Tests": 0.00026963330522368224,
+    "RecursionError": 0.003163576126098633
+   },
+   "correct_pct": 0.0,
+   "runtime_error_pct": 0.5,
+   "runtime": 0.00030580759048461916,
+   "execution_runtime": 6.0
+  },
+  "HumanEval/60": {
+   "correct": 0,
+   "total": 200,
+   "error_types": {
+    "SyntaxError": 48,
+    "Failed Tests": 150,
+    "RecursionError": 2
+   },
+   "error_messages": {
+    "18": "RecursionError: maximum recursion depth exceeded",
+    "100": "RecursionError: maximum recursion depth exceeded"
+   },
+   "runtimes_by_type": {
+    "Failed Tests": 0.00025036017100016274,
+    "RecursionError": 0.0034952163696289062
+   },
+   "correct_pct": 0.0,
+   "runtime_error_pct": 1.0,
+   "runtime": 0.0002930556472979094,
+   "execution_runtime": 6.0
+  },
+  "HumanEval/61": {
+   "correct": 0,
+   "total": 200,
+   "error_types": {
+    "SyntaxError": 72,
+    "Failed Tests": 128
+   },
+   "error_messages": {},
+   "runtimes_by_type": {
+    "Failed Tests": 0.00028435513377189636
+   },
+   "correct_pct": 0.0,
+   "runtime_error_pct": 0.0,
+   "runtime": 0.00028435513377189636,
+   "execution_runtime": 6.0
+  },
+  "HumanEval/62": {
+   "correct": 0,
+   "total": 200,
+   "error_types": {
+    "SyntaxError": 99,
+    "Failed Tests": 99,
+    "ModuleNotFoundError": 1,
+    "TypeError": 1
+   },
+   "error_messages": {
+    "25": "ModuleNotFoundError: No module named 'sympy'",
+    "47": "SyntaxError: import * only allowed at module level (<string>, line 1)",
+    "71": "SyntaxError: import * only allowed at module level (<string>, line 1)",
+    "83": "SyntaxError: import * only allowed at module level (<string>, line 1)",
+    "84": "SyntaxError: import * only allowed at module level (<string>, line 1)",
+    "89": "SyntaxError: import * only allowed at module level (<string>, line 1)",
+    "104": "TypeError: 'int' object is not iterable"
+   },
+   "runtimes_by_type": {
+    "Failed Tests": 0.0002897628630050505,
+    "ModuleNotFoundError": 0.0006191730499267578,
+    "SyntaxError": 0.00027785301208496096,
+    "TypeError": 0.00038123130798339844
+   },
+   "correct_pct": 0.0,
+   "runtime_error_pct": 3.5000000000000004,
+   "runtime": 0.00029317163071542417,
+   "execution_runtime": 6.0
+  },
+  "HumanEval/65": {
+   "correct": 0,
+   "total": 200,
+   "error_types": {
+    "SyntaxError": 141,
+    "Failed Tests": 48,
+    "NameError": 8,
+    "OSError": 1,
+    "TypeError": 2
+   },
+   "error_messages": {
+    "6": "NameError: name 'numberofdigits' is not defined",
+    "12": "NameError: name 'numberofdigits' is not defined",
+    "15": "NameError: name 'number_of_digits' is not defined",
+    "19": "NameError: name 'numberofdigits' is not defined",
+    "32": "NameError: name 'numberofdigits' is not defined",
+    "37": "OSError: ",
+    "41": "TypeError: 'int' object is not subscriptable",
+    "42": "NameError: name 'numberofdigits' is not defined",
+    "44": "NameError: name 'numberofdigits' is not defined",
+    "50": "TypeError: sequence item 0: expected str instance, reversed found",
+    "52": "NameError: name 'number_of_digits' is not defined"
+   },
+   "runtimes_by_type": {
+    "Failed Tests": 0.0002684195836385091,
+    "NameError": 0.00028714537620544434,
+    "OSError": 0.0002949237823486328,
+    "TypeError": 0.0003235340118408203
+   },
+   "correct_pct": 0.0,
+   "runtime_error_pct": 5.5,
+   "runtime": 0.00027327618356478417,
+   "execution_runtime": 6.0
+  },
+  "HumanEval/66": {
+   "correct": 0,
+   "total": 200,
+   "error_types": {
+    "SyntaxError": 86,
+    "TypeError": 14,
+    "Failed Tests": 95,
+    "ValueError": 3,
+    "IndexError": 1,
+    "AttributeError": 1
+   },
+   "error_messages": {
+    "0": "TypeError: 'int' object is not iterable",
+    "2": "TypeError: unsupported operand type(s) for +: 'int' and 'str'",
+    "4": "TypeError: unsupported operand type(s) for +: 'int' and 'str'",
+    "6": "ValueError: invalid literal for int() with base 10: ''",
+    "11": "TypeError: unsupported operand type(s) for +: 'int' and 'str'",
+    "14": "TypeError: unsupported operand type(s) for +: 'int' and 'str'",
+    "20": "TypeError: unsupported operand type(s) for +: 'int' and 'str'",
+    "30": "TypeError: unsupported operand type(s) for +: 'int' and 'str'",
+    "58": "ValueError: invalid literal for int() with base 10: 'a'",
+    "74": "ValueError: invalid literal for int() with base 2: ''",
+    "76": "TypeError: unsupported operand type(s) for +: 'int' and 'str'",
+    "79": "TypeError: unsupported operand type(s) for +: 'int' and 'str'",
+    "80": "TypeError: unsupported operand type(s) for +: 'int' and 'str'",
+    "83": "TypeError: unsupported operand type(s) for +: 'int' and 'str'",
+    "88": "TypeError: unsupported operand type(s) for +: 'int' and 'str'",
+    "90": "TypeError: ord() expected a character, but string of length 0 found",
+    "98": "IndexError: string index out of range",
+    "109": "AttributeError: 'str' object has no attribute 'copy'",
+    "110": "TypeError: unsupported operand type(s) for +: 'int' and 'str'"
+   },
+   "runtimes_by_type": {
+    "TypeError": 0.000352961676461356,
+    "Failed Tests": 0.0003158619529322574,
+    "ValueError": 0.0003732045491536458,
+    "IndexError": 0.00047898292541503906,
+    "AttributeError": 0.00028252601623535156
+   },
+   "correct_pct": 0.0,
+   "runtime_error_pct": 9.5,
+   "runtime": 0.0003230655402467962,
+   "execution_runtime": 6.0
+  },
+  "HumanEval/67": {
+   "correct": 0,
+   "total": 200,
+   "error_types": {
+    "SyntaxError": 151,
+    "Failed Tests": 20,
+    "RecursionError": 29
+   },
+   "error_messages": {
+    "1": "RecursionError: maximum recursion depth exceeded",
+    "2": "RecursionError: maximum recursion depth exceeded",
+    "5": "RecursionError: maximum recursion depth exceeded",
+    "6": "RecursionError: maximum recursion depth exceeded",
+    "8": "RecursionError: maximum recursion depth exceeded",
+    "10": "RecursionError: maximum recursion depth exceeded",
+    "11": "RecursionError: maximum recursion depth exceeded",
+    "13": "RecursionError: maximum recursion depth exceeded",
+    "14": "RecursionError: maximum recursion depth exceeded",
+    "15": "RecursionError: maximum recursion depth exceeded",
+    "18": "RecursionError: maximum recursion depth exceeded",
+    "19": "RecursionError: maximum recursion depth exceeded",
+    "20": "RecursionError: maximum recursion depth exceeded",
+    "21": "RecursionError: maximum recursion depth exceeded",
+    "24": "RecursionError: maximum recursion depth exceeded",
+    "25": "RecursionError: maximum recursion depth exceeded",
+    "26": "RecursionError: maximum recursion depth exceeded",
+    "27": "RecursionError: maximum recursion depth exceeded",
+    "29": "RecursionError: maximum recursion depth exceeded",
+    "31": "RecursionError: maximum recursion depth exceeded",
+    "35": "RecursionError: maximum recursion depth exceeded",
+    "37": "RecursionError: maximum recursion depth exceeded",
+    "38": "RecursionError: maximum recursion depth exceeded",
+    "40": "RecursionError: maximum recursion depth exceeded",
+    "41": "RecursionError: maximum recursion depth exceeded",
+    "42": "RecursionError: maximum recursion depth exceeded",
+    "43": "RecursionError: maximum recursion depth exceeded",
+    "44": "RecursionError: maximum recursion depth exceeded",
+    "47": "RecursionError: maximum recursion depth exceeded"
+   },
+   "runtimes_by_type": {
+    "Failed Tests": 0.00027202367782592775,
+    "RecursionError": 0.0033250841601141566
+   },
+   "correct_pct": 0.0,
+   "runtime_error_pct": 14.499999999999998,
+   "runtime": 0.0020789370244863083,
+   "execution_runtime": 6.0
+  },
+  "HumanEval/68": {
+   "correct": 0,
+   "total": 200,
+   "error_types": {
+    "SyntaxError": 151,
+    "Failed Tests": 45,
+    "NameError": 2,
+    "TypeError": 1,
+    "AttributeError": 1
+   },
+   "error_messages": {
+    "15": "NameError: name 'pl' is not defined",
+    "18": "TypeError: object of type 'int' has no len()",
+    "39": "NameError: name 'smallest_' is not defined",
+    "42": "AttributeError: 'list' object has no attribute 'size'"
+   },
+   "runtimes_by_type": {
+    "Failed Tests": 0.0003484196133083767,
+    "NameError": 0.00039255619049072266,
+    "TypeError": 0.00034356117248535156,
+    "AttributeError": 0.0003306865692138672
+   },
+   "correct_pct": 0.0,
+   "runtime_error_pct": 2.0,
+   "runtime": 0.0003497600555419922,
+   "execution_runtime": 6.0
+  },
+  "HumanEval/69": {
+   "correct": 0,
+   "total": 200,
+   "error_types": {
+    "SyntaxError": 10,
+    "Failed Tests": 190
+   },
+   "error_messages": {},
+   "runtimes_by_type": {
+    "Failed Tests": 0.001041756178203382
+   },
+   "correct_pct": 0.0,
+   "runtime_error_pct": 0.0,
+   "runtime": 0.001041756178203382,
+   "execution_runtime": 6.0
+  },
+  "HumanEval/70": {
+   "correct": 0,
+   "total": 200,
+   "error_types": {
+    "SyntaxError": 7,
+    "Failed Tests": 192,
+    "NameError": 1
+   },
+   "error_messages": {
+    "24": "NameError: name 'lst' is not defined"
+   },
+   "runtimes_by_type": {
+    "Failed Tests": 0.0004058840374151866,
+    "NameError": 0.00043487548828125
+   },
+   "correct_pct": 0.0,
+   "runtime_error_pct": 0.5,
+   "runtime": 0.0004060342521865133,
+   "execution_runtime": 6.0
+  },
+  "HumanEval/71": {
+   "correct": 0,
+   "total": 200,
+   "error_types": {
+    "SyntaxError": 0,
+    "Failed Tests": 200
+   },
+   "error_messages": {},
+   "runtimes_by_type": {
+    "Failed Tests": 0.00029904961585998537
+   },
+   "correct_pct": 0.0,
+   "runtime_error_pct": 0.0,
+   "runtime": 0.00029904961585998537,
+   "execution_runtime": 6.0
+  },
+  "HumanEval/72": {
+   "correct": 0,
+   "total": 200,
+   "error_types": {
+    "SyntaxError": 0,
+    "Failed Tests": 200
+   },
+   "error_messages": {},
+   "runtimes_by_type": {
+    "Failed Tests": 0.0002782416343688965
+   },
+   "correct_pct": 0.0,
+   "runtime_error_pct": 0.0,
+   "runtime": 0.0002782416343688965,
+   "execution_runtime": 6.0
+  },
+  "HumanEval/73": {
+   "correct": 0,
+   "total": 200,
+   "error_types": {
+    "SyntaxError": 132,
+    "Failed Tests": 61,
+    "RecursionError": 3,
+    "TypeError": 2,
+    "AttributeError": 1,
+    "ValueError": 1
+   },
+   "error_messages": {
+    "11": "RecursionError: maximum recursion depth exceeded while calling a Python object",
+    "14": "TypeError: object of type 'int' has no len()",
+    "15": "AttributeError: 'list' object has no attribute 'min'",
+    "20": "RecursionError: maximum recursion depth exceeded while calling a Python object",
+    "21": "TypeError: 'int' object is not iterable",
+    "29": "ValueError: min() arg is an empty sequence",
+    "57": "RecursionError: maximum recursion depth exceeded while calling a Python object"
+   },
+   "runtimes_by_type": {
+    "Failed Tests": 0.00031504474702428596,
+    "RecursionError": 0.006211121877034505,
+    "TypeError": 0.0003993511199951172,
+    "AttributeError": 0.00037598609924316406,
+    "ValueError": 0.0003795623779296875
+   },
+   "correct_pct": 0.0,
+   "runtime_error_pct": 3.5000000000000004,
+   "runtime": 0.0005794903811286477,
+   "execution_runtime": 6.0
+  },
+  "HumanEval/74": {
+   "correct": 0,
+   "total": 200,
+   "error_types": {
+    "SyntaxError": 4,
+    "Failed Tests": 196
+   },
+   "error_messages": {},
+   "runtimes_by_type": {
+    "Failed Tests": 0.0004055135104120994
+   },
+   "correct_pct": 0.0,
+   "runtime_error_pct": 0.0,
+   "runtime": 0.0004055135104120994,
+   "execution_runtime": 6.0
+  },
+  "HumanEval/75": {
+   "correct": 0,
+   "total": 200,
+   "error_types": {
+    "SyntaxError": 79,
+    "Failed Tests": 121
+   },
+   "error_messages": {},
+   "runtimes_by_type": {
+    "Failed Tests": 0.0002938597655493366
+   },
+   "correct_pct": 0.0,
+   "runtime_error_pct": 0.0,
+   "runtime": 0.0002938597655493366,
+   "execution_runtime": 6.0
+  },
+  "HumanEval/76": {
+   "correct": 0,
+   "total": 200,
+   "error_types": {
+    "SyntaxError": 114,
+    "Failed Tests": 86
+   },
+   "error_messages": {},
+   "runtimes_by_type": {
+    "Failed Tests": 0.00030182960421540014
+   },
+   "correct_pct": 0.0,
+   "runtime_error_pct": 0.0,
+   "runtime": 0.00030182960421540014,
+   "execution_runtime": 6.0
+  },
+  "HumanEval/77": {
+   "correct": 0,
+   "total": 200,
+   "error_types": {
+    "SyntaxError": 0,
+    "Failed Tests": 200
+   },
+   "error_messages": {},
+   "runtimes_by_type": {
+    "Failed Tests": 0.0003152573108673096
+   },
+   "correct_pct": 0.0,
+   "runtime_error_pct": 0.0,
+   "runtime": 0.0003152573108673096,
+   "execution_runtime": 6.0
+  },
+  "HumanEval/78": {
+   "correct": 0,
+   "total": 200,
+   "error_types": {
+    "SyntaxError": 199,
+    "NameError": 1
+   },
+   "error_messages": {
+    "0": "NameError: name 'hex_key' is not defined"
+   },
+   "runtimes_by_type": {
+    "NameError": 0.0003561973571777344
+   },
+   "correct_pct": 0.0,
+   "runtime_error_pct": 0.5,
+   "runtime": 0.0003561973571777344,
+   "execution_runtime": 6.0
+  },
+  "HumanEval/79": {
+   "correct": 0,
+   "total": 200,
+   "error_types": {
+    "SyntaxError": 108,
+    "NameError": 24,
+    "Failed Tests": 67,
+    "TypeError": 1
+   },
+   "error_messages": {
+    "0": "NameError: name 'decimal_to_binary' is not defined",
+    "1": "NameError: name 'decimal_to_binary' is not defined",
+    "8": "NameError: name 'decimal_to_binary' is not defined",
+    "11": "NameError: name 'decimal_to_binary' is not defined",
+    "12": "NameError: name 'decimal_to_binary' is not defined",
+    "17": "NameError: name 'decimal_to_binary' is not defined",
+    "18": "NameError: name 'decimal_to_binary' is not defined",
+    "19": "NameError: name 'decimal_to_binary' is not defined",
+    "22": "NameError: name 'decimal_to_binary' is not defined",
+    "30": "NameError: name 'decimal_to_binary' is not defined",
+    "32": "NameError: name 'decimal_to_binary' is not defined",
+    "33": "NameError: name 'decimal_to_binary' is not defined",
+    "35": "NameError: name 'decimal_to_binary' is not defined",
+    "36": "NameError: name 'decimal_to_binary' is not defined",
+    "37": "NameError: name 'decimal_to_binary' is not defined",
+    "43": "NameError: name 'decimal_to_binary' is not defined",
+    "45": "NameError: name 'decimal_to_binary' is not defined",
+    "48": "NameError: name 'decimal_to_binary' is not defined",
+    "52": "NameError: name 'decimal_to_binary' is not defined",
+    "55": "NameError: name 'decimal_to_binary' is not defined",
+    "62": "TypeError: 'int' object is not iterable",
+    "68": "NameError: name 'decimal_to_binary' is not defined",
+    "76": "NameError: name 'decimal_to_binary' is not defined",
+    "80": "NameError: name 'decimal_to_binary' is not defined",
+    "89": "NameError: name 'decimal_to_binary' is not defined"
+   },
+   "runtimes_by_type": {
+    "NameError": 0.0002498030662536621,
+    "Failed Tests": 0.0002532752592172196,
+    "TypeError": 0.0002613067626953125
+   },
+   "correct_pct": 0.0,
+   "runtime_error_pct": 12.5,
+   "runtime": 0.0002524567686993143,
+   "execution_runtime": 6.0
+  },
+  "HumanEval/80": {
+   "correct": 0,
+   "total": 200,
+   "error_types": {
+    "SyntaxError": 130,
+    "Failed Tests": 70
+   },
+   "error_messages": {},
+   "runtimes_by_type": {
+    "Failed Tests": 0.00028591837201799667
+   },
+   "correct_pct": 0.0,
+   "runtime_error_pct": 0.0,
+   "runtime": 0.00028591837201799667,
+   "execution_runtime": 6.0
+  },
+  "HumanEval/81": {
+   "correct": 0,
+   "total": 200,
+   "error_types": {
+    "SyntaxError": 143,
+    "NameError": 47,
+    "Failed Tests": 9,
+    "AttributeError": 1
+   },
+   "error_messages": {
+    "0": "NameError: name 'numerical_letter_grade' is not defined",
+    "1": "NameError: name 'numerical_letter_grade' is not defined",
+    "2": "NameError: name 'numerical_letter_grade' is not defined",
+    "3": "NameError: name 'numerical_letter_grade' is not defined",
+    "4": "NameError: name 'numerical_letter_grade' is not defined",
+    "5": "NameError: name 'numerical_letter_grade' is not defined",
+    "7": "NameError: name 'numerical_letter_grade' is not defined",
+    "9": "NameError: name 'numerical_letter_grade' is not defined",
+    "10": "NameError: name 'numerical_letter_grade' is not defined",
+    "11": "NameError: name 'numerical_letter_grade' is not defined",
+    "12": "NameError: name 'numerical_letter_grade' is not defined",
+    "13": "NameError: name 'numerical_letter_grade' is not defined",
+    "15": "NameError: name 'numerical_letter_grade' is not defined",
+    "16": "NameError: name 'numerical_letter_grade' is not defined",
+    "17": "NameError: name 'numerical_letter_grade' is not defined",
+    "18": "NameError: name 'numerical_letter_grade' is not defined",
+    "19": "NameError: name 'numerical_letter_grade' is not defined",
+    "20": "NameError: name 'numerical_letter_grade' is not defined",
+    "21": "NameError: name 'numerical_letter_grade' is not defined",
+    "23": "NameError: name 'numerical_letter_grade' is not defined",
+    "24": "NameError: name 'numerical_letter_grade' is not defined",
+    "25": "NameError: name 'numerical_letter_grade' is not defined",
+    "27": "AttributeError: 'float' object has no attribute 'lower'",
+    "28": "NameError: name 'numerical_letter_grade' is not defined",
+    "29": "NameError: name 'numerical_letter_grade' is not defined",
+    "30": "NameError: name 'numerical_letter_grade' is not defined",
+    "31": "NameError: name 'numerical_letter_grade' is not defined",
+    "32": "NameError: name 'numerical_letter_grade' is not defined",
+    "33": "NameError: name 'numerical_letter_grade' is not defined",
+    "34": "NameError: name 'numerical_letter_grade' is not defined",
+    "35": "NameError: name 'numerical_letter_grade' is not defined",
+    "36": "NameError: name 'numerical_letter_grade' is not defined",
+    "38": "NameError: name 'numerical_letter_grade' is not defined",
+    "40": "NameError: name 'numerical_letter_grade' is not defined",
+    "41": "NameError: name 'numerical_letter_grade' is not defined",
+    "42": "NameError: name 'numerical_letter_grade' is not defined",
+    "43": "NameError: name 'numerical_letter_grade' is not defined",
+    "45": "NameError: name 'numerical_letter_grade' is not defined",
+    "46": "NameError: name 'numerical_letter_grade' is not defined",
+    "47": "NameError: name 'numerical_letter_grade' is not defined",
+    "48": "NameError: name 'numerical_letter_grade' is not defined",
+    "49": "NameError: name 'numerical_letter_grade' is not defined",
+    "50": "NameError: name 'numerical_letter_grade' is not defined",
+    "51": "NameError: name 'numerical_letter_grade' is not defined",
+    "52": "NameError: name 'numerical_letter_grade' is not defined",
+    "54": "NameError: name 'numerical_letter_grade' is not defined",
+    "55": "NameError: name 'numerical_letter_grade' is not defined",
+    "56": "NameError: name 'numerical_letter_grade' is not defined"
+   },
+   "runtimes_by_type": {
+    "NameError": 0.0003220375548017786,
+    "Failed Tests": 0.000322262446085612,
+    "AttributeError": 0.00034356117248535156
+   },
+   "correct_pct": 0.0,
+   "runtime_error_pct": 24.0,
+   "runtime": 0.0003224506712796395,
+   "execution_runtime": 6.0
+  },
+  "HumanEval/82": {
+   "correct": 0,
+   "total": 200,
+   "error_types": {
+    "SyntaxError": 55,
+    "Failed Tests": 131,
+    "TypeError": 4,
+    "NameError": 9,
+    "IndexError": 1
+   },
+   "error_messages": {
+    "3": "TypeError: not all arguments converted during string formatting",
+    "39": "NameError: name 'prime_length' is not defined",
+    "40": "TypeError: not all arguments converted during string formatting",
+    "50": "NameError: name 'prime_length' is not defined",
+    "53": "NameError: name 'prime_length' is not defined",
+    "54": "TypeError: not all arguments converted during string formatting",
+    "80": "NameError: name 'prime_length' is not defined",
+    "81": "NameError: name 'prime_length' is not defined",
+    "93": "TypeError: not all arguments converted during string formatting",
+    "117": "NameError: name 'prime_length' is not defined",
+    "120": "NameError: name 'prime_length' is not defined",
+    "132": "NameError: name 'prime_length' is not defined",
+    "134": "NameError: name 'prime_length' is not defined",
+    "142": "IndexError: string index out of range"
+   },
+   "runtimes_by_type": {
+    "Failed Tests": 0.0003366397537347925,
+    "TypeError": 0.00039398670196533203,
+    "NameError": 0.0003541575537787543,
+    "IndexError": 0.00036454200744628906
+   },
+   "correct_pct": 0.0,
+   "runtime_error_pct": 7.000000000000001,
+   "runtime": 0.0003395014795763739,
+   "execution_runtime": 6.0
+  },
+  "HumanEval/83": {
+   "correct": 0,
+   "total": 200,
+   "error_types": {
+    "SyntaxError": 135,
+    "Failed Tests": 64,
+    "TypeError": 1
+   },
+   "error_messages": {
+    "31": "TypeError: 'int' object is not iterable"
+   },
+   "runtimes_by_type": {
+    "Failed Tests": 0.000255439430475235,
+    "TypeError": 0.0002598762512207031
+   },
+   "correct_pct": 0.0,
+   "runtime_error_pct": 0.5,
+   "runtime": 0.0002555076892559345,
+   "execution_runtime": 6.0
+  },
+  "HumanEval/84": {
+   "correct": 0,
+   "total": 200,
+   "error_types": {
+    "SyntaxError": 92,
+    "Failed Tests": 105,
+    "RecursionError": 1,
+    "NameError": 2
+   },
+   "error_messages": {
+    "29": "RecursionError: maximum recursion depth exceeded in comparison",
+    "80": "NameError: name 'n' is not defined",
+    "96": "NameError: name 'n' is not defined"
+   },
+   "runtimes_by_type": {
+    "Failed Tests": 0.0002913906460716611,
+    "RecursionError": 0.003393411636352539,
+    "NameError": 0.0002696514129638672
+   },
+   "correct_pct": 0.0,
+   "runtime_error_pct": 1.5,
+   "runtime": 0.00031971048425745083,
+   "execution_runtime": 6.0
+  },
+  "HumanEval/85": {
+   "correct": 0,
+   "total": 200,
+   "error_types": {
+    "SyntaxError": 19,
+    "Failed Tests": 181
+   },
+   "error_messages": {},
+   "runtimes_by_type": {
+    "Failed Tests": 0.0002483939597619831
+   },
+   "correct_pct": 0.0,
+   "runtime_error_pct": 0.0,
+   "runtime": 0.0002483939597619831,
+   "execution_runtime": 6.0
+  },
+  "HumanEval/86": {
+   "correct": 0,
+   "total": 200,
+   "error_types": {
+    "SyntaxError": 158,
+    "Failed Tests": 39,
+    "NameError": 1,
+    "RecursionError": 2
+   },
+   "error_messages": {
+    "10": "NameError: name 'string' is not defined",
+    "11": "RecursionError: maximum recursion depth exceeded while calling a Python object",
+    "20": "RecursionError: maximum recursion depth exceeded while calling a Python object"
+   },
+   "runtimes_by_type": {
+    "Failed Tests": 0.0002804719484769381,
+    "NameError": 0.0002994537353515625,
+    "RecursionError": 0.004460811614990234
+   },
+   "correct_pct": 0.0,
+   "runtime_error_pct": 1.5,
+   "runtime": 0.0004799876894269671,
+   "execution_runtime": 6.0
+  },
+  "HumanEval/87": {
+   "correct": 0,
+   "total": 200,
+   "error_types": {
+    "SyntaxError": 172,
+    "Failed Tests": 28
+   },
+   "error_messages": {},
+   "runtimes_by_type": {
+    "Failed Tests": 0.0006310343742370605
+   },
+   "correct_pct": 0.0,
+   "runtime_error_pct": 0.0,
+   "runtime": 0.0006310343742370605,
+   "execution_runtime": 6.0
+  },
+  "HumanEval/88": {
+   "correct": 0,
+   "total": 200,
+   "error_types": {
+    "SyntaxError": 165,
+    "Failed Tests": 31,
+    "TypeError": 1,
+    "IndexError": 2,
+    "RecursionError": 1
+   },
+   "error_messages": {
+    "5": "TypeError: 'int' object is not subscriptable",
+    "29": "IndexError: list index out of range",
+    "31": "IndexError: list index out of range",
+    "34": "RecursionError: maximum recursion depth exceeded while calling a Python object"
+   },
+   "runtimes_by_type": {
+    "Failed Tests": 0.00039873584624259704,
+    "TypeError": 0.00038886070251464844,
+    "IndexError": 0.0003794431686401367,
+    "RecursionError": 0.005907535552978516
+   },
+   "correct_pct": 0.0,
+   "runtime_error_pct": 2.0,
+   "runtime": 0.0005547455378941128,
+   "execution_runtime": 6.0
+  },
+  "HumanEval/89": {
+   "correct": 0,
+   "total": 200,
+   "error_types": {
+    "SyntaxError": 158,
+    "Failed Tests": 36,
+    "NameError": 4,
+    "TypeError": 1,
+    "ValueError": 1
+   },
+   "error_messages": {
+    "9": "NameError: name 'c' is not defined",
+    "15": "NameError: name 'shift' is not defined",
+    "30": "NameError: name 'string' is not defined",
+    "37": "NameError: name 'shift' is not defined",
+    "39": "TypeError: ord() expected string of length 1, but int found",
+    "40": "ValueError: invalid input"
+   },
+   "runtimes_by_type": {
+    "Failed Tests": 0.0003087057007683648,
+    "NameError": 0.00036090612411499023,
+    "TypeError": 0.00035262107849121094,
+    "ValueError": 0.0003082752227783203
+   },
+   "correct_pct": 0.0,
+   "runtime_error_pct": 3.0,
+   "runtime": 0.0003147125244140625,
+   "execution_runtime": 6.0
+  },
+  "HumanEval/90": {
+   "correct": 0,
+   "total": 200,
+   "error_types": {
+    "SyntaxError": 53,
+    "Failed Tests": 147
+   },
+   "error_messages": {},
+   "runtimes_by_type": {
+    "Failed Tests": 0.0002982405578198076
+   },
+   "correct_pct": 0.0,
+   "runtime_error_pct": 0.0,
+   "runtime": 0.0002982405578198076,
+   "execution_runtime": 6.0
+  },
+  "HumanEval/91": {
+   "correct": 0,
+   "total": 200,
+   "error_types": {
+    "SyntaxError": 52,
+    "Failed Tests": 147,
+    "ValueError": 1
+   },
+   "error_messages": {
+    "80": "ValueError: Invalid input"
+   },
+   "runtimes_by_type": {
+    "Failed Tests": 0.0002674034663609096,
+    "ValueError": 0.0003020763397216797
+   },
+   "correct_pct": 0.0,
+   "runtime_error_pct": 0.5,
+   "runtime": 0.00026763774253226613,
+   "execution_runtime": 6.0
+  },
+  "HumanEval/92": {
+   "correct": 0,
+   "total": 200,
+   "error_types": {
+    "SyntaxError": 7,
+    "Failed Tests": 193
+   },
+   "error_messages": {},
+   "runtimes_by_type": {
+    "Failed Tests": 0.0003262789138240518
+   },
+   "correct_pct": 0.0,
+   "runtime_error_pct": 0.0,
+   "runtime": 0.0003262789138240518,
+   "execution_runtime": 6.0
+  },
+  "HumanEval/93": {
+   "correct": 0,
+   "total": 200,
+   "error_types": {
+    "SyntaxError": 72,
+    "Failed Tests": 117,
+    "NameError": 9,
+    "AttributeError": 1,
+    "TypeError": 1
+   },
+   "error_messages": {
+    "7": "NameError: name 'string' is not defined",
+    "15": "NameError: name 'vowels' is not defined",
+    "25": "NameError: name 'vowels' is not defined",
+    "29": "NameError: name 'string' is not defined",
+    "32": "NameError: name 'string' is not defined",
+    "34": "NameError: name 'vowels' is not defined",
+    "58": "NameError: name 'vowels' is not defined",
+    "101": "AttributeError: 'str' object has no attribute 'copy'",
+    "104": "NameError: name 'vowels' is not defined",
+    "110": "TypeError: translate() takes exactly one argument (2 given)",
+    "115": "NameError: name 'string' is not defined"
+   },
+   "runtimes_by_type": {
+    "Failed Tests": 0.0002647852286314353,
+    "NameError": 0.00029407607184516057,
+    "AttributeError": 0.0002713203430175781,
+    "TypeError": 0.0003116130828857422
+   },
+   "correct_pct": 0.0,
+   "runtime_error_pct": 5.5,
+   "runtime": 0.00026726163923740387,
+   "execution_runtime": 6.0
+  },
+  "HumanEval/95": {
+   "correct": 0,
+   "total": 200,
+   "error_types": {
+    "SyntaxError": 106,
+    "Failed Tests": 85,
+    "AttributeError": 2,
+    "TypeError": 7
+   },
+   "error_messages": {
+    "1": "AttributeError: 'int' object has no attribute 'lower'",
+    "11": "TypeError: isinstance() arg 2 must be a type or tuple of types",
+    "28": "TypeError: isinstance() arg 2 must be a type or tuple of types",
+    "43": "TypeError: isinstance() arg 2 must be a type or tuple of types",
+    "44": "TypeError: isinstance() arg 2 must be a type or tuple of types",
+    "52": "AttributeError: 'int' object has no attribute 'lower'",
+    "54": "TypeError: isinstance() arg 2 must be a type or tuple of types",
+    "77": "TypeError: isinstance() arg 2 must be a type or tuple of types",
+    "83": "TypeError: isinstance() arg 2 must be a type or tuple of types"
+   },
+   "runtimes_by_type": {
+    "Failed Tests": 0.000466315886553596,
+    "AttributeError": 0.0004805326461791992,
+    "TypeError": 0.000476905277797154
+   },
+   "correct_pct": 0.0,
+   "runtime_error_pct": 4.5,
+   "runtime": 0.00046740694248929935,
+   "execution_runtime": 6.0
+  },
+  "HumanEval/96": {
+   "correct": 0,
+   "total": 200,
+   "error_types": {
+    "SyntaxError": 150,
+    "Failed Tests": 48,
+    "ZeroDivisionError": 1,
+    "IndexError": 1
+   },
+   "error_messages": {
+    "7": "ZeroDivisionError: integer division or modulo by zero",
+    "47": "IndexError: list index out of range"
+   },
+   "runtimes_by_type": {
+    "Failed Tests": 0.0004259844621022542,
+    "ZeroDivisionError": 0.00039887428283691406,
+    "IndexError": 0.0003962516784667969
+   },
+   "correct_pct": 0.0,
+   "runtime_error_pct": 1.0,
+   "runtime": 0.0004248476028442383,
+   "execution_runtime": 6.0
+  },
+  "HumanEval/97": {
+   "correct": 0,
+   "total": 200,
+   "error_types": {
+    "SyntaxError": 118,
+    "Failed Tests": 81,
+    "TypeError": 1
+   },
+   "error_messages": {
+    "63": "TypeError: 'int' object is not iterable"
+   },
+   "runtimes_by_type": {
+    "Failed Tests": 0.0003641564169047791,
+    "TypeError": 0.0003485679626464844
+   },
+   "correct_pct": 0.0,
+   "runtime_error_pct": 0.5,
+   "runtime": 0.0003639663138040682,
+   "execution_runtime": 6.0
+  },
+  "HumanEval/99": {
+   "correct": 0,
+   "total": 200,
+   "error_types": {
+    "SyntaxError": 9,
+    "Failed Tests": 191
+   },
+   "error_messages": {},
+   "runtimes_by_type": {
+    "Failed Tests": 0.00025358749309759487
+   },
+   "correct_pct": 0.0,
+   "runtime_error_pct": 0.0,
+   "runtime": 0.00025358749309759487,
+   "execution_runtime": 6.0
+  },
+  "HumanEval/100": {
+   "correct": 0,
+   "total": 200,
+   "error_types": {
+    "SyntaxError": 90,
+    "Failed Tests": 103,
+    "TypeError": 4,
+    "ValueError": 2,
+    "RecursionError": 1
+   },
+   "error_messages": {
+    "14": "TypeError: can only concatenate list (not \"int\") to list",
+    "16": "ValueError: n must be odd",
+    "77": "TypeError: can only concatenate list (not \"int\") to list",
+    "89": "TypeError: can only concatenate list (not \"int\") to list",
+    "92": "RecursionError: maximum recursion depth exceeded in comparison",
+    "94": "ValueError: n must be even",
+    "109": "TypeError: can only concatenate list (not \"int\") to list"
+   },
+   "runtimes_by_type": {
+    "Failed Tests": 0.00036507671319165275,
+    "TypeError": 0.0003361701965332031,
+    "ValueError": 0.00033855438232421875,
+    "RecursionError": 0.004586458206176758
+   },
+   "correct_pct": 0.0,
+   "runtime_error_pct": 3.5000000000000004,
+   "runtime": 0.00040191953832452947,
+   "execution_runtime": 6.0
+  },
+  "HumanEval/101": {
+   "correct": 0,
+   "total": 200,
+   "error_types": {
+    "SyntaxError": 98,
+    "Failed Tests": 101,
+    "IndexError": 1
+   },
+   "error_messages": {
+    "10": "IndexError: list index out of range"
+   },
+   "runtimes_by_type": {
+    "Failed Tests": 0.00032906485075997837,
+    "IndexError": 0.0003254413604736328
+   },
+   "correct_pct": 0.0,
+   "runtime_error_pct": 0.5,
+   "runtime": 0.0003290293263454063,
+   "execution_runtime": 6.0
+  },
+  "HumanEval/102": {
+   "correct": 0,
+   "total": 200,
+   "error_types": {
+    "SyntaxError": 136,
+    "Failed Tests": 57,
+    "TypeError": 1,
+    "OSError": 5,
+    "ValueError": 1
+   },
+   "error_messages": {
+    "4": "TypeError: 'int' object is not iterable",
+    "10": "OSError: ",
+    "17": "ValueError: y must be greater than x.",
+    "20": "OSError: ",
+    "30": "OSError: ",
+    "35": "OSError: ",
+    "41": "OSError: "
+   },
+   "runtimes_by_type": {
+    "Failed Tests": 0.0002850858788741262,
+    "TypeError": 0.00037360191345214844,
+    "OSError": 0.00028734207153320314,
+    "ValueError": 0.0002887248992919922
+   },
+   "correct_pct": 0.0,
+   "runtime_error_pct": 3.5000000000000004,
+   "runtime": 0.00028670206665992737,
+   "execution_runtime": 6.0
+  },
+  "HumanEval/103": {
+   "correct": 0,
+   "total": 200,
+   "error_types": {
+    "SyntaxError": 95,
+    "Failed Tests": 105
+   },
+   "error_messages": {},
+   "runtimes_by_type": {
+    "Failed Tests": 0.0003250962211972191
+   },
+   "correct_pct": 0.0,
+   "runtime_error_pct": 0.0,
+   "runtime": 0.0003250962211972191,
+   "execution_runtime": 6.0
+  },
+  "HumanEval/104": {
+   "correct": 0,
+   "total": 200,
+   "error_types": {
+    "SyntaxError": 78,
+    "Failed Tests": 116,
+    "TypeError": 4,
+    "NameError": 1,
+    "ValueError": 1
+   },
+   "error_messages": {
+    "3": "TypeError: 'int' object is not iterable",
+    "4": "TypeError: '<' not supported between instances of 'list' and 'int'",
+    "5": "NameError: name 'long' is not defined",
+    "40": "ValueError: invalid literal for int() with base 10: '[15, 33, 1422, 1]'",
+    "54": "TypeError: unsupported operand type(s) for -: 'list' and 'int'",
+    "59": "TypeError: object of type 'int' has no len()"
+   },
+   "runtimes_by_type": {
+    "Failed Tests": 0.0002732215256526552,
+    "TypeError": 0.00030934810638427734,
+    "NameError": 0.0003254413604736328,
+    "ValueError": 0.0003292560577392578
+   },
+   "correct_pct": 0.0,
+   "runtime_error_pct": 3.0,
+   "runtime": 0.0002752933345857214,
+   "execution_runtime": 6.0
+  },
+  "HumanEval/105": {
+   "correct": 0,
+   "total": 200,
+   "error_types": {
+    "SyntaxError": 185,
+    "Failed Tests": 15
+   },
+   "error_messages": {},
+   "runtimes_by_type": {
+    "Failed Tests": 0.00035219192504882814
+   },
+   "correct_pct": 0.0,
+   "runtime_error_pct": 0.0,
+   "runtime": 0.00035219192504882814,
+   "execution_runtime": 6.0
+  },
+  "HumanEval/106": {
+   "correct": 0,
+   "total": 200,
+   "error_types": {
+    "SyntaxError": 108,
+    "RecursionError": 3,
+    "Failed Tests": 77,
+    "NameError": 10,
+    "TypeError": 2
+   },
+   "error_messages": {
+    "0": "RecursionError: maximum recursion depth exceeded in comparison",
+    "7": "NameError: name 'factorial' is not defined",
+    "17": "TypeError: can't multiply sequence by non-int of type 'list'",
+    "19": "NameError: name 'f' is not defined",
+    "23": "NameError: name 'f' is not defined",
+    "24": "NameError: name 'factorial' is not defined",
+    "32": "NameError: name 'f' is not defined",
+    "38": "TypeError: can't multiply sequence by non-int of type 'list'",
+    "40": "RecursionError: maximum recursion depth exceeded in comparison",
+    "46": "RecursionError: maximum recursion depth exceeded in comparison",
+    "50": "NameError: name 'f' is not defined",
+    "56": "NameError: name 'factorial' is not defined",
+    "60": "NameError: name 'f' is not defined",
+    "62": "NameError: name 'f' is not defined",
+    "88": "NameError: name 'f' is not defined"
+   },
+   "runtimes_by_type": {
+    "RecursionError": 0.004370053609212239,
+    "Failed Tests": 0.0002572010089824726,
+    "NameError": 0.000286555290222168,
+    "TypeError": 0.0003014802932739258
+   },
+   "correct_pct": 0.0,
+   "runtime_error_pct": 7.5,
+   "runtime": 0.00039546904356583303,
+   "execution_runtime": 6.0
+  },
+  "HumanEval/107": {
+   "correct": 0,
+   "total": 200,
+   "error_types": {
+    "SyntaxError": 144,
+    "Failed Tests": 55,
+    "TypeError": 1
+   },
+   "error_messages": {
+    "36": "TypeError: can only concatenate tuple (not \"int\") to tuple"
+   },
+   "runtimes_by_type": {
+    "Failed Tests": 0.00030151280489834875,
+    "TypeError": 0.0003414154052734375
+   },
+   "correct_pct": 0.0,
+   "runtime_error_pct": 0.5,
+   "runtime": 0.00030222535133361816,
+   "execution_runtime": 6.0
+  },
+  "HumanEval/108": {
+   "correct": 0,
+   "total": 200,
+   "error_types": {
+    "SyntaxError": 65,
+    "Failed Tests": 130,
+    "TypeError": 4,
+    "IndexError": 1
+   },
+   "error_messages": {
+    "21": "TypeError: unsupported operand type(s) for -: 'list' and 'list'",
+    "43": "IndexError: list index out of range",
+    "71": "TypeError: '>' not supported between instances of 'list' and 'int'",
+    "77": "TypeError: '<' not supported between instances of 'list' and 'int'",
+    "126": "TypeError: unsupported operand type(s) for +: 'int' and 'list'"
+   },
+   "runtimes_by_type": {
+    "Failed Tests": 0.0003171095481285682,
+    "TypeError": 0.0003679990768432617,
+    "IndexError": 0.0003407001495361328
+   },
+   "correct_pct": 0.0,
+   "runtime_error_pct": 2.5,
+   "runtime": 0.00031879213121202256,
+   "execution_runtime": 6.0
+  },
+  "HumanEval/109": {
+   "correct": 0,
+   "total": 200,
+   "error_types": {
+    "SyntaxError": 161,
+    "Failed Tests": 32,
+    "IndexError": 2,
+    "RecursionError": 1,
+    "NameError": 2,
+    "ValueError": 1,
+    "TypeError": 1
+   },
+   "error_messages": {
+    "3": "IndexError: list index out of range",
+    "7": "RecursionError: maximum recursion depth exceeded in comparison",
+    "14": "NameError: name 'N' is not defined",
+    "22": "IndexError: list index out of range",
+    "29": "ValueError: not enough values to unpack (expected 2, got 1)",
+    "32": "TypeError: 'int' object is not subscriptable",
+    "36": "NameError: name 'last_' is not defined"
+   },
+   "runtimes_by_type": {
+    "Failed Tests": 0.00029768794775009155,
+    "IndexError": 0.0003038644790649414,
+    "RecursionError": 0.005941867828369141,
+    "NameError": 0.00035822391510009766,
+    "ValueError": 0.0003676414489746094,
+    "TypeError": 0.0002932548522949219
+   },
+   "correct_pct": 0.0,
+   "runtime_error_pct": 3.5000000000000004,
+   "runtime": 0.0004475116729736328,
+   "execution_runtime": 6.0
+  },
+  "HumanEval/110": {
+   "correct": 0,
+   "total": 200,
+   "error_types": {
+    "SyntaxError": 59,
+    "Failed Tests": 141
+   },
+   "error_messages": {},
+   "runtimes_by_type": {
+    "Failed Tests": 0.00036056329172553744
+   },
+   "correct_pct": 0.0,
+   "runtime_error_pct": 0.0,
+   "runtime": 0.00036056329172553744,
+   "execution_runtime": 6.0
+  },
+  "HumanEval/111": {
+   "correct": 0,
+   "total": 200,
+   "error_types": {
+    "SyntaxError": 138,
+    "Failed Tests": 59,
+    "NameError": 1,
+    "AttributeError": 2
+   },
+   "error_messages": {
+    "6": "NameError: name 'Counter' is not defined",
+    "57": "AttributeError: 'dict' object has no attribute 'set'",
+    "61": "AttributeError: 'dict' object has no attribute 'set'"
+   },
+   "runtimes_by_type": {
+    "Failed Tests": 0.0003492589724265923,
+    "NameError": 0.0003902912139892578,
+    "AttributeError": 0.00030052661895751953
+   },
+   "correct_pct": 0.0,
+   "runtime_error_pct": 1.5,
+   "runtime": 0.00034834877137214905,
+   "execution_runtime": 6.0
+  },
+  "HumanEval/113": {
+   "correct": 0,
+   "total": 200,
+   "error_types": {
+    "SyntaxError": 121,
+    "Failed Tests": 68,
+    "TypeError": 9,
+    "AttributeError": 2
+   },
+   "error_messages": {
+    "3": "TypeError: not all arguments converted during string formatting",
+    "18": "TypeError: not all arguments converted during string formatting",
+    "19": "AttributeError: 'list' object has no attribute 'lower'",
+    "32": "TypeError: not all arguments converted during string formatting",
+    "35": "TypeError: not all arguments converted during string formatting",
+    "37": "TypeError: not all arguments converted during string formatting",
+    "41": "TypeError: not all arguments converted during string formatting",
+    "43": "AttributeError: 'list' object has no attribute 'split'",
+    "47": "TypeError: not all arguments converted during string formatting",
+    "48": "TypeError: not all arguments converted during string formatting",
+    "59": "TypeError: not all arguments converted during string formatting"
+   },
+   "runtimes_by_type": {
+    "Failed Tests": 0.0002769933027379653,
+    "TypeError": 0.00031752056545681425,
+    "AttributeError": 0.0002968311309814453
+   },
+   "correct_pct": 0.0,
+   "runtime_error_pct": 5.5,
+   "runtime": 0.0002821125561677957,
+   "execution_runtime": 6.0
+  },
+  "HumanEval/114": {
+   "correct": 0,
+   "total": 200,
+   "error_types": {
+    "SyntaxError": 54,
+    "Failed Tests": 138,
+    "TypeError": 5,
+    "IndexError": 1,
+    "Timed Out": 1,
+    "RecursionError": 1
+   },
+   "error_messages": {
+    "4": "TypeError: object of type 'int' has no len()",
+    "21": "TypeError: 'int' object is not subscriptable",
+    "23": "IndexError: list index out of range",
+    "26": "TypeError: 'int' object is not iterable",
+    "66": "TypeError: 'int' object is not iterable",
+    "101": "TypeError: 'int' object is not iterable",
+    "132": "RecursionError: maximum recursion depth exceeded in comparison"
+   },
+   "runtimes_by_type": {
+    "Failed Tests": 0.0004174156465392182,
+    "TypeError": 0.00047092437744140626,
+    "IndexError": 0.0003719329833984375,
+    "Timed Out": 3.0,
+    "RecursionError": 0.005835294723510742
+   },
+   "correct_pct": 0.0,
+   "runtime_error_pct": 3.5000000000000004,
+   "runtime": 0.021001131567236497,
+   "execution_runtime": 6.0
+  },
+  "HumanEval/115": {
+   "correct": 0,
+   "total": 200,
+   "error_types": {
+    "SyntaxError": 8,
+    "Failed Tests": 191,
+    "ImportError": 1
+   },
+   "error_messages": {
+    "54": "ImportError: cannot import name 'pdist2' from 'scipy.spatial.distance' (/home/gabe/miniconda3/envs/go-research-project/lib/python3.8/site-packages/scipy/spatial/distance.py)"
+   },
+   "runtimes_by_type": {
+    "Failed Tests": 0.00558905202056725,
+    "ImportError": 0.0006587505340576172
+   },
+   "correct_pct": 0.0,
+   "runtime_error_pct": 0.5,
+   "runtime": 0.005563373366991679,
+   "execution_runtime": 6.0
+  },
+  "HumanEval/116": {
+   "correct": 0,
+   "total": 200,
+   "error_types": {
+    "SyntaxError": 62,
+    "Failed Tests": 134,
+    "ValueError": 1,
+    "RecursionError": 1,
+    "TypeError": 2
+   },
+   "error_messages": {
+    "8": "ValueError: 0 is not in list",
+    "30": "RecursionError: maximum recursion depth exceeded while calling a Python object",
+    "54": "TypeError: 'int' object is not subscriptable",
+    "60": "TypeError: 'int' object is not subscriptable"
+   },
+   "runtimes_by_type": {
+    "Failed Tests": 0.00043717249115901206,
+    "ValueError": 0.0005667209625244141,
+    "RecursionError": 0.006216764450073242,
+    "TypeError": 0.000607609748840332
+   },
+   "correct_pct": 0.0,
+   "runtime_error_pct": 2.0,
+   "runtime": 0.00048246245453323144,
+   "execution_runtime": 6.0
+  },
+  "HumanEval/117": {
+   "correct": 0,
+   "total": 200,
+   "error_types": {
+    "SyntaxError": 166,
+    "Failed Tests": 33,
+    "TypeError": 1
+   },
+   "error_messages": {
+    "8": "TypeError: 'in <string>' requires string as left operand, not int"
+   },
+   "runtimes_by_type": {
+    "Failed Tests": 0.0003765424092610677,
+    "TypeError": 0.000614166259765625
+   },
+   "correct_pct": 0.0,
+   "runtime_error_pct": 0.5,
+   "runtime": 0.00038353134604061353,
+   "execution_runtime": 6.0
+  },
+  "HumanEval/118": {
+   "correct": 0,
+   "total": 200,
+   "error_types": {
+    "SyntaxError": 127,
+    "Failed Tests": 73
+   },
+   "error_messages": {},
+   "runtimes_by_type": {
+    "Failed Tests": 0.00031409851492267764
+   },
+   "correct_pct": 0.0,
+   "runtime_error_pct": 0.0,
+   "runtime": 0.00031409851492267764,
+   "execution_runtime": 6.0
+  },
+  "HumanEval/119": {
+   "correct": 0,
+   "total": 200,
+   "error_types": {
+    "SyntaxError": 0,
+    "Failed Tests": 200
+   },
+   "error_messages": {},
+   "runtimes_by_type": {
+    "Failed Tests": 0.00032118558883666994
+   },
+   "correct_pct": 0.0,
+   "runtime_error_pct": 0.0,
+   "runtime": 0.00032118558883666994,
+   "execution_runtime": 6.0
+  },
+  "HumanEval/120": {
+   "correct": 0,
+   "total": 200,
+   "error_types": {
+    "SyntaxError": 158,
+    "Failed Tests": 41,
+    "NameError": 1
+   },
+   "error_messages": {
+    "11": "NameError: name 'np' is not defined"
+   },
+   "runtimes_by_type": {
+    "Failed Tests": 0.0004469069038949362,
+    "NameError": 0.0008916854858398438
+   },
+   "correct_pct": 0.0,
+   "runtime_error_pct": 0.5,
+   "runtime": 0.00045749687013171966,
+   "execution_runtime": 6.0
+  },
+  "HumanEval/121": {
+   "correct": 0,
+   "total": 200,
+   "error_types": {
+    "SyntaxError": 81,
+    "Failed Tests": 115,
+    "IndexError": 2,
+    "TypeError": 2
+   },
+   "error_messages": {
+    "11": "IndexError: list index out of range",
+    "16": "TypeError: 'bool' object is not iterable",
+    "84": "IndexError: list index out of range",
+    "112": "TypeError: 'bool' object is not iterable"
+   },
+   "runtimes_by_type": {
+    "Failed Tests": 0.000307445940764054,
+    "IndexError": 0.00030982494354248047,
+    "TypeError": 0.0003235340118408203
+   },
+   "correct_pct": 0.0,
+   "runtime_error_pct": 2.0,
+   "runtime": 0.0003077563117532169,
+   "execution_runtime": 6.0
+  },
+  "HumanEval/122": {
+   "correct": 0,
+   "total": 200,
+   "error_types": {
+    "SyntaxError": 122,
+    "Failed Tests": 77,
+    "ValueError": 1
+   },
+   "error_messages": {
+    "65": "ValueError: k must be greater than arr[0]"
+   },
+   "runtimes_by_type": {
+    "Failed Tests": 0.0003279308220008751,
+    "ValueError": 0.0003757476806640625
+   },
+   "correct_pct": 0.0,
+   "runtime_error_pct": 0.5,
+   "runtime": 0.00032854385865040315,
+   "execution_runtime": 6.0
+  },
+  "HumanEval/124": {
+   "correct": 0,
+   "total": 200,
+   "error_types": {
+    "SyntaxError": 129,
+    "Failed Tests": 71
+   },
+   "error_messages": {},
+   "runtimes_by_type": {
+    "Failed Tests": 0.0003163344423535844
+   },
+   "correct_pct": 0.0,
+   "runtime_error_pct": 0.0,
+   "runtime": 0.0003163344423535844,
+   "execution_runtime": 6.0
+  },
+  "HumanEval/126": {
+   "correct": 0,
+   "total": 200,
+   "error_types": {
+    "SyntaxError": 0,
+    "Failed Tests": 200
+   },
+   "error_messages": {},
+   "runtimes_by_type": {
+    "Failed Tests": 0.0004050350189208984
+   },
+   "correct_pct": 0.0,
+   "runtime_error_pct": 0.0,
+   "runtime": 0.0004050350189208984,
+   "execution_runtime": 6.0
+  },
+  "HumanEval/127": {
+   "correct": 0,
+   "total": 200,
+   "error_types": {
+    "SyntaxError": 182,
+    "Failed Tests": 8,
+    "TypeError": 7,
+    "NameError": 3
+   },
+   "error_messages": {
+    "3": "TypeError: intersection() takes 1 positional argument but 2 were given",
+    "4": "TypeError: intersection() takes 1 positional argument but 2 were given",
+    "5": "NameError: name 'intersection' is not defined",
+    "7": "TypeError: intersection() takes 1 positional argument but 2 were given",
+    "8": "NameError: name 'intersection' is not defined",
+    "9": "TypeError: intersection() takes 1 positional argument but 2 were given",
+    "11": "TypeError: intersection() takes 1 positional argument but 2 were given",
+    "12": "NameError: name 'start' is not defined",
+    "13": "TypeError: intersection() takes 1 positional argument but 2 were given",
+    "17": "TypeError: unsupported operand type(s) for %: 'tuple' and 'int'"
+   },
+   "runtimes_by_type": {
+    "Failed Tests": 0.00035437941551208496,
+    "TypeError": 0.00034247125898088725,
+    "NameError": 0.00032806396484375
+   },
+   "correct_pct": 0.0,
+   "runtime_error_pct": 5.0,
+   "runtime": 0.00034536255730523006,
+   "execution_runtime": 6.0
+  },
+  "HumanEval/128": {
+   "correct": 0,
+   "total": 200,
+   "error_types": {
+    "SyntaxError": 55,
+    "Failed Tests": 135,
+    "TypeError": 6,
+    "IndexError": 3,
+    "AttributeError": 1
+   },
+   "error_messages": {
+    "14": "TypeError: unsupported operand type(s) for %: 'list' and 'int'",
+    "50": "IndexError: list index out of range",
+    "57": "IndexError: list index out of range",
+    "62": "TypeError: 'int' object is not iterable",
+    "65": "TypeError: can't multiply sequence by non-int of type 'list'",
+    "71": "TypeError: 'int' object is not iterable",
+    "103": "AttributeError: 'list' object has no attribute 'ndim'",
+    "107": "TypeError: can't multiply sequence by non-int of type 'list'",
+    "118": "TypeError: can't multiply sequence by non-int of type 'list'",
+    "139": "IndexError: list index out of range"
+   },
+   "runtimes_by_type": {
+    "Failed Tests": 0.000323609952573423,
+    "TypeError": 0.0003229379653930664,
+    "IndexError": 0.0003255208333333333,
+    "AttributeError": 0.0004165172576904297
+   },
+   "correct_pct": 0.0,
+   "runtime_error_pct": 5.0,
+   "runtime": 0.00032426242170662716,
+   "execution_runtime": 6.0
+  },
+  "HumanEval/129": {
+   "correct": 0,
+   "total": 200,
+   "error_types": {
+    "SyntaxError": 195,
+    "Failed Tests": 5
+   },
+   "error_messages": {},
+   "runtimes_by_type": {
+    "Failed Tests": 0.0007702827453613282
+   },
+   "correct_pct": 0.0,
+   "runtime_error_pct": 0.0,
+   "runtime": 0.0007702827453613282,
+   "execution_runtime": 6.0
+  },
+  "HumanEval/131": {
+   "correct": 0,
+   "total": 200,
+   "error_types": {
+    "SyntaxError": 138,
+    "Failed Tests": 58,
+    "RecursionError": 3,
+    "Timed Out": 1
+   },
+   "error_messages": {
+    "1": "RecursionError: maximum recursion depth exceeded in comparison",
+    "6": "RecursionError: maximum recursion depth exceeded in comparison",
+    "56": "RecursionError: maximum recursion depth exceeded in comparison"
+   },
+   "runtimes_by_type": {
+    "Failed Tests": 0.0002565096164571828,
+    "RecursionError": 0.0055226484934488935,
+    "Timed Out": 3.0
+   },
+   "correct_pct": 0.0,
+   "runtime_error_pct": 1.5,
+   "runtime": 0.04889428231023973,
+   "execution_runtime": 6.0
+  },
+  "HumanEval/132": {
+   "correct": 0,
+   "total": 200,
+   "error_types": {
+    "SyntaxError": 0,
+    "Failed Tests": 200
+   },
+   "error_messages": {},
+   "runtimes_by_type": {
+    "Failed Tests": 0.0003162264823913574
+   },
+   "correct_pct": 0.0,
+   "runtime_error_pct": 0.0,
+   "runtime": 0.0003162264823913574,
+   "execution_runtime": 6.0
+  },
+  "HumanEval/133": {
+   "correct": 0,
+   "total": 200,
+   "error_types": {
+    "SyntaxError": 54,
+    "Failed Tests": 144,
+    "NameError": 1,
+    "OSError": 1
+   },
+   "error_messages": {
+    "76": "NameError: name 'ceil' is not defined",
+    "142": "OSError: "
+   },
+   "runtimes_by_type": {
+    "Failed Tests": 0.0004016872909333971,
+    "NameError": 0.0003941059112548828,
+    "OSError": 0.0004246234893798828
+   },
+   "correct_pct": 0.0,
+   "runtime_error_pct": 1.0,
+   "runtime": 0.0004017924609249585,
+   "execution_runtime": 6.0
+  },
+  "HumanEval/134": {
+   "correct": 0,
+   "total": 200,
+   "error_types": {
+    "SyntaxError": 0,
+    "Failed Tests": 200
+   },
+   "error_messages": {},
+   "runtimes_by_type": {
+    "Failed Tests": 0.00029058098793029787
+   },
+   "correct_pct": 0.0,
+   "runtime_error_pct": 0.0,
+   "runtime": 0.00029058098793029787,
+   "execution_runtime": 6.0
+  },
+  "HumanEval/135": {
+   "correct": 0,
+   "total": 200,
+   "error_types": {
+    "SyntaxError": 65,
+    "Failed Tests": 134,
+    "TypeError": 1
+   },
+   "error_messages": {
+    "6": "TypeError: unsupported operand type(s) for -: 'list' and 'list'"
+   },
+   "runtimes_by_type": {
+    "Failed Tests": 0.0002771615982055664,
+    "TypeError": 0.0003407001495361328
+   },
+   "correct_pct": 0.0,
+   "runtime_error_pct": 0.5,
+   "runtime": 0.00027763225414134836,
+   "execution_runtime": 6.0
+  },
+  "HumanEval/136": {
+   "correct": 0,
+   "total": 200,
+   "error_types": {
+    "SyntaxError": 0,
+    "Failed Tests": 200
+   },
+   "error_messages": {},
+   "runtimes_by_type": {
+    "Failed Tests": 0.0004148232936859131
+   },
+   "correct_pct": 0.0,
+   "runtime_error_pct": 0.0,
+   "runtime": 0.0004148232936859131,
+   "execution_runtime": 6.0
+  },
+  "HumanEval/137": {
+   "correct": 0,
+   "total": 200,
+   "error_types": {
+    "SyntaxError": 119,
+    "Failed Tests": 81
+   },
+   "error_messages": {},
+   "runtimes_by_type": {
+    "Failed Tests": 0.00027243296305338543
+   },
+   "correct_pct": 0.0,
+   "runtime_error_pct": 0.0,
+   "runtime": 0.00027243296305338543,
+   "execution_runtime": 6.0
+  },
+  "HumanEval/138": {
+   "correct": 0,
+   "total": 200,
+   "error_types": {
+    "SyntaxError": 69,
+    "Failed Tests": 130,
+    "ZeroDivisionError": 1
+   },
+   "error_messages": {
+    "109": "ZeroDivisionError: integer division or modulo by zero"
+   },
+   "runtimes_by_type": {
+    "Failed Tests": 0.0002646813025841346,
+    "ZeroDivisionError": 0.00024390220642089844
+   },
+   "correct_pct": 0.0,
+   "runtime_error_pct": 0.5,
+   "runtime": 0.0002645226835294534,
+   "execution_runtime": 6.0
+  },
+  "HumanEval/140": {
+   "correct": 0,
+   "total": 200,
+   "error_types": {
+    "SyntaxError": 108,
+    "Failed Tests": 89,
+    "RecursionError": 3
+   },
+   "error_messages": {
+    "39": "RecursionError: maximum recursion depth exceeded",
+    "56": "RecursionError: maximum recursion depth exceeded",
+    "86": "RecursionError: maximum recursion depth exceeded"
+   },
+   "runtimes_by_type": {
+    "Failed Tests": 0.00025995125931300474,
+    "RecursionError": 0.006810506184895833
+   },
+   "correct_pct": 0.0,
+   "runtime_error_pct": 1.5,
+   "runtime": 0.0004735563112341839,
+   "execution_runtime": 6.0
+  },
+  "HumanEval/141": {
+   "correct": 0,
+   "total": 200,
+   "error_types": {
+    "SyntaxError": 83,
+    "Failed Tests": 115,
+    "NameError": 2
+   },
+   "error_messages": {
+    "70": "NameError: name 'os' is not defined",
+    "93": "NameError: name 'os' is not defined"
+   },
+   "runtimes_by_type": {
+    "Failed Tests": 0.00038080837415612265,
+    "NameError": 0.00037217140197753906
+   },
+   "correct_pct": 0.0,
+   "runtime_error_pct": 1.0,
+   "runtime": 0.0003806607336060614,
+   "execution_runtime": 6.0
+  },
+  "HumanEval/142": {
+   "correct": 0,
+   "total": 200,
+   "error_types": {
+    "SyntaxError": 62,
+    "Failed Tests": 123,
+    "IndexError": 3,
+    "RecursionError": 2,
+    "NameError": 9,
+    "TypeError": 1
+   },
+   "error_messages": {
+    "9": "IndexError: list index out of range",
+    "10": "IndexError: list index out of range",
+    "14": "RecursionError: maximum recursion depth exceeded in comparison",
+    "16": "IndexError: list index out of range",
+    "18": "NameError: name 'sum_squares' is not defined",
+    "19": "NameError: name 'sum_squares' is not defined",
+    "23": "NameError: name 'sum_squares' is not defined",
+    "26": "NameError: name 'sum_squares' is not defined",
+    "29": "NameError: name 'sum_squares' is not defined",
+    "40": "NameError: name 'sum_squares' is not defined",
+    "47": "NameError: name 'sum_squares' is not defined",
+    "97": "NameError: name 'sum_squares' is not defined",
+    "111": "TypeError: 'int' object is not iterable",
+    "127": "RecursionError: maximum recursion depth exceeded while calling a Python object",
+    "128": "NameError: name 'sum_squares' is not defined"
+   },
+   "runtimes_by_type": {
+    "Failed Tests": 0.000446526984858319,
+    "IndexError": 0.00047516822814941406,
+    "RecursionError": 0.00778806209564209,
+    "NameError": 0.0005104806688096789,
+    "TypeError": 0.0004279613494873047
+   },
+   "correct_pct": 0.0,
+   "runtime_error_pct": 7.5,
+   "runtime": 0.0005575850390005803,
+   "execution_runtime": 6.0
+  },
+  "HumanEval/143": {
+   "correct": 0,
+   "total": 200,
+   "error_types": {
+    "SyntaxError": 116,
+    "Failed Tests": 84
+   },
+   "error_messages": {},
+   "runtimes_by_type": {
+    "Failed Tests": 0.00026475531714303154
+   },
+   "correct_pct": 0.0,
+   "runtime_error_pct": 0.0,
+   "runtime": 0.00026475531714303154,
+   "execution_runtime": 6.0
+  },
+  "HumanEval/144": {
+   "correct": 0,
+   "total": 200,
+   "error_types": {
+    "SyntaxError": 180,
+    "Failed Tests": 17,
+    "TypeError": 1,
+    "OSError": 2
+   },
+   "error_messages": {
+    "4": "TypeError: can't multiply sequence by non-int of type 'str'",
+    "10": "OSError: ",
+    "17": "OSError: "
+   },
+   "runtimes_by_type": {
+    "Failed Tests": 0.00036591642043169807,
+    "TypeError": 0.0004062652587890625,
+    "OSError": 0.0003832578659057617
+   },
+   "correct_pct": 0.0,
+   "runtime_error_pct": 1.5,
+   "runtime": 0.00036966800689697266,
+   "execution_runtime": 6.0
+  },
+  "HumanEval/145": {
+   "correct": 0,
+   "total": 200,
+   "error_types": {
+    "SyntaxError": 63,
+    "Failed Tests": 131,
+    "UnboundLocalError": 1,
+    "TypeError": 5
+   },
+   "error_messages": {
+    "26": "UnboundLocalError: local variable 'sum' referenced before assignment",
+    "42": "TypeError: can only concatenate list (not \"int\") to list",
+    "52": "TypeError: '>' not supported between instances of 'list' and 'int'",
+    "86": "TypeError: 'int' object is not subscriptable",
+    "101": "TypeError: 'int' object is not subscriptable",
+    "128": "TypeError: 'int' object is not subscriptable"
+   },
+   "runtimes_by_type": {
+    "Failed Tests": 0.00046251566355465023,
+    "UnboundLocalError": 0.0004417896270751953,
+    "TypeError": 0.0005076885223388672
+   },
+   "correct_pct": 0.0,
+   "runtime_error_pct": 3.0,
+   "runtime": 0.0004640130230980198,
+   "execution_runtime": 6.0
+  },
+  "HumanEval/146": {
+   "correct": 0,
+   "total": 200,
+   "error_types": {
+    "SyntaxError": 150,
+    "Failed Tests": 50
+   },
+   "error_messages": {},
+   "runtimes_by_type": {
+    "Failed Tests": 0.00032358646392822266
+   },
+   "correct_pct": 0.0,
+   "runtime_error_pct": 0.0,
+   "runtime": 0.00032358646392822266,
+   "execution_runtime": 6.0
+  },
+  "HumanEval/147": {
+   "correct": 0,
+   "total": 200,
+   "error_types": {
+    "SyntaxError": 144,
+    "Failed Tests": 50,
+    "NameError": 5,
+    "RecursionError": 1
+   },
+   "error_messages": {
+    "3": "NameError: name 'get_max_triples' is not defined",
+    "9": "NameError: name 'get_max_triples' is not defined",
+    "24": "NameError: name 'get_max_triples' is not defined",
+    "39": "NameError: name 'np' is not defined",
+    "46": "RecursionError: maximum recursion depth exceeded in comparison",
+    "51": "NameError: name 'a' is not defined"
+   },
+   "runtimes_by_type": {
+    "Failed Tests": 0.00024753570556640625,
+    "NameError": 0.00022344589233398439,
+    "RecursionError": 0.00615239143371582
+   },
+   "correct_pct": 0.0,
+   "runtime_error_pct": 3.0,
+   "runtime": 0.0003508286816733224,
+   "execution_runtime": 6.0
+  },
+  "HumanEval/148": {
+   "correct": 0,
+   "total": 200,
+   "error_types": {
+    "SyntaxError": 0,
+    "TypeError": 198,
+    "OSError": 2
+   },
+   "error_messages": {
+    "0": "TypeError: object of type 'NoneType' has no len()",
+    "1": "TypeError: object of type 'NoneType' has no len()",
+    "2": "TypeError: object of type 'NoneType' has no len()",
+    "3": "TypeError: object of type 'NoneType' has no len()",
+    "4": "TypeError: object of type 'NoneType' has no len()",
+    "5": "TypeError: object of type 'NoneType' has no len()",
+    "6": "TypeError: object of type 'NoneType' has no len()",
+    "7": "TypeError: object of type 'NoneType' has no len()",
+    "8": "TypeError: object of type 'NoneType' has no len()",
+    "9": "TypeError: object of type 'NoneType' has no len()",
+    "10": "TypeError: object of type 'NoneType' has no len()",
+    "11": "TypeError: object of type 'NoneType' has no len()",
+    "12": "TypeError: object of type 'NoneType' has no len()",
+    "13": "TypeError: object of type 'NoneType' has no len()",
+    "14": "TypeError: object of type 'NoneType' has no len()",
+    "15": "TypeError: object of type 'NoneType' has no len()",
+    "16": "TypeError: object of type 'NoneType' has no len()",
+    "17": "TypeError: object of type 'NoneType' has no len()",
+    "18": "TypeError: object of type 'NoneType' has no len()",
+    "19": "TypeError: object of type 'NoneType' has no len()",
+    "20": "TypeError: object of type 'NoneType' has no len()",
+    "21": "TypeError: object of type 'NoneType' has no len()",
+    "22": "TypeError: object of type 'NoneType' has no len()",
+    "23": "TypeError: object of type 'NoneType' has no len()",
+    "24": "TypeError: object of type 'NoneType' has no len()",
+    "25": "TypeError: object of type 'NoneType' has no len()",
+    "26": "TypeError: object of type 'NoneType' has no len()",
+    "27": "TypeError: object of type 'NoneType' has no len()",
+    "28": "TypeError: object of type 'NoneType' has no len()",
+    "29": "TypeError: object of type 'NoneType' has no len()",
+    "30": "TypeError: object of type 'NoneType' has no len()",
+    "31": "TypeError: object of type 'NoneType' has no len()",
+    "32": "TypeError: object of type 'NoneType' has no len()",
+    "33": "TypeError: object of type 'NoneType' has no len()",
+    "34": "TypeError: object of type 'NoneType' has no len()",
+    "35": "TypeError: object of type 'NoneType' has no len()",
+    "36": "TypeError: object of type 'NoneType' has no len()",
+    "37": "TypeError: object of type 'NoneType' has no len()",
+    "38": "TypeError: object of type 'NoneType' has no len()",
+    "39": "TypeError: object of type 'NoneType' has no len()",
+    "40": "TypeError: object of type 'NoneType' has no len()",
+    "41": "TypeError: object of type 'NoneType' has no len()",
+    "42": "TypeError: object of type 'NoneType' has no len()",
+    "43": "TypeError: object of type 'NoneType' has no len()",
+    "44": "TypeError: object of type 'NoneType' has no len()",
+    "45": "TypeError: object of type 'NoneType' has no len()",
+    "46": "TypeError: object of type 'NoneType' has no len()",
+    "47": "TypeError: object of type 'NoneType' has no len()",
+    "48": "TypeError: object of type 'NoneType' has no len()",
+    "49": "TypeError: object of type 'NoneType' has no len()",
+    "50": "TypeError: object of type 'NoneType' has no len()",
+    "51": "TypeError: object of type 'NoneType' has no len()",
+    "52": "TypeError: object of type 'NoneType' has no len()",
+    "53": "TypeError: object of type 'NoneType' has no len()",
+    "54": "TypeError: object of type 'NoneType' has no len()",
+    "55": "TypeError: object of type 'NoneType' has no len()",
+    "56": "TypeError: object of type 'NoneType' has no len()",
+    "57": "TypeError: object of type 'NoneType' has no len()",
+    "58": "TypeError: object of type 'NoneType' has no len()",
+    "59": "TypeError: object of type 'NoneType' has no len()",
+    "60": "TypeError: object of type 'NoneType' has no len()",
+    "61": "TypeError: object of type 'NoneType' has no len()",
+    "62": "TypeError: object of type 'NoneType' has no len()",
+    "63": "TypeError: object of type 'NoneType' has no len()",
+    "64": "TypeError: object of type 'NoneType' has no len()",
+    "65": "TypeError: object of type 'NoneType' has no len()",
+    "66": "TypeError: object of type 'NoneType' has no len()",
+    "67": "TypeError: object of type 'NoneType' has no len()",
+    "68": "TypeError: object of type 'NoneType' has no len()",
+    "69": "TypeError: object of type 'NoneType' has no len()",
+    "70": "TypeError: object of type 'NoneType' has no len()",
+    "71": "TypeError: object of type 'NoneType' has no len()",
+    "72": "TypeError: object of type 'NoneType' has no len()",
+    "73": "TypeError: object of type 'NoneType' has no len()",
+    "74": "TypeError: object of type 'NoneType' has no len()",
+    "75": "TypeError: object of type 'NoneType' has no len()",
+    "76": "TypeError: object of type 'NoneType' has no len()",
+    "77": "TypeError: object of type 'NoneType' has no len()",
+    "78": "TypeError: object of type 'NoneType' has no len()",
+    "79": "TypeError: object of type 'NoneType' has no len()",
+    "80": "TypeError: object of type 'NoneType' has no len()",
+    "81": "TypeError: object of type 'NoneType' has no len()",
+    "82": "TypeError: object of type 'NoneType' has no len()",
+    "83": "TypeError: object of type 'NoneType' has no len()",
+    "84": "TypeError: object of type 'NoneType' has no len()",
+    "85": "TypeError: object of type 'NoneType' has no len()",
+    "86": "TypeError: object of type 'NoneType' has no len()",
+    "87": "TypeError: object of type 'NoneType' has no len()",
+    "88": "TypeError: object of type 'NoneType' has no len()",
+    "89": "TypeError: object of type 'NoneType' has no len()",
+    "90": "TypeError: object of type 'NoneType' has no len()",
+    "91": "TypeError: object of type 'NoneType' has no len()",
+    "92": "TypeError: object of type 'NoneType' has no len()",
+    "93": "TypeError: object of type 'NoneType' has no len()",
+    "94": "OSError: ",
+    "95": "TypeError: object of type 'NoneType' has no len()",
+    "96": "TypeError: object of type 'NoneType' has no len()",
+    "97": "TypeError: object of type 'NoneType' has no len()",
+    "98": "TypeError: object of type 'NoneType' has no len()",
+    "99": "TypeError: object of type 'NoneType' has no len()",
+    "100": "TypeError: object of type 'NoneType' has no len()",
+    "101": "TypeError: object of type 'NoneType' has no len()",
+    "102": "TypeError: object of type 'NoneType' has no len()",
+    "103": "TypeError: object of type 'NoneType' has no len()",
+    "104": "TypeError: object of type 'NoneType' has no len()",
+    "105": "TypeError: object of type 'NoneType' has no len()",
+    "106": "TypeError: object of type 'NoneType' has no len()",
+    "107": "TypeError: object of type 'NoneType' has no len()",
+    "108": "TypeError: object of type 'NoneType' has no len()",
+    "109": "TypeError: object of type 'NoneType' has no len()",
+    "110": "TypeError: object of type 'NoneType' has no len()",
+    "111": "TypeError: object of type 'NoneType' has no len()",
+    "112": "TypeError: object of type 'NoneType' has no len()",
+    "113": "TypeError: object of type 'NoneType' has no len()",
+    "114": "TypeError: object of type 'NoneType' has no len()",
+    "115": "TypeError: object of type 'NoneType' has no len()",
+    "116": "TypeError: object of type 'NoneType' has no len()",
+    "117": "TypeError: object of type 'NoneType' has no len()",
+    "118": "TypeError: object of type 'NoneType' has no len()",
+    "119": "TypeError: object of type 'NoneType' has no len()",
+    "120": "TypeError: object of type 'NoneType' has no len()",
+    "121": "TypeError: object of type 'NoneType' has no len()",
+    "122": "TypeError: object of type 'NoneType' has no len()",
+    "123": "TypeError: object of type 'NoneType' has no len()",
+    "124": "TypeError: object of type 'NoneType' has no len()",
+    "125": "TypeError: object of type 'NoneType' has no len()",
+    "126": "TypeError: object of type 'NoneType' has no len()",
+    "127": "TypeError: object of type 'NoneType' has no len()",
+    "128": "TypeError: object of type 'NoneType' has no len()",
+    "129": "TypeError: object of type 'NoneType' has no len()",
+    "130": "TypeError: object of type 'NoneType' has no len()",
+    "131": "TypeError: object of type 'NoneType' has no len()",
+    "132": "TypeError: object of type 'NoneType' has no len()",
+    "133": "TypeError: object of type 'NoneType' has no len()",
+    "134": "TypeError: object of type 'NoneType' has no len()",
+    "135": "TypeError: object of type 'NoneType' has no len()",
+    "136": "TypeError: object of type 'NoneType' has no len()",
+    "137": "TypeError: object of type 'NoneType' has no len()",
+    "138": "TypeError: object of type 'NoneType' has no len()",
+    "139": "TypeError: object of type 'NoneType' has no len()",
+    "140": "TypeError: object of type 'NoneType' has no len()",
+    "141": "OSError: ",
+    "142": "TypeError: object of type 'NoneType' has no len()",
+    "143": "TypeError: object of type 'NoneType' has no len()",
+    "144": "TypeError: object of type 'NoneType' has no len()",
+    "145": "TypeError: object of type 'NoneType' has no len()",
+    "146": "TypeError: object of type 'NoneType' has no len()",
+    "147": "TypeError: object of type 'NoneType' has no len()",
+    "148": "TypeError: object of type 'NoneType' has no len()",
+    "149": "TypeError: object of type 'NoneType' has no len()",
+    "150": "TypeError: object of type 'NoneType' has no len()",
+    "151": "TypeError: object of type 'NoneType' has no len()",
+    "152": "TypeError: object of type 'NoneType' has no len()",
+    "153": "TypeError: object of type 'NoneType' has no len()",
+    "154": "TypeError: object of type 'NoneType' has no len()",
+    "155": "TypeError: object of type 'NoneType' has no len()",
+    "156": "TypeError: object of type 'NoneType' has no len()",
+    "157": "TypeError: object of type 'NoneType' has no len()",
+    "158": "TypeError: object of type 'NoneType' has no len()",
+    "159": "TypeError: object of type 'NoneType' has no len()",
+    "160": "TypeError: object of type 'NoneType' has no len()",
+    "161": "TypeError: object of type 'NoneType' has no len()",
+    "162": "TypeError: object of type 'NoneType' has no len()",
+    "163": "TypeError: object of type 'NoneType' has no len()",
+    "164": "TypeError: object of type 'NoneType' has no len()",
+    "165": "TypeError: object of type 'NoneType' has no len()",
+    "166": "TypeError: object of type 'NoneType' has no len()",
+    "167": "TypeError: object of type 'NoneType' has no len()",
+    "168": "TypeError: object of type 'NoneType' has no len()",
+    "169": "TypeError: object of type 'NoneType' has no len()",
+    "170": "TypeError: object of type 'NoneType' has no len()",
+    "171": "TypeError: object of type 'NoneType' has no len()",
+    "172": "TypeError: object of type 'NoneType' has no len()",
+    "173": "TypeError: object of type 'NoneType' has no len()",
+    "174": "TypeError: object of type 'NoneType' has no len()",
+    "175": "TypeError: object of type 'NoneType' has no len()",
+    "176": "TypeError: object of type 'NoneType' has no len()",
+    "177": "TypeError: object of type 'NoneType' has no len()",
+    "178": "TypeError: object of type 'NoneType' has no len()",
+    "179": "TypeError: object of type 'NoneType' has no len()",
+    "180": "TypeError: object of type 'NoneType' has no len()",
+    "181": "TypeError: object of type 'NoneType' has no len()",
+    "182": "TypeError: object of type 'NoneType' has no len()",
+    "183": "TypeError: object of type 'NoneType' has no len()",
+    "184": "TypeError: object of type 'NoneType' has no len()",
+    "185": "TypeError: object of type 'NoneType' has no len()",
+    "186": "TypeError: object of type 'NoneType' has no len()",
+    "187": "TypeError: object of type 'NoneType' has no len()",
+    "188": "TypeError: object of type 'NoneType' has no len()",
+    "189": "TypeError: object of type 'NoneType' has no len()",
+    "190": "TypeError: object of type 'NoneType' has no len()",
+    "191": "TypeError: object of type 'NoneType' has no len()",
+    "192": "TypeError: object of type 'NoneType' has no len()",
+    "193": "TypeError: object of type 'NoneType' has no len()",
+    "194": "TypeError: object of type 'NoneType' has no len()",
+    "195": "TypeError: object of type 'NoneType' has no len()",
+    "196": "TypeError: object of type 'NoneType' has no len()",
+    "197": "TypeError: object of type 'NoneType' has no len()",
+    "198": "TypeError: object of type 'NoneType' has no len()",
+    "199": "TypeError: object of type 'NoneType' has no len()"
+   },
+   "runtimes_by_type": {
+    "TypeError": 0.00035795659729928684,
+    "OSError": 0.0003502368927001953
+   },
+   "correct_pct": 0.0,
+   "runtime_error_pct": 100.0,
+   "runtime": 0.0003578794002532959,
+   "execution_runtime": 6.0
+  },
+  "HumanEval/149": {
+   "correct": 0,
+   "total": 200,
+   "error_types": {
+    "SyntaxError": 128,
+    "NameError": 72
+   },
+   "error_messages": {
+    "0": "NameError: name 'sorted_list_sum' is not defined",
+    "1": "NameError: name 'sorted_list_sum' is not defined",
+    "2": "NameError: name 'sorted_list_sum' is not defined",
+    "3": "NameError: name 'sorted_list_sum' is not defined",
+    "4": "NameError: name 'sorted_list_sum' is not defined",
+    "5": "NameError: name 'sorted_list_sum' is not defined",
+    "6": "NameError: name 'sorted_list_sum' is not defined",
+    "7": "NameError: name 'sorted_list_sum' is not defined",
+    "8": "NameError: name 'sorted_list_sum' is not defined",
+    "9": "NameError: name 'sorted_list_sum' is not defined",
+    "10": "NameError: name 'sorted_list_sum' is not defined",
+    "11": "NameError: name 'sorted_list_sum' is not defined",
+    "12": "NameError: name 'sorted_list_sum' is not defined",
+    "13": "NameError: name 'sorted_list_sum' is not defined",
+    "14": "NameError: name 'sorted_list_sum' is not defined",
+    "15": "NameError: name 'sorted_list_sum' is not defined",
+    "16": "NameError: name 'sorted_list_sum' is not defined",
+    "17": "NameError: name 'sorted_list_sum' is not defined",
+    "18": "NameError: name 'sorted_list_sum' is not defined",
+    "19": "NameError: name 'sorted_list_sum' is not defined",
+    "20": "NameError: name 'sorted_list_sum' is not defined",
+    "21": "NameError: name 'sorted_list_sum' is not defined",
+    "22": "NameError: name 'sorted_list_sum' is not defined",
+    "23": "NameError: name 'sorted_list_sum' is not defined",
+    "24": "NameError: name 'sorted_list_sum' is not defined",
+    "25": "NameError: name 'sorted_list_sum' is not defined",
+    "26": "NameError: name 'sorted_list_sum' is not defined",
+    "27": "NameError: name 'sorted_list_sum' is not defined",
+    "28": "NameError: name 'sorted_list_sum' is not defined",
+    "29": "NameError: name 'sorted_list_sum' is not defined",
+    "30": "NameError: name 'sorted_list_sum' is not defined",
+    "31": "NameError: name 'sorted_list_sum' is not defined",
+    "32": "NameError: name 'sorted_list_sum' is not defined",
+    "33": "NameError: name 'sorted_list_sum' is not defined",
+    "34": "NameError: name 'sorted_list_sum' is not defined",
+    "35": "NameError: name 'sorted_list_sum' is not defined",
+    "36": "NameError: name 'sorted_list_sum' is not defined",
+    "37": "NameError: name 'sorted_list_sum' is not defined",
+    "38": "NameError: name 'sorted_list_sum' is not defined",
+    "39": "NameError: name 'sorted_list_sum' is not defined",
+    "40": "NameError: name 'sorted_list_sum' is not defined",
+    "41": "NameError: name 'sorted_list_sum' is not defined",
+    "42": "NameError: name 'sorted_list_sum' is not defined",
+    "43": "NameError: name 'sorted_list_sum' is not defined",
+    "44": "NameError: name 'sorted_list_sum' is not defined",
+    "45": "NameError: name 'sorted_list_sum' is not defined",
+    "46": "NameError: name 'sorted_list_sum' is not defined",
+    "47": "NameError: name 'sorted_list_sum' is not defined",
+    "48": "NameError: name 'sorted_list_sum' is not defined",
+    "49": "NameError: name 'sorted_list_sum' is not defined",
+    "50": "NameError: name 'sorted_list_sum' is not defined",
+    "51": "NameError: name 'sorted_list_sum' is not defined",
+    "52": "NameError: name 'sorted_list_sum' is not defined",
+    "53": "NameError: name 'sorted_list_sum' is not defined",
+    "54": "NameError: name 'sorted_list_sum' is not defined",
+    "55": "NameError: name 'sorted_list_sum' is not defined",
+    "56": "NameError: name 'sorted_list_sum' is not defined",
+    "57": "NameError: name 'sorted_list_sum' is not defined",
+    "58": "NameError: name 'sorted_list_sum' is not defined",
+    "59": "NameError: name 'sorted_list_sum' is not defined",
+    "60": "NameError: name 'sorted_list_sum' is not defined",
+    "61": "NameError: name 'sorted_list_sum' is not defined",
+    "62": "NameError: name 'sorted_list_sum' is not defined",
+    "63": "NameError: name 'sorted_list_sum' is not defined",
+    "64": "NameError: name 'sorted_list_sum' is not defined",
+    "65": "NameError: name 'sorted_list_sum' is not defined",
+    "66": "NameError: name 'sorted_list_sum' is not defined",
+    "67": "NameError: name 'sorted_list_sum' is not defined",
+    "68": "NameError: name 'sorted_list_sum' is not defined",
+    "69": "NameError: name 'sorted_list_sum' is not defined",
+    "70": "NameError: name 'sorted_list_sum' is not defined",
+    "71": "NameError: name 'sorted_list_sum' is not defined"
+   },
+   "runtimes_by_type": {
+    "NameError": 0.00036018424563937716
+   },
+   "correct_pct": 0.0,
+   "runtime_error_pct": 36.0,
+   "runtime": 0.00036018424563937716,
+   "execution_runtime": 6.0
+  },
+  "HumanEval/150": {
+   "correct": 0,
+   "total": 200,
+   "error_types": {
+    "SyntaxError": 82,
+    "Failed Tests": 113,
+    "OSError": 5
+   },
+   "error_messages": {
+    "3": "OSError: ",
+    "27": "OSError: ",
+    "69": "OSError: ",
+    "76": "OSError: ",
+    "77": "OSError: "
+   },
+   "runtimes_by_type": {
+    "Failed Tests": 0.0003077878361254667,
+    "OSError": 0.000354766845703125
+   },
+   "correct_pct": 0.0,
+   "runtime_error_pct": 2.5,
+   "runtime": 0.00030977847212452,
+   "execution_runtime": 6.0
+  },
+  "HumanEval/151": {
+   "correct": 0,
+   "total": 200,
+   "error_types": {
+    "SyntaxError": 0,
+    "Failed Tests": 200
+   },
+   "error_messages": {},
+   "runtimes_by_type": {
+    "Failed Tests": 0.0003570890426635742
+   },
+   "correct_pct": 0.0,
+   "runtime_error_pct": 0.0,
+   "runtime": 0.0003570890426635742,
+   "execution_runtime": 6.0
+  },
+  "HumanEval/152": {
+   "correct": 0,
+   "total": 200,
+   "error_types": {
+    "SyntaxError": 198,
+    "Failed Tests": 2
+   },
+   "error_messages": {},
+   "runtimes_by_type": {
+    "Failed Tests": 0.0003879070281982422
+   },
+   "correct_pct": 0.0,
+   "runtime_error_pct": 0.0,
+   "runtime": 0.0003879070281982422,
+   "execution_runtime": 6.0
+  },
+  "HumanEval/153": {
+   "correct": 0,
+   "total": 200,
+   "error_types": {
+    "SyntaxError": 198,
+    "Failed Tests": 2
+   },
+   "error_messages": {},
+   "runtimes_by_type": {
+    "Failed Tests": 0.00046432018280029297
+   },
+   "correct_pct": 0.0,
+   "runtime_error_pct": 0.0,
+   "runtime": 0.00046432018280029297,
+   "execution_runtime": 6.0
+  },
+  "HumanEval/154": {
+   "correct": 0,
+   "total": 200,
+   "error_types": {
+    "SyntaxError": 79,
+    "Failed Tests": 121
+   },
+   "error_messages": {},
+   "runtimes_by_type": {
+    "Failed Tests": 0.0002835742698228064
+   },
+   "correct_pct": 0.0,
+   "runtime_error_pct": 0.0,
+   "runtime": 0.0002835742698228064,
+   "execution_runtime": 6.0
+  },
+  "HumanEval/155": {
+   "correct": 0,
+   "total": 200,
+   "error_types": {
+    "SyntaxError": 69,
+    "Failed Tests": 130,
+    "RecursionError": 1
+   },
+   "error_messages": {
+    "128": "RecursionError: maximum recursion depth exceeded in comparison"
+   },
+   "runtimes_by_type": {
+    "Failed Tests": 0.0002889724878164438,
+    "RecursionError": 0.0054705142974853516
+   },
+   "correct_pct": 0.0,
+   "runtime_error_pct": 0.5,
+   "runtime": 0.0003285262420887255,
+   "execution_runtime": 6.0
+  },
+  "HumanEval/156": {
+   "correct": 0,
+   "total": 200,
+   "error_types": {
+    "SyntaxError": 114,
+    "Failed Tests": 82,
+    "AttributeError": 2,
+    "ValueError": 2
+   },
+   "error_messages": {
+    "18": "AttributeError: 'int' object has no attribute 'lower'",
+    "19": "ValueError: Number must be less than 1000",
+    "38": "AttributeError: 'int' object has no attribute 'is_integer'",
+    "57": "ValueError: number must be a multiple of 3"
+   },
+   "runtimes_by_type": {
+    "Failed Tests": 0.00032725566770972273,
+    "AttributeError": 0.0004125833511352539,
+    "ValueError": 0.0003546476364135742
+   },
+   "correct_pct": 0.0,
+   "runtime_error_pct": 2.0,
+   "runtime": 0.0003298770549685456,
+   "execution_runtime": 6.0
+  },
+  "HumanEval/157": {
+   "correct": 0,
+   "total": 200,
+   "error_types": {
+    "SyntaxError": 0,
+    "Failed Tests": 200
+   },
+   "error_messages": {},
+   "runtimes_by_type": {
+    "Failed Tests": 0.00031845808029174806
+   },
+   "correct_pct": 0.0,
+   "runtime_error_pct": 0.0,
+   "runtime": 0.00031845808029174806,
+   "execution_runtime": 6.0
+  },
+  "HumanEval/158": {
+   "correct": 0,
+   "total": 200,
+   "error_types": {
+    "SyntaxError": 94,
+    "Failed Tests": 103,
+    "AttributeError": 2,
+    "TypeError": 1
+   },
+   "error_messages": {
+    "19": "AttributeError: 'list' object has no attribute 'lower'",
+    "86": "TypeError: 'set' object is not subscriptable",
+    "96": "AttributeError: 'list' object has no attribute 'lower'"
+   },
+   "runtimes_by_type": {
+    "Failed Tests": 0.00041742000765013465,
+    "AttributeError": 0.0004576444625854492,
+    "TypeError": 0.0004012584686279297
+   },
+   "correct_pct": 0.0,
+   "runtime_error_pct": 1.5,
+   "runtime": 0.00041802649228078016,
+   "execution_runtime": 6.0
+  },
+  "HumanEval/160": {
+   "correct": 0,
+   "total": 200,
+   "error_types": {
+    "SyntaxError": 139,
+    "Failed Tests": 48,
+    "NameError": 4,
+    "AttributeError": 3,
+    "ImportError": 2,
+    "ValueError": 1,
+    "TypeError": 2,
+    "RecursionError": 1
+   },
+   "error_messages": {
+    "2": "NameError: name 'algebra_expression' is not defined",
+    "3": "NameError: name 'operators' is not defined",
+    "7": "NameError: name 'result' is not defined",
+    "12": "AttributeError: 'list' object has no attribute 'split'",
+    "13": "AttributeError: 'list' object has no attribute 'split'",
+    "18": "NameError: name 'result' is not defined",
+    "19": "ImportError: cannot import name 'truemod' from 'operator' (/home/gabe/miniconda3/envs/go-research-project/lib/python3.8/operator.py)",
+    "25": "ValueError: Invalid operator",
+    "43": "ImportError: cannot import name 'true_divide' from 'operator' (/home/gabe/miniconda3/envs/go-research-project/lib/python3.8/operator.py)",
+    "45": "TypeError: 'int' object is not iterable",
+    "50": "RecursionError: maximum recursion depth exceeded",
+    "51": "TypeError: unhashable type: 'list'",
+    "60": "AttributeError: 'list' object has no attribute 'split'"
+   },
+   "runtimes_by_type": {
+    "Failed Tests": 0.00027891993522644043,
+    "NameError": 0.0003345012664794922,
+    "AttributeError": 0.00028769175211588543,
+    "ImportError": 0.0002651214599609375,
+    "ValueError": 0.0003151893615722656,
+    "TypeError": 0.00038564205169677734,
+    "RecursionError": 0.008955955505371094
+   },
+   "correct_pct": 0.0,
+   "runtime_error_pct": 6.5,
+   "runtime": 0.00042888375579333695,
+   "execution_runtime": 6.0
+  },
+  "HumanEval/161": {
+   "correct": 0,
+   "total": 200,
+   "error_types": {
+    "SyntaxError": 167,
+    "Failed Tests": 31,
+    "NameError": 2
+   },
+   "error_messages": {
+    "9": "NameError: name 'i' is not defined",
+    "13": "NameError: name 'i' is not defined"
+   },
+   "runtimes_by_type": {
+    "Failed Tests": 0.0002629141653737714,
+    "NameError": 0.0002809762954711914
+   },
+   "correct_pct": 0.0,
+   "runtime_error_pct": 1.0,
+   "runtime": 0.0002640088399251302,
+   "execution_runtime": 6.0
+  },
+  "HumanEval/162": {
+   "correct": 0,
+   "total": 200,
+   "error_types": {
+    "SyntaxError": 137,
+    "NameError": 20,
+    "Failed Tests": 43
+   },
+   "error_messages": {
+    "0": "NameError: name 'md5' is not defined",
+    "2": "NameError: name 'string_to_md5' is not defined",
+    "4": "NameError: name 'string_to_md5' is not defined",
+    "6": "NameError: name 'string_to_md5' is not defined",
+    "7": "NameError: name 'hashlib' is not defined",
+    "19": "NameError: name 'hashlib' is not defined",
+    "21": "NameError: name 'string_to_md5' is not defined",
+    "23": "NameError: name 'string_to_md5' is not defined",
+    "24": "NameError: name 'md5' is not defined",
+    "29": "NameError: name 'string_to_md5' is not defined",
+    "32": "NameError: name 'hashlib' is not defined",
+    "33": "NameError: name 'hashlib' is not defined",
+    "38": "NameError: name 'string_to_md5' is not defined",
+    "41": "NameError: name 'hashlib' is not defined",
+    "43": "NameError: name 'hashlib' is not defined",
+    "46": "NameError: name 'hashlib' is not defined",
+    "52": "NameError: name 'string_to_md5' is not defined",
+    "56": "NameError: name 'string_to_md5' is not defined",
+    "57": "NameError: name 'string_to_md5' is not defined",
+    "58": "NameError: name 'string_to_md5' is not defined"
+   },
+   "runtimes_by_type": {
+    "NameError": 0.00025050640106201173,
+    "Failed Tests": 0.0002361452856729197
+   },
+   "correct_pct": 0.0,
+   "runtime_error_pct": 10.0,
+   "runtime": 0.0002407043699234251,
+   "execution_runtime": 6.0
+  },
+  "HumanEval/163": {
+   "correct": 0,
+   "total": 200,
+   "error_types": {
+    "SyntaxError": 145,
+    "Failed Tests": 53,
+    "ZeroDivisionError": 1,
+    "RecursionError": 1
+   },
+   "error_messages": {
+    "53": "ZeroDivisionError: integer division or modulo by zero",
+    "54": "RecursionError: maximum recursion depth exceeded in comparison"
+   },
+   "runtimes_by_type": {
+    "Failed Tests": 0.0002859358517628796,
+    "ZeroDivisionError": 0.00028514862060546875,
+    "RecursionError": 0.005051612854003906
+   },
+   "correct_pct": 0.0,
+   "runtime_error_pct": 1.0,
+   "runtime": 0.00037257021123712715,
+   "execution_runtime": 6.0
+  },
+  "HumanEval/46": {
+   "correct": 0,
+   "total": 200,
+   "error_types": {
+    "SyntaxError": 200
+   },
+   "correct_pct": 0.0,
+   "runtime_error_pct": 0.0
+  },
+  "HumanEval/51": {
+   "correct": 0,
+   "total": 200,
+   "error_types": {
+    "SyntaxError": 200
+   },
+   "correct_pct": 0.0,
+   "runtime_error_pct": 0.0
+  },
+  "HumanEval/63": {
+   "correct": 0,
+   "total": 200,
+   "error_types": {
+    "SyntaxError": 200
+   },
+   "correct_pct": 0.0,
+   "runtime_error_pct": 0.0
+  },
+  "HumanEval/64": {
+   "correct": 0,
+   "total": 200,
+   "error_types": {
+    "SyntaxError": 200
+   },
+   "correct_pct": 0.0,
+   "runtime_error_pct": 0.0
+  },
+  "HumanEval/94": {
+   "correct": 0,
+   "total": 200,
+   "error_types": {
+    "SyntaxError": 200
+   },
+   "correct_pct": 0.0,
+   "runtime_error_pct": 0.0
+  },
+  "HumanEval/98": {
+   "correct": 0,
+   "total": 200,
+   "error_types": {
+    "SyntaxError": 200
+   },
+   "correct_pct": 0.0,
+   "runtime_error_pct": 0.0
+  },
+  "HumanEval/112": {
+   "correct": 0,
+   "total": 200,
+   "error_types": {
+    "SyntaxError": 200
+   },
+   "correct_pct": 0.0,
+   "runtime_error_pct": 0.0
+  },
+  "HumanEval/123": {
+   "correct": 0,
+   "total": 200,
+   "error_types": {
+    "SyntaxError": 200
+   },
+   "correct_pct": 0.0,
+   "runtime_error_pct": 0.0
+  },
+  "HumanEval/125": {
+   "correct": 0,
+   "total": 200,
+   "error_types": {
+    "SyntaxError": 200
+   },
+   "correct_pct": 0.0,
+   "runtime_error_pct": 0.0
+  },
+  "HumanEval/130": {
+   "correct": 0,
+   "total": 200,
+   "error_types": {
+    "SyntaxError": 200
+   },
+   "correct_pct": 0.0,
+   "runtime_error_pct": 0.0
+  },
+  "HumanEval/139": {
+   "correct": 0,
+   "total": 200,
+   "error_types": {
+    "SyntaxError": 200
+   },
+   "correct_pct": 0.0,
+   "runtime_error_pct": 0.0
+  },
+  "HumanEval/159": {
+   "correct": 0,
+   "total": 200,
+   "error_types": {
+    "SyntaxError": 200
+   },
+   "correct_pct": 0.0,
+   "runtime_error_pct": 0.0
+  }
+ },
+ "outcome_pcts": {
+  "TypeError": 2.027439024390244,
+  "StopIteration": 0.0,
+  "ImportError": 0.012195121951219513,
+  "RuntimeError": 0.0,
+  "NameError": 1.8628048780487805,
+  "AttributeError": 0.06097560975609756,
+  "LookupError": 0.0,
+  "ValueError": 0.23170731707317072,
+  "ArithmeticError": 0.0,
+  "ReferenceError": 0.0,
+  "BufferError": 0.0,
+  "SyntaxError": 51.88109756097561,
+  "Failed_Tests": 42.40548780487805,
+  "IndexError": 0.14939024390243902,
+  "UnboundLocalError": 0.01524390243902439,
+  "RecursionError": 0.47560975609756095,
+  "ZeroDivisionError": 0.012195121951219513,
+  "OSError": 0.10060975609756098,
+  "ModuleNotFoundError": 0.003048780487804878,
+  "Timed_Out": 0.006097560975609756,
+  "Correct": 0.7560975609756098
+ }
+}

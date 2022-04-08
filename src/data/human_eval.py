@@ -98,7 +98,7 @@ class HumanEval(Task):
             ]
 
             # Have to add the prompt back to the predictions
-            prompt = processed_sample['prompt'].split('"""')[0].strip()
+            prompt = processed_sample['prompt'].strip()
             preds_list = [
                 prompt + p
                 for p in preds
