@@ -150,7 +150,7 @@ experiments:
       ++prompts:
         file: templates/so_prompts.yaml
         pipe:
-          - quality_before
+          - comment_quality_before
       ++processor.params.remove_modality: "NL"
     ablations:
       - Model:
@@ -177,17 +177,17 @@ experiments:
             description: The 'BEST' adjective
             hypothesis: Should do the best
             ++prompts.params:
-              quality: "# BEST"
+              quality: BEST
           2ND:
             description: The '2ND' adjective
             hypothesis: Should be only worse than BEST
             ++prompts.params:
-              quality: "# 2ND"
+              quality: 2ND
           3RD:
             description: The '3RD' adjective
             hypothesis: Should be only worse than BEST and 2ND
             ++prompts.params:
-              quality: "# 3RD"
+              quality: 3RD
     steps:
       - name: PreTrain
         description: Finetune on the SO Data

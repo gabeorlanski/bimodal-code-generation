@@ -24,3 +24,7 @@ quality_before:
   template: "{{ quality }} SOLUTION
 
   {{ input_sequence|trim}}{{ '\n' }}"
+comment_quality_before:
+  template: "# {{ quality }} SOLUTION
+
+  {{ input_sequence|trim}}{{ '\n' }}"
