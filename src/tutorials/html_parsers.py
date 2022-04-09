@@ -61,6 +61,32 @@ class TutorialHTMLParser(Registrable):
         'figure'
     ]
 
+    #####################################################################
+    # These MUST be implemented by the child class                      #
+    #####################################################################
+    def get_body(self, soup) -> Tag:
+        """
+        Get the main BODY element of from the html
+        Args:
+            soup: The BS4 object.
+
+        Returns:
+            The body tag
+
+        """
+        raise NotImplementedError()
+
+    def get_header_and_sections(self, tag):
+        """
+        Get the header and the FIRST level sections from the html
+        Args:
+            tag: The body tag.
+
+        Returns: Two lists, the list of tags in the header, and the list of first section tags
+
+        """
+        raise NotImplementedError()
+
     def get_type_of_tag(self, tag: Tag) -> TagType:
         """
         Function to get the type of the tag that determines how it will be parsed.
@@ -73,6 +99,9 @@ class TutorialHTMLParser(Registrable):
         """
         raise NotImplementedError()
 
+    #####################################################################
+    # These are optional to override                                    #
+    #####################################################################
     # Overwrite these functions if the tutorial requires specific parsing.
     def parse_code(self, tag: Tag) -> str:
         return self.clean_text(tag.get_text())
@@ -91,17 +120,6 @@ class TutorialHTMLParser(Registrable):
 
     def parse_title(self, tag: Tag) -> str:
         return self.clean_text(tag.get_text())
-
-    def get_header_and_sections(self, soup):
-        """
-        Get the header and the FIRST level sections from the html
-        Args:
-            soup: The BS4 object.
-
-        Returns: Two lists, the list of tags in the header, and the list of first section tags
-
-        """
-        raise NotImplementedError()
 
     @staticmethod
     def clean_text(text):
@@ -198,8 +216,8 @@ class TutorialHTMLParser(Registrable):
 
     def __call__(self, raw_html):
         soup = BeautifulSoup(raw_html, 'lxml')
-
-        header, sections = self.get_header_and_sections(soup)
+        body = self.get_body(soup)
+        header, sections = self.get_header_and_sections(body)
         parsed_sections = []
         idx_counter = 0
         for s in sections:
@@ -217,6 +235,12 @@ class TutorialHTMLParser(Registrable):
 @TutorialHTMLParser.register('lxml')
 class LXMLParser(TutorialHTMLParser):
     NAME = "LXML"
+
+    def get_body(self, soup) -> Tag:
+        return soup.find(
+            'div',
+            {'class': 'document'}
+        )
 
     def get_type_of_tag(self, tag: Tag) -> TagType:
         tag_classes = tag.attrs.get('class', [])
@@ -240,19 +264,20 @@ class LXMLParser(TutorialHTMLParser):
 
         return TagType.UNKNOWN
 
-    def get_header_and_sections(self, soup) -> Tuple[List[Tag], List[Tag]]:
+    def get_header_and_sections(self, tag) -> Tuple[List[Tag], List[Tag]]:
 
-        body = soup.find(
-            'div',
-            {'class': 'document'}
-        )
-
-        return [], body.find_all('div', {'class': 'section'}, recursive=False)
+        return [], tag.find_all('div', {'class': 'section'}, recursive=False)
 
 
 @TutorialHTMLParser.register('sympy')
 class SympyParser(TutorialHTMLParser):
     NAME = "sympy"
+
+    def get_body(self, soup) -> Tag:
+        return soup.find(
+            'div',
+            {'class': 'body'}
+        )
 
     def parse_code(self, tag: Tag) -> str:
         code_block = tag.find('pre')
@@ -279,19 +304,20 @@ class SympyParser(TutorialHTMLParser):
 
         return TagType.UNKNOWN
 
-    def get_header_and_sections(self, soup) -> Tuple[List[Tag], List[Tag]]:
+    def get_header_and_sections(self, tag) -> Tuple[List[Tag], List[Tag]]:
 
-        body = soup.find(
-            'div',
-            {'class': 'body'}
-        )
-
-        return [], body.find_all('section', recursive=False)
+        return [], tag.find_all('section', recursive=False)
 
 
 @TutorialHTMLParser.register('passlib')
 class PassLibParser(TutorialHTMLParser):
     NAME = "passlib"
+
+    def get_body(self, soup) -> Tag:
+        return soup.find(
+            'div',
+            {'class': 'body'}
+        )
 
     def parse_code(self, tag: Tag) -> str:
         code_block = tag.find('pre')
@@ -319,30 +345,14 @@ class PassLibParser(TutorialHTMLParser):
 
         return TagType.UNKNOWN
 
-    def get_header_and_sections(self, soup) -> Tuple[List[Tag], List[Tag]]:
+    def get_header_and_sections(self, tag) -> Tuple[List[Tag], List[Tag]]:
 
-        body = soup.find(
-            'div',
-            {'class': 'body'}
-        )
-
-        return [], body.find_all('div', {'class': 'section'}, recursive=False)
+        return [], tag.find_all('div', {'class': 'section'}, recursive=False)
 
 
 @TutorialHTMLParser.register('pynacl')
 class PyNaClParser(TutorialHTMLParser):
     NAME = "pynacl"
-
-    def parse_code(self, tag: Tag) -> str:
-        code_block = tag.find('pre')
-        assert code_block is not None
-        return self.clean_text(code_block.get_text()).lstrip()
-
-    def parse_title(self, tag: Tag) -> str:
-        header_link = tag.find('a')
-        if header_link is not None:
-            header_link.extract()
-        return self.clean_text(tag.get_text())
 
     def get_type_of_tag(self, tag: Tag) -> TagType:
         if tag.name == 'section':
@@ -358,11 +368,12 @@ class PyNaClParser(TutorialHTMLParser):
 
         return TagType.UNKNOWN
 
-    def get_header_and_sections(self, soup) -> Tuple[List[Tag], List[Tag]]:
-
-        body = soup.find(
+    def get_body(self, soup) -> Tag:
+        return soup.find(
             'div',
             {'itemprop': 'articleBody'}
         )
 
-        return [], body.find_all('section', recursive=False)
+    def get_header_and_sections(self, tag) -> Tuple[List[Tag], List[Tag]]:
+
+        return [], tag.find_all('section', recursive=False)
