@@ -1,0 +1,30 @@
+url: docs.sympy.org
+allowed_path: "latest"
+groups:
+  tutorial:
+    path: /latest/tutorial
+    pages:
+      preliminaries: preliminaries.html
+      intro: intro.html
+      gotchas: gotchas.html
+      basic_operations: basic_operations.html
+      printing: printing.html
+      simplification: simplification.html
+      calculus: calculus.html
+      solvers: solvers.html
+      matrices: matrices.html
+      manipulation: manipulation.html
+  guides:
+    path: /latest/guides
+    pages:
+      assumptions: assumptions.html
+      booleans: booleans.html
+  explanation:
+    path: /latest/explanation
+    pages:
+      gotchas: gotchas.html
+  special_topics:
+    path: /latest/explanation/special_topics
+    pages:
+      finite_diff_derivatives: finite_diff_derivatives.html
+      classification: classification.html

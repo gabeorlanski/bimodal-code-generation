@@ -33,6 +33,6 @@ class Registrable(object):
     def by_name(cls: Type[_RegistrableT], name) -> Callable:
         return Registrable._registered_components[cls][name]
 
-    def list_available(self):
-        return list(self._registered_components)
-
+    @classmethod
+    def list_available(cls):
+        return list(cls._registered_components)

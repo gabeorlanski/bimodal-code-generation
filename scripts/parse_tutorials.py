@@ -45,10 +45,23 @@ def parse_tutorials(debug, input_path, output_path):
     logger.info(f"Parsing tutorials from {input_path}")
     logger.info(f"Saving to {output_path}")
 
-    cfg = yaml.load(
-        PROJECT_ROOT.joinpath(input_path).open('r'),
-        yaml.Loader
-    )
+    domains = list(PROJECT_ROOT.joinpath(input_path).glob('*.yaml'))
+    logger.info(f"{len(domains)} domain configs found")
+
+    cfg = {}
+    for domain_path in domains:
+        logger.info(f"Loading config from {domain_path}")
+
+        try:
+            TutorialHTMLParser.by_name(domain_path.stem)
+        except KeyError:
+            logger.error(f"Skipping {domain_path.stem}, no parser found")
+            continue
+
+        cfg[domain_path.stem] = yaml.load(
+            domain_path.open(),
+            yaml.Loader
+        )['groups']
 
     maps_path = PROJECT_ROOT.joinpath('data', 'crawled_maps')
     crawled_path = PROJECT_ROOT.joinpath('data', 'crawled_tutorials')

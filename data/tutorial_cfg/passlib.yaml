@@ -1,0 +1,9 @@
+url: https://passlib.readthedocs.io/en/stable/index.html
+allowed_path: "en/stable"
+groups:
+  tutorial:
+    path: /en/stable/narr
+    pages:
+      password_hash: hash-tutorial.html
+      crypt_context: context-tutorial.html
+      totp: totp-tutorial.html
