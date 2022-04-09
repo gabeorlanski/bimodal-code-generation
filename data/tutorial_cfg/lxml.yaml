@@ -1,4 +1,9 @@
 url: https://lxml.de/
+disallow:
+  - '.*/[0-9]+\.[0-9]+\/.*'
+  - '.*/changes.*'
+  - '.*#.*'
+  - '.*/files/.*'
 groups:
   developing_with_lxml:
     path: /
