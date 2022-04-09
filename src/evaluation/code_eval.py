@@ -124,7 +124,7 @@ def evaluate_code(code_dicts, samples_per_problem, num_workers, timeout):
     all_correct = np.array(correct)
     all_total = np.array([samples_per_problem] * len(results_by_task_id))
     total = int(sum(all_total))
-    for k in [1, 5, 10, 25, 50, 100]:
+    for k in [1, 5, 10, 25, 50, 80, 100]:
         if (all_total < k).all():
             overview_metrics[f"pass@{k}"] = 0.0
             continue
@@ -235,7 +235,8 @@ def parse_results(
 
                 if result_str != 'Timed Out' and result_str != 'Failed Tests':
                     task_runtime_errors += 1
-                    task_metrics['error_messages'][completion_id] = f"{result_str}: {result_dict['error']}"
+                    task_metrics['error_messages'][
+                        completion_id] = f"{result_str}: {result_dict['error']}"
 
             else:
                 task_correct += 1
