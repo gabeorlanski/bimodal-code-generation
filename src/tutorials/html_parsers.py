@@ -5,6 +5,7 @@ import re
 from unidecode import unidecode
 
 from enum import Enum, auto
+from src.common.registrable import Registrable
 
 import logging
 
@@ -36,7 +37,7 @@ class TagType(Enum):
     UNKNOWN = auto()
 
 
-class TutorialHTMLParser:
+class TutorialHTMLParser(Registrable):
     NAME = None
 
     PARAGRAPH_CLASSES = [
@@ -213,6 +214,7 @@ class TutorialHTMLParser:
         return parsed_sections
 
 
+@TutorialHTMLParser.register('lxml')
 class LXMLParser(TutorialHTMLParser):
     NAME = "LXML"
 
@@ -248,6 +250,7 @@ class LXMLParser(TutorialHTMLParser):
         return [], body.find_all('div', {'class': 'section'}, recursive=False)
 
 
+@TutorialHTMLParser.register('sympy')
 class SympyParser(TutorialHTMLParser):
     NAME = "sympy"
 
@@ -286,6 +289,7 @@ class SympyParser(TutorialHTMLParser):
         return [], body.find_all('section', recursive=False)
 
 
+@TutorialHTMLParser.register('passlib')
 class PassLibParser(TutorialHTMLParser):
     NAME = "passlib"
 
@@ -325,6 +329,7 @@ class PassLibParser(TutorialHTMLParser):
         return [], body.find_all('div', {'class': 'section'}, recursive=False)
 
 
+@TutorialHTMLParser.register('pynacl')
 class PyNaClParser(TutorialHTMLParser):
     NAME = "pynacl"
 

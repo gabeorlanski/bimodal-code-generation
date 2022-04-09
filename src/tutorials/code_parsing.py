@@ -8,6 +8,8 @@ GET_CODE_BLOCK = re.compile(
     flags=re.MULTILINE
 )
 
+REMOVE_PRINT = re.compile(r'print\(([^\n]+)\)', flags=re.DOTALL)
+
 logger = logging.getLogger(__name__)
 
 
@@ -61,13 +63,9 @@ def get_snippets_from_sections(
 
         section_id = span['section_id']
 
+        parent_context = section_contexts.get(span['parent_id'], [])
         if section_id not in section_contexts:
-
-            if span['section_title'] in sections_use_parent_ctx:
-                parent_context = section_contexts.get(span['parent_id'], [])
-            else:
-                parent_context = []
-            ctx = deepcopy(global_context) + parent_context
+            ctx = deepcopy(global_context)
             section_contexts[section_id] = ctx
 
         for block in get_snippets(span['text']):
@@ -77,7 +75,8 @@ def get_snippets_from_sections(
                 block['code'] = block_context + block['code']
 
                 section_snippets.append((i, {
-                    'context': deepcopy(section_contexts[section_id]),
+                    'context'       : deepcopy(section_contexts[section_id]),
+                    'parent_context': parent_context,
                     **block
                 }))
             section_contexts[section_id].extend(block_context)
@@ -87,6 +86,8 @@ def get_snippets_from_sections(
 def get_code_from_parsed_tutorial(name, parsed_tutorial, context=None):
     total_updated = 0
     context = context or []
+    could_not_be_ran = []
+    could_be_ran = []
 
     for section_num, section in enumerate(parsed_tutorial):
         section_context = []
@@ -95,6 +96,36 @@ def get_code_from_parsed_tutorial(name, parsed_tutorial, context=None):
                 section,
                 context,
         ):
+            code_to_run = []
+            for l in snip['context'] + snip['code']:
+                code_to_run.append(REMOVE_PRINT.sub(r'\1', l))
+
+            try:
+                for r in snip['result']:
+                    ast.literal_eval(r)
+            except Exception as e:
+                pass
+            try:
+
+                code_to_run_str = '\n'.join(code_to_run)
+                # if test_section[i]['id'] in special_fixes:
+                #     code_to_run = special_fixes[section[i]['id']](code_to_run)
+                exec(code_to_run_str)
+                could_be_ran.append(i)
+            except Exception as e:
+                if snip['parent_context']:
+                    try:
+                        parent_clean = []
+                        for l in snip['parent_context']:
+                            parent_clean.append(REMOVE_PRINT.sub(r'\1', l))
+                        code_to_run_str = '\n'.join(parent_clean + code_to_run)
+                        exec(code_to_run_str)
+                        snip['context'] = snip['parent_context'] + snip['context']
+                        could_be_ran.append(i)
+                    except Exception as e:
+                        could_not_be_ran.append(i)
+                else:
+                    could_not_be_ran.append(i)
             if 'snippets' not in section[i]:
                 section[i]['snippets'] = [snip]
             else:
@@ -103,4 +134,4 @@ def get_code_from_parsed_tutorial(name, parsed_tutorial, context=None):
         parsed_tutorial[section_num] = section
 
     logger.debug(f"{name} had {total_updated} total code snippets")
-    return total_updated, parsed_tutorial
+    return could_be_ran, could_not_be_ran, total_updated, parsed_tutorial

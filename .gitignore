@@ -181,3 +181,5 @@ data/crawled_maps/
 
 data/crawled_tutorials/
 data/single_exec/
+
+data/domain_run_results.json
