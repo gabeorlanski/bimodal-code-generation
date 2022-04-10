@@ -223,7 +223,7 @@ class TutorialHTMLParser(Registrable):
             ):
                 sub_sections.append(parsed)
                 idx_counter = idx
-            parsed_sections.append(sub_sections)
+            parsed_sections.extend(sub_sections)
 
         return parsed_sections
 
