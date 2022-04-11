@@ -1,0 +1,13 @@
+url: "https://docs.python-cerberus.org/en/stable/"
+allowed_path: "en/stable"
+groups:
+  tutorials:
+    path: /en/stable
+    pages:
+      usage: usage.html
+      schemas: schemas.html
+      validation_rules: validation-rules.html
+      normalization_rules: normalization-rules.html
+      customize: customize.html
+
+

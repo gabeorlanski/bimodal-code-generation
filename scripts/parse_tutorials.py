@@ -69,11 +69,11 @@ def parse_tutorials(debug, input_path, output_path):
     if not output_path.exists():
         output_path.mkdir(parents=True)
     logger.info(f"{len(cfg)} total unique domains to parse")
-    # global_contexts = {
-    #     'lxml': [
-    #         'from lxml import etree'
-    #     ]
-    # }
+    global_contexts = {
+        'lxml': [
+            'from lxml import etree'
+        ]
+    }
     domain_run = defaultdict(dict)
     for domain, groups in cfg.items():
         logger.info(f"Looking for {len(groups)} group(s) for {domain}")
@@ -109,7 +109,7 @@ def parse_tutorials(debug, input_path, output_path):
         domain_out.mkdir()
 
         total_elements_found = 0
-        # total_code_found = 0
+        total_code_found = 0
         # num_could_run, num_could_not_run = 0, 0
         for file, out_name in tqdm(files.items(), desc='parsing'):
             try:
@@ -118,12 +118,12 @@ def parse_tutorials(debug, input_path, output_path):
                 logger.error(f"{file} failed to parse")
                 raise e
             total_elements_found += sum(map(len, parsed))
-            # was_run, not_run, code_found, parsed = get_code_from_parsed_tutorial(
-            #     file.stem,
-            #     parsed,
-            #     context=global_contexts.get(domain, [])
-            # )
-            # total_code_found += code_found
+            code_found, parsed = get_code_from_parsed_tutorial(
+                domain,
+                file.stem,
+                parsed
+            )
+            total_code_found += code_found
 
             with domain_out.joinpath(f'{out_name}.json').open('w') as f:
                 json.dump(parsed, f, indent=True)
@@ -132,7 +132,7 @@ def parse_tutorials(debug, input_path, output_path):
             # num_could_not_run += len(not_run)
         # logger.info(f"{num_could_run}/{num_could_run + num_could_not_run} could run")
         logger.info(f"{total_elements_found} total elements found for {domain}")
-        # logger.info(f"{total_code_found} potential code samples found for {domain}")
+        logger.info(f"{total_code_found} potential code samples found for {domain}")
     # with PROJECT_ROOT.joinpath('data/domain_run_results.json').open('w') as f:
     #     json.dump(domain_run, f, indent=True, sort_keys=True)
 
