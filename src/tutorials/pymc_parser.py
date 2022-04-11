@@ -5,7 +5,7 @@ from .html_parsers import TutorialHTMLParser, TagType
 
 
 @TutorialHTMLParser.register('pymc')
-class LXMLParser(TutorialHTMLParser):
+class PyMCParser(TutorialHTMLParser):
     NAME = "PYMC"
 
     def get_body(self, soup) -> Tag:
@@ -27,4 +27,4 @@ class LXMLParser(TutorialHTMLParser):
 
     def get_header_and_sections(self, tag) -> Tuple[List[Tag], List[Tag]]:
 
-        return [], tag.find_all('div', {'class': 'section'}, recursive=False)
+        return [], tag.find_all('section', recursive=False)
