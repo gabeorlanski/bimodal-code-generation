@@ -7,34 +7,48 @@
         "parent": 0,
         "content": [
             {
+                "idx": 0,
                 "text": "An Element is the main container object for the ElementTree API. Most of the XML tree functionality is accessed through this class. Elements are easily created through the Element factory:",
                 "tag": "p"
             }, {
+                "idx": 1,
                 "text": ">>> root = etree.Element(\"root\")\n",
                 "tag": "code"
             }, {
+                "idx": 2,
                 "text": "The XML tag name of elements is accessed through the tag property:",
                 "tag": "p"
             }, {
+                "idx": 3,
                 "text": ">>> print(root.tag)\nroot\n",
                 "tag": "code"
             }, {
+                "idx": 4,
                 "text": "Elements are organised in an XML tree structure. To create child elements and add them to a parent element, you can use the append() method:",
                 "tag": "p"
             }, {
+                "idx": 5,
                 "text": ">>> root.append( etree.Element(\"child1\") )\n",
                 "tag": "code"
             }, {
-                "text": "However, this is so common that there is a shorter and much more efficient way to do this: the SubElement factory. It accepts the same arguments as the Element factory, but additionally requires the parent as first argument:",
-                "tag": "p"
+                "idx": 6,
+                "text": ">>> '1'+1",
+                "tag": "code"
             }, {
+                "idx": 7,
                 "text": ">>> child2 = etree.SubElement(root, \"child2\")\n>>> child3 = etree.SubElement(root, \"child3\")\n",
                 "tag": "code"
             }, {
+                "idx": 8,
                 "text": "To see that this is really XML, you can serialise the tree you have created:",
                 "tag": "p"
             }, {
+                "idx": 9,
                 "text": ">>> print(etree.tostring(root, pretty_print=True))\n<root>\n  <child1/>\n  <child2/>\n  <child3/>\n</root>\n",
+                "tag": "code"
+            },{
+                "idx": 10,
+                "text": ">>> '1'+1\n23",
                 "tag": "code"
             }, {
                 "tag": "section",
@@ -44,16 +58,20 @@
                 "parent": 1,
                 "content": [
                     {
+                        "idx": 0,
                         "text": "To make the access to these subelements easy and straight forward, elements mimic the behaviour of normal Python lists as closely as possible:",
                         "tag": "p"
                     }, {
+                        "idx": 1,
                         "text": ">>> for i in [root[0]]:\n    print(i.tag)\nchild1\n",
                         "tag": "code"
                     }, {
+                        "idx": 2,
                         "text": "Prior to ElementTree 1.3 and lxml 2.0, you could also check the truth value of an Element to see if it has children, i.e. if the list of children is empty:",
 
                         "tag": "p"
                     }, {
+                        "idx": 2,
                         "text": "if root:   # this no longer works!\n    print(\"The root element has children\")\n",
                         "tag": "code"
                     }

@@ -56,3 +56,8 @@ def arduino_questions(parsed_arduino_dump):
             d['id']: d for d in map(json.loads, question_file.read_text().splitlines(False))
         }
     yield out
+
+
+@pytest.fixture()
+def tutorial_fixtures_path():
+    yield FIXTURES_ROOT.joinpath('tutorials')

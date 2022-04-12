@@ -4,9 +4,6 @@ from src.common import FIXTURES_ROOT
 from src.tutorials import html_parsers
 
 
-@pytest.fixture()
-def tutorial_fixtures_path():
-    yield FIXTURES_ROOT.joinpath('tutorials')
 
 
 def test_lxml(tutorial_fixtures_path):

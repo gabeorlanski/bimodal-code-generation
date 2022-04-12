@@ -3,6 +3,7 @@ from bs4.element import Tag
 
 from .html_parsers import TutorialHTMLParser, TagType
 
+
 @TutorialHTMLParser.register('passlib')
 class PassLibParser(TutorialHTMLParser):
     NAME = "passlib"
@@ -22,7 +23,11 @@ class PassLibParser(TutorialHTMLParser):
         header_link = tag.find('a')
         if header_link is not None:
             header_link.extract()
-        return self.clean_text(tag.get_text())
+
+        out = self.clean_text(tag.get_text()).strip()
+        if out.endswith('P'):
+            return out[:-1]
+        return out
 
     def get_type_of_tag(self, tag: Tag) -> TagType:
         tag_classes = tag.attrs.get('class', [])

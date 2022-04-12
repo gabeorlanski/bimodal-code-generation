@@ -152,12 +152,21 @@ class TutorialHTMLParser(Registrable):
         section_id = id_counter
         section_title = None
         header_tag = [f'h{j}' for j in range(15)]
+        out = {
+            'tag'    : 'section',
+            'title'  : None,
+            'id'     : section_id,
+            'id_str' : section_str_id,
+            'parent' : parent_id,
+            'content': [],
+        }
         for i, tag in enumerate(section.children):
             if isinstance(tag, NavigableString):
                 continue
             if tag.name in header_tag:
                 assert section_title is None
                 section_title = self.parse_title(tag)
+                out['title'] = section_title
                 continue
 
             if tag.name in self.IGNORED_TAGS:
@@ -168,47 +177,43 @@ class TutorialHTMLParser(Registrable):
             tag_type = self.get_type_of_tag(tag)
             if tag_type == TagType.SECTION:
                 logger.debug(f"Found subsection in {section_title}")
-                for child_idx, child in self.parse_section(
-                        section=tag,
-                        parent_id=section_id,
-                        id_counter=id_counter
-                ):
-                    id_counter = child_idx
-                    yield child_idx, child
+                id_counter, child = self.parse_section(
+                    section=tag,
+                    parent_id=section_id,
+                    id_counter=id_counter
+                )
+                out['content'].append(child)
+
             elif not self.clean_text(tag.get_text()).strip():
-                id_counter -= 1
+                # id_counter -= 1
                 continue
             else:
+                assert out['title'] == section_title
                 if section_title is None:
                     raise ValueError('section is none')
-                id_counter += 1
-                out = {
-                    'id'            : id_counter,
-                    'parent_id'     : parent_id,
-                    'section_id'    : section_id,
-                    'section_str_id': section_str_id,
-                    'child_idx'     : i,
-                    'section_title' : section_title,
+                # id_counter += 1
+                content = {
+                    'idx': i
                 }
 
                 if tag_type == TagType.PARAGRAPH:
-                    out['text'] = self.parse_paragraph(tag)
-                    out['tag'] = 'p'
+                    content['text'] = self.parse_paragraph(tag)
+                    content['tag'] = 'p'
                 elif tag_type == TagType.CODE:
-                    out['text'] = self.parse_code(tag)
-                    out['tag'] = 'code'
+                    content['text'] = self.parse_code(tag)
+                    content['tag'] = 'code'
                 elif tag_type == TagType.LIST:
-                    out['text'] = self.parse_list(tag)
-                    out['tag'] = 'p'
+                    content['text'] = self.parse_list(tag)
+                    content['tag'] = 'p'
                 elif tag_type == TagType.IGNORED:
-                    id_counter -= 1
+                    # id_counter -= 1
                     continue
                 else:
                     logger.error(tag.text)
                     logger.error(tag.attrs)
                     raise ValueError(f'Unknown tag type {tag.name}')
-
-                yield id_counter, out
+                out['content'].append(content)
+        return id_counter, out
 
     def __call__(self, raw_html):
         soup = BeautifulSoup(raw_html, 'lxml')
@@ -217,14 +222,9 @@ class TutorialHTMLParser(Registrable):
         parsed_sections = []
         idx_counter = 0
         for s in sections:
-            sub_sections = []
-            for idx, parsed in self.parse_section(
-                    s, 0, idx_counter,
-            ):
-                sub_sections.append(parsed)
-                idx_counter = idx
-            parsed_sections.extend(sub_sections)
+            idx_counter, parsed = self.parse_section(
+                s, 0, idx_counter,
+            )
+            parsed_sections.append(parsed)
 
         return parsed_sections
-
-

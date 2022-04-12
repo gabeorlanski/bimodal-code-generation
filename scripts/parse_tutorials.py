@@ -30,7 +30,8 @@ import requests
 if str(Path(__file__).parents[1]) not in sys.path:
     sys.path.insert(0, str(Path(__file__).parents[1]))
 from src.common import PROJECT_ROOT, setup_global_logging
-from src.tutorials import TutorialHTMLParser, get_code_from_parsed_tutorial
+from src.tutorials import TutorialHTMLParser, get_code_samples_from_tutorial, \
+    unravel_code_list_into_tree
 
 
 def parse_tutorials(debug, input_path, output_path):
@@ -69,11 +70,7 @@ def parse_tutorials(debug, input_path, output_path):
     if not output_path.exists():
         output_path.mkdir(parents=True)
     logger.info(f"{len(cfg)} total unique domains to parse")
-    global_contexts = {
-        'lxml': [
-            'from lxml import etree'
-        ]
-    }
+
     domain_run = defaultdict(dict)
     for domain, groups in cfg.items():
         logger.info(f"Looking for {len(groups)} group(s) for {domain}")
@@ -108,33 +105,15 @@ def parse_tutorials(debug, input_path, output_path):
         logger.info(f"Saving to {domain_out}")
         domain_out.mkdir()
 
-        total_elements_found = 0
-        total_code_found = 0
-        # num_could_run, num_could_not_run = 0, 0
         for file, out_name in tqdm(files.items(), desc='parsing'):
             try:
                 parsed = parser(file.read_text())
             except Exception as e:
                 logger.error(f"{file} failed to parse")
                 raise e
-            total_elements_found += sum(map(len, parsed))
-            code_found, parsed = get_code_from_parsed_tutorial(
-                domain,
-                file.stem,
-                parsed
-            )
-            total_code_found += code_found
 
             with domain_out.joinpath(f'{out_name}.json').open('w') as f:
                 json.dump(parsed, f, indent=True)
-            # domain_run[domain][file.stem] = {'ran': was_run, 'cant_run': not_run}
-            # num_could_run += len(was_run)
-            # num_could_not_run += len(not_run)
-        # logger.info(f"{num_could_run}/{num_could_run + num_could_not_run} could run")
-        logger.info(f"{total_elements_found} total elements found for {domain}")
-        logger.info(f"{total_code_found} potential code samples found for {domain}")
-    # with PROJECT_ROOT.joinpath('data/domain_run_results.json').open('w') as f:
-    #     json.dump(domain_run, f, indent=True, sort_keys=True)
 
 
 @click.group()
@@ -153,6 +132,122 @@ def main(ctx, debug):
 @click.pass_context
 def parse_tutorials_cli(ctx, input_path, output_path):
     parse_tutorials(ctx.obj['DEBUG'], input_path, output_path)
+
+
+@main.command('get_code')
+@click.pass_context
+def make_samples(ctx):
+    setup_global_logging(
+        "make_samples_from_tutorials",
+        PROJECT_ROOT.joinpath('logs'),
+        debug=ctx.obj['DEBUG'],
+        disable_issues_file=True
+    )
+    logger = logging.getLogger('make_samples_from_tutorials')
+    logger.info("Making the samples from the parsed tutorials")
+
+    parsed_path = PROJECT_ROOT.joinpath('data/parsed_tutorials')
+    directories = list(parsed_path.glob('*'))
+
+    global_context = {
+        'lxml'    : {
+            'global': [
+                'from lxml import etree'
+            ],
+            'files' : {
+                'developing_with_lxml_parsing'   : ['from io import StringIO, BytesIO'],
+                'developing_with_lxml_validation': ['from io import StringIO, BytesIO'],
+            }
+        },
+        'passlib' : {
+            'global': [
+                'import os',
+                'def TEMP_URANDOM(x):\n    raise NotImplementedError()',
+                'os.urandom=TEMP_URANDOM'
+            ],
+            'files' : {
+                'tutorial_totp': [
+                    'from passlib.totp import TOTP',
+                    'TotpFactory = TOTP.using(issuer="myapp.example.org")',
+                    'totp = TotpFactory.new()',
+                ]
+            }
+        },
+        'cerberus': {
+            'global': ['from cerberus import Validator', 'v = Validator()'],
+            'files' : {
+            }
+        }
+    }
+
+    logger.info(f"Found {len(directories)} directories")
+    all_fails = {}
+    all_code = {}
+    all_passed = {}
+    all_failed_tests = {}
+    total_runnable_code = Counter()
+    total_fails = Counter()
+    total_passed = Counter()
+    for domain_path in directories:
+        logger.info(f"Parsing {domain_path}")
+        failures = {}
+        code = {}
+        domain_passed = {}
+        domain_fail_tests = {}
+        domain_context_cfg = global_context.get(domain_path.stem, {})
+        domain_context = domain_context_cfg.get('global', [])
+
+        for file in domain_path.glob('*'):
+            file_context = []
+            if domain_context_cfg:
+                file_context = domain_context_cfg['files'].get(file.stem, [])
+
+            parsed = json.loads(file.read_text())
+            fail, result, passed, fail_tests = get_code_samples_from_tutorial(
+                file.stem,
+                parsed,
+                domain_context + file_context
+            )
+            domain_passed[file.stem] = passed
+            domain_fail_tests[file.stem] = fail_tests
+            failures[file.stem] = fail
+            code[file.stem] = result
+            total_runnable_code[domain_path.stem] += len(result)
+            total_fails[domain_path.stem] += sum(map(len, fail.values()))
+            logger.debug(f"{file} had {sum(map(len, fail.values()))} failures")
+            logger.debug(f"{file} had {len(result)} code snippets")
+        all_fails[domain_path.stem] = failures
+        all_code[domain_path.stem] = code
+        all_passed[domain_path.stem] = domain_passed
+        all_failed_tests[domain_path.stem] = domain_fail_tests
+        total_passed[domain_path.stem] += sum(map(len, domain_passed.values()))
+
+    num_found = sum(total_runnable_code.values())
+    logger.info(
+        f"{num_found}/{sum(total_fails.values()) + num_found} are runnable")
+    logger.info(f"{sum(total_passed.values())}/{num_found} returned the expected value")
+    for k, v in total_runnable_code.items():
+        total = v + total_fails[k]
+        logger.info(f"\t{k} = {v}/{total}. {total_passed[k]}/{v} returned the expected value.")
+
+    out_dir = PROJECT_ROOT.joinpath('data/tutorial_code')
+    if out_dir.exists():
+        shutil.rmtree(out_dir)
+    out_dir.mkdir(parents=True)
+    logger.info(f"Saving to {out_dir}")
+
+    with out_dir.joinpath('parse_fails.json').open('w') as f:
+        json.dump(all_fails, f, indent=True)
+
+    with out_dir.joinpath('runnable.json').open('w') as f:
+        json.dump(all_code, f, indent=True)
+    with out_dir.joinpath('passed.json').open('w') as f:
+        json.dump(all_passed, f, indent=True)
+    with out_dir.joinpath('failed_test.json').open('w') as f:
+        for k, v in all_failed_tests.items():
+            for fn in v:
+                all_failed_tests[k][fn] = unravel_code_list_into_tree(v[fn])
+        json.dump(all_failed_tests, f, indent=True)
 
 
 @main.command('download')

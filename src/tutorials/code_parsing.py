@@ -1,7 +1,11 @@
 import logging
 import re
+from collections import defaultdict
 from copy import deepcopy
 import ast
+from io import StringIO
+from typing import Dict, Any
+from contextlib import redirect_stdout
 import astor
 
 GET_CODE_BLOCK = re.compile(
@@ -12,6 +16,25 @@ GET_CODE_BLOCK = re.compile(
 REMOVE_PRINT = re.compile(r'print\(([^\n]+)\)', flags=re.DOTALL)
 
 logger = logging.getLogger(__name__)
+
+
+def mk_valid_syntax(code_str):
+    code_lines = code_str.split('\n')
+    failed = False
+    while True:
+        try:
+            ast.parse('\n'.join(code_lines))
+        except SyntaxError as e:
+            if code_lines[e.lineno - 1].startswith('#'):
+                failed = True
+                break
+            code_lines[e.lineno - 1] = f"# {code_lines[e.lineno - 1]}"
+
+            continue
+        break
+    if all(l.startswith('#') for l in code_lines) or failed:
+        return None
+    return [line for line in code_lines if line.strip()]
 
 
 class NotSupportedException(Exception):
@@ -131,8 +154,118 @@ class PrintTransformer(ast.NodeTransformer):
         return node
 
 
+class VariableTracer(ast.NodeVisitor):
+    def __init__(self):
+        self.defined = []
+        self.used = []
+        self.imported = []
+        self.in_aug_assign = False
+
+    def _clear(self):
+        self.defined = []
+        self.used = []
+
+        self.imported = []
+        self.in_aug_assign = False
+
+    def __call__(self, code_str):
+
+        tree = ast.parse(code_str)
+
+        traced_bodies = []
+        bodies = []
+        imports = []
+        import_names = []
+        for body in tree.body:
+            bodies.append(body)
+            self._clear()
+            self.visit(body)  # type:ignore
+            if self.imported:
+                imports.append(body)
+                import_names.extend(self.imported)
+            traced_bodies.append({
+                'defined': deepcopy(self.defined),
+                'used'   : deepcopy(self.used)
+            })
+        return bodies, traced_bodies, imports, import_names
+
+    def _handle_import(self, node):
+        for n in node.names:
+            if n.asname is not None:
+                self.imported.append(n.asname)
+            else:
+                self.imported.append(n.name)
+
+    def visit_Import(self, node):
+        return self._handle_import(node)
+
+    def visit_ImportFrom(self, node):
+        return self._handle_import(node)
+
+    def visit_Name(self, node: ast.Name):
+        if isinstance(node.ctx, ast.Store) and not self.in_aug_assign:
+            self.defined.append(node.id)
+        else:
+            self.used.append(node.id)
+
+    def visit_AugAssign(self, node: ast.AugAssign) -> Any:
+        self.in_aug_assign = True
+        self.generic_visit(node)
+
+
+def get_context(snippet, global_context, excluded_used=None):
+    excluded_used = excluded_used or []
+    visitor = VariableTracer()
+    _, snippet_trace, _, _ = visitor(snippet)
+
+    remaining_vars_needed = set()
+    snippet_iter = iter(reversed(snippet_trace))
+    while True:
+        try:
+            current_trace = next(snippet_iter)
+        except StopIteration:
+            break
+
+        for d in current_trace['defined']:
+            if d in remaining_vars_needed:
+                remaining_vars_needed.remove(d)
+
+        remaining_vars_needed.update(current_trace['used'])
+
+    out = []
+    context_body, context_traced, imports, import_names = visitor(global_context)
+    excluded_used += import_names
+    for n in import_names:
+        if n in remaining_vars_needed:
+            remaining_vars_needed.remove(n)
+
+    i = len(context_body) - 1
+    while remaining_vars_needed and i >= 0:
+        body = context_body[i]
+        c_trace = context_traced[i]
+        i -= 1
+        found = list(filter(lambda var_def: var_def in remaining_vars_needed, c_trace['defined']))
+
+        if found:
+            out.append(body)
+            for d in found:
+                if d in remaining_vars_needed:
+                    remaining_vars_needed.remove(d)
+            remaining_vars_needed.update([u for u in c_trace['used'] if u not in import_names])
+        else:
+            found_used = []
+            for u in c_trace['used']:
+                if u not in excluded_used and u in remaining_vars_needed:
+                    found_used.append(u)
+            if found_used:
+                out.append(body)
+                remaining_vars_needed.update([u for u in c_trace['used'] if u not in excluded_used])
+
+    out = imports + list(reversed(out))
+    return list(map(lambda o: astor.to_source(o).strip(), out))
+
+
 def get_snippets(name, code_str):
-    context = []
     block = []
     out = []
     output = ''
@@ -185,14 +318,191 @@ def get_snippets(name, code_str):
     return out
 
 
-def get_code_from_parsed_tutorial(domain, name, parsed_tutorial):
-    total_updated = 0
-    for section_num, section in enumerate(parsed_tutorial):
-        if section['tag'] != 'code' or '>>>' not in section['text']:
-            continue
-        section['snippets'] = get_snippets(f"{domain}-{name}-{section['id']}", section['text'])
-        total_updated += 1
-        parsed_tutorial[section_num] = section
+def is_runnable(code):
+    try:
+        exec(code)
+    except Exception as e:
+        return e
+    return None
 
-    logger.debug(f"{name} had {total_updated} total code snippets")
-    return total_updated, parsed_tutorial
+
+def get_code_from_content(name, content, context, global_context, path=None):
+    path = path or []
+    out = []
+    name_str = '-'.join(name)
+
+    for i, c in enumerate(content):
+        if c['tag'] == 'section':
+            child_out, context = get_code_from_content(
+                name + [c['title']],
+                c['content'],
+                context,
+                deepcopy(global_context),
+                path + [i]
+            )
+            out.extend(child_out)
+        if c['tag'] != 'code' or '>>>' not in c['text']:
+            continue
+
+        for snip_num, block in enumerate(get_snippets(name_str, c['text'])):
+            block_context = mk_valid_syntax('\n'.join(block['context']))
+            if block['result']:
+                valid_code = mk_valid_syntax('\n'.join(block['code']))
+                # if any('traceback' in r.lower() for r in block['result']):
+
+                if valid_code is not None and block_context is not None:
+                    snippet = '\n'.join(block_context + valid_code)
+                    snippet_context = get_context(snippet, '\n'.join(context))
+                    to_run = snippet_context + block_context + valid_code
+                    if to_run[:len(global_context)] != list(global_context):
+                        to_run = [*global_context, *to_run]
+                        snippet_context = [*global_context, *snippet_context]
+
+                    code_error = is_runnable('\n'.join(to_run))
+
+                    if code_error is None:
+                        out.append({
+                            'prior_context': snippet_context,
+                            'context'      : block_context,
+                            'code'         : block['code'],
+                            'result'       : block['result'],
+                            "name"         : name,
+                            'idx'          : c['idx'],
+                            'snip_idx'     : snip_num
+                        })
+                    else:
+                        out.append({
+                            "result"  : "FAILED", "name": name, 'idx': c['idx'],
+                            "error"   : str(code_error),
+                            'code'    : to_run,
+                            'snip_idx': snip_num
+                        })
+            if block_context is not None:
+                for line in block_context:
+                    code_error = is_runnable('\n'.join(context + [line]))
+                    if not code_error:
+                        context.append(line)
+    return out, context
+
+
+def get_returned_values(code, context):
+    to_run = context
+    RESULT_VALUES = {}
+    # to_run.append('RESULT_VALUES={}')
+    for i, c in enumerate(code):
+        to_run.append(f"RESULT_VALUES['OUT_{i}'] = {c}")
+    exec('\n'.join(to_run))
+    return {k: str(v) for k, v in RESULT_VALUES.items()}
+
+
+def get_code_passes_test(code):
+    passes_test = 0
+    passes_str_test = 0
+    samples_passed = []
+    failed = []
+
+    # This mess is to try and check if the code samples passes the mined tests
+
+    for result in code:
+        to_run = result['prior_context'] + result['context']
+        for c, r in zip(result['code'], result['result']):
+            to_run.append(f"assert {r} == {c}")
+
+        try:
+            exec('\n'.join(to_run))
+            passes_test += 1
+            samples_passed.append(result)
+        except Exception:
+            to_run = result['prior_context'] + result['context']
+            for c, r in zip(result['code'], result['result']):
+
+                result_str = r
+                end_single_quote = r.startswith("'") and r.endswith("'")
+                end_double_quote = r.startswith('"') and r.endswith('"')
+                if not end_single_quote and not end_double_quote:
+                    result_str = f"'{result_str}'"
+                to_run.append(f"assert {result_str} ==str({c})")
+            try:
+                exec('\n'.join(to_run))
+                passes_str_test += 1
+                samples_passed.append(result)
+            except Exception:
+
+                result['testing_code'] = to_run
+                result['actual_return'] = get_returned_values(
+                    result['code'],
+                    result['prior_context'] + result['context']
+                )
+                failed.append(result)
+                continue
+
+    return samples_passed, failed, passes_test, passes_str_test
+
+
+def get_code_samples_from_tutorial(name, parsed_tutorial, global_context):
+    logger.info(f"{len(parsed_tutorial)} top level section(s) for {name}")
+    logger.debug(f"The global context is {global_context}")
+    out = []
+    failed = defaultdict(list)
+    for i, section in enumerate(parsed_tutorial):
+        logger.debug(f"Getting code from top level section '{section['title']}'")
+        found_code = []
+        results, _ = get_code_from_content(
+            [section['title']],
+            section['content'],
+            deepcopy(global_context),
+            tuple(global_context),
+            [i]
+        )
+        for result in results:
+            if result['result'] == 'FAILED':
+                result.pop('result')
+                result_title = result.pop('name', 'NA')
+                failed['/'.join(result_title)].append(result)
+            else:
+                found_code.append(result)
+        logger.debug(f"Found {len(found_code)} code sample(s)")
+        out.extend(
+            found_code
+        )
+    passed = []
+    failed_tests = []
+    if out:
+        passed, failed_tests, pass_test, pass_str = get_code_passes_test(out)
+        logger.info(
+            f"{name} has {pass_str + pass_test}/{len(out)} pass, "
+            f"{pass_str}/{pass_str + pass_test} required string."
+        )
+    return failed, out, passed, failed_tests
+
+
+def unravel_code_list_into_tree(code):
+    def make_tree(data, current_level, path):
+        current, *rem = path
+        if not rem:
+            if isinstance(current_level, list):
+                return {'/': current_level, current: [data]}
+            if current not in current_level:
+                current_level[current] = [data]
+            else:
+                if isinstance(current_level[current], dict):
+                    current_level[current]['/'].append(data)
+                else:
+                    current_level[current].append(data)
+            return current_level
+
+        if isinstance(current_level, list):
+            current_level = {'/': current_level}
+
+        current_level[current] = make_tree(
+            data,
+            current_level.get(current, {}),
+            rem
+        )
+        return current_level
+
+    out = {}
+    for code_dict in code:
+        p = code_dict.pop('name')
+        out = make_tree(code_dict, out, p)
+    return out
