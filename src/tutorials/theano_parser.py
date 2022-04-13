@@ -4,13 +4,14 @@ from bs4.element import Tag
 from .html_parsers import TutorialHTMLParser, TagType
 
 
-@TutorialHTMLParser.register('numpy')
-class NUMPY_PARSER(TutorialHTMLParser):
-    NAME = "NUMPY"
+@TutorialHTMLParser.register('theano')
+class THEANO_PARSER(TutorialHTMLParser):
+    NAME = "THEANO"
 
     def get_body(self, soup) -> Tag:
         return soup.find(
-            'div', {'col-12 col-md-9 col-xl-7 py-md-5 pl-md-5 pr-md-4 bd-content'}
+            'div',
+            {'class': 'ui vertical segment'}
         )
 
     def get_type_of_tag(self, tag: Tag) -> TagType:
@@ -20,7 +21,7 @@ class NUMPY_PARSER(TutorialHTMLParser):
         if tag.name == 'p':
             return TagType.PARAGRAPH
         if tag.name == 'div':
-            return TagType.get_type_from_div_tag(tag)
+            return self.get_type_from_div_tag(tag)
         return TagType.UNKNOWN
 
     def get_header_and_sections(self, tag) -> Tuple[List[Tag], List[Tag]]:
