@@ -11,19 +11,18 @@ class PyMCParser(TutorialHTMLParser):
     def get_body(self, soup) -> Tag:
         return soup.find(
             'div',
-            {'class': 'ui container'}
+            {'class': 'ui vertical segment'}
         )
 
     def get_type_of_tag(self, tag: Tag) -> TagType:
         tag_classes = tag.attrs.get('class', [])
+        if tag.name == 'section':
+            return TagType.SECTION
+        if tag.name == 'p':
+            return TagType.PARAGRAPH
         if tag.name == 'div':
-            if 'section' in tag_classes:
-                return TagType.SECTION
-            elif 'pre' in tag_classes:
-                return TagType.CODE
-            elif 'p' in tag_classes:
-                return TagType.PARAGRAPH
             return self.get_type_from_div_tag(tag)
+        return TagType.UNKNOWN
 
     def get_header_and_sections(self, tag) -> Tuple[List[Tag], List[Tag]]:
 
