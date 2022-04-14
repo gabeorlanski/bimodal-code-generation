@@ -5,7 +5,7 @@ from .html_parsers import TutorialHTMLParser, TagType
 
 
 @TutorialHTMLParser.register('theano')
-class THEANO_PARSER(TutorialHTMLParser):
+class TheanoParser(TutorialHTMLParser):
     NAME = "THEANO"
 
     def get_body(self, soup) -> Tag:
