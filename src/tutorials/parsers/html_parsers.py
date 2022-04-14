@@ -51,7 +51,8 @@ class TutorialHTMLParser(Registrable):
     ]
     IGNORED_CLASSES = [
         'toctree-wrapper',
-        'graphviz'
+        'graphviz',
+        'figure'
     ]
     IGNORED_TAGS = [
         'figure'

@@ -1,0 +1,32 @@
+url: "https://theano-pymc.readthedocs.io/en/latest/"
+allowed_path: "en/latest"
+
+disallow_file_types:
+  - bib
+  - py
+groups:
+  basics:
+    path: /en/latest/tutorial
+    pages:
+      adding: adding.html
+      examples: examples.html
+      gradients: gradients.html
+      conditions: conditions.html
+      loop: loop.html
+      shape_info: shape_info.html
+      broadcasting: broadcasting.html
+  advanced:
+    path: /en/latest/tutorial
+    pages:
+      sparse: sparse.html
+  configuration:
+    path: /en/latest/tutorial
+    pages:
+      modes: modes.html
+  further:
+    path: /en/latest
+    pages:
+      modes: extending/graphstructures.html
+      loading_and_saving: tutorial/loading_and_saving.html
+
+

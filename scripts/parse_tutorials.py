@@ -259,7 +259,7 @@ def make_samples(ctx):
     logger.info(f"{sum(total_passed.values())}/{num_found} returned the expected value")
     for k, v in total_runnable_code.items():
         total = v + total_fails[k]
-        logger.info(f"\t{k} = {v}/{total}. {total_passed[k]}/{v} returned the expected value.")
+        logger.info(f"\t{k:>16} = {total_passed[k]:>5}/{total:<5} returned the expected value.")
 
     logger.info(f"Saving to {out_dir}")
 

@@ -3,220 +3,24 @@ import re
 from collections import defaultdict
 from copy import deepcopy
 import ast
-from io import StringIO
-from typing import Dict, Any
-from contextlib import redirect_stdout
 import astor
-from src.evaluation.execute import swallow_io
+import numpy as np
+
+from src.evaluation.execute import swallow_io, create_tempdir
+
+from .node_visitors import (mk_valid_syntax, PrintTransformer, VariableTracer)
 
 GET_CODE_BLOCK = re.compile(
     r'>>>( *)((?:[^\n])+(?:\n\.\.\. ?[^\n]*)*)+(?:\n((?:(?!>>>)[^\n]+\n?)+)\n?)?',
     flags=re.MULTILINE
 )
-OLD_PRINT_FIX = re.compile(r'print (.+)$', flags=re.DOTALL)
+
+GET_ROWS_NUMPY = re.compile(r'\[[^\[\]]+\]')
+FIX_RAW_NUMPY = re.compile(r'( *[0-9\.-]+ *)')
 
 REMOVE_PRINT = re.compile(r'print\(([^\n]+)\)', flags=re.DOTALL)
 
 logger = logging.getLogger(__name__)
-
-
-def mk_valid_syntax(code_str):
-    code_lines = code_str.split('\n')
-    failed = False
-    while True:
-        try:
-            ast.parse('\n'.join(code_lines))
-        except SyntaxError as e:
-            if code_lines[e.lineno - 1].startswith('#'):
-                failed = True
-                break
-            code_lines[e.lineno - 1] = f"# {code_lines[e.lineno - 1]}"
-
-            continue
-        break
-    if all(l.startswith('#') for l in code_lines) or failed:
-        return None
-    return [line for line in code_lines if line.strip()]
-
-
-class NotSupportedException(Exception):
-    def __init__(self, msg):
-        self.msg = msg
-        super().__init__(msg)
-
-
-class PrintTransformer(ast.NodeTransformer):
-    def __init__(self, name):
-        self.in_for_loop = False
-        self.in_if_statement = False
-        self.found_print = False
-        self.var_num = 0
-        self.name = name
-
-    def __call__(self, code_snippet):
-        try:
-            tree = ast.parse(code_snippet)
-        except SyntaxError:
-            test_snippet = OLD_PRINT_FIX.sub(r'print(\1)', code_snippet)
-            try:
-                tree = ast.parse(test_snippet)
-            except SyntaxError:
-                return [], code_snippet
-        except NotSupportedException as e:
-            logger.warning(f"Found a '{e.msg}', not supported")
-            return [], code_snippet
-
-        for b in tree.body:
-            self.in_for_loop = False
-            self.in_if_statement = False
-            self.found_print = False
-            added_out_var = False
-            result = self.visit(b)  # type: ignore
-
-            block = [result]
-
-            if self.found_print:
-                logger.debug(f"Found Print in {self.name}")
-                if self.in_for_loop:
-                    added_out_var = True
-                    block = [ast.Assign(
-                        targets=[ast.Name(id=f'out_{self.var_num}', ctx=ast.Store)],
-                        value=ast.List(elts=[], ctx=ast.Load),
-                        type_comment=None,
-                    )] + block
-
-                elif self.in_if_statement:
-                    added_out_var = True
-                    block = [ast.Assign(
-                        targets=[ast.Name(id=f'out_{self.var_num}', ctx=ast.Store)],
-                        value=ast.Constant(value=None, kind=None),
-                        type_comment=None,
-                    )] + block
-            block = [astor.to_source(c).strip() for c in block]
-            if added_out_var:
-                yield block, f"out_{self.var_num}"
-                self.var_num += 1
-            else:
-                yield [], '\n'.join(block)
-
-    def visit_If(self, node):
-        self.in_if_statement = True
-        return self.generic_visit(node)
-
-    def visit_For(self, node):
-        self.in_for_loop = True
-        return self.generic_visit(node)
-
-    def visit_While(self, node):
-        self.in_for_loop = True
-        return self.generic_visit(node)
-
-    def visit_FunctionDef(self, node):
-        raise NotSupportedException('Function')
-
-    def visit_ClassDef(self, node):
-        raise NotSupportedException('Class')
-
-    def visit_Call(self, node):
-        if not hasattr(node, 'func'):
-            return self.generic_visit(node)
-        if not isinstance(node.func, ast.Name):
-            return self.generic_visit(node)
-        if node.func.id != 'print':
-            return self.generic_visit(node)
-
-        line_number = node.lineno
-        end_line_number = node.end_lineno
-        self.found_print = True
-        if self.in_for_loop:
-            node.func = ast.Attribute(
-                lineno=line_number,
-                end_lineno=end_line_number,
-                value=ast.Name(
-                    lineno=line_number,
-                    end_lineno=end_line_number,
-                    id=f'out_{self.var_num}',
-                    ctx=ast.Load
-                ),
-                attr='append',
-                ctx=ast.Load,
-            )
-        elif self.in_if_statement:
-            return ast.Assign(
-                lineno=line_number,
-                end_lineno=end_line_number,
-                targets=[ast.Name(
-                    lineno=line_number,
-                    end_lineno=end_line_number,
-                    id=f'out_{self.var_num}',
-                    ctx=ast.Store
-                )],
-                value=node.args[0],
-                type_comment=None
-            )
-        else:
-            node = ast.Expr(value=node.args[0])
-
-        return node
-
-
-class VariableTracer(ast.NodeVisitor):
-    def __init__(self):
-        self.defined = []
-        self.used = []
-        self.imported = []
-        self.in_aug_assign = False
-
-    def _clear(self):
-        self.defined = []
-        self.used = []
-
-        self.imported = []
-        self.in_aug_assign = False
-
-    def __call__(self, code_str):
-
-        tree = ast.parse(code_str)
-
-        traced_bodies = []
-        bodies = []
-        imports = []
-        import_names = []
-        for body in tree.body:
-            bodies.append(body)
-            self._clear()
-            self.visit(body)  # type:ignore
-            if self.imported:
-                imports.append(body)
-                import_names.extend(self.imported)
-            traced_bodies.append({
-                'defined': deepcopy(self.defined),
-                'used'   : deepcopy(self.used)
-            })
-        return bodies, traced_bodies, imports, import_names
-
-    def _handle_import(self, node):
-        for n in node.names:
-            if n.asname is not None:
-                self.imported.append(n.asname)
-            else:
-                self.imported.append(n.name)
-
-    def visit_Import(self, node):
-        return self._handle_import(node)
-
-    def visit_ImportFrom(self, node):
-        return self._handle_import(node)
-
-    def visit_Name(self, node: ast.Name):
-        if isinstance(node.ctx, ast.Store) and not self.in_aug_assign:
-            self.defined.append(node.id)
-        else:
-            self.used.append(node.id)
-
-    def visit_AugAssign(self, node: ast.AugAssign) -> Any:
-        self.in_aug_assign = True
-        self.generic_visit(node)
 
 
 def get_context(snippet, global_context, excluded_used=None):
@@ -334,12 +138,14 @@ def get_snippets(name, code_str):
 
 
 def does_code_raise_errors(code):
-    try:
-        with swallow_io():
-            exec(code)
-    except Exception as e:
-        return e
-    return None
+    result = None
+    with create_tempdir():
+        try:
+            with swallow_io():
+                exec(code)
+        except Exception as e:
+            result = str(e)
+    return result
 
 
 def get_code_from_content(name, content, context, global_context, path=None):
@@ -408,6 +214,18 @@ def convert_raw_result_to_supported_type(raw_result_str, target_type):
         if raw_result_str in ['True', 'False']:
             return raw_result_str
         return f'bool({raw_result_str})'
+    if target_type == np.ndarray:
+        if '[' in raw_result_str and ']' in raw_result_str:
+            array_rows = GET_ROWS_NUMPY.findall(raw_result_str)
+            row_vals = [','.join([v.strip() for v in FIX_RAW_NUMPY.findall(row)])
+                        for row in array_rows]
+            raw_result_str = '[' + ','.join(map(lambda v: f'[{v}]', row_vals)) + ']'
+
+        if 'array' in raw_result_str:
+            raw_result_str = raw_result_str.replace('array', 'numpy.array')
+            return raw_result_str
+        else:
+            return f"numpy.array({raw_result_str})"
 
     end_single_quote = raw_result_str.startswith("'") and raw_result_str.endswith("'")
     end_double_quote = raw_result_str.startswith('"') and raw_result_str.endswith('"')
@@ -433,63 +251,76 @@ def get_returned_values(code, context):
 
 def get_code_passes_test(code, fixes_by_section, override_all=False):
     passes_test = 0
-    passes_str_test = 0
+    passes_type_conversion = 0
     samples_passed = []
     failed = []
 
     # This mess is to try and check if the code samples passes the mined tests
 
-    for result in code:
+    for parsed_code_dict in code:
 
         # Some tests will fail because of bad issues, instead override them
         # because we know they are correct.
         if (
-                (result['idx'] in fixes_by_section.get(result['name'], {}).get('overrides', []))
+                (parsed_code_dict['idx'] in fixes_by_section.get(parsed_code_dict['name'], {}).get('overrides', []))
                 or override_all
         ):
-            samples_passed.append(result)
+            samples_passed.append(parsed_code_dict)
             passes_test += 1
             continue
 
-        original_to_run = result['prior_context'] + result['context']
-        for c, r in zip(result['code'], result['result']):
+        original_to_run = parsed_code_dict['prior_context'] + parsed_code_dict['context']
+        for c, r in zip(parsed_code_dict['code'], parsed_code_dict['result']):
             original_to_run.append(f"assert {c} == {r}")
 
+        parsed_code_dict['errors'] = []
         exec_errors = does_code_raise_errors('\n'.join(original_to_run))
         if exec_errors is None:
-            samples_passed.append(result)
+            parsed_code_dict.pop('errors')
+            samples_passed.append(parsed_code_dict)
             passes_test += 1
             continue
-
-        actual_returned_values = get_returned_values(
-            result['code'],
-            result['prior_context'] + result['context']
-        )
+        parsed_code_dict['errors'].append(exec_errors)
+        try:
+            actual_returned_values = get_returned_values(
+                parsed_code_dict['code'],
+                parsed_code_dict['prior_context'] + parsed_code_dict['context']
+            )
+        except Exception as e:
+            parsed_code_dict['errors'].append(str(e))
+            failed.append(parsed_code_dict)
+            continue
 
         # Try with converting the output and expected result to a string.
-        string_cast_to_run = result['prior_context'] + result['context']
-        for (i, c), r in zip(enumerate(result['code']), result['result']):
+        type_conversion_to_run = parsed_code_dict['prior_context'] + parsed_code_dict['context']
+        for (i, c), r in zip(enumerate(parsed_code_dict['code']), parsed_code_dict['result']):
             aligned_out = actual_returned_values[f"OUT_{i}"]
+
             result_str = convert_raw_result_to_supported_type(
                 r,
                 aligned_out['type']
             )
+            if aligned_out['type'] == np.ndarray:
+                if not any('import numpy' == line for line in type_conversion_to_run):
+                    type_conversion_to_run = ['import numpy'] + type_conversion_to_run
+                type_conversion_to_run.append(f"assert numpy.isclose({c},{result_str}).all()")
+            else:
+                type_conversion_to_run.append(f"assert {c} == {result_str}")
 
-            string_cast_to_run.append(f"assert {c} == {result_str}")
-
-        exec_errors = does_code_raise_errors('\n'.join(string_cast_to_run))
+        exec_errors = does_code_raise_errors('\n'.join(type_conversion_to_run))
         if exec_errors is None:
-            samples_passed.append(result)
-            passes_str_test += 1
+            samples_passed.append(parsed_code_dict)
+            passes_type_conversion += 1
             continue
-
-        result['testing_code'] = string_cast_to_run[-len(actual_returned_values):]
+        parsed_code_dict['errors'].append(exec_errors)
+        parsed_code_dict['testing_code'] = type_conversion_to_run[-len(actual_returned_values):]
         for k in actual_returned_values.keys():
             actual_returned_values[k]['type'] = actual_returned_values[k]['type'].__name__
-        result['actual_returned'] = actual_returned_values
-        failed.append(result)
+        parsed_code_dict['actual_returned'] = actual_returned_values
+        parsed_code_dict['error'] = exec_errors
+        failed.append(parsed_code_dict)
 
-    return samples_passed, failed, passes_test, passes_str_test
+    return samples_passed, failed, passes_test, passes_type_conversion
 
 
 def get_code_samples_from_tutorial(name, parsed_tutorial, global_context, fixes_by_section):
@@ -530,7 +361,7 @@ def get_code_samples_from_tutorial(name, parsed_tutorial, global_context, fixes_
         )
         logger.info(
             f"{name} has {pass_str + pass_test}/{len(out)} pass, "
-            f"{pass_str}/{pass_str + pass_test} required string."
+            f"{pass_str}/{pass_str + pass_test} required type conversion."
         )
     return failed, out, passed, failed_tests
 

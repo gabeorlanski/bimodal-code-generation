@@ -6,3 +6,4 @@ sympy==1.10.1
 delorean==1.0.0
 arrow==1.2.2
 python-rapidjson==1.6
+theano==1.0.5

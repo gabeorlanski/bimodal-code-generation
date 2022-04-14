@@ -235,3 +235,4 @@ def test_get_context_multi_use():
         'child2 = etree.SubElement(root, \'child2\')',
         'child3 = etree.SubElement(root, \'child3\')',
     ]
+
