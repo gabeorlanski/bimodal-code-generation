@@ -1,0 +1,10 @@
+url: "https://docs.pymc.io/en/v3/"
+allowed_path: "en/v3"
+disallow_file_types:
+  - py
+groups:
+  tutorials:
+    path: /en/v3
+    pages:
+      probability_distributions: "Probability_Distributions.html"
+      pymc_and_theano: "PyMC3_and_Theano.html"

@@ -3,17 +3,20 @@ from bs4.element import Tag
 
 from .html_parsers import TutorialHTMLParser, TagType
 
-
+@TutorialHTMLParser.register('delorean')
 @TutorialHTMLParser.register('cerberus')
 class CerberusParser(TutorialHTMLParser):
     NAME = "cerberus"
-
 
     def parse_title(self, tag: Tag) -> str:
         header_link = tag.find('a')
         if header_link is not None:
             header_link.extract()
-        return self.clean_text(tag.get_text())
+
+        out = self.clean_text(tag.get_text()).strip()
+        if out.endswith('P'):
+            return out[:-1].strip()
+        return out
 
     def get_type_of_tag(self, tag: Tag) -> TagType:
         tag_classes = tag.attrs.get('class', [])
@@ -39,3 +42,4 @@ class CerberusParser(TutorialHTMLParser):
     def get_header_and_sections(self, tag) -> Tuple[List[Tag], List[Tag]]:
 
         return [], tag.find_all('div', {'class': 'section'}, recursive=False)
+
