@@ -185,3 +185,5 @@ data/single_exec/
 data/domain_run_results.json
 
 data/tutorial_code/
+
+.DS_Store

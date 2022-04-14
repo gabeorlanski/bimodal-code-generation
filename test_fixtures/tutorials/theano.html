@@ -1,0 +1,619 @@
+<!DOCTYPE html>
+<!-- saved from url=(0065)https://theano-pymc.readthedocs.io/en/latest/tutorial/adding.html -->
+<html class=" js flexbox canvas canvastext webgl no-touch geolocation postmessage websqldatabase indexeddb hashchange history draganddrop websockets rgba hsla multiplebgs backgroundsize borderimage borderradius boxshadow textshadow opacity cssanimations csscolumns cssgradients cssreflections csstransforms csstransforms3d csstransitions fontface generatedcontent video audio localstorage sessionstorage webworkers no-applicationcache svg inlinesvg smil svgclippaths"
+      lang="en" style=""><!--<![endif]-->
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Baby Steps - Algebra — Theano 1.1.2+29.g8b2825658.dirty documentation</title>
+
+
+    <script type="text/javascript" async="" src="./theano_files/ga.js"></script>
+    <script type="text/javascript" src="./theano_files/modernizr.min.js"></script>
+
+
+    <script type="text/javascript" id="documentation_options" data-url_root="../"
+            src="./theano_files/documentation_options.js"></script>
+    <script src="./theano_files/jquery.js"></script>
+    <script src="./theano_files/underscore.js"></script>
+    <script src="./theano_files/doctools.js"></script>
+    <script async="async" src="./theano_files/readthedocs-doc-embed.js"></script>
+
+    <script type="text/javascript" src="./theano_files/theme.js"></script>
+
+
+    <link rel="stylesheet" href="./theano_files/theme.css" type="text/css">
+    <link rel="stylesheet" href="./theano_files/pygments.css" type="text/css">
+    <link rel="stylesheet" href="./theano_files/fix_rtd.css" type="text/css">
+    <link rel="index" title="Index"
+          href="https://theano-pymc.readthedocs.io/en/latest/genindex.html">
+    <link rel="search" title="Search"
+          href="https://theano-pymc.readthedocs.io/en/latest/search.html">
+    <link rel="next" title="More Examples"
+          href="https://theano-pymc.readthedocs.io/en/latest/tutorial/examples.html">
+    <link rel="prev" title="NumPy refresher"
+          href="https://theano-pymc.readthedocs.io/en/latest/tutorial/numpy.html">
+
+    <!-- RTD Extra Head -->
+
+    <link rel="stylesheet" href="./theano_files/readthedocs-doc-embed.css" type="text/css">
+
+    <script type="application/json" id="READTHEDOCS_DATA">{
+        "ad_free": false,
+        "api_host": "https://readthedocs.org",
+        "build_date": "2021-01-27T11:14:06Z",
+        "builder": "sphinx",
+        "canonical_url": null,
+        "commit": "8b282565",
+        "docroot": "/doc/",
+        "features": {
+            "docsearch_disabled": false
+        },
+        "global_analytics_code": "UA-17997319-1",
+        "language": "en",
+        "page": "tutorial/adding",
+        "programming_language": "words",
+        "project": "theano-pymc",
+        "proxied_api_host": "/_",
+        "source_suffix": ".txt",
+        "subprojects": {},
+        "theme": "sphinx_rtd_theme",
+        "user_analytics_code": "",
+        "version": "latest"
+    }</script>
+
+    <!--
+    Using this variable directly instead of using `JSON.parse` is deprecated.
+    The READTHEDOCS_DATA global variable will be removed in the future.
+    -->
+    <script type="text/javascript">
+        READTHEDOCS_DATA = JSON.parse(document.getElementById('READTHEDOCS_DATA').innerHTML);
+    </script>
+
+    <script type="text/javascript" src="./theano_files/readthedocs-analytics.js"
+            async="async"></script>
+
+    <!-- end RTD <extrahead> -->
+    <script src="./theano_files/ethicalads.min.js" type="text/javascript" async=""
+            id="ethicaladsjs"></script>
+    <script src="./theano_files/js" type="text/javascript" async=""></script>
+</head>
+
+<body class="wy-body-for-nav" data-new-gr-c-s-check-loaded="14.1056.0" data-gr-ext-installed="">
+
+
+<div class="wy-grid-for-nav">
+
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+        <div class="wy-side-scroll">
+            <div class="wy-side-nav-search">
+
+
+                <a href="https://theano-pymc.readthedocs.io/en/latest/index.html"
+                   class="icon icon-home"> Theano
+
+
+                    <img src="./theano_files/theano_logo_allwhite_210x70.png" class="logo"
+                         alt="Logo">
+
+                </a>
+
+
+                <div class="version">
+                    latest
+                    <span class="version_switcher_placeholder_up"></span></div>
+
+
+                <div role="search">
+                    <form id="rtd-search-form" class="wy-form"
+                          action="https://theano-pymc.readthedocs.io/en/latest/search.html"
+                          method="get" data-dashlane-rid="718828ef7fcccf06" data-form-type="">
+                        <input type="text" name="q" placeholder="Search docs"
+                               data-dashlane-rid="0980849355eed03f" data-form-type="">
+                        <input type="hidden" name="check_keywords" value="yes">
+                        <input type="hidden" name="area" value="default">
+                    </form>
+                </div>
+
+
+            </div>
+
+            <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation"
+                 aria-label="main navigation">
+
+
+                <ul class="current">
+                    <li class="toctree-l1"><a class="reference internal"
+                                              href="https://theano-pymc.readthedocs.io/en/latest/NEWS.html">Release
+                        Notes</a></li>
+                    <li class="toctree-l1"><a class="reference internal"
+                                              href="https://theano-pymc.readthedocs.io/en/latest/introduction.html">Theano
+                        at a Glance</a></li>
+                    <li class="toctree-l1"><a class="reference internal"
+                                              href="https://theano-pymc.readthedocs.io/en/latest/requirements.html">Requirements</a>
+                    </li>
+                    <li class="toctree-l1"><a class="reference internal"
+                                              href="https://theano-pymc.readthedocs.io/en/latest/install.html">Installing
+                        Theano</a></li>
+                    <li class="toctree-l1"><a class="reference internal"
+                                              href="https://theano-pymc.readthedocs.io/en/latest/updating.html">Updating
+                        Theano</a></li>
+                    <li class="toctree-l1 current"><a class="reference internal"
+                                                      href="https://theano-pymc.readthedocs.io/en/latest/tutorial/index.html"><span
+                            class="toctree-expand"></span>Tutorial</a>
+                        <ul class="">
+                            <li class="toctree-l2"><a class="reference internal"
+                                                      href="https://theano-pymc.readthedocs.io/en/latest/tutorial/index.html#prerequisites">Prerequisites</a>
+                            </li>
+                            <li class="toctree-l2 current"><a class="reference internal"
+                                                              href="https://theano-pymc.readthedocs.io/en/latest/tutorial/index.html#basics"><span
+                                    class="toctree-expand"></span>Basics</a>
+                                <ul class="">
+                                    <li class="toctree-l3 current"><a
+                                            class="reference internal current"
+                                            href="https://theano-pymc.readthedocs.io/en/latest/tutorial/adding.html#"><span
+                                            class="toctree-expand"></span>Baby Steps - Algebra</a>
+                                        <ul>
+                                            <li class="toctree-l4"><a class="reference internal"
+                                                                      href="https://theano-pymc.readthedocs.io/en/latest/tutorial/adding.html#adding-two-scalars">Adding
+                                                two Scalars</a></li>
+                                            <li class="toctree-l4"><a class="reference internal"
+                                                                      href="https://theano-pymc.readthedocs.io/en/latest/tutorial/adding.html#adding-two-matrices">Adding
+                                                two Matrices</a></li>
+                                            <li class="toctree-l4"><a class="reference internal"
+                                                                      href="https://theano-pymc.readthedocs.io/en/latest/tutorial/adding.html#exercise">Exercise</a>
+                                            </li>
+                                        </ul>
+                                    </li>
+                                    <li class="toctree-l3"><a class="reference internal"
+                                                              href="https://theano-pymc.readthedocs.io/en/latest/tutorial/examples.html">More
+                                        Examples</a></li>
+                                    <li class="toctree-l3"><a class="reference internal"
+                                                              href="https://theano-pymc.readthedocs.io/en/latest/tutorial/gradients.html">Derivatives
+                                        in Theano</a></li>
+                                    <li class="toctree-l3"><a class="reference internal"
+                                                              href="https://theano-pymc.readthedocs.io/en/latest/tutorial/conditions.html">Conditions</a>
+                                    </li>
+                                    <li class="toctree-l3"><a class="reference internal"
+                                                              href="https://theano-pymc.readthedocs.io/en/latest/tutorial/loop.html">Loop</a>
+                                    </li>
+                                    <li class="toctree-l3"><a class="reference internal"
+                                                              href="https://theano-pymc.readthedocs.io/en/latest/tutorial/shape_info.html">How
+                                        Shape Information is Handled by Theano</a></li>
+                                    <li class="toctree-l3"><a class="reference internal"
+                                                              href="https://theano-pymc.readthedocs.io/en/latest/tutorial/broadcasting.html">Broadcasting</a>
+                                    </li>
+                                </ul>
+                            </li>
+                            <li class="toctree-l2"><a class="reference internal"
+                                                      href="https://theano-pymc.readthedocs.io/en/latest/tutorial/index.html#advanced">Advanced</a>
+                            </li>
+                            <li class="toctree-l2"><a class="reference internal"
+                                                      href="https://theano-pymc.readthedocs.io/en/latest/tutorial/index.html#advanced-configuration-and-debugging">Advanced
+                                configuration and debugging</a></li>
+                            <li class="toctree-l2"><a class="reference internal"
+                                                      href="https://theano-pymc.readthedocs.io/en/latest/tutorial/index.html#further-readings">Further
+                                readings</a></li>
+                        </ul>
+                    </li>
+                    <li class="toctree-l1"><a class="reference internal"
+                                              href="https://theano-pymc.readthedocs.io/en/latest/extending/index.html">Extending
+                        Theano</a></li>
+                    <li class="toctree-l1"><a class="reference internal"
+                                              href="https://theano-pymc.readthedocs.io/en/latest/dev_start_guide.html">Developer
+                        Start Guide</a></li>
+                    <li class="toctree-l1"><a class="reference internal"
+                                              href="https://theano-pymc.readthedocs.io/en/latest/optimizations.html">Optimizations</a>
+                    </li>
+                    <li class="toctree-l1"><a class="reference internal"
+                                              href="https://theano-pymc.readthedocs.io/en/latest/library/index.html">API
+                        Documentation</a></li>
+                    <li class="toctree-l1"><a class="reference internal"
+                                              href="https://theano-pymc.readthedocs.io/en/latest/troubleshooting.html">Troubleshooting</a>
+                    </li>
+                    <li class="toctree-l1"><a class="reference internal"
+                                              href="https://theano-pymc.readthedocs.io/en/latest/glossary.html">Glossary</a>
+                    </li>
+                    <li class="toctree-l1"><a class="reference internal"
+                                              href="https://theano-pymc.readthedocs.io/en/latest/links.html">Links</a>
+                    </li>
+                    <li class="toctree-l1"><a class="reference internal"
+                                              href="https://theano-pymc.readthedocs.io/en/latest/internal/index.html">Internal
+                        Documentation</a></li>
+                    <li class="toctree-l1"><a class="reference internal"
+                                              href="https://theano-pymc.readthedocs.io/en/latest/acknowledgement.html">Acknowledgements</a>
+                    </li>
+                    <li class="toctree-l1"><a class="reference internal"
+                                              href="https://theano-pymc.readthedocs.io/en/latest/LICENSE.html">LICENSE</a>
+                    </li>
+                </ul>
+
+
+            </div>
+        </div>
+        <div><span class="version_switcher_placeholder"></span></div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+
+        <nav class="wy-nav-top" aria-label="top navigation">
+
+            <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+            <a href="https://theano-pymc.readthedocs.io/en/latest/index.html">Theano</a>
+
+        </nav>
+
+
+        <div class="wy-nav-content">
+
+            <div class="rst-content">
+
+
+                <div role="navigation" aria-label="breadcrumbs navigation">
+
+                    <ul class="wy-breadcrumbs">
+
+                        <li>
+                            <a href="https://theano-pymc.readthedocs.io/en/latest/index.html">Docs</a>
+                            »
+                        </li>
+
+                        <li>
+                            <a href="https://theano-pymc.readthedocs.io/en/latest/tutorial/index.html">Tutorial</a>
+                            »
+                        </li>
+
+                        <li>Baby Steps - Algebra</li>
+
+
+                        <li class="wy-breadcrumbs-aside">
+
+
+                            <a href="https://github.com/pymc-devs/Theano-PyMC/blob/master/doc/tutorial/adding.txt"
+                               class="fa fa-github"> Edit on GitHub</a>
+
+
+                        </li>
+
+                    </ul>
+
+
+                    <hr>
+                </div>
+                <div role="main" class="document" itemscope="itemscope"
+                     itemtype="http://schema.org/Article">
+                    <div itemprop="articleBody">
+
+                        <div class="section" id="baby-steps-algebra">
+                            <span id="adding"></span>
+                            <h1>Baby Steps - Algebra<a class="headerlink"
+                                                       href="https://theano-pymc.readthedocs.io/en/latest/tutorial/adding.html#baby-steps-algebra"
+                                                       title="Permalink to this headline">¶</a></h1>
+                            <div class="section" id="adding-two-scalars">
+                                <h2>Adding two Scalars<a class="headerlink"
+                                                         href="https://theano-pymc.readthedocs.io/en/latest/tutorial/adding.html#adding-two-scalars"
+                                                         title="Permalink to this headline">¶</a>
+                                </h2>
+                                <p>To get us started with Theano and get a feel of what we’re
+                                    working with,
+                                    let’s make a simple function: add two numbers together. Here is
+                                    how you do
+                                    it:</p>
+                                <div class="doctest highlight-default notranslate">
+                                    <div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span
+                                            class="kn">import</span> <span class="nn">numpy</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span
+                                                class="nn">theano.tensor</span> <span
+                                                class="k">as</span> <span class="nn">tt</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span
+                                                class="nn">theano</span> <span
+                                                class="kn">import</span> <span
+                                                class="n">function</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">x</span> <span class="o">=</span> <span
+                                                class="n">tt</span><span class="o">.</span><span
+                                                class="n">dscalar</span><span
+                                                class="p">(</span><span class="s1">'x'</span><span
+                                                class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">y</span> <span class="o">=</span> <span
+                                                class="n">tt</span><span class="o">.</span><span
+                                                class="n">dscalar</span><span
+                                                class="p">(</span><span class="s1">'y'</span><span
+                                                class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">z</span> <span class="o">=</span> <span
+                                                class="n">x</span> <span class="o">+</span> <span
+                                                class="n">y</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">f</span> <span class="o">=</span> <span
+                                                class="n">function</span><span
+                                                class="p">([</span><span class="n">x</span><span
+                                                class="p">,</span> <span class="n">y</span><span
+                                                class="p">],</span> <span class="n">z</span><span
+                                                class="p">)</span>
+</pre>
+                                    </div>
+                                </div>
+                                <p>The first argument to <code
+                                        class="xref py py-func docutils literal notranslate"><span
+                                        class="pre">function</span></code> is a list of Variables
+                                    that will be provided as inputs to the function. The second
+                                    argument
+                                    is a single Variable <em>or</em> a list of Variables. For either
+                                    case, the second
+                                    argument is what we want to see as output when we apply the
+                                    function. <em>f</em> may
+                                    then be used like a normal Python function.</p>
+                                <div class="admonition note">
+                                    <p class="first admonition-title">Note</p>
+                                    <p>As a shortcut, you can skip step 3, and just use a variable’s
+                                        <a class="reference internal"
+                                           href="https://theano-pymc.readthedocs.io/en/latest/library/graph/graph.html#theano.graph.basic.Variable.eval"
+                                           title="theano.graph.basic.Variable.eval"><code
+                                                class="xref py py-func docutils literal notranslate"><span
+                                                class="pre">eval</span></code></a> method.
+                                        The <code
+                                                class="xref py py-func docutils literal notranslate"><span
+                                                class="pre">eval()</span></code> method is not as
+                                        flexible
+                                        as <code
+                                                class="xref py py-func docutils literal notranslate"><span
+                                                class="pre">function()</span></code> but it can do
+                                        everything we’ve covered in
+                                        the tutorial so far. It has the added benefit of not
+                                        requiring
+                                        you to import <code
+                                                class="xref py py-func docutils literal notranslate"><span
+                                                class="pre">function()</span></code> . Here is how
+                                        <code class="xref py py-func docutils literal notranslate"><span
+                                                class="pre">eval()</span></code> works:</p>
+                                    <div class="doctest highlight-default notranslate">
+                                        <div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span
+                                                class="kn">import</span> <span
+                                                class="nn">numpy</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">import</span> <span
+                                                    class="nn">theano.tensor</span> <span class="k">as</span> <span
+                                                    class="nn">tt</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">x</span> <span class="o">=</span> <span
+                                                    class="n">tt</span><span class="o">.</span><span
+                                                    class="n">dscalar</span><span class="p">(</span><span
+                                                    class="s1">'x'</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">y</span> <span class="o">=</span> <span
+                                                    class="n">tt</span><span class="o">.</span><span
+                                                    class="n">dscalar</span><span class="p">(</span><span
+                                                    class="s1">'y'</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">z</span> <span class="o">=</span> <span
+                                                    class="n">x</span> <span
+                                                    class="o">+</span> <span class="n">y</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">numpy</span><span class="o">.</span><span
+                                                    class="n">allclose</span><span
+                                                    class="p">(</span><span class="n">z</span><span
+                                                    class="o">.</span><span
+                                                    class="n">eval</span><span
+                                                    class="p">({</span><span
+                                                    class="n">x</span> <span
+                                                    class="p">:</span> <span
+                                                    class="mf">16.3</span><span
+                                                    class="p">,</span> <span
+                                                    class="n">y</span> <span
+                                                    class="p">:</span> <span
+                                                    class="mf">12.1</span><span class="p">}),</span> <span
+                                                    class="mf">28.4</span><span class="p">)</span>
+<span class="go">True</span>
+</pre>
+                                        </div>
+                                    </div>
+                                    <p>We passed <code
+                                            class="xref py py-func docutils literal notranslate"><span
+                                            class="pre">eval()</span></code> a dictionary mapping
+                                        symbolic theano
+                                        variables to the values to substitute for them, and it
+                                        returned
+                                        the numerical value of the expression.</p>
+                                    <p class="last"><code
+                                            class="xref py py-func docutils literal notranslate"><span
+                                            class="pre">eval()</span></code> will be slow the first
+                                        time you call it on a variable –
+                                        it needs to call <code
+                                                class="xref py py-func docutils literal notranslate"><span
+                                                class="pre">function()</span></code> to compile the
+                                        expression behind
+                                        the scenes. Subsequent calls to <code
+                                                class="xref py py-func docutils literal notranslate"><span
+                                                class="pre">eval()</span></code> on that same
+                                        variable
+                                        will be fast, because the variable caches the compiled
+                                        function.</p>
+                                </div>
+                            </div>
+                        </div>
+
+
+                    </div>
+
+                </div>
+                <footer>
+
+                    <div class="rst-footer-buttons" role="navigation"
+                         aria-label="footer navigation">
+
+                        <a href="https://theano-pymc.readthedocs.io/en/latest/tutorial/examples.html"
+                           class="btn btn-neutral float-right" title="More Examples" accesskey="n"
+                           rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+
+
+                        <a href="https://theano-pymc.readthedocs.io/en/latest/tutorial/numpy.html"
+                           class="btn btn-neutral float-left" title="NumPy refresher" accesskey="p"
+                           rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+
+                    </div>
+
+
+                    <hr>
+                    <div>
+                        <div id="rtd-sidebar" data-ea-publisher="readthedocs"
+                             data-ea-type="readthedocs-sidebar" data-ea-manual="true"
+                             class="ethical-rtd"
+                             data-ea-keywords="only words|readthedocs-project-593548|readthedocs-project-theano-pymc"
+                             data-ea-campaign-types="community|house|paid"></div>
+                    </div>
+
+                    <div role="contentinfo">
+                        <p>
+                            © Copyright 2008--2019, LISA lab
+
+                            <span class="commit">
+          Revision <code>8b282565</code>.
+        </span>
+
+
+                        </p>
+                    </div>
+                    Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a
+                        href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a
+                        href="https://readthedocs.org/">Read the Docs</a>.
+
+                </footer>
+
+            </div>
+        </div>
+
+    </section>
+
+</div>
+
+
+<div class="rst-versions" data-toggle="rst-versions" role="note" aria-label="versions">
+    <span class="rst-current-version" data-toggle="rst-current-version">
+      <span class="fa fa-book"> Read the Docs</span>
+      v: latest
+      <span class="fa fa-caret-down"></span>
+    </span>
+    <div class="rst-other-versions"><!-- Inserted RTD Footer -->
+
+        <div class="injected">
+
+
+            <dl>
+                <dt>Versions</dt>
+
+                <dd class="rtd-current-item">
+                    <a href="https://theano-pymc.readthedocs.io/en/latest/tutorial/adding.html">latest</a>
+                </dd>
+
+                <dd>
+                    <a href="https://theano-pymc.readthedocs.io/en/stable/tutorial/adding.html">stable</a>
+                </dd>
+
+            </dl>
+
+
+            <dl>
+
+                <!-- These are kept as relative links for internal installs that are http -->
+                <dt>On Read the Docs</dt>
+                <dd>
+                    <a href="https://readthedocs.org/projects/theano-pymc/">Project Home</a>
+                </dd>
+                <dd>
+                    <a href="https://readthedocs.org/projects/theano-pymc/builds/">Builds</a>
+                </dd>
+                <dd>
+                    <a href="https://readthedocs.org/projects/theano-pymc/downloads/">Downloads</a>
+                </dd>
+            </dl>
+
+
+            <dl>
+                <dt>On GitHub</dt>
+                <dd>
+                    <a href="https://github.com/pymc-devs/Theano-PyMC/blob/master/doc/tutorial/adding.txt">View</a>
+                </dd>
+
+                <dd>
+                    <a href="https://github.com/pymc-devs/Theano-PyMC/edit/master/doc/tutorial/adding.txt">Edit</a>
+                </dd>
+
+            </dl>
+
+
+            <dl>
+                <dt>Search</dt>
+                <dd>
+                    <div style="padding: 6px;">
+
+                        <form id="flyout-search-form" class="wy-form" target="_blank"
+                              action="https://readthedocs.org/projects/theano-pymc/search/"
+                              method="get">
+                            <input type="text" name="q" aria-label="Search docs"
+                                   placeholder="Search docs">
+                        </form>
+                    </div>
+                </dd>
+            </dl>
+
+
+            <hr>
+
+
+            <small>
+                <span>Hosted by <a href="https://readthedocs.org/">Read the Docs</a></span>
+                <span> · </span>
+                <a href="https://docs.readthedocs.io/page/privacy-policy.html">Privacy Policy</a>
+            </small>
+
+
+        </div>
+    </div>
+</div>
+
+
+<script type="text/javascript">
+    jQuery(function () {
+        SphinxRtdTheme.Navigation.enable(true);
+    });
+</script>
+
+
+<script type="text/javascript">
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', 'UA-168290-9']);
+    _gaq.push(['_trackPageview']);
+
+    (function () {
+        var ga = document.createElement('script');
+        ga.type = 'text/javascript';
+        ga.async = true;
+        ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+        var s = document.getElementsByTagName('script')[0];
+        s.parentNode.insertBefore(ga, s);
+    })();
+</script>
+
+<!--Insert version switcher at bottom and top of sidebar-->
+<script type="text/javascript">
+    var span = document.createElement("SPAN")
+    var span_class = document.createAttribute("class");
+    span_class.value = "version_switcher_placeholder";
+    span.setAttributeNode(span_class);
+    var div = document.createElement("DIV");
+    div.appendChild(span);
+    var nav_div = document.getElementsByClassName("wy-nav-side")[0];
+    nav_div.appendChild(div);
+
+    var span_up = document.createElement("SPAN")
+    var span_class_up = document.createAttribute("class");
+    span_class_up.value = "version_switcher_placeholder_up";
+    span_up.setAttributeNode(span_class_up);
+    var nav_div_up = document.getElementsByClassName("version")[0];
+    nav_div_up.appendChild(span_up);
+</script>
+
+<script type="text/javascript" src="./theano_files/version_switch.js">
+</script>
+
+
+</body>
+<grammarly-desktop-integration data-grammarly-shadow-root="true"></grammarly-desktop-integration>
+</html>
