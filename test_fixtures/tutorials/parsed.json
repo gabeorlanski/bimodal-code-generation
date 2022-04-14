@@ -20,7 +20,7 @@
                 "tag": "p"
             }, {
                 "idx": 3,
-                "text": ">>> print(root.tag)\nroot\n",
+                "text": ">>> print(root.tag)\nroot\n>>> isinstance(root.tag,str)\nTrue\n",
                 "tag": "code"
             }, {
                 "idx": 4,
@@ -63,7 +63,7 @@
                         "tag": "p"
                     }, {
                         "idx": 1,
-                        "text": ">>> for i in [root[0]]:\n    print(i.tag)\nchild1\n",
+                        "text": ">>> for i in [root[0]]:\n    print(i.tag)\nThis Will Fail Tests\n",
                         "tag": "code"
                     }, {
                         "idx": 2,

@@ -15,7 +15,8 @@ logger = logging.getLogger()
 class TutorialSpider(CrawlSpider):
     name = 'docspider'
 
-    def __init__(self, out_name, output_path, url, allowed_path, disallow=None, *a, **kw):
+    def __init__(self, out_name, output_path, url, allowed_path, disallow=None,
+                 disallow_file_types=None, *a, **kw):
         super().__init__(*a, **kw)
         disallow = disallow or []
 
@@ -25,11 +26,13 @@ class TutorialSpider(CrawlSpider):
         self.allowed_domains = [
             re.sub(r'^www\.', '', urlparse(url).hostname)
         ]
-        self.allowed_path = allowed_path
+        self.allowed_path = allowed_path if not allowed_path.endswith('/') else allowed_path[:-1]
+        ignore_extensions = ['php', 'rst', 'txt', 'tgz', 'asc', 'gz']
+        ignore_extensions += disallow_file_types or []
         self.link_extractor = LinkExtractor(
             allow=urljoin(urlparse(url).hostname, allowed_path) + r'/.*',
             deny=disallow,
-            deny_extensions=IGNORED_EXTENSIONS + ['php', 'rst', 'txt', 'tgz', 'asc', 'gz']
+            deny_extensions=IGNORED_EXTENSIONS + ignore_extensions
         )
         self.cookies_seen = set()
 

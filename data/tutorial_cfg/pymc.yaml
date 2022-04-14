@@ -7,4 +7,3 @@ groups:
     path: /en/v3
     pages:
       probability_distributions: "Probability_Distributions.html"
-      pymc_and_theano: "PyMC3_and_Theano.html"

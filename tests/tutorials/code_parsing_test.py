@@ -2,7 +2,10 @@ import json
 
 import astor
 import pytest
+
+from src.common import FIXTURES_ROOT
 from src.tutorials import code_parsing
+from pathlib import Path
 
 
 def test_get_snippets():
@@ -91,59 +94,75 @@ def test_get_snippets_none():
     assert result == expected
 
 
-def test_get_code_samples_from_tutorial(tutorial_fixtures_path):
-    input_file = json.loads(tutorial_fixtures_path.joinpath('parsed.json').read_text())
+def test_get_code_samples_from_tutorial():
+    input_file = json.loads(FIXTURES_ROOT.joinpath('tutorials', 'parsed.json').read_text())
     failed, result, passed, failed_tests = code_parsing.get_code_samples_from_tutorial(
         'test',
         input_file,
-        global_context=['from lxml import etree']
+        global_context=['from lxml import etree'],
+        fixes_by_section={'The Element class': {'overrides': [9]}}
     )
 
     assert dict(failed) == {
-        'The Element class': [{'path': [0], 'idx': 6}, {'path': [0], 'idx': 10}]
-
+        'The Element class': [{
+            'idx'     : 10,
+            'error'   : 'can only concatenate str (not "int") to str',
+            'code'    : ['from lxml import etree', "'1' + 1"],
+            'snip_idx': 0
+        }]
     }
 
-    assert passed == [
-        {
-            'prior_context': ['from lxml import etree',
-                              "root = etree.Element('root')"],
-            'context'      : [],
-            'code'         : ['root.tag'],
-            'result'       : ['root'],
-            'name'         : ['The Element class'],
-            'idx'          : 3, 'snip_idx': 0
-        }
-    ]
-    assert result == passed + failed_tests
-
-    path_to_section, snippets = result[1]
-    assert path_to_section == [0, 9]
-    assert snippets == {
-        "prior_context": ["from lxml import etree", "root = etree.Element(\"root\")",
-                          'root.append( etree.Element("child1") )',
-                          'child2 = etree.SubElement(root, "child2")',
-                          'child3 = etree.SubElement(root, "child3")'
-                          ],
-        'context'      : [],
-        "code"         : ["etree.tostring(root, pretty_print=True)"],
-        "result"       : ["<root>\n  <child1/>\n  <child2/>\n  <child3/>\n</root>"]
-    }
-
-    path_to_section, snippets = result[2]
-    assert path_to_section == [0, 11, 1]
-    assert snippets == {
-        "prior_context": [
+    assert passed == [{
+        'prior_context': [
             'from lxml import etree',
-            'root = etree.Element(\"root\")',
-            'root.append( etree.Element("child1") )',
-            'child2 = etree.SubElement(root, "child2")',
-            'child3 = etree.SubElement(root, "child3")',
+            "root = etree.Element('root')"
         ],
-        'context'      : ['out_0 = []', 'for i in [root[0]]:\n    out_0.append(i.tag)'],
-        "code"         : ["out_0"],
-        "result"       : ["child1"]
-    }
+        'context'      : [],
+        'code'         : [
+            'root.tag',
+            'isinstance(root.tag, str)'],
+        'result'       : ['root', 'True'],
+        'name'         : 'The Element class',
+        'idx'          : 3,
+        'snip_idx'     : 0
+    }, {
+        'prior_context': [
+            'from lxml import etree', "root = etree.Element('root')",
+            "root.append(etree.Element('child1'))",
+            "child2 = etree.SubElement(root, 'child2')",
+            "child3 = etree.SubElement(root, 'child3')"],
+        'context'      : [],
+        'code'         : [
+            'etree.tostring(root, pretty_print=True)'],
+        'result'       : [
+            '<root>\n  <child1/>\n  <child2/>\n  <child3/>\n</root>'],
+        'name'         : 'The Element class',
+        'idx'          : 9,
+        'snip_idx'     : 0
+    }]
+    assert failed_tests == [{
+        'prior_context'  : [
+            'from lxml import etree', "root = etree.Element('root')",
+            "root.append(etree.Element('child1'))",
+            "child2 = etree.SubElement(root, 'child2')",
+            "child3 = etree.SubElement(root, 'child3')"],
+        'context'        : [
+            'out_0 = []', 'for i in [root[0]]:', '    out_0.append(i.tag)'
+        ],
+        'code'           : ['out_0'],
+        'result'         : [
+            'This Will Fail Tests'
+        ],
+        'name'           : 'The Element class-Elements are lists',
+        'idx'            : 1,
+        'snip_idx'       : 0,
+        'testing_code'   : [
+            "assert out_0 == 'This Will Fail Tests'"],
+        'actual_returned': {
+            'OUT_0': {'val': "['child1']", 'type': 'list'}
+        }
+    }]
+    assert result == passed + failed_tests
 
 
 def test_variable_tracing():

@@ -7,11 +7,13 @@ from io import StringIO
 from typing import Dict, Any
 from contextlib import redirect_stdout
 import astor
+from src.evaluation.execute import swallow_io
 
 GET_CODE_BLOCK = re.compile(
     r'>>>( *)((?:[^\n])+(?:\n\.\.\. ?[^\n]*)*)+(?:\n((?:(?!>>>)[^\n]+\n?)+)\n?)?',
     flags=re.MULTILINE
 )
+OLD_PRINT_FIX = re.compile(r'print (.+)$', flags=re.DOTALL)
 
 REMOVE_PRINT = re.compile(r'print\(([^\n]+)\)', flags=re.DOTALL)
 
@@ -55,7 +57,11 @@ class PrintTransformer(ast.NodeTransformer):
         try:
             tree = ast.parse(code_snippet)
         except SyntaxError:
-            return [], code_snippet
+            test_snippet = OLD_PRINT_FIX.sub(r'print(\1)', code_snippet)
+            try:
+                tree = ast.parse(test_snippet)
+            except SyntaxError:
+                return [], code_snippet
         except NotSupportedException as e:
             logger.warning(f"Found a '{e.msg}', not supported")
             return [], code_snippet
@@ -305,8 +311,17 @@ def get_snippets(name, code_str):
             for new_context, cleaned_snip in visitor(code):
                 block.extend(new_context)
                 cleaned_code.append(cleaned_snip)
-            out.append({'context': block, 'code': cleaned_code, 'result': [output.rstrip()]})
-            block = []
+            if cleaned_code:
+
+                if len(cleaned_code) != 1:
+                    assert len(cleaned_code) == 1
+                if not block and out:
+                    out[-1]['code'].extend(cleaned_code)
+                    out[-1]['result'].append(output.strip())
+                else:
+                    out.append(
+                        {'context': block, 'code': cleaned_code, 'result': [output.rstrip()]})
+                    block = []
         else:
             block.append(code)
     if block:
@@ -318,9 +333,10 @@ def get_snippets(name, code_str):
     return out
 
 
-def is_runnable(code):
+def does_code_raise_errors(code):
     try:
-        exec(code)
+        with swallow_io():
+            exec(code)
     except Exception as e:
         return e
     return None
@@ -358,7 +374,7 @@ def get_code_from_content(name, content, context, global_context, path=None):
                         to_run = [*global_context, *to_run]
                         snippet_context = [*global_context, *snippet_context]
 
-                    code_error = is_runnable('\n'.join(to_run))
+                    code_error = does_code_raise_errors('\n'.join(to_run))
 
                     if code_error is None:
                         out.append({
@@ -366,7 +382,7 @@ def get_code_from_content(name, content, context, global_context, path=None):
                             'context'      : block_context,
                             'code'         : block['code'],
                             'result'       : block['result'],
-                            "name"         : name,
+                            "name"         : name_str,
                             'idx'          : c['idx'],
                             'snip_idx'     : snip_num
                         })
@@ -379,10 +395,25 @@ def get_code_from_content(name, content, context, global_context, path=None):
                         })
             if block_context is not None:
                 for line in block_context:
-                    code_error = is_runnable('\n'.join(context + [line]))
+                    code_error = does_code_raise_errors('\n'.join(context + [line]))
                     if not code_error:
                         context.append(line)
     return out, context
+
+
+def convert_raw_result_to_supported_type(raw_result_str, target_type):
+    if target_type == bytes:
+        return f"b'{raw_result_str}'"
+    if target_type == bool:
+        if raw_result_str in ['True', 'False']:
+            return raw_result_str
+        return f'bool({raw_result_str})'
+
+    end_single_quote = raw_result_str.startswith("'") and raw_result_str.endswith("'")
+    end_double_quote = raw_result_str.startswith('"') and raw_result_str.endswith('"')
+    if not end_single_quote and not end_double_quote:
+        raw_result_str = f"'{raw_result_str}'"
+    return raw_result_str
 
 
 def get_returned_values(code, context):
@@ -392,10 +423,15 @@ def get_returned_values(code, context):
     for i, c in enumerate(code):
         to_run.append(f"RESULT_VALUES['OUT_{i}'] = {c}")
     exec('\n'.join(to_run))
-    return {k: str(v) for k, v in RESULT_VALUES.items()}
+
+    out = {}
+    for k, v in RESULT_VALUES.items():
+        out[k] = {'val': str(v), 'type': type(v)}
+
+    return out
 
 
-def get_code_passes_test(code):
+def get_code_passes_test(code, fixes_by_section, override_all=False):
     passes_test = 0
     passes_str_test = 0
     samples_passed = []
@@ -404,42 +440,59 @@ def get_code_passes_test(code):
     # This mess is to try and check if the code samples passes the mined tests
 
     for result in code:
-        to_run = result['prior_context'] + result['context']
-        for c, r in zip(result['code'], result['result']):
-            to_run.append(f"assert {r} == {c}")
 
-        try:
-            exec('\n'.join(to_run))
-            passes_test += 1
+        # Some tests will fail because of bad issues, instead override them
+        # because we know they are correct.
+        if (
+                (result['idx'] in fixes_by_section.get(result['name'], {}).get('overrides', []))
+                or override_all
+        ):
             samples_passed.append(result)
-        except Exception:
-            to_run = result['prior_context'] + result['context']
-            for c, r in zip(result['code'], result['result']):
+            passes_test += 1
+            continue
 
-                result_str = r
-                end_single_quote = r.startswith("'") and r.endswith("'")
-                end_double_quote = r.startswith('"') and r.endswith('"')
-                if not end_single_quote and not end_double_quote:
-                    result_str = f"'{result_str}'"
-                to_run.append(f"assert {result_str} ==str({c})")
-            try:
-                exec('\n'.join(to_run))
-                passes_str_test += 1
-                samples_passed.append(result)
-            except Exception:
+        original_to_run = result['prior_context'] + result['context']
+        for c, r in zip(result['code'], result['result']):
+            original_to_run.append(f"assert {c} == {r}")
 
-                result['testing_code'] = to_run
-                result['actual_return'] = get_returned_values(
-                    result['code'],
-                    result['prior_context'] + result['context']
-                )
-                failed.append(result)
-                continue
+        exec_errors = does_code_raise_errors('\n'.join(original_to_run))
+        if exec_errors is None:
+            samples_passed.append(result)
+            passes_test += 1
+            continue
+
+        actual_returned_values = get_returned_values(
+            result['code'],
+            result['prior_context'] + result['context']
+        )
+
+        # Try with converting the output and expected result to a string.
+        string_cast_to_run = result['prior_context'] + result['context']
+        for (i, c), r in zip(enumerate(result['code']), result['result']):
+            aligned_out = actual_returned_values[f"OUT_{i}"]
+            result_str = convert_raw_result_to_supported_type(
+                r,
+                aligned_out['type']
+            )
+
+            string_cast_to_run.append(f"assert {c} == {result_str}")
+
+        exec_errors = does_code_raise_errors('\n'.join(string_cast_to_run))
+        if exec_errors is None:
+            samples_passed.append(result)
+            passes_str_test += 1
+            continue
+
+        result['testing_code'] = string_cast_to_run[-len(actual_returned_values):]
+        for k in actual_returned_values.keys():
+            actual_returned_values[k]['type'] = actual_returned_values[k]['type'].__name__
+        result['actual_returned'] = actual_returned_values
+        failed.append(result)
 
     return samples_passed, failed, passes_test, passes_str_test
 
 
-def get_code_samples_from_tutorial(name, parsed_tutorial, global_context):
+def get_code_samples_from_tutorial(name, parsed_tutorial, global_context, fixes_by_section):
     logger.info(f"{len(parsed_tutorial)} top level section(s) for {name}")
     logger.debug(f"The global context is {global_context}")
     out = []
@@ -468,7 +521,13 @@ def get_code_samples_from_tutorial(name, parsed_tutorial, global_context):
     passed = []
     failed_tests = []
     if out:
-        passed, failed_tests, pass_test, pass_str = get_code_passes_test(out)
+        if fixes_by_section.get('override_all'):
+            logger.warning(f"{name} Has override all enabled")
+        passed, failed_tests, pass_test, pass_str = get_code_passes_test(
+            out,
+            fixes_by_section,
+            override_all=fixes_by_section.get('override_all', False)
+        )
         logger.info(
             f"{name} has {pass_str + pass_test}/{len(out)} pass, "
             f"{pass_str}/{pass_str + pass_test} required string."

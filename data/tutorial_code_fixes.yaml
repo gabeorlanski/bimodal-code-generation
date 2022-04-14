@@ -1,1 +1,20 @@
-lxml:
+sympy:
+  tutorial_matrices:
+    override_all: True
+  tutorial_simplification:
+    override_all: True
+  tutorial_gotchas:
+    override_all: True
+  tutorial_basic_operations:
+    override_all: True
+cerberus:
+  tutorials_usage:
+    override_all: True
+  tutorials_normalization_rules:
+    override_all: True
+delorean:
+  tutorials_quickstart:
+    override_all: True
+arrow:
+  tutorials_main:
+    override_all: True

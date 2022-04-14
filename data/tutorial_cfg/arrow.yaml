@@ -1,0 +1,9 @@
+url: "https://arrow.readthedocs.io/en/latest/index.html"
+allowed_path: "en/latest"
+groups:
+  tutorials:
+    path: /en/latest
+    pages:
+      main: index.html
+
+

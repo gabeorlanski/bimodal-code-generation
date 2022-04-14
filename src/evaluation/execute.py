@@ -25,7 +25,7 @@ def check_correctness(check_program, timeout, task_id, completion_id):
     manager = multiprocessing.Manager()
     result = manager.list()
 
-    p = multiprocessing.Process(target=unsafe_execute, args=(check_program, result, timeout))
+    p = multiprocessing.Process(target=mp_unsafe_execute, args=(check_program, result, timeout))
     p.start()
     p.join(timeout=timeout + 1)
     if p.is_alive():
@@ -44,7 +44,8 @@ def check_correctness(check_program, timeout, task_id, completion_id):
     )
 
 
-def unsafe_execute(check_program, result, timeout):
+
+def unsafe_execute(check_program, timeout):
     with create_tempdir():
 
         # These system calls are needed when cleaning up tempdir.
@@ -65,18 +66,26 @@ def unsafe_execute(check_program, result, timeout):
                 with time_limit(timeout):
                     exec(check_program, exec_globals)
                     elapsed = time.time() - start_time
-            result.append(("Passed", elapsed, None))
+            out = ("Passed", elapsed, None)
         except TimeoutException:
-            result.append(("Timed Out", timeout, None))
+            out = ("Timed Out", timeout, None)
         except AssertionError as e:
-            result.append(("Failed Tests", time.time() - start_time, None))
+            out = ("Failed Tests", time.time() - start_time, None)
         except BaseException as e:
-            result.append((type(e).__name__, time.time() - start_time, str(e)))
+            out = (type(e).__name__, time.time() - start_time, str(e))
 
         # Needed for cleaning up.
         shutil.rmtree = rmtree
         os.rmdir = rmdir
         os.chdir = chdir
+
+    return out
+
+
+def mp_unsafe_execute(check_program, result, timeout):
+    exec_result = unsafe_execute(check_program, timeout)
+    if exec_result is not None:
+        result.append(exec_result)
 
 
 @contextlib.contextmanager

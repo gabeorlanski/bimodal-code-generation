@@ -30,8 +30,7 @@ import requests
 if str(Path(__file__).parents[1]) not in sys.path:
     sys.path.insert(0, str(Path(__file__).parents[1]))
 from src.common import PROJECT_ROOT, setup_global_logging
-from src.tutorials import TutorialHTMLParser, get_code_samples_from_tutorial, \
-    unravel_code_list_into_tree
+from src.tutorials import TutorialHTMLParser, get_code_samples_from_tutorial
 
 
 def parse_tutorials(debug, input_path, output_path):
@@ -179,12 +178,18 @@ def make_samples(ctx):
             }
         }
     }
+    out_dir = PROJECT_ROOT.joinpath('data/tutorial_code')
+    if out_dir.exists():
+        shutil.rmtree(out_dir)
+    out_dir.mkdir(parents=True)
+    fixes_by_section = yaml.load(
+        PROJECT_ROOT.joinpath('data', 'tutorial_code_fixes.yaml').open(),
+        yaml.Loader
+    )
 
     logger.info(f"Found {len(directories)} directories")
-    all_fails = {}
     all_code = {}
     all_passed = {}
-    all_failed_tests = {}
     total_runnable_code = Counter()
     total_fails = Counter()
     total_passed = Counter()
@@ -196,30 +201,56 @@ def make_samples(ctx):
         domain_fail_tests = {}
         domain_context_cfg = global_context.get(domain_path.stem, {})
         domain_context = domain_context_cfg.get('global', [])
+        domain_fixes = fixes_by_section.get(domain_path.stem, {})
 
         for file in domain_path.glob('*'):
             file_context = []
             if domain_context_cfg:
                 file_context = domain_context_cfg['files'].get(file.stem, [])
-
+            tutorial_fixes = {}
+            if domain_fixes:
+                tutorial_fixes = domain_fixes.get(file.stem, {})
             parsed = json.loads(file.read_text())
             fail, result, passed, fail_tests = get_code_samples_from_tutorial(
                 file.stem,
                 parsed,
-                domain_context + file_context
+                domain_context + file_context,
+                tutorial_fixes
             )
             domain_passed[file.stem] = passed
-            domain_fail_tests[file.stem] = fail_tests
+
+            fail_tests_by_idx = {}
+            for r in fail_tests:
+                if r['name'] not in fail_tests_by_idx:
+                    fail_tests_by_idx[r['name']] = {}
+                if r['idx'] not in fail_tests_by_idx[r['name']]:
+                    fail_tests_by_idx[r['name']][r['idx']] = []
+                fail_tests_by_idx[r['name']][r['idx']].append(r)
+
+            for name in fail_tests_by_idx:
+                for idx in fail_tests_by_idx[name]:
+                    fail_tests_by_idx[name][idx] = list(sorted(
+                        fail_tests_by_idx[name][idx],
+                        key=lambda snip: snip['snip_idx']
+                    ))
+
+            domain_fail_tests[file.stem] = fail_tests_by_idx
             failures[file.stem] = fail
             code[file.stem] = result
             total_runnable_code[domain_path.stem] += len(result)
             total_fails[domain_path.stem] += sum(map(len, fail.values()))
             logger.debug(f"{file} had {sum(map(len, fail.values()))} failures")
             logger.debug(f"{file} had {len(result)} code snippets")
-        all_fails[domain_path.stem] = failures
+
+        fail_dir = out_dir.joinpath(f'{domain_path.stem}_fails')
+        fail_dir.mkdir()
+        with fail_dir.joinpath('parse.json').open('w') as f:
+            json.dump(failures, f, indent=True)
+
+        with fail_dir.joinpath('test.json').open('w') as f:
+            json.dump(domain_fail_tests, f, indent=True)
         all_code[domain_path.stem] = code
         all_passed[domain_path.stem] = domain_passed
-        all_failed_tests[domain_path.stem] = domain_fail_tests
         total_passed[domain_path.stem] += sum(map(len, domain_passed.values()))
 
     num_found = sum(total_runnable_code.values())
@@ -230,24 +261,12 @@ def make_samples(ctx):
         total = v + total_fails[k]
         logger.info(f"\t{k} = {v}/{total}. {total_passed[k]}/{v} returned the expected value.")
 
-    out_dir = PROJECT_ROOT.joinpath('data/tutorial_code')
-    if out_dir.exists():
-        shutil.rmtree(out_dir)
-    out_dir.mkdir(parents=True)
     logger.info(f"Saving to {out_dir}")
-
-    with out_dir.joinpath('parse_fails.json').open('w') as f:
-        json.dump(all_fails, f, indent=True)
 
     with out_dir.joinpath('runnable.json').open('w') as f:
         json.dump(all_code, f, indent=True)
     with out_dir.joinpath('passed.json').open('w') as f:
         json.dump(all_passed, f, indent=True)
-    with out_dir.joinpath('failed_test.json').open('w') as f:
-        for k, v in all_failed_tests.items():
-            for fn in v:
-                all_failed_tests[k][fn] = unravel_code_list_into_tree(v[fn])
-        json.dump(all_failed_tests, f, indent=True)
 
 
 @main.command('download')

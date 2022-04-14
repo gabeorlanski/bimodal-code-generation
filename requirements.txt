@@ -20,3 +20,5 @@ psutil==5.9.0
 ujson==5.2.0
 scrapy==2.6.1
 astor==0.8.1
+jinja2==3.1.1
+wandb==0.12.14

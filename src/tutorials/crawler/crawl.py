@@ -1,11 +1,12 @@
 import os
 
+import yaml
 from scrapy.crawler import CrawlerProcess
 from scrapy.utils.project import get_project_settings
 from pathlib import Path
 import click
 
-if Path().stem == 'crawler':
+if Path().absolute().stem == 'crawler':
     root = Path().absolute().parents[2]
 else:
     root = Path().absolute()
@@ -15,13 +16,12 @@ print(save_path)
 
 @click.command()
 @click.argument('name')
-@click.argument('start_url')
-@click.option('--allowed-path', default=None)
-def crawl(name, start_url, allowed_path):
+def crawl(name):
     os.environ.setdefault('SCRAPY_SETTINGS_MODULE', 'crawler.settings')
     settings = get_project_settings()
     if not root.joinpath('data/crawled_maps').exists():
         root.joinpath('data/crawled_maps').mkdir()
+    cfg = yaml.load(root.joinpath(f"data/tutorial_cfg/{name}.yaml").open(), yaml.Loader)
 
     with root.joinpath(f'data/crawled_maps/{name}.json').open('w'):
         pass
@@ -30,19 +30,18 @@ def crawl(name, start_url, allowed_path):
     }
     process = CrawlerProcess(settings)
 
-    if name == "lxml":
-        disallow = [r'.*/[0-9]+\.[0-9]+\/.*', r'.*/changes.*', '.*#.*','.*/files/.*']
-    else:
-        disallow = []
+    disallow = cfg.get('disallow', [])
+    print(f"Starting from {cfg['url']}")
 
     # 'followall' is the name of one of the spiders of the project.
     process.crawl(
         'docspider',
         out_name=name,
-        url=start_url,
+        url=cfg['url'],
         output_path=save_path,
-        allowed_path=allowed_path,
-        disallow=disallow
+        allowed_path=cfg.get('allowed_path', None),
+        disallow=disallow,
+        disallow_file_types=cfg.get('disallow_file_types', [])
     )
     process.start()
 

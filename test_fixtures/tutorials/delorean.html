@@ -1,0 +1,268 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+        "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<!-- saved from url=(0057)https://delorean.readthedocs.io/en/latest/quickstart.html -->
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=Edge">
+
+    <title>Usage — delorean 1.0.0 documentation</title>
+    <link rel="stylesheet" href="./delorean_files/flasky.css" type="text/css">
+    <link rel="stylesheet" href="./delorean_files/pygments.css" type="text/css">
+    <link rel="stylesheet" href="./delorean_files/badge_only.css" type="text/css">
+    <script type="text/javascript" async="" id="gauges-tracker"
+            data-site-id="50f10bd6613f5d3e2c00000e" src="./delorean_files/track.js"></script>
+    <script type="text/javascript" id="documentation_options" data-url_root="./"
+            src="./delorean_files/documentation_options.js"></script>
+    <script type="text/javascript" src="./delorean_files/jquery-2.0.3.min.js"></script>
+    <script type="text/javascript" src="./delorean_files/jquery-migrate-1.2.1.min.js"></script>
+    <script type="text/javascript" src="./delorean_files/underscore.js"></script>
+    <script type="text/javascript" src="./delorean_files/doctools.js"></script>
+    <script type="text/javascript" src="./delorean_files/readthedocs-doc-embed.js"></script>
+    <link rel="index" title="Index" href="https://delorean.readthedocs.io/en/latest/genindex.html">
+    <link rel="search" title="Search" href="https://delorean.readthedocs.io/en/latest/search.html">
+    <link rel="next" title="Interface"
+          href="https://delorean.readthedocs.io/en/latest/interface.html">
+    <link rel="prev" title="Installation"
+          href="https://delorean.readthedocs.io/en/latest/install.html">
+
+
+    <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9">
+
+
+    <!-- RTD Extra Head -->
+
+    <!--
+    Always link to the latest version, as canonical.
+    http://docs.readthedocs.org/en/latest/canonical.html
+    -->
+    <link rel="canonical" href="https://delorean.readthedocs.io/en/latest/quickstart.html">
+
+    <link rel="stylesheet" href="./delorean_files/readthedocs-doc-embed.css" type="text/css">
+
+    <script type="text/javascript" src="./delorean_files/readthedocs-data.js"></script>
+
+    <!-- Add page-specific data, which must exist in the page js, not global -->
+    <script type="text/javascript">
+        READTHEDOCS_DATA['page'] = 'quickstart'
+        READTHEDOCS_DATA['source_suffix'] = '.rst'
+    </script>
+
+    <script type="text/javascript" src="./delorean_files/readthedocs-analytics.js"></script>
+    <script src="./delorean_files/js" type="text/javascript" async=""></script>
+
+    <!-- end RTD <extrahead> -->
+    <script src="./delorean_files/ethicalads.min.js" type="text/javascript" async=""
+            id="ethicaladsjs"></script>
+</head>
+<body style="" data-new-gr-c-s-check-loaded="14.1056.0" data-gr-ext-installed="">
+<div class="related" role="navigation" aria-label="related navigation">
+    <h3>Navigation</h3>
+    <ul>
+        <li class="right" style="margin-right: 10px">
+            <a href="https://delorean.readthedocs.io/en/latest/genindex.html" title="General Index"
+               accesskey="I">index</a></li>
+        <li class="right">
+            <a href="https://delorean.readthedocs.io/en/latest/py-modindex.html"
+               title="Python Module Index">modules</a> |
+        </li>
+        <li class="right">
+            <a href="https://delorean.readthedocs.io/en/latest/interface.html" title="Interface"
+               accesskey="N">next</a> |
+        </li>
+        <li class="right">
+            <a href="https://delorean.readthedocs.io/en/latest/install.html" title="Installation"
+               accesskey="P">previous</a> |
+        </li>
+        <li class="nav-item nav-item-0"><a
+                href="https://delorean.readthedocs.io/en/latest/index.html">delorean 1.0.0
+            documentation</a> »
+        </li>
+    </ul>
+</div>
+
+<div class="document">
+    <div class="documentwrapper">
+        <div class="bodywrapper">
+            <div class="body" role="main">
+
+                <div class="section" id="usage">
+                    <h1>Usage<a class="headerlink"
+                                href="https://delorean.readthedocs.io/en/latest/quickstart.html#usage"
+                                title="Permalink to this headline">¶</a></h1>
+                    <p><cite>Delorean</cite> aims to provide you with convient ways to get
+                        significant dates and times and easy ways to move dates from state to state.
+                    </p>
+                    <p>In order to get the most of the documentation we will define some
+                        terminology.</p>
+                    <ol class="arabic simple">
+                        <li><strong>naive datetime</strong> – a datetime object without a timezone.
+                        </li>
+                        <li><strong>localized datetime</strong> – a datetime object with a timezone.
+                        </li>
+                        <li><strong>localizing</strong> – associating a naive datetime object with a
+                            timezone.
+                        </li>
+                        <li><strong>normalizing</strong> – shifting a localized datetime object from
+                            one timezone to another, this changes both tzinfo and datetime object.
+                        </li>
+                    </ol>
+                    <div class="section" id="making-some-time">
+                        <h2>Making Some Time<a class="headerlink"
+                                               href="https://delorean.readthedocs.io/en/latest/quickstart.html#making-some-time"
+                                               title="Permalink to this headline">¶</a></h2>
+                        <p>Making time with <cite>delorean</cite> is much easier than in life.</p>
+                        <p>Start with importing delorean:</p>
+                        <div class="highlight-default notranslate">
+                            <div class="highlight"><pre><span></span><span
+                                    class="gp">&gt;&gt;&gt; </span><span
+                                    class="kn">from</span> <span class="nn">delorean</span> <span
+                                    class="k">import</span> <span class="n">Delorean</span>
+</pre>
+                            </div>
+                        </div>
+                        <div class="admonition note">
+                            <p class="first admonition-title">Note</p>
+                            <p class="last">If you are comparing Delorean objects the time since
+                                epoch will be used internally
+                                for comparison. This allows for the greatest accuracy when comparing
+                                Delorean
+                                objects from different timezones!</p>
+                        </div>
+                    </div>
+                </div>
+
+
+            </div>
+        </div>
+    </div>
+    <div class="clearer"></div>
+</div>
+<div class="footer">
+    © Copyright 2013, Mahdi Yusuf.
+</div>
+<a href="https://github.com/myusuf3/delorean" class="github">
+    <img style="position: absolute; top: 0; right: 0; border: 0;"
+         src="./delorean_files/forkme_right_darkblue_121621.png" alt="Fork me on GitHub">
+</a>
+
+<script type="text/javascript">
+    var _gauges = _gauges || [];
+    (function () {
+        var t = document.createElement('script');
+        t.type = 'text/javascript';
+        t.async = true;
+        t.id = 'gauges-tracker';
+        t.setAttribute('data-site-id', '50f10bd6613f5d3e2c00000e');
+        t.src = '//secure.gaug.es/track.js';
+        var s = document.getElementsByTagName('script')[0];
+        s.parentNode.insertBefore(t, s);
+    })();
+</script>
+
+<!-- Inserted RTD Footer -->
+
+<div class="injected">
+
+
+    <div class="rst-versions rst-badge" data-toggle="rst-versions">
+    <span class="rst-current-version" data-toggle="rst-current-version">
+      <span class="fa fa-book">&nbsp;</span>
+      v: latest
+      <span class="fa fa-caret-down"></span>
+    </span>
+        <div class="rst-other-versions">
+
+
+            <dl>
+                <dt>Versions</dt>
+
+                <dd class="rtd-current-item">
+                    <a href="https://delorean.readthedocs.io/en/latest/quickstart.html">latest</a>
+                </dd>
+
+                <dd>
+                    <a href="https://delorean.readthedocs.io/en/stable/quickstart.html">stable</a>
+                </dd>
+
+                <dd>
+                    <a href="https://delorean.readthedocs.io/en/v0.3.1/quickstart.html">v0.3.1</a>
+                </dd>
+
+            </dl>
+
+
+            <dl>
+                <dt>Downloads</dt>
+
+                <dd><a href="https://delorean.readthedocs.io/_/downloads/en/latest/pdf/">PDF</a>
+                </dd>
+
+                <dd>
+                    <a href="https://delorean.readthedocs.io/_/downloads/en/latest/htmlzip/">HTML</a>
+                </dd>
+
+                <dd><a href="https://delorean.readthedocs.io/_/downloads/en/latest/epub/">Epub</a>
+                </dd>
+
+            </dl>
+
+
+            <dl>
+
+                <!-- These are kept as relative links for internal installs that are http -->
+                <dt>On Read the Docs</dt>
+                <dd>
+                    <a href="https://readthedocs.org/projects/delorean/">Project Home</a>
+                </dd>
+                <dd>
+                    <a href="https://readthedocs.org/projects/delorean/builds/">Builds</a>
+                </dd>
+                <dd>
+                    <a href="https://readthedocs.org/projects/delorean/downloads/">Downloads</a>
+                </dd>
+            </dl>
+
+
+            <dl>
+                <dt>On GitHub</dt>
+                <dd>
+                    <a href="https://github.com/myusuf3/delorean/blob/master/docs/quickstart.rst">View</a>
+                </dd>
+
+            </dl>
+
+
+            <dl>
+                <dt>Search</dt>
+                <dd>
+                    <div style="padding: 6px;">
+
+                        <form id="flyout-search-form" class="wy-form" target="_blank"
+                              action="https://readthedocs.org/projects/delorean/search/"
+                              method="get">
+                            <input type="text" name="q" aria-label="Search docs"
+                                   placeholder="Search docs">
+                        </form>
+                    </div>
+                </dd>
+            </dl>
+
+
+            <hr>
+
+
+            <small>
+                <span>Hosted by <a href="https://readthedocs.org/">Read the Docs</a></span>
+                <span> · </span>
+                <a href="https://docs.readthedocs.io/page/privacy-policy.html">Privacy Policy</a>
+            </small>
+
+
+        </div>
+    </div>
+
+
+</div>
+</body>
+</html>
