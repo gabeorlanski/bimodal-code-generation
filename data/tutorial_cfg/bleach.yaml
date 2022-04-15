@@ -1,0 +1,20 @@
+url: "https://bleach.readthedocs.io/en/latest"
+allowed_path: "en/latest"
+disallow:
+  - '.*/pdf/*'
+  - '.*/epub/*'
+  - '.*/htmlzip/*'
+disallow_file_types:
+  - bib
+  - py
+  - pdf
+groups:
+  tutorials:
+    path: /en/latest
+    pages:
+      linkify: linkify.html
+      clean: clean.html
+      goals: goals.html
+
+
+

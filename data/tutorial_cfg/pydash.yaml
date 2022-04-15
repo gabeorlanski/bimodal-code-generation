@@ -1,0 +1,21 @@
+url: "https://pydash.readthedocs.io/en/latest"
+allowed_path: "en/latest"
+disallow:
+  - '.*/pdf/*'
+  - '.*/epub/*'
+  - '.*/htmlzip/*'
+disallow_file_types:
+  - bib
+  - py
+  - pdf
+groups:
+  tutorials:
+    path: /en/latest
+    pages:
+      quickstart: quickstart.html
+      callbacks: callbacks.html
+      deeppath: deeppath.html
+      chaining: chaining.html
+
+
+

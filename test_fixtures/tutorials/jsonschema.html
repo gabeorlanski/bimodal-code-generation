@@ -1,0 +1,961 @@
+<!DOCTYPE html>
+<!-- saved from url=(0058)https://python-jsonschema.readthedocs.io/en/stable/errors/ -->
+<html class="" lang="en">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <meta name="color-scheme" content="light dark">
+    <meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/">
+    <link rel="index" title="Index"
+          href="https://python-jsonschema.readthedocs.io/en/stable/genindex/">
+    <link rel="search" title="Search"
+          href="https://python-jsonschema.readthedocs.io/en/stable/search/">
+    <link rel="next" title="Resolving JSON References"
+          href="https://python-jsonschema.readthedocs.io/en/stable/references/">
+    <link rel="prev" title="Schema Validation"
+          href="https://python-jsonschema.readthedocs.io/en/stable/validate/">
+
+    <meta name="generator" content="sphinx-4.3.2, furo 2022.01.02">
+    <title>Handling Validation Errors - jsonschema 4.4.0 documentation</title>
+    <link rel="stylesheet" type="text/css" href="./jsonschema_files/pygments.css">
+    <link rel="stylesheet" type="text/css" href="./jsonschema_files/furo.css">
+    <link rel="stylesheet" type="text/css" href="./jsonschema_files/badge_only.css">
+    <link rel="stylesheet" type="text/css" href="./jsonschema_files/furo-extensions.css">
+
+
+    <style>
+        body {
+            --color-code-background: #eeffcc;
+            --color-code-foreground: black;
+
+        }
+
+        body[data-theme="dark"] {
+            --color-code-background: #202020;
+            --color-code-foreground: #d0d0d0;
+
+        }
+
+        @media (prefers-color-scheme: dark) {
+            body:not([data-theme="light"]) {
+                --color-code-background: #202020;
+                --color-code-foreground: #d0d0d0;
+
+            }
+        }
+    </style>
+    <!-- RTD Extra Head -->
+
+    <link rel="stylesheet" href="./jsonschema_files/readthedocs-doc-embed.css" type="text/css">
+
+    <script type="application/json" id="READTHEDOCS_DATA">{
+        "ad_free": false,
+        "api_host": "https://readthedocs.org",
+        "build_date": "2022-01-12T12:04:55Z",
+        "builder": "sphinx",
+        "canonical_url": null,
+        "commit": "65f591e5",
+        "docroot": "/docs/",
+        "features": {
+            "docsearch_disabled": false
+        },
+        "global_analytics_code": "UA-17997319-1",
+        "language": "en",
+        "page": "errors",
+        "programming_language": "py",
+        "project": "python-jsonschema",
+        "proxied_api_host": "/_",
+        "source_suffix": ".rst",
+        "subprojects": {},
+        "theme": "furo",
+        "user_analytics_code": "",
+        "version": "stable"
+    }</script>
+
+    <!--
+    Using this variable directly instead of using `JSON.parse` is deprecated.
+    The READTHEDOCS_DATA global variable will be removed in the future.
+    -->
+    <script type="text/javascript">
+        READTHEDOCS_DATA = JSON.parse(document.getElementById('READTHEDOCS_DATA').innerHTML);
+    </script>
+
+    <script type="text/javascript" src="./jsonschema_files/readthedocs-analytics.js"
+            async="async"></script>
+
+    <!-- end RTD <extrahead> -->
+    <script src="./jsonschema_files/js" type="text/javascript" async=""></script>
+    <script src="./jsonschema_files/ethicalads.min.js" type="text/javascript" async=""
+            id="ethicaladsjs"></script>
+</head>
+<body data-theme="auto" data-new-gr-c-s-check-loaded="14.1056.0" data-gr-ext-installed="">
+<script>
+    document.body.dataset.theme = localStorage.getItem("theme") || "auto";
+</script>
+
+<svg xmlns="http://www.w3.org/2000/svg" style="display: none;">
+    <symbol id="svg-toc" viewBox="0 0 24 24">
+        <title>Contents</title>
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
+             fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"
+             stroke-linejoin="round">
+            <path stroke="none" d="M0 0h24v24H0z"></path>
+            <line x1="4" y1="6" x2="20" y2="6"></line>
+            <line x1="10" y1="12" x2="20" y2="12"></line>
+            <line x1="6" y1="18" x2="20" y2="18"></line>
+        </svg>
+    </symbol>
+    <symbol id="svg-menu" viewBox="0 0 24 24">
+        <title>Menu</title>
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
+             fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+             stroke-linejoin="round" class="feather-menu">
+            <line x1="3" y1="12" x2="21" y2="12"></line>
+            <line x1="3" y1="6" x2="21" y2="6"></line>
+            <line x1="3" y1="18" x2="21" y2="18"></line>
+        </svg>
+    </symbol>
+    <symbol id="svg-arrow-right" viewBox="0 0 24 24">
+        <title>Expand</title>
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
+             fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+             stroke-linejoin="round" class="feather-chevron-right">
+            <polyline points="9 18 15 12 9 6"></polyline>
+        </svg>
+    </symbol>
+    <symbol id="svg-sun" viewBox="0 0 24 24">
+        <title>Light mode</title>
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
+             fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"
+             stroke-linejoin="round" class="feather-sun">
+            <circle cx="12" cy="12" r="5"></circle>
+            <line x1="12" y1="1" x2="12" y2="3"></line>
+            <line x1="12" y1="21" x2="12" y2="23"></line>
+            <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+            <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+            <line x1="1" y1="12" x2="3" y2="12"></line>
+            <line x1="21" y1="12" x2="23" y2="12"></line>
+            <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+            <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+        </svg>
+    </symbol>
+    <symbol id="svg-moon" viewBox="0 0 24 24">
+        <title>Dark mode</title>
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
+             fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"
+             stroke-linejoin="round" class="icon-tabler-moon">
+            <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+            <path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z"></path>
+        </svg>
+    </symbol>
+    <symbol id="svg-sun-half" viewBox="0 0 24 24">
+        <title>Auto light/dark mode</title>
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
+             fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"
+             stroke-linejoin="round" class="icon-tabler-shadow">
+            <path stroke="none" d="M0 0h24v24H0z" fill="none"></path>
+            <circle cx="12" cy="12" r="9"></circle>
+            <path d="M13 12h5"></path>
+            <path d="M13 15h4"></path>
+            <path d="M13 18h1"></path>
+            <path d="M13 9h4"></path>
+            <path d="M13 6h1"></path>
+        </svg>
+    </symbol>
+</svg>
+
+<input type="checkbox" class="sidebar-toggle" name="__navigation" id="__navigation">
+<input type="checkbox" class="sidebar-toggle" name="__toc" id="__toc">
+<label class="overlay sidebar-overlay" for="__navigation">
+    <div class="visually-hidden">Hide navigation sidebar</div>
+</label>
+<label class="overlay toc-overlay" for="__toc">
+    <div class="visually-hidden">Hide table of contents sidebar</div>
+</label>
+
+
+<div class="page">
+    <header class="mobile-header scrolled">
+        <div class="header-left">
+            <label class="nav-overlay-icon" for="__navigation">
+                <div class="visually-hidden">Toggle site navigation sidebar</div>
+                <i class="icon">
+                    <svg>
+                        <use href="#svg-menu"></use>
+                    </svg>
+                </i>
+            </label>
+        </div>
+        <div class="header-center">
+            <a href="https://python-jsonschema.readthedocs.io/en/stable/">
+                <div class="brand">jsonschema 4.4.0 documentation</div>
+            </a>
+        </div>
+        <div class="header-right">
+            <div class="theme-toggle-container theme-toggle-header">
+                <button class="theme-toggle">
+                    <div class="visually-hidden">Toggle Light / Dark / Auto color theme</div>
+                    <svg class="theme-icon-when-auto">
+                        <use href="#svg-sun-half"></use>
+                    </svg>
+                    <svg class="theme-icon-when-dark">
+                        <use href="#svg-moon"></use>
+                    </svg>
+                    <svg class="theme-icon-when-light">
+                        <use href="#svg-sun"></use>
+                    </svg>
+                </button>
+            </div>
+            <label class="toc-overlay-icon toc-header-icon" for="__toc">
+                <div class="visually-hidden">Toggle table of contents sidebar</div>
+                <i class="icon">
+                    <svg>
+                        <use href="#svg-toc"></use>
+                    </svg>
+                </i>
+            </label>
+        </div>
+    </header>
+    <aside class="sidebar-drawer">
+        <div class="sidebar-container">
+
+            <div class="sidebar-sticky"><a class="sidebar-brand"
+                                           href="https://python-jsonschema.readthedocs.io/en/stable/">
+
+
+                <span class="sidebar-brand-text">jsonschema 4.4.0 documentation</span>
+
+            </a>
+                <form class="sidebar-search-container" method="get"
+                      action="https://python-jsonschema.readthedocs.io/en/stable/search/"
+                      role="search">
+                    <input class="sidebar-search" placeholder="Search" name="q" aria-label="Search">
+                    <input type="hidden" name="check_keywords" value="yes">
+                    <input type="hidden" name="area" value="default">
+                </form>
+                <div id="searchbox"></div>
+                <div class="sidebar-scroll">
+                    <div class="sidebar-tree">
+                        <ul class="current">
+                            <li class="toctree-l1"><a class="reference internal"
+                                                      href="https://python-jsonschema.readthedocs.io/en/stable/validate/">Schema
+                                Validation</a></li>
+                            <li class="toctree-l1 current current-page"><a
+                                    class="current reference internal"
+                                    href="https://python-jsonschema.readthedocs.io/en/stable/errors/#">Handling
+                                Validation Errors</a></li>
+                            <li class="toctree-l1"><a class="reference internal"
+                                                      href="https://python-jsonschema.readthedocs.io/en/stable/references/">Resolving
+                                JSON References</a></li>
+                            <li class="toctree-l1"><a class="reference internal"
+                                                      href="https://python-jsonschema.readthedocs.io/en/stable/creating/">Creating
+                                or Extending Validator Classes</a></li>
+                            <li class="toctree-l1"><a class="reference internal"
+                                                      href="https://python-jsonschema.readthedocs.io/en/stable/faq/">Frequently
+                                Asked Questions</a></li>
+                        </ul>
+
+                    </div>
+
+                    <div id="furo-sidebar-ad-placement" class="flat" data-ea-publisher="readthedocs"
+                         data-ea-type="readthedocs-sidebar" data-ea-manual="true"
+                         data-ea-keywords="json|jsonschema|python|readthedocs-project-5193|readthedocs-project-python-jsonschema|schema|validation"
+                         data-ea-campaign-types="community|house|paid"></div>
+                </div>
+            </div>
+
+        </div>
+    </aside>
+    <div class="main">
+        <div class="content">
+            <div class="article-container">
+                <div class="content-icon-container">
+                    <div class="theme-toggle-container theme-toggle-content">
+                        <button class="theme-toggle">
+                            <div class="visually-hidden">Toggle Light / Dark / Auto color theme
+                            </div>
+                            <svg class="theme-icon-when-auto">
+                                <use href="#svg-sun-half"></use>
+                            </svg>
+                            <svg class="theme-icon-when-dark">
+                                <use href="#svg-moon"></use>
+                            </svg>
+                            <svg class="theme-icon-when-light">
+                                <use href="#svg-sun"></use>
+                            </svg>
+                        </button>
+                    </div>
+                    <label class="toc-overlay-icon toc-content-icon" for="__toc">
+                        <div class="visually-hidden">Toggle table of contents sidebar</div>
+                        <i class="icon">
+                            <svg>
+                                <use href="#svg-toc"></use>
+                            </svg>
+                        </i>
+                    </label>
+                </div>
+                <article role="main">
+                    <section id="handling-validation-errors">
+                        <h1>Handling Validation Errors<a class="headerlink"
+                                                         href="https://python-jsonschema.readthedocs.io/en/stable/errors/#handling-validation-errors"
+                                                         title="Permalink to this headline">¶</a>
+                        </h1>
+                        <p>When an invalid instance is encountered, a <a class="reference internal"
+                                                                         href="https://python-jsonschema.readthedocs.io/en/stable/errors/#jsonschema.exceptions.ValidationError"
+                                                                         title="jsonschema.exceptions.ValidationError"><code
+                                class="xref any py py-exc docutils literal notranslate"><span
+                                class="pre">ValidationError</span></code></a> will be
+                            raised or returned, depending on which method or function is used.</p>
+                        <dl class="py exception">
+                            <dt class="sig sig-object py"
+                                id="jsonschema.exceptions.ValidationError">
+                                <em class="property"><span class="pre">exception</span><span
+                                        class="w"> </span></em><span
+                                    class="sig-prename descclassname"><span class="pre">jsonschema.exceptions.</span></span><span
+                                    class="sig-name descname"><span
+                                    class="pre">ValidationError</span></span><span
+                                    class="sig-paren">(</span><em class="sig-param"><span class="n"><span
+                                    class="pre">message</span></span></em>, <em
+                                    class="sig-param"><span class="n"><span class="pre">validator=&lt;unset&gt;</span></span></em>,
+                                <em class="sig-param"><span class="n"><span
+                                        class="pre">path=()</span></span></em>, <em
+                                    class="sig-param"><span class="n"><span
+                                    class="pre">cause=None</span></span></em>, <em
+                                    class="sig-param"><span class="n"><span
+                                    class="pre">context=()</span></span></em>, <em
+                                    class="sig-param"><span class="n"><span class="pre">validator_value=&lt;unset&gt;</span></span></em>,
+                                <em class="sig-param"><span class="n"><span class="pre">instance=&lt;unset&gt;</span></span></em>,
+                                <em class="sig-param"><span class="n"><span class="pre">schema=&lt;unset&gt;</span></span></em>,
+                                <em class="sig-param"><span class="n"><span class="pre">schema_path=()</span></span></em>,
+                                <em class="sig-param"><span class="n"><span
+                                        class="pre">parent=None</span></span></em><span
+                                    class="sig-paren">)</span><a class="reference internal"
+                                                                 href="https://python-jsonschema.readthedocs.io/en/stable/_modules/jsonschema/exceptions/#ValidationError"><span
+                                    class="viewcode-link"><span
+                                    class="pre">[source]</span></span></a><a class="headerlink"
+                                                                             href="https://python-jsonschema.readthedocs.io/en/stable/errors/#jsonschema.exceptions.ValidationError"
+                                                                             title="Permalink to this definition">¶</a>
+                            </dt>
+                            <dd><p>An instance was invalid under a provided schema.</p>
+                                <p>The information carried by an error roughly breaks down into:</p>
+                                <div class="table-wrapper">
+                                    <div class="wy-table-responsive">
+                                        <table class="docutils align-default">
+                                            <colgroup>
+                                                <col style="width: 27%">
+                                                <col style="width: 30%">
+                                                <col style="width: 43%">
+                                            </colgroup>
+                                            <thead>
+                                            <tr class="row-odd">
+                                                <th class="head"><p>What Happened</p></th>
+                                                <th class="head"><p>Why Did It Happen</p></th>
+                                                <th class="head"><p>What Was Being Validated</p>
+                                                </th>
+                                            </tr>
+                                            </thead>
+                                            <tbody>
+                                            <tr class="row-even">
+                                                <td><p><a class="reference internal"
+                                                          href="https://python-jsonschema.readthedocs.io/en/stable/errors/#jsonschema.exceptions.ValidationError.message"
+                                                          title="jsonschema.exceptions.ValidationError.message"><code
+                                                        class="xref any py py-attr docutils literal notranslate"><span
+                                                        class="pre">message</span></code></a></p>
+                                                </td>
+                                                <td><p><a class="reference internal"
+                                                          href="https://python-jsonschema.readthedocs.io/en/stable/errors/#jsonschema.exceptions.ValidationError.context"
+                                                          title="jsonschema.exceptions.ValidationError.context"><code
+                                                        class="xref any py py-attr docutils literal notranslate"><span
+                                                        class="pre">context</span></code></a></p>
+                                                    <p><a class="reference internal"
+                                                          href="https://python-jsonschema.readthedocs.io/en/stable/errors/#jsonschema.exceptions.ValidationError.cause"
+                                                          title="jsonschema.exceptions.ValidationError.cause"><code
+                                                            class="xref any py py-attr docutils literal notranslate"><span
+                                                            class="pre">cause</span></code></a></p>
+                                                </td>
+                                                <td><p><a class="reference internal"
+                                                          href="https://python-jsonschema.readthedocs.io/en/stable/errors/#jsonschema.exceptions.ValidationError.instance"
+                                                          title="jsonschema.exceptions.ValidationError.instance"><code
+                                                        class="xref any py py-attr docutils literal notranslate"><span
+                                                        class="pre">instance</span></code></a></p>
+                                                    <p><a class="reference internal"
+                                                          href="https://python-jsonschema.readthedocs.io/en/stable/errors/#jsonschema.exceptions.ValidationError.json_path"
+                                                          title="jsonschema.exceptions.ValidationError.json_path"><code
+                                                            class="xref any py py-attr docutils literal notranslate"><span
+                                                            class="pre">json_path</span></code></a>
+                                                    </p>
+                                                    <p><a class="reference internal"
+                                                          href="https://python-jsonschema.readthedocs.io/en/stable/errors/#jsonschema.exceptions.ValidationError.path"
+                                                          title="jsonschema.exceptions.ValidationError.path"><code
+                                                            class="xref any py py-attr docutils literal notranslate"><span
+                                                            class="pre">path</span></code></a></p>
+                                                    <p><a class="reference internal"
+                                                          href="https://python-jsonschema.readthedocs.io/en/stable/errors/#jsonschema.exceptions.ValidationError.schema"
+                                                          title="jsonschema.exceptions.ValidationError.schema"><code
+                                                            class="xref any py py-attr docutils literal notranslate"><span
+                                                            class="pre">schema</span></code></a></p>
+                                                    <p><a class="reference internal"
+                                                          href="https://python-jsonschema.readthedocs.io/en/stable/errors/#jsonschema.exceptions.ValidationError.schema_path"
+                                                          title="jsonschema.exceptions.ValidationError.schema_path"><code
+                                                            class="xref any py py-attr docutils literal notranslate"><span
+                                                            class="pre">schema_path</span></code></a>
+                                                    </p>
+                                                    <p><a class="reference internal"
+                                                          href="https://python-jsonschema.readthedocs.io/en/stable/errors/#jsonschema.exceptions.ValidationError.validator"
+                                                          title="jsonschema.exceptions.ValidationError.validator"><code
+                                                            class="xref any py py-attr docutils literal notranslate"><span
+                                                            class="pre">validator</span></code></a>
+                                                    </p>
+                                                    <p><a class="reference internal"
+                                                          href="https://python-jsonschema.readthedocs.io/en/stable/errors/#jsonschema.exceptions.ValidationError.validator_value"
+                                                          title="jsonschema.exceptions.ValidationError.validator_value"><code
+                                                            class="xref any py py-attr docutils literal notranslate"><span
+                                                            class="pre">validator_value</span></code></a>
+                                                    </p>
+                                                </td>
+                                            </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                                <dl class="py attribute">
+                                    <dt class="sig sig-object py"
+                                        id="jsonschema.exceptions.ValidationError.message">
+                                        <span class="sig-name descname"><span
+                                                class="pre">message</span></span><a
+                                            class="headerlink"
+                                            href="https://python-jsonschema.readthedocs.io/en/stable/errors/#jsonschema.exceptions.ValidationError.message"
+                                            title="Permalink to this definition">¶</a></dt>
+                                    <dd><p>A human readable message explaining the error.</p>
+                                    </dd>
+                                </dl>
+                            </dd>
+                        </dl>
+                        <p>In case an invalid schema itself is encountered, a <a
+                                class="reference internal"
+                                href="https://python-jsonschema.readthedocs.io/en/stable/errors/#jsonschema.exceptions.SchemaError"
+                                title="jsonschema.exceptions.SchemaError"><code
+                                class="xref any py py-exc docutils literal notranslate"><span
+                                class="pre">SchemaError</span></code></a> is
+                            raised.</p>
+                        <dl class="py exception">
+                            <dt class="sig sig-object py" id="jsonschema.exceptions.SchemaError">
+                                <em class="property"><span class="pre">exception</span><span
+                                        class="w"> </span></em><span
+                                    class="sig-prename descclassname"><span class="pre">jsonschema.exceptions.</span></span><span
+                                    class="sig-name descname"><span
+                                    class="pre">SchemaError</span></span><span
+                                    class="sig-paren">(</span><em class="sig-param"><span class="n"><span
+                                    class="pre">message</span></span></em>, <em
+                                    class="sig-param"><span class="n"><span class="pre">validator=&lt;unset&gt;</span></span></em>,
+                                <em class="sig-param"><span class="n"><span
+                                        class="pre">path=()</span></span></em>, <em
+                                    class="sig-param"><span class="n"><span
+                                    class="pre">cause=None</span></span></em>, <em
+                                    class="sig-param"><span class="n"><span
+                                    class="pre">context=()</span></span></em>, <em
+                                    class="sig-param"><span class="n"><span class="pre">validator_value=&lt;unset&gt;</span></span></em>,
+                                <em class="sig-param"><span class="n"><span class="pre">instance=&lt;unset&gt;</span></span></em>,
+                                <em class="sig-param"><span class="n"><span class="pre">schema=&lt;unset&gt;</span></span></em>,
+                                <em class="sig-param"><span class="n"><span class="pre">schema_path=()</span></span></em>,
+                                <em class="sig-param"><span class="n"><span
+                                        class="pre">parent=None</span></span></em><span
+                                    class="sig-paren">)</span><a class="reference internal"
+                                                                 href="https://python-jsonschema.readthedocs.io/en/stable/_modules/jsonschema/exceptions/#SchemaError"><span
+                                    class="viewcode-link"><span
+                                    class="pre">[source]</span></span></a><a class="headerlink"
+                                                                             href="https://python-jsonschema.readthedocs.io/en/stable/errors/#jsonschema.exceptions.SchemaError"
+                                                                             title="Permalink to this definition">¶</a>
+                            </dt>
+                            <dd><p>A schema was invalid under its corresponding metaschema.</p>
+                                <p>The same attributes are present as for <a
+                                        class="reference internal"
+                                        href="https://python-jsonschema.readthedocs.io/en/stable/errors/#jsonschema.exceptions.ValidationError"
+                                        title="jsonschema.exceptions.ValidationError"><code
+                                        class="xref any py py-exc docutils literal notranslate"><span
+                                        class="pre">ValidationError</span></code></a>s.</p>
+                            </dd>
+                        </dl>
+                        <p>These attributes can be clarified with a short example:</p>
+
+                        <section id="errortrees" class="">
+                            <h2>ErrorTrees<a class="headerlink"
+                                             href="https://python-jsonschema.readthedocs.io/en/stable/errors/#errortrees"
+                                             title="Permalink to this headline">¶</a></h2>
+                            <p>If you want to programmatically be able to query which properties or
+                                validators
+                                failed when validating a given instance, you probably will want to
+                                do so using
+                                <a class="reference internal"
+                                   href="https://python-jsonschema.readthedocs.io/en/stable/errors/#jsonschema.exceptions.ErrorTree"
+                                   title="jsonschema.exceptions.ErrorTree"><code
+                                        class="xref any py py-class docutils literal notranslate"><span
+                                        class="pre">jsonschema.exceptions.ErrorTree</span></code></a>
+                                objects.</p>
+                            <dl class="py class">
+                                <dt class="sig sig-object py" id="jsonschema.exceptions.ErrorTree">
+                                    <em class="property"><span class="pre">class</span><span
+                                            class="w"> </span></em><span
+                                        class="sig-prename descclassname"><span class="pre">jsonschema.exceptions.</span></span><span
+                                        class="sig-name descname"><span class="pre">ErrorTree</span></span><span
+                                        class="sig-paren">(</span><em class="sig-param"><span
+                                        class="n"><span class="pre">errors</span></span><span
+                                        class="o"><span class="pre">=</span></span><span
+                                        class="default_value"><span
+                                        class="pre">()</span></span></em><span
+                                        class="sig-paren">)</span><a class="reference internal"
+                                                                     href="https://python-jsonschema.readthedocs.io/en/stable/_modules/jsonschema/exceptions/#ErrorTree"><span
+                                        class="viewcode-link"><span
+                                        class="pre">[source]</span></span></a><a class="headerlink"
+                                                                                 href="https://python-jsonschema.readthedocs.io/en/stable/errors/#jsonschema.exceptions.ErrorTree"
+                                                                                 title="Permalink to this definition">¶</a>
+                                </dt>
+                                <dd><p>ErrorTrees make it easier to check which validations
+                                    failed.</p>
+                                    <dl class="py attribute">
+                                        <dt class="sig sig-object py"
+                                            id="jsonschema.exceptions.ErrorTree.errors">
+                                            <span class="sig-name descname"><span
+                                                    class="pre">errors</span></span><a
+                                                class="headerlink"
+                                                href="https://python-jsonschema.readthedocs.io/en/stable/errors/#jsonschema.exceptions.ErrorTree.errors"
+                                                title="Permalink to this definition">¶</a></dt>
+                                        <dd><p>The mapping of validator names to the error objects
+                                            (usually
+                                            <a class="reference internal"
+                                               href="https://python-jsonschema.readthedocs.io/en/stable/errors/#jsonschema.exceptions.ValidationError"
+                                               title="jsonschema.exceptions.ValidationError"><code
+                                                    class="xref any py py-exc docutils literal notranslate"><span
+                                                    class="pre">jsonschema.exceptions.ValidationError</span></code></a>s)
+                                            at this level
+                                            of the tree.</p>
+                                        </dd>
+                                    </dl>
+                                    <dl class="py method">
+                                        <dt class="sig sig-object py"
+                                            id="jsonschema.exceptions.ErrorTree.__contains__">
+                                            <span class="sig-name descname"><span class="pre">__contains__</span></span><span
+                                                class="sig-paren">(</span><em
+                                                class="sig-param"><span class="n"><span class="pre">index</span></span></em><span
+                                                class="sig-paren">)</span><a
+                                                class="reference internal"
+                                                href="https://python-jsonschema.readthedocs.io/en/stable/_modules/jsonschema/exceptions/#ErrorTree.__contains__"><span
+                                                class="viewcode-link"><span
+                                                class="pre">[source]</span></span></a><a
+                                                class="headerlink"
+                                                href="https://python-jsonschema.readthedocs.io/en/stable/errors/#jsonschema.exceptions.ErrorTree.__contains__"
+                                                title="Permalink to this definition">¶</a></dt>
+                                        <dd><p>Check whether <code
+                                                class="docutils literal notranslate"><span
+                                                class="pre">instance[index]</span></code> has any
+                                            errors.</p>
+                                        </dd>
+                                    </dl>
+                                    <dl class="py method">
+                                        <dt class="sig sig-object py"
+                                            id="jsonschema.exceptions.ErrorTree.__getitem__">
+                                            <span class="sig-name descname"><span class="pre">__getitem__</span></span><span
+                                                class="sig-paren">(</span><em
+                                                class="sig-param"><span class="n"><span class="pre">index</span></span></em><span
+                                                class="sig-paren">)</span><a
+                                                class="reference internal"
+                                                href="https://python-jsonschema.readthedocs.io/en/stable/_modules/jsonschema/exceptions/#ErrorTree.__getitem__"><span
+                                                class="viewcode-link"><span
+                                                class="pre">[source]</span></span></a><a
+                                                class="headerlink"
+                                                href="https://python-jsonschema.readthedocs.io/en/stable/errors/#jsonschema.exceptions.ErrorTree.__getitem__"
+                                                title="Permalink to this definition">¶</a></dt>
+                                        <dd><p>Retrieve the child tree one level down at the given
+                                            <code class="docutils literal notranslate"><span
+                                                    class="pre">index</span></code>.</p>
+                                            <p>If the index is not in the instance that this tree
+                                                corresponds
+                                                to and is not known by this tree, whatever error
+                                                would be raised
+                                                by <code class="docutils literal notranslate"><span
+                                                        class="pre">instance.__getitem__</span></code>
+                                                will be propagated (usually this is
+                                                some subclass of <a class="reference external"
+                                                                    href="https://docs.python.org/3/library/exceptions.html#LookupError"
+                                                                    title="(in Python v3.10)"><code
+                                                        class="xref any docutils literal notranslate"><span
+                                                        class="pre">LookupError</span></code></a>.
+                                            </p>
+                                        </dd>
+                                    </dl>
+                                    <dl class="py method">
+                                        <dt class="sig sig-object py"
+                                            id="jsonschema.exceptions.ErrorTree.__init__">
+                                            <span class="sig-name descname"><span class="pre">__init__</span></span><span
+                                                class="sig-paren">(</span><em
+                                                class="sig-param"><span class="n"><span class="pre">errors</span></span><span
+                                                class="o"><span class="pre">=</span></span><span
+                                                class="default_value"><span
+                                                class="pre">()</span></span></em><span
+                                                class="sig-paren">)</span><a
+                                                class="reference internal"
+                                                href="https://python-jsonschema.readthedocs.io/en/stable/_modules/jsonschema/exceptions/#ErrorTree.__init__"><span
+                                                class="viewcode-link"><span
+                                                class="pre">[source]</span></span></a><a
+                                                class="headerlink"
+                                                href="https://python-jsonschema.readthedocs.io/en/stable/errors/#jsonschema.exceptions.ErrorTree.__init__"
+                                                title="Permalink to this definition">¶</a></dt>
+                                        <dd></dd>
+                                    </dl>
+                                    <dl class="py method">
+                                        <dt class="sig sig-object py"
+                                            id="jsonschema.exceptions.ErrorTree.__iter__">
+                                            <span class="sig-name descname"><span class="pre">__iter__</span></span><span
+                                                class="sig-paren">(</span><span
+                                                class="sig-paren">)</span><a
+                                                class="reference internal"
+                                                href="https://python-jsonschema.readthedocs.io/en/stable/_modules/jsonschema/exceptions/#ErrorTree.__iter__"><span
+                                                class="viewcode-link"><span
+                                                class="pre">[source]</span></span></a><a
+                                                class="headerlink"
+                                                href="https://python-jsonschema.readthedocs.io/en/stable/errors/#jsonschema.exceptions.ErrorTree.__iter__"
+                                                title="Permalink to this definition">¶</a></dt>
+                                        <dd><p>Iterate (non-recursively) over the indices in the
+                                            instance with errors.</p>
+                                        </dd>
+                                    </dl>
+                                    <dl class="py method">
+                                        <dt class="sig sig-object py"
+                                            id="jsonschema.exceptions.ErrorTree.__len__">
+                                            <span class="sig-name descname"><span class="pre">__len__</span></span><span
+                                                class="sig-paren">(</span><span
+                                                class="sig-paren">)</span><a
+                                                class="reference internal"
+                                                href="https://python-jsonschema.readthedocs.io/en/stable/_modules/jsonschema/exceptions/#ErrorTree.__len__"><span
+                                                class="viewcode-link"><span
+                                                class="pre">[source]</span></span></a><a
+                                                class="headerlink"
+                                                href="https://python-jsonschema.readthedocs.io/en/stable/errors/#jsonschema.exceptions.ErrorTree.__len__"
+                                                title="Permalink to this definition">¶</a></dt>
+                                        <dd><p>Return the <a class="reference internal"
+                                                             href="https://python-jsonschema.readthedocs.io/en/stable/errors/#jsonschema.exceptions.ErrorTree.total_errors"
+                                                             title="jsonschema.exceptions.ErrorTree.total_errors"><code
+                                                class="xref any py py-attr docutils literal notranslate"><span
+                                                class="pre">total_errors</span></code></a>.</p>
+                                        </dd>
+                                    </dl>
+                                    <dl class="py method">
+                                        <dt class="sig sig-object py"
+                                            id="jsonschema.exceptions.ErrorTree.__repr__">
+                                            <span class="sig-name descname"><span class="pre">__repr__</span></span><span
+                                                class="sig-paren">(</span><span
+                                                class="sig-paren">)</span><a
+                                                class="reference internal"
+                                                href="https://python-jsonschema.readthedocs.io/en/stable/_modules/jsonschema/exceptions/#ErrorTree.__repr__"><span
+                                                class="viewcode-link"><span
+                                                class="pre">[source]</span></span></a><a
+                                                class="headerlink"
+                                                href="https://python-jsonschema.readthedocs.io/en/stable/errors/#jsonschema.exceptions.ErrorTree.__repr__"
+                                                title="Permalink to this definition">¶</a></dt>
+                                        <dd><p>Return repr(self).</p>
+                                        </dd>
+                                    </dl>
+                                    <dl class="py method">
+                                        <dt class="sig sig-object py"
+                                            id="jsonschema.exceptions.ErrorTree.__setitem__">
+                                            <span class="sig-name descname"><span class="pre">__setitem__</span></span><span
+                                                class="sig-paren">(</span><em
+                                                class="sig-param"><span class="n"><span class="pre">index</span></span></em>,
+                                            <em class="sig-param"><span class="n"><span class="pre">value</span></span></em><span
+                                                class="sig-paren">)</span><a
+                                                class="reference internal"
+                                                href="https://python-jsonschema.readthedocs.io/en/stable/_modules/jsonschema/exceptions/#ErrorTree.__setitem__"><span
+                                                class="viewcode-link"><span
+                                                class="pre">[source]</span></span></a><a
+                                                class="headerlink"
+                                                href="https://python-jsonschema.readthedocs.io/en/stable/errors/#jsonschema.exceptions.ErrorTree.__setitem__"
+                                                title="Permalink to this definition">¶</a></dt>
+                                        <dd><p>Add an error to the tree at the given <code
+                                                class="docutils literal notranslate"><span
+                                                class="pre">index</span></code>.</p>
+                                        </dd>
+                                    </dl>
+                                    <dl class="py property">
+                                        <dt class="sig sig-object py"
+                                            id="jsonschema.exceptions.ErrorTree.total_errors">
+                                            <em class="property"><span
+                                                    class="pre">property</span><span
+                                                    class="w"> </span></em><span
+                                                class="sig-name descname"><span class="pre">total_errors</span></span><a
+                                                class="headerlink"
+                                                href="https://python-jsonschema.readthedocs.io/en/stable/errors/#jsonschema.exceptions.ErrorTree.total_errors"
+                                                title="Permalink to this definition">¶</a></dt>
+                                        <dd><p>The total number of errors in the entire tree,
+                                            including children.</p>
+                                        </dd>
+                                    </dl>
+                                </dd>
+                            </dl>
+                            <div class="highlight-pycon3 notranslate">
+                                <div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span
+                                        class="mi">0</span> <span class="ow">in</span> <span
+                                        class="n">tree</span>
+<span class="go">True</span>
+
+<span class="gp">&gt;&gt;&gt; </span><span class="mi">1</span> <span class="ow">in</span> <span
+                                            class="n">tree</span>
+<span class="go">False</span>
+</pre>
+                                </div>
+                            </div>
+
+                        </section>
+                    </section>
+
+                </article>
+            </div>
+            <footer>
+
+                <div class="related-pages">
+                    <a class="next-page"
+                       href="https://python-jsonschema.readthedocs.io/en/stable/references/">
+                        <div class="page-info">
+                            <div class="context">
+                                <span>Next</span>
+                            </div>
+                            <div class="title">Resolving JSON References</div>
+                        </div>
+                        <svg>
+                            <use href="#svg-arrow-right"></use>
+                        </svg>
+                    </a>
+                    <a class="prev-page"
+                       href="https://python-jsonschema.readthedocs.io/en/stable/validate/">
+                        <svg>
+                            <use href="#svg-arrow-right"></use>
+                        </svg>
+                        <div class="page-info">
+                            <div class="context">
+                                <span>Previous</span>
+                            </div>
+
+                            <div class="title">Schema Validation</div>
+
+                        </div>
+                    </a>
+                </div>
+
+                <div class="related-information">
+                    Copyright © 2013, Julian Berman |
+                    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> and <a
+                        class="muted-link" href="https://pradyunsg.me/">@pradyunsg</a>'s
+                    <a href="https://github.com/pradyunsg/furo">Furo theme</a>.
+                    | <a class="muted-link"
+                         href="https://python-jsonschema.readthedocs.io/en/stable/_sources/errors.rst.txt"
+                         rel="nofollow">
+                    Show Source
+                </a>
+                </div>
+
+            </footer>
+        </div>
+        <aside class="toc-drawer">
+
+
+            <div class="toc-sticky toc-scroll">
+                <div class="toc-title-container">
+          <span class="toc-title">
+            Contents
+          </span>
+                </div>
+                <div class="toc-tree-container">
+                    <div class="toc-tree">
+                        <ul>
+                            <li><a class="reference internal"
+                                   href="https://python-jsonschema.readthedocs.io/en/stable/errors/#">Handling
+                                Validation Errors</a>
+                                <ul>
+                                    <li class=""><a class="reference internal"
+                                                    href="https://python-jsonschema.readthedocs.io/en/stable/errors/#errortrees">ErrorTrees</a>
+                                    </li>
+                                    <li><a class="reference internal"
+                                           href="https://python-jsonschema.readthedocs.io/en/stable/errors/#best-match-and-relevance">best_match
+                                        and relevance</a></li>
+                                </ul>
+                            </li>
+                        </ul>
+
+                    </div>
+                </div>
+            </div>
+
+
+        </aside>
+    </div>
+</div>
+<script data-url_root="../" id="documentation_options"
+        src="./jsonschema_files/documentation_options.js"></script>
+<script src="./jsonschema_files/jquery.js"></script>
+<script src="./jsonschema_files/underscore.js"></script>
+<script src="./jsonschema_files/doctools.js"></script>
+<script src="./jsonschema_files/furo.js"></script>
+<script async="async" src="./jsonschema_files/readthedocs-doc-embed.js"></script>
+
+<!-- Inserted RTD Footer -->
+
+<div class="injected">
+
+
+    <div class="rst-versions rst-badge" data-toggle="rst-versions">
+    <span class="rst-current-version" data-toggle="rst-current-version">
+      <span class="fa fa-book">&nbsp;</span>
+      v: stable
+      <span class="fa fa-caret-down"></span>
+    </span>
+        <div class="rst-other-versions">
+
+
+            <dl>
+                <dt>Versions</dt>
+
+                <dd>
+                    <a href="https://python-jsonschema.readthedocs.io/en/master/errors/">master</a>
+                </dd>
+
+                <dd>
+                    <a href="https://python-jsonschema.readthedocs.io/en/latest/errors/">latest</a>
+                </dd>
+
+                <dd class="rtd-current-item">
+                    <a href="https://python-jsonschema.readthedocs.io/en/stable/errors/">stable</a>
+                </dd>
+
+                <dd>
+                    <a href="https://python-jsonschema.readthedocs.io/en/v4.3.1/errors/">v4.3.1</a>
+                </dd>
+
+                <dd>
+                    <a href="https://python-jsonschema.readthedocs.io/en/v4.3.0/errors/">v4.3.0</a>
+                </dd>
+
+                <dd>
+                    <a href="https://python-jsonschema.readthedocs.io/en/v4.2.1/errors/">v4.2.1</a>
+                </dd>
+
+                <dd>
+                    <a href="https://python-jsonschema.readthedocs.io/en/v4.2.0/errors/">v4.2.0</a>
+                </dd>
+
+                <dd>
+                    <a href="https://python-jsonschema.readthedocs.io/en/v4.1.2/errors/">v4.1.2</a>
+                </dd>
+
+                <dd>
+                    <a href="https://python-jsonschema.readthedocs.io/en/v4.1.1/errors/">v4.1.1</a>
+                </dd>
+
+                <dd>
+                    <a href="https://python-jsonschema.readthedocs.io/en/v4.1.0/errors/">v4.1.0</a>
+                </dd>
+
+                <dd>
+                    <a href="https://python-jsonschema.readthedocs.io/en/v4.0.1/errors/">v4.0.1</a>
+                </dd>
+
+                <dd>
+                    <a href="https://python-jsonschema.readthedocs.io/en/v4.0.0/errors/">v4.0.0</a>
+                </dd>
+
+                <dd>
+                    <a href="https://python-jsonschema.readthedocs.io/en/v3.2.0/errors/">v3.2.0</a>
+                </dd>
+
+                <dd>
+                    <a href="https://python-jsonschema.readthedocs.io/en/v3.1.1/errors/">v3.1.1</a>
+                </dd>
+
+                <dd>
+                    <a href="https://python-jsonschema.readthedocs.io/en/v3.0.2/errors/">v3.0.2</a>
+                </dd>
+
+                <dd>
+                    <a href="https://python-jsonschema.readthedocs.io/en/v2.6.0/errors/">v2.6.0</a>
+                </dd>
+
+                <dd>
+                    <a href="https://python-jsonschema.readthedocs.io/en/v2.5.1/errors/">v2.5.1</a>
+                </dd>
+
+            </dl>
+
+
+            <dl>
+                <dt>Downloads</dt>
+
+                <dd><a href="https://python-jsonschema.readthedocs.io/_/downloads/en/stable/pdf/">PDF</a>
+                </dd>
+
+                <dd>
+                    <a href="https://python-jsonschema.readthedocs.io/_/downloads/en/stable/htmlzip/">HTML</a>
+                </dd>
+
+                <dd><a href="https://python-jsonschema.readthedocs.io/_/downloads/en/stable/epub/">Epub</a>
+                </dd>
+
+            </dl>
+
+
+            <dl>
+
+                <!-- These are kept as relative links for internal installs that are http -->
+                <dt>On Read the Docs</dt>
+                <dd>
+                    <a href="https://readthedocs.org/projects/python-jsonschema/">Project Home</a>
+                </dd>
+                <dd>
+                    <a href="https://readthedocs.org/projects/python-jsonschema/builds/">Builds</a>
+                </dd>
+                <dd>
+                    <a href="https://readthedocs.org/projects/python-jsonschema/downloads/">Downloads</a>
+                </dd>
+            </dl>
+
+
+            <dl>
+                <dt>On GitHub</dt>
+                <dd>
+                    <a href="https://github.com/Julian/jsonschema/blob/65f591e5152e37867cdd5db1baf6ae175229713e/docs/errors.rst">View</a>
+                </dd>
+
+            </dl>
+
+
+            <dl>
+                <dt>Search</dt>
+                <dd>
+                    <div style="padding: 6px;">
+
+                        <form id="flyout-search-form" class="wy-form" target="_blank"
+                              action="https://readthedocs.org/projects/python-jsonschema/search/"
+                              method="get">
+                            <input type="text" name="q" aria-label="Search docs"
+                                   placeholder="Search docs">
+                        </form>
+                    </div>
+                </dd>
+            </dl>
+
+
+            <hr>
+
+
+            <small>
+                <span>Hosted by <a href="https://readthedocs.org/">Read the Docs</a></span>
+                <span> · </span>
+                <a href="https://docs.readthedocs.io/page/privacy-policy.html">Privacy Policy</a>
+            </small>
+
+
+        </div>
+    </div>
+
+
+</div>
+</body>
+<grammarly-desktop-integration data-grammarly-shadow-root="true"></grammarly-desktop-integration>
+</html>

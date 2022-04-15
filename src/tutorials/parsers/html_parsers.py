@@ -3,9 +3,9 @@ from bs4 import BeautifulSoup
 from bs4.element import NavigableString, Tag
 import re
 from unidecode import unidecode
-
-from enum import Enum, auto
+import enum
 from src.common.registrable import Registrable
+import markdownify
 
 import logging
 
@@ -24,15 +24,15 @@ __all__ = [
 ]
 
 
-class TagType(Enum):
-    PARAGRAPH = auto()
-    CODE = auto()
-    SECTION = auto()
-    LIST = auto()
-    IGNORED = auto()
-    # For blocks that are not sections but need to be recursed
-    NON_SECTION_EXPAND = auto()
-    UNKNOWN = auto()
+class TagType(enum.Enum):
+    PARAGRAPH = enum.auto()
+    CODE = enum.auto()
+    SECTION = enum.auto()
+    LIST = enum.auto()
+    TABLE = enum.auto()
+    IGNORED = enum.auto()
+    NON_SECTION_EXPAND = enum.auto()
+    UNKNOWN = enum.auto()
 
 
 class TutorialHTMLParser(Registrable):
@@ -49,6 +49,15 @@ class TutorialHTMLParser(Registrable):
         'doctest',
         'syntax',
     ]
+
+    LIST_TAGS = [
+        'ul', 'ol'
+    ]
+
+    TABLE_TAGS = [
+        'table'
+    ]
+
     IGNORED_CLASSES = [
         'toctree-wrapper',
         'graphviz',
@@ -105,7 +114,7 @@ class TutorialHTMLParser(Registrable):
     #####################################################################
     # Overwrite these functions if the tutorial requires specific parsing.
     def parse_code(self, tag: Tag) -> str:
-        return self.clean_text(tag.get_text())
+        return self.clean_text(tag.get_text()).replace('\n\n\n', '').lstrip()
 
     def parse_list(self, tag: Tag) -> str:
         list_items = []
@@ -126,28 +135,52 @@ class TutorialHTMLParser(Registrable):
 
         out = self.clean_text(tag.get_text()).strip()
         if out.endswith('P'):
-            return out[:-1]
+            return out[:-1].strip()
         return out
+
+    def parse_table(self, tag: Tag) -> str:
+        for link_tag in tag.find_all('a'):
+            link_tag.replaceWithChildren()
+
+        return markdownify.markdownify(str(tag), autolinks=False).strip()
 
     @staticmethod
     def clean_text(text):
-        return unidecode(text)
+        out = unidecode(text)
+        if not out.strip():
+            return out.strip()
+
+        if out.endswith('P'):
+
+            # The stupid paragraph symbol
+            if out == 'P':
+                return ''
+
+            if not out[-2].isupper():
+                return out[:-1].strip()
+        return out
+
+    @staticmethod
+    def has_specific_class(tag_classes, cls_list):
+        return any(c in tag_classes for c in cls_list)
 
     def get_type_from_div_tag(self, tag) -> TagType:
         tag_classes = tag.attrs.get('class', [])
         if any('highlight-' in c for c in tag_classes):
             return TagType.CODE
 
-        if any(c in tag_classes for c in self.CODE_CLASSES):
+        if self.has_specific_class(tag_classes, self.CODE_CLASSES):
             return TagType.CODE
 
-        elif any(c in tag_classes for c in self.PARAGRAPH_CLASSES):
+        if self.has_specific_class(tag_classes, self.PARAGRAPH_CLASSES):
             return TagType.PARAGRAPH
-        elif any(c in tag_classes for c in self.SUB_CONTENT_CLASSES):
+
+        if self.has_specific_class(tag_classes, self.SUB_CONTENT_CLASSES):
             return TagType.NON_SECTION_EXPAND
 
-        elif any(c in tag_classes for c in self.IGNORED_CLASSES):
+        if self.has_specific_class(tag_classes, self.IGNORED_CLASSES):
             return TagType.IGNORED
+
         return TagType.UNKNOWN
 
     #####################################################################
@@ -161,7 +194,7 @@ class TutorialHTMLParser(Registrable):
             parent_id,
             section_id,
             is_section=False,
-            idx_offset=0
+            tag_idx=0
     ):
 
         header_tag = [f'h{j}' for j in range(15)]
@@ -172,11 +205,13 @@ class TutorialHTMLParser(Registrable):
                 continue
             if tag.name in header_tag:
                 if not is_section:
+
                     out.append({
-                        'idx' : len(out) + idx_offset,
+                        'idx' : tag_idx,
                         'text': self.parse_paragraph(tag),
                         'tag' : 'p'
                     })
+                    tag_idx += 1
                 else:
                     assert section_title is None
                     section_title = self.parse_title(tag)
@@ -188,12 +223,19 @@ class TutorialHTMLParser(Registrable):
 
             logger.debug(f"{self.NAME}: Parsing child {i} of {section_title} for {parent_id}")
             tag_type = self.get_type_of_tag(tag)
+            if tag.name in self.LIST_TAGS:
+                tag_type = TagType.LIST
+
+            elif tag.name in self.TABLE_TAGS:
+                tag_type = TagType.TABLE
+
             if tag_type == TagType.SECTION:
                 logger.debug(f"Found subsection in {section_title}")
-                id_counter, child = self.parse_section(
+                id_counter, child, tag_idx = self.parse_section(
                     section=tag,
                     parent_id=section_id,
-                    id_counter=id_counter
+                    id_counter=id_counter,
+                    idx_offset=tag_idx
                 )
                 out.append(child)
 
@@ -206,18 +248,18 @@ class TutorialHTMLParser(Registrable):
                     raise ValueError('section is none')
                 # id_counter += 1
                 if tag_type == TagType.NON_SECTION_EXPAND:
-                    id_counter, _, sub_content = self.parse_content(
+                    id_counter, _, sub_content, tag_idx = self.parse_content(
                         tag,
                         id_counter,
                         parent_id=parent_id,
                         section_id=section_id,
                         is_section=False,
-                        idx_offset=len(out)
+                        tag_idx=len(out) + tag_idx
                     )
                     out.extend(sub_content)
                     continue
                 tag_content = {
-                    'idx': len(out) + idx_offset
+                    'idx': tag_idx
                 }
 
                 if tag_type == TagType.PARAGRAPH:
@@ -229,22 +271,26 @@ class TutorialHTMLParser(Registrable):
                 elif tag_type == TagType.LIST:
                     tag_content['text'] = self.parse_list(tag)
                     tag_content['tag'] = 'p'
+                elif tag_type == TagType.TABLE:
+                    tag_content['text'] = self.parse_table(tag)
+                    tag_content['tag'] = 'p'
 
                 elif tag_type == TagType.IGNORED:
-                    # id_counter -= 1
                     continue
                 else:
                     logger.error(tag.text)
                     logger.error(tag.attrs)
                     raise ValueError(f'Unknown tag type {tag.name}')
+                tag_idx += 1
                 out.append(tag_content)
-        return id_counter, section_title, out
+        return id_counter, section_title, out, tag_idx
 
     def parse_section(
             self,
             section,
             parent_id,
-            id_counter=0
+            id_counter=0,
+            idx_offset=0
     ):
         section_str_id = section.attrs['id']
 
@@ -257,18 +303,21 @@ class TutorialHTMLParser(Registrable):
             'id'     : section_id,
             'id_str' : section_str_id,
             'parent' : parent_id,
+            'idx'    : idx_offset,
             'content': [],
         }
+        idx_offset += 1
 
-        id_counter, out['title'], out['content'] = self.parse_content(
+        id_counter, out['title'], out['content'], idx_offset = self.parse_content(
             section.children,
             id_counter,
             parent_id,
             section_id,
-            is_section=True
+            is_section=True,
+            tag_idx=idx_offset
         )
 
-        return id_counter, out
+        return id_counter, out, idx_offset
 
     def __call__(self, raw_html):
         soup = BeautifulSoup(raw_html, 'lxml')
@@ -276,9 +325,10 @@ class TutorialHTMLParser(Registrable):
         header, sections = self.get_header_and_sections(body)
         parsed_sections = []
         idx_counter = 0
+        tag_idx = 0
         for s in sections:
-            idx_counter, parsed = self.parse_section(
-                s, 0, idx_counter,
+            idx_counter, parsed, tag_idx = self.parse_section(
+                s, 0, idx_counter, idx_offset=tag_idx
             )
             parsed_sections.append(parsed)
 

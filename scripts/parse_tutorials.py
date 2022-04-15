@@ -30,7 +30,7 @@ import requests
 if str(Path(__file__).parents[1]) not in sys.path:
     sys.path.insert(0, str(Path(__file__).parents[1]))
 from src.common import PROJECT_ROOT, setup_global_logging
-from src.tutorials import TutorialHTMLParser, get_code_samples_from_tutorial
+from src.tutorials import TutorialHTMLParser, parse_domain_path
 
 
 def parse_tutorials(debug, input_path, output_path):
@@ -146,10 +146,9 @@ def make_samples(ctx):
     logger.info("Making the samples from the parsed tutorials")
 
     parsed_path = PROJECT_ROOT.joinpath('data/parsed_tutorials')
-    directories = list(parsed_path.glob('*'))
 
     global_context = {
-        'lxml'    : {
+        'lxml'      : {
             'global': [
                 'from lxml import etree'
             ],
@@ -158,7 +157,7 @@ def make_samples(ctx):
                 'developing_with_lxml_validation': ['from io import StringIO, BytesIO'],
             }
         },
-        'passlib' : {
+        'passlib'   : {
             'global': [
                 'import os',
                 'def TEMP_URANDOM(x):\n    raise NotImplementedError()',
@@ -172,7 +171,19 @@ def make_samples(ctx):
                 ]
             }
         },
-        'cerberus': {
+        'jsonschema': {
+            'global': ['from jsonschema import validate'],
+            'files' : {
+                'tutorials_errors': [
+                    'from jsonschema import Draft3Validator, Draft7Validator',
+                    'schema = {"type" : "array","items" : {"type" : "number", "enum" : [1, 2, 3]},"minItems" : 3,}',
+                    'instance = ["spam", 2]',
+                    'v = Draft3Validator(schema)',
+                    'tree = ErrorTree(v.iter_errors(instance))'
+                ]
+            }
+        },
+        'cerberus'  : {
             'global': ['from cerberus import Validator', 'v = Validator()'],
             'files' : {
             }
@@ -187,86 +198,44 @@ def make_samples(ctx):
         yaml.Loader
     )
 
+    directories = list(parsed_path.glob('*'))
     logger.info(f"Found {len(directories)} directories")
-    all_code = {}
     all_passed = {}
     total_runnable_code = Counter()
     total_fails = Counter()
     total_passed = Counter()
+    parsed_file_idx = 0
+    all_parsed = []
     for domain_path in directories:
-        logger.info(f"Parsing {domain_path}")
-        failures = {}
-        code = {}
-        domain_passed = {}
-        domain_fail_tests = {}
-        domain_context_cfg = global_context.get(domain_path.stem, {})
-        domain_context = domain_context_cfg.get('global', [])
-        domain_fixes = fixes_by_section.get(domain_path.stem, {})
-
-        for file in domain_path.glob('*'):
-            file_context = []
-            if domain_context_cfg:
-                file_context = domain_context_cfg['files'].get(file.stem, [])
-            tutorial_fixes = {}
-            if domain_fixes:
-                tutorial_fixes = domain_fixes.get(file.stem, {})
-            parsed = json.loads(file.read_text())
-            fail, result, passed, fail_tests = get_code_samples_from_tutorial(
-                file.stem,
-                parsed,
-                domain_context + file_context,
-                tutorial_fixes
-            )
-            domain_passed[file.stem] = passed
-
-            fail_tests_by_idx = {}
-            for r in fail_tests:
-                if r['name'] not in fail_tests_by_idx:
-                    fail_tests_by_idx[r['name']] = {}
-                if r['idx'] not in fail_tests_by_idx[r['name']]:
-                    fail_tests_by_idx[r['name']][r['idx']] = []
-                fail_tests_by_idx[r['name']][r['idx']].append(r)
-
-            for name in fail_tests_by_idx:
-                for idx in fail_tests_by_idx[name]:
-                    fail_tests_by_idx[name][idx] = list(sorted(
-                        fail_tests_by_idx[name][idx],
-                        key=lambda snip: snip['snip_idx']
-                    ))
-
-            domain_fail_tests[file.stem] = fail_tests_by_idx
-            failures[file.stem] = fail
-            code[file.stem] = result
-            total_runnable_code[domain_path.stem] += len(result)
-            total_fails[domain_path.stem] += sum(map(len, fail.values()))
-            logger.debug(f"{file} had {sum(map(len, fail.values()))} failures")
-            logger.debug(f"{file} had {len(result)} code snippets")
-
-        fail_dir = out_dir.joinpath(f'{domain_path.stem}_fails')
-        fail_dir.mkdir()
-        with fail_dir.joinpath('parse.json').open('w') as f:
-            json.dump(failures, f, indent=True)
-
-        with fail_dir.joinpath('test.json').open('w') as f:
-            json.dump(domain_fail_tests, f, indent=True)
-        all_code[domain_path.stem] = code
-        all_passed[domain_path.stem] = domain_passed
-        total_passed[domain_path.stem] += sum(map(len, domain_passed.values()))
+        parsed_files, passed, num_runnable, num_fail = parse_domain_path(
+            domain_path,
+            global_context,
+            fixes_by_section,
+            out_dir,
+            parsed_file_idx
+        )
+        parsed_file_idx += len(parsed_files)
+        all_parsed.extend(parsed_files)
+        all_passed[domain_path.stem] = passed
+        total_passed[domain_path.stem] += sum(map(len, passed.values()))
+        total_runnable_code[domain_path.stem] = num_runnable
+        total_fails[domain_path.stem] = num_fail
 
     num_found = sum(total_runnable_code.values())
     logger.info(
         f"{num_found}/{sum(total_fails.values()) + num_found} are runnable")
     logger.info(f"{sum(total_passed.values())}/{num_found} returned the expected value")
+    logger.info("Results in the form Passed Test | Runnable | Total:")
     for k, v in total_runnable_code.items():
         total = v + total_fails[k]
-        logger.info(f"\t{k:>16} = {total_passed[k]:>5}/{total:<5} returned the expected value.")
+        logger.info(
+            f"\t{k:>16} = {total_passed[k]:>11} | {v:>8} | {total:>7}     "
+            f"{total_passed[k] / total:>7.2%} verified.")
 
     logger.info(f"Saving to {out_dir}")
 
-    with out_dir.joinpath('runnable.json').open('w') as f:
-        json.dump(all_code, f, indent=True)
-    with out_dir.joinpath('passed.json').open('w') as f:
-        json.dump(all_passed, f, indent=True)
+    with out_dir.joinpath('parsed.json').open('w') as f:
+        json.dump(all_parsed, f, indent=True)
 
 
 @main.command('download')

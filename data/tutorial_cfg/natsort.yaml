@@ -1,0 +1,19 @@
+url: "https://natsort.readthedocs.io/en/master"
+allowed_path: "en/master"
+disallow:
+  - '.*/pdf/*'
+  - '.*/epub/*'
+  - '.*/htmlzip/*'
+disallow_file_types:
+  - bib
+  - py
+  - pdf
+groups:
+  tutorials:
+    path: /en/master
+    pages:
+      how_it_works: howitworks.html
+      example: examples.html
+
+
+

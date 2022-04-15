@@ -18,12 +18,6 @@ class SympyParser(TutorialHTMLParser):
         assert code_block is not None
         return self.clean_text(code_block.get_text()).lstrip()
 
-    def parse_title(self, tag: Tag) -> str:
-        header_link = tag.find('a')
-        if header_link is not None:
-            header_link.extract()
-        return self.clean_text(tag.get_text())
-
     def get_type_of_tag(self, tag: Tag) -> TagType:
         if tag.name == 'section':
             return TagType.SECTION

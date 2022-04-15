@@ -4,6 +4,8 @@ from bs4.element import Tag
 from .html_parsers import TutorialHTMLParser, TagType
 
 
+@TutorialHTMLParser.register('natsort')
+@TutorialHTMLParser.register('pydash')
 @TutorialHTMLParser.register('theano')
 class TheanoParser(TutorialHTMLParser):
     NAME = "THEANO"

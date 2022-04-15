@@ -1,0 +1,617 @@
+<!DOCTYPE html>
+<!-- saved from url=(0050)https://bleach.readthedocs.io/en/latest/clean.html -->
+<html lang="en">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/">
+
+    <title>Sanitizing text fragments — Bleach 5.0.0 20220407 documentation</title>
+    <link rel="stylesheet" type="text/css" href="./bleach_files/pygments.css">
+    <link rel="stylesheet" type="text/css" href="./bleach_files/alabaster.css">
+    <link rel="stylesheet" type="text/css" href="./bleach_files/badge_only.css">
+    <script data-url_root="./" id="documentation_options"
+            src="./bleach_files/documentation_options.js"></script>
+    <script src="./bleach_files/jquery.js"></script>
+    <script src="./bleach_files/underscore.js"></script>
+    <script src="./bleach_files/doctools.js"></script>
+    <script async="async" src="./bleach_files/readthedocs-doc-embed.js"></script>
+    <link rel="canonical" href="https://bleach.readthedocs.io/en/latest/clean.html">
+    <link rel="index" title="Index" href="https://bleach.readthedocs.io/en/latest/genindex.html">
+    <link rel="search" title="Search" href="https://bleach.readthedocs.io/en/latest/search.html">
+    <link rel="next" title="Linkifying text fragments"
+          href="https://bleach.readthedocs.io/en/latest/linkify.html">
+    <link rel="prev" title="Bleach" href="https://bleach.readthedocs.io/en/latest/index.html">
+
+    <link rel="stylesheet" href="./bleach_files/custom.css" type="text/css">
+
+
+    <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9">
+
+
+    <!-- RTD Extra Head -->
+
+    <link rel="stylesheet" href="./bleach_files/readthedocs-doc-embed.css" type="text/css">
+
+    <script type="application/json" id="READTHEDOCS_DATA">{
+        "ad_free": false,
+        "api_host": "https://readthedocs.org",
+        "build_date": "2022-04-11T14:30:53Z",
+        "builder": "sphinx",
+        "canonical_url": null,
+        "commit": "481b146b",
+        "docroot": "/docs/",
+        "features": {
+            "docsearch_disabled": false
+        },
+        "global_analytics_code": "UA-17997319-1",
+        "language": "en",
+        "page": "clean",
+        "programming_language": "py",
+        "project": "bleach",
+        "proxied_api_host": "/_",
+        "source_suffix": ".rst",
+        "subprojects": {},
+        "theme": "alabaster",
+        "user_analytics_code": "",
+        "version": "latest"
+    }</script>
+
+    <!--
+    Using this variable directly instead of using `JSON.parse` is deprecated.
+    The READTHEDOCS_DATA global variable will be removed in the future.
+    -->
+    <script type="text/javascript">
+        READTHEDOCS_DATA = JSON.parse(document.getElementById('READTHEDOCS_DATA').innerHTML);
+    </script>
+
+    <script type="text/javascript" src="./bleach_files/readthedocs-analytics.js"
+            async="async"></script>
+
+    <!-- end RTD <extrahead> -->
+    <script src="./bleach_files/js" type="text/javascript" async=""></script>
+    <script src="./bleach_files/ethicalads.min.js" type="text/javascript" async=""
+            id="ethicaladsjs"></script>
+</head>
+<body data-new-gr-c-s-check-loaded="14.1056.0" data-gr-ext-installed="">
+
+
+<div class="document">
+    <div class="documentwrapper">
+        <div class="bodywrapper">
+
+
+            <div class="body" role="main">
+
+                <section id="sanitizing-text-fragments">
+                    <h1>Sanitizing text fragments<a class="headerlink"
+                                                    href="https://bleach.readthedocs.io/en/latest/clean.html#sanitizing-text-fragments"
+                                                    title="Permalink to this headline">¶</a></h1>
+                    <p>Bleach sanitizes text fragments for use in an HTML context. It provides a
+                        <a class="reference internal"
+                           href="https://bleach.readthedocs.io/en/latest/clean.html#bleach.clean"
+                           title="bleach.clean"><code
+                                class="xref py py-func docutils literal notranslate"><span
+                                class="pre">bleach.clean()</span></code></a> function and a more
+                        configurable
+                        <a class="reference internal"
+                           href="https://bleach.readthedocs.io/en/latest/clean.html#bleach.sanitizer.Cleaner"
+                           title="bleach.sanitizer.Cleaner"><code
+                                class="xref py py-class docutils literal notranslate"><span
+                                class="pre">bleach.sanitizer.Cleaner</span></code></a> class with
+                        safe defaults.</p>
+                    <p>Given a text fragment, Bleach will parse it according to the HTML5 parsing
+                        algorithm and sanitize tags, attributes, and other aspects. This also
+                        handles
+                        unescaped characters and unclosed and misnested tags. The result is text
+                        that
+                        can be used in HTML as is.</p>
+                    <div class="admonition warning">
+                        <p class="admonition-title">Warning</p>
+                        <p><a class="reference internal"
+                              href="https://bleach.readthedocs.io/en/latest/clean.html#bleach.clean"
+                              title="bleach.clean"><code
+                                class="xref py py-func docutils literal notranslate"><span
+                                class="pre">bleach.clean()</span></code></a> is for sanitising HTML
+                            fragments to use in an HTML
+                            context–not for use in HTML attributes, CSS, JavaScript, JavaScript
+                            templates (mustache, handlebars, angular, jsx, etc), JSON, xhtml, SVG,
+                            or
+                            other contexts.</p>
+                        <p>For example, this is a safe use of <code
+                                class="docutils literal notranslate"><span class="pre">clean</span></code>
+                            output in an HTML context:</p>
+                        <div class="highlight-python notranslate">
+                            <div class="highlight"><pre><span></span><span
+                                    class="o">&lt;</span><span class="n">p</span><span class="o">&gt;</span>
+  <span class="p">{{</span> <span class="n">bleach</span><span class="o">.</span><span class="n">clean</span><span
+                                        class="p">(</span><span class="n">user_bio</span><span
+                                        class="p">)</span> <span class="p">}}</span>
+<span class="o">&lt;/</span><span class="n">p</span><span class="o">&gt;</span>
+</pre>
+                            </div>
+                        </div>
+                        <p>This is <strong>not a safe</strong> use of <code
+                                class="docutils literal notranslate"><span class="pre">clean</span></code>
+                            output in an HTML attribute:</p>
+                        <div class="highlight-python notranslate">
+                            <div class="highlight"><pre><span></span><span
+                                    class="o">&lt;</span><span class="n">body</span> <span
+                                    class="n">data</span><span class="o">-</span><span
+                                    class="n">bio</span><span class="o">=</span><span class="s2">"{{ bleach.clean(user_bio) }}"</span><span
+                                    class="o">&gt;</span>
+</pre>
+                            </div>
+                        </div>
+                        <p>If you need to use the output of <code
+                                class="docutils literal notranslate"><span class="pre">bleach.clean()</span></code>
+                            in any other context,
+                            you need to pass it through an appropriate sanitizer/escaper for that
+                            context. For example, if you wanted to use the output in an HTML
+                            attribute
+                            value, you would need to pass it through Jinja’s or Django’s escape
+                            function.</p>
+                    </div>
+                    <dl class="py function">
+                        <dt class="sig sig-object py" id="bleach.clean">
+                            <span class="sig-prename descclassname"><span class="pre">bleach.</span></span><span
+                                class="sig-name descname"><span class="pre">clean</span></span><span
+                                class="sig-paren">(</span><em class="sig-param"><span
+                                class="n"><span class="pre">text</span></span></em>, <em
+                                class="sig-param"><span class="n"><span
+                                class="pre">tags</span></span><span class="o"><span
+                                class="pre">=</span></span><span class="default_value"><span
+                                class="pre">ALLOWED_TAGS</span></span></em>, <em
+                                class="sig-param"><span class="n"><span
+                                class="pre">attributes</span></span><span class="o"><span
+                                class="pre">=</span></span><span class="default_value"><span
+                                class="pre">ALLOWED_ATTRIBUTES</span></span></em>, <em
+                                class="sig-param"><span class="n"><span class="pre">protocols</span></span><span
+                                class="o"><span class="pre">=</span></span><span
+                                class="default_value"><span
+                                class="pre">ALLOWED_PROTOCOLS</span></span></em>, <em
+                                class="sig-param"><span class="n"><span
+                                class="pre">strip</span></span><span class="o"><span
+                                class="pre">=</span></span><span class="default_value"><span
+                                class="pre">False</span></span></em>, <em class="sig-param"><span
+                                class="n"><span class="pre">strip_comments</span></span><span
+                                class="o"><span class="pre">=</span></span><span
+                                class="default_value"><span class="pre">True</span></span></em>, <em
+                                class="sig-param"><span class="n"><span
+                                class="pre">css_sanitizer</span></span><span class="o"><span
+                                class="pre">=</span></span><span class="default_value"><span
+                                class="pre">None</span></span></em><span
+                                class="sig-paren">)</span><a class="reference internal"
+                                                             href="https://bleach.readthedocs.io/en/latest/_modules/bleach.html#clean"><span
+                                class="viewcode-link"><span class="pre">[source]</span></span></a><a
+                                class="headerlink"
+                                href="https://bleach.readthedocs.io/en/latest/clean.html#bleach.clean"
+                                title="Permalink to this definition">¶</a></dt>
+                        <dd><p>Clean an HTML fragment of malicious content and return it</p>
+                            <p>This function is a security-focused function whose sole purpose is to
+                                remove malicious content from a string such that it can be displayed
+                                as
+                                content in a web page.</p>
+                            <p>This function is not designed to use to transform content to be used
+                                in
+                                non-web-page contexts.</p>
+                            <p>Example:</p>
+                            <div class="highlight-python notranslate">
+                                <div class="highlight"><pre><span></span><span
+                                        class="kn">import</span> <span class="nn">bleach</span>
+
+<span class="n">better_text</span> <span class="o">=</span> <span class="n">bleach</span><span
+                                            class="o">.</span><span class="n">clean</span><span
+                                            class="p">(</span><span class="n">yucky_text</span><span
+                                            class="p">)</span>
+</pre>
+                                </div>
+                            </div>
+                            <div class="admonition note">
+                                <p class="admonition-title">Note</p>
+                                <p>If you’re cleaning a lot of text and passing the same argument
+                                    values or
+                                    you want more configurability, consider using a
+                                    <a class="reference internal"
+                                       href="https://bleach.readthedocs.io/en/latest/clean.html#bleach.sanitizer.Cleaner"
+                                       title="bleach.sanitizer.Cleaner"><code
+                                            class="xref py py-class docutils literal notranslate"><span
+                                            class="pre">bleach.sanitizer.Cleaner</span></code></a>
+                                    instance.</p>
+                            </div>
+                            <dl class="field-list simple">
+                                <dt class="field-odd">Parameters</dt>
+                                <dd class="field-odd">
+                                    <ul class="simple">
+                                        <li><p><strong>text</strong> (<em>str</em>) – the text to
+                                            clean</p></li>
+                                        <li><p><strong>tags</strong> (<em>list</em>) – allowed list
+                                            of tags; defaults to
+                                            <code class="docutils literal notranslate"><span
+                                                    class="pre">bleach.sanitizer.ALLOWED_TAGS</span></code>
+                                        </p></li>
+                                        <li><p><strong>attributes</strong> (<em>dict</em>) – allowed
+                                            attributes; can be a callable, list or dict;
+                                            defaults to <code
+                                                    class="docutils literal notranslate"><span
+                                                    class="pre">bleach.sanitizer.ALLOWED_ATTRIBUTES</span></code>
+                                        </p></li>
+                                        <li><p><strong>protocols</strong> (<em>list</em>) – allowed
+                                            list of protocols for links; defaults
+                                            to <code class="docutils literal notranslate"><span
+                                                    class="pre">bleach.sanitizer.ALLOWED_PROTOCOLS</span></code>
+                                        </p></li>
+                                        <li><p><strong>strip</strong> (<em>bool</em>) – whether or
+                                            not to strip disallowed elements</p></li>
+                                        <li><p><strong>strip_comments</strong> (<em>bool</em>) –
+                                            whether or not to strip HTML comments</p></li>
+                                        <li><p><strong>css_sanitizer</strong> (<em>CSSSanitizer</em>)
+                                            – instance with a “sanitize_css” method for
+                                            sanitizing style attribute values and style text;
+                                            defaults to None</p></li>
+                                    </ul>
+                                </dd>
+                                <dt class="field-even">Returns</dt>
+                                <dd class="field-even"><p>cleaned text as unicode</p>
+                                </dd>
+                            </dl>
+                        </dd>
+                    </dl>
+
+                    <section id="allowed-tags-tags">
+                        <h2>Allowed tags (<code class="docutils literal notranslate"><span
+                                class="pre">tags</span></code>)<a class="headerlink"
+                                                                  href="https://bleach.readthedocs.io/en/latest/clean.html#allowed-tags-tags"
+                                                                  title="Permalink to this headline">¶</a>
+                        </h2>
+                        <p>The <code class="docutils literal notranslate"><span
+                                class="pre">tags</span></code> kwarg specifies the allowed set of
+                            HTML tags. It should be a list,
+                            tuple, or other iterable. Any HTML tags not in this list will be escaped
+                            or
+                            stripped from the text.</p>
+                        <p>For example:</p>
+                        <div class="highlight-pycon3 notranslate">
+                            <div class="highlight"><pre><span></span><span
+                                    class="gp">&gt;&gt;&gt; </span><span
+                                    class="kn">import</span> <span class="nn">bleach</span>
+
+<span class="gp">&gt;&gt;&gt; </span><span class="n">bleach</span><span class="o">.</span><span
+                                        class="n">clean</span><span class="p">(</span>
+<span class="gp">... </span>    <span class="s1">'&lt;b&gt;&lt;i&gt;an example&lt;/i&gt;&lt;/b&gt;'</span><span
+                                        class="p">,</span>
+<span class="gp">... </span>    <span class="n">tags</span><span class="o">=</span><span
+                                        class="p">[</span><span class="s1">'b'</span><span
+                                        class="p">],</span>
+<span class="gp">... </span><span class="p">)</span>
+<span class="go">'&lt;b&gt;&amp;lt;i&amp;gt;an example&amp;lt;/i&amp;gt;&lt;/b&gt;'</span>
+</pre>
+                            </div>
+                        </div>
+                        <p>The default value is a relatively conservative list found in
+                            <code class="docutils literal notranslate"><span class="pre">bleach.sanitizer.ALLOWED_TAGS</span></code>.
+                        </p>
+                        <dl class="py data">
+                            <dt class="sig sig-object py" id="bleach.sanitizer.ALLOWED_TAGS">
+                                <span class="sig-prename descclassname"><span class="pre">bleach.sanitizer.</span></span><span
+                                    class="sig-name descname"><span class="pre">ALLOWED_TAGS</span></span><em
+                                    class="property"><span class="w"> </span><span class="p"><span
+                                    class="pre">=</span></span><span class="w"> </span><span
+                                    class="pre">['a',</span> <span class="pre">'abbr',</span> <span
+                                    class="pre">'acronym',</span> <span class="pre">'b',</span>
+                                <span class="pre">'blockquote',</span> <span
+                                        class="pre">'code',</span> <span class="pre">'em',</span>
+                                <span class="pre">'i',</span> <span class="pre">'li',</span> <span
+                                        class="pre">'ol',</span> <span class="pre">'strong',</span>
+                                <span class="pre">'ul']</span></em><a class="headerlink"
+                                                                      href="https://bleach.readthedocs.io/en/latest/clean.html#bleach.sanitizer.ALLOWED_TAGS"
+                                                                      title="Permalink to this definition">¶</a>
+                            </dt>
+                            <dd><p>List of allowed tags</p>
+                            </dd>
+                        </dl>
+
+                    </section>
+
+                </section>
+
+
+                <div id="rtd-sidebar" data-ea-publisher="readthedocs"
+                     data-ea-type="readthedocs-sidebar" data-ea-manual="true"
+                     class="ethical-alabaster"
+                     data-ea-keywords="data|html|input|python|readthedocs-project-3428|readthedocs-project-bleach|sanitize"
+                     data-ea-campaign-types="community|house|paid"></div>
+            </div>
+
+        </div>
+    </div>
+    <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+            <h1 class="logo"><a href="https://bleach.readthedocs.io/en/latest/index.html">Bleach</a>
+            </h1>
+
+
+            <h3>Navigation</h3>
+            <ul class="current">
+                <li class="toctree-l1 current"><a class="current reference internal"
+                                                  href="https://bleach.readthedocs.io/en/latest/clean.html#">Sanitizing
+                    text fragments</a>
+                    <ul>
+                        <li class="toctree-l2"><a class="reference internal"
+                                                  href="https://bleach.readthedocs.io/en/latest/clean.html#allowed-tags-tags">Allowed
+                            tags (<code class="docutils literal notranslate"><span
+                                    class="pre">tags</span></code>)</a></li>
+                        <li class="toctree-l2"><a class="reference internal"
+                                                  href="https://bleach.readthedocs.io/en/latest/clean.html#allowed-attributes-attributes">Allowed
+                            Attributes (<code class="docutils literal notranslate"><span
+                                    class="pre">attributes</span></code>)</a></li>
+                        <li class="toctree-l2"><a class="reference internal"
+                                                  href="https://bleach.readthedocs.io/en/latest/clean.html#allowed-protocols-protocols">Allowed
+                            protocols (<code class="docutils literal notranslate"><span class="pre">protocols</span></code>)</a>
+                        </li>
+                        <li class="toctree-l2"><a class="reference internal"
+                                                  href="https://bleach.readthedocs.io/en/latest/clean.html#stripping-markup-strip">Stripping
+                            markup (<code class="docutils literal notranslate"><span class="pre">strip</span></code>)</a>
+                        </li>
+                        <li class="toctree-l2"><a class="reference internal"
+                                                  href="https://bleach.readthedocs.io/en/latest/clean.html#stripping-comments-strip-comments">Stripping
+                            comments (<code class="docutils literal notranslate"><span class="pre">strip_comments</span></code>)</a>
+                        </li>
+                        <li class="toctree-l2"><a class="reference internal"
+                                                  href="https://bleach.readthedocs.io/en/latest/clean.html#sanitizing-css">Sanitizing
+                            CSS</a></li>
+                        <li class="toctree-l2"><a class="reference internal"
+                                                  href="https://bleach.readthedocs.io/en/latest/clean.html#using-bleach-sanitizer-cleaner">Using
+                            <code class="docutils literal notranslate"><span class="pre">bleach.sanitizer.Cleaner</span></code></a>
+                        </li>
+                        <li class="toctree-l2"><a class="reference internal"
+                                                  href="https://bleach.readthedocs.io/en/latest/clean.html#using-bleach-sanitizer-bleachsanitizerfilter">Using
+                            <code class="docutils literal notranslate"><span class="pre">bleach.sanitizer.BleachSanitizerFilter</span></code></a>
+                        </li>
+                    </ul>
+                </li>
+                <li class="toctree-l1"><a class="reference internal"
+                                          href="https://bleach.readthedocs.io/en/latest/linkify.html">Linkifying
+                    text fragments</a></li>
+                <li class="toctree-l1"><a class="reference internal"
+                                          href="https://bleach.readthedocs.io/en/latest/goals.html">Goals
+                    of Bleach</a></li>
+                <li class="toctree-l1"><a class="reference internal"
+                                          href="https://bleach.readthedocs.io/en/latest/dev.html">Bleach
+                    development</a></li>
+                <li class="toctree-l1"><a class="reference internal"
+                                          href="https://bleach.readthedocs.io/en/latest/changes.html">Bleach
+                    changes</a></li>
+                <li class="toctree-l1"><a class="reference internal"
+                                          href="https://bleach.readthedocs.io/en/latest/migrating.html">Migrating
+                    from the html5lib sanitizer</a></li>
+            </ul>
+
+            <div class="relations">
+                <h3>Related Topics</h3>
+                <ul>
+                    <li><a href="https://bleach.readthedocs.io/en/latest/index.html">Documentation
+                        overview</a>
+                        <ul>
+                            <li>Previous: <a
+                                    href="https://bleach.readthedocs.io/en/latest/index.html"
+                                    title="previous chapter">Bleach</a></li>
+                            <li>Next: <a href="https://bleach.readthedocs.io/en/latest/linkify.html"
+                                         title="next chapter">Linkifying text fragments</a></li>
+                        </ul>
+                    </li>
+                </ul>
+            </div>
+            <div id="searchbox" style="" role="search">
+                <h3 id="searchlabel">Quick search</h3>
+                <div class="searchformwrapper">
+                    <form class="search"
+                          action="https://bleach.readthedocs.io/en/latest/search.html" method="get"
+                          data-dashlane-rid="4493883104cc6ad5" data-form-type="">
+                        <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off"
+                               autocorrect="off" autocapitalize="off" spellcheck="false"
+                               data-dashlane-rid="fc5ed3681806c457" data-form-type="">
+                        <input type="submit" value="Go" data-dashlane-rid="2caf18fca18897b7"
+                               data-form-type="">
+                    </form>
+                </div>
+            </div>
+            <script>$('#searchbox').show(0);</script>
+        </div>
+    </div>
+    <div class="clearer"></div>
+</div>
+<div class="footer">
+    ©2012-2015, James Socol; 2015-2017, Mozilla Foundation.
+
+    |
+    Powered by <a href="http://sphinx-doc.org/">Sphinx 4.3.2</a>
+    &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+
+    |
+    <a href="https://bleach.readthedocs.io/en/latest/_sources/clean.rst.txt" rel="nofollow">Page
+        source</a>
+</div>
+
+
+<!-- Inserted RTD Footer -->
+
+<div class="injected">
+
+
+    <div class="rst-versions rst-badge" data-toggle="rst-versions">
+    <span class="rst-current-version" data-toggle="rst-current-version">
+      <span class="fa fa-book">&nbsp;</span>
+      v: latest
+      <span class="fa fa-caret-down"></span>
+    </span>
+        <div class="rst-other-versions">
+
+
+            <dl>
+                <dt>Versions</dt>
+
+                <dd class="rtd-current-item">
+                    <a href="https://bleach.readthedocs.io/en/latest/clean.html">latest</a>
+                </dd>
+
+                <dd>
+                    <a href="https://bleach.readthedocs.io/en/stable/clean.html">stable</a>
+                </dd>
+
+                <dd>
+                    <a href="https://bleach.readthedocs.io/en/v5.0.0/clean.html">v5.0.0</a>
+                </dd>
+
+                <dd>
+                    <a href="https://bleach.readthedocs.io/en/v4.1.0/clean.html">v4.1.0</a>
+                </dd>
+
+                <dd>
+                    <a href="https://bleach.readthedocs.io/en/v4.0.0/clean.html">v4.0.0</a>
+                </dd>
+
+                <dd>
+                    <a href="https://bleach.readthedocs.io/en/v3.3.1/clean.html">v3.3.1</a>
+                </dd>
+
+                <dd>
+                    <a href="https://bleach.readthedocs.io/en/v3.3.0/clean.html">v3.3.0</a>
+                </dd>
+
+                <dd>
+                    <a href="https://bleach.readthedocs.io/en/v3.2.3/clean.html">v3.2.3</a>
+                </dd>
+
+                <dd>
+                    <a href="https://bleach.readthedocs.io/en/v3.2.2/clean.html">v3.2.2</a>
+                </dd>
+
+                <dd>
+                    <a href="https://bleach.readthedocs.io/en/v3.2.1/clean.html">v3.2.1</a>
+                </dd>
+
+                <dd>
+                    <a href="https://bleach.readthedocs.io/en/v3.2.0/clean.html">v3.2.0</a>
+                </dd>
+
+                <dd>
+                    <a href="https://bleach.readthedocs.io/en/v3.1.5/clean.html">v3.1.5</a>
+                </dd>
+
+                <dd>
+                    <a href="https://bleach.readthedocs.io/en/v3.1.4/clean.html">v3.1.4</a>
+                </dd>
+
+                <dd>
+                    <a href="https://bleach.readthedocs.io/en/v3.1.3/clean.html">v3.1.3</a>
+                </dd>
+
+                <dd>
+                    <a href="https://bleach.readthedocs.io/en/v3.1.2/clean.html">v3.1.2</a>
+                </dd>
+
+                <dd>
+                    <a href="https://bleach.readthedocs.io/en/v3.1.1/clean.html">v3.1.1</a>
+                </dd>
+
+                <dd>
+                    <a href="https://bleach.readthedocs.io/en/v3.1.0/clean.html">v3.1.0</a>
+                </dd>
+
+                <dd>
+                    <a href="https://bleach.readthedocs.io/en/v3.0.2/clean.html">v3.0.2</a>
+                </dd>
+
+                <dd>
+                    <a href="https://bleach.readthedocs.io/en/v3.0.1/clean.html">v3.0.1</a>
+                </dd>
+
+                <dd>
+                    <a href="https://bleach.readthedocs.io/en/v3.0.0/clean.html">v3.0.0</a>
+                </dd>
+
+                <dd>
+                    <a href="https://bleach.readthedocs.io/en/v2.1.4/clean.html">v2.1.4</a>
+                </dd>
+
+                <dd>
+                    <a href="https://bleach.readthedocs.io/en/v2.0/clean.html">v2.0</a>
+                </dd>
+
+            </dl>
+
+
+            <dl>
+                <dt>Downloads</dt>
+
+                <dd><a href="https://bleach.readthedocs.io/_/downloads/en/latest/pdf/">PDF</a></dd>
+
+                <dd><a href="https://bleach.readthedocs.io/_/downloads/en/latest/htmlzip/">HTML</a>
+                </dd>
+
+                <dd><a href="https://bleach.readthedocs.io/_/downloads/en/latest/epub/">Epub</a>
+                </dd>
+
+            </dl>
+
+
+            <dl>
+
+                <!-- These are kept as relative links for internal installs that are http -->
+                <dt>On Read the Docs</dt>
+                <dd>
+                    <a href="https://readthedocs.org/projects/bleach/">Project Home</a>
+                </dd>
+                <dd>
+                    <a href="https://readthedocs.org/projects/bleach/builds/">Builds</a>
+                </dd>
+                <dd>
+                    <a href="https://readthedocs.org/projects/bleach/downloads/">Downloads</a>
+                </dd>
+            </dl>
+
+
+            <dl>
+                <dt>On GitHub</dt>
+                <dd>
+                    <a href="https://github.com/mozilla/bleach/blob/main/docs/clean.rst">View</a>
+                </dd>
+
+            </dl>
+
+
+            <dl>
+                <dt>Search</dt>
+                <dd>
+                    <div style="padding: 6px;">
+
+                        <form id="flyout-search-form" class="wy-form" target="_blank"
+                              action="https://readthedocs.org/projects/bleach/search/" method="get">
+                            <input type="text" name="q" aria-label="Search docs"
+                                   placeholder="Search docs">
+                        </form>
+                    </div>
+                </dd>
+            </dl>
+
+
+            <hr>
+
+
+            <small>
+                <span>Hosted by <a href="https://readthedocs.org/">Read the Docs</a></span>
+                <span> · </span>
+                <a href="https://docs.readthedocs.io/page/privacy-policy.html">Privacy Policy</a>
+            </small>
+
+
+        </div>
+    </div>
+
+
+</div>
+</body>
+<grammarly-desktop-integration data-grammarly-shadow-root="true"></grammarly-desktop-integration>
+</html>

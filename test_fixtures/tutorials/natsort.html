@@ -1,0 +1,1610 @@
+<!DOCTYPE html>
+<!-- saved from url=(0056)https://natsort.readthedocs.io/en/master/howitworks.html -->
+<html class=" js flexbox canvas canvastext webgl no-touch geolocation postmessage websqldatabase indexeddb hashchange history draganddrop websockets rgba hsla multiplebgs backgroundsize borderimage borderradius boxshadow textshadow opacity cssanimations csscolumns cssgradients cssreflections csstransforms csstransforms3d csstransitions fontface generatedcontent video audio localstorage sessionstorage webworkers no-applicationcache svg inlinesvg smil svgclippaths"
+      lang="en" style=""><!--<![endif]-->
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>1. How Does Natsort Work? — natsort 8.1.0 documentation</title>
+
+
+    <script type="text/javascript" src="./natsort_files/modernizr.min.js"></script>
+
+
+    <script type="text/javascript" id="documentation_options" data-url_root="./"
+            src="./natsort_files/documentation_options.js"></script>
+    <script type="text/javascript" src="./natsort_files/jquery.js"></script>
+    <script type="text/javascript" src="./natsort_files/underscore.js"></script>
+    <script type="text/javascript" src="./natsort_files/doctools.js"></script>
+    <script type="text/javascript" src="./natsort_files/language_data.js"></script>
+    <script async="async" type="text/javascript" src="./natsort_files/latest.js"></script>
+    <script async="async" type="text/javascript"
+            src="./natsort_files/readthedocs-doc-embed.js"></script>
+
+    <script type="text/javascript" src="./natsort_files/theme.js"></script>
+
+
+    <link rel="stylesheet" href="./natsort_files/theme.css" type="text/css">
+    <link rel="stylesheet" href="./natsort_files/pygments.css" type="text/css">
+    <link rel="index" title="Index" href="https://natsort.readthedocs.io/en/master/genindex.html">
+    <link rel="search" title="Search" href="https://natsort.readthedocs.io/en/master/search.html">
+    <link rel="next" title="2. Examples and Recipes"
+          href="https://natsort.readthedocs.io/en/master/examples.html">
+    <link rel="prev" title="natsort: Simple yet flexible natural sorting in Python."
+          href="https://natsort.readthedocs.io/en/master/index.html">
+
+    <!-- RTD Extra Head -->
+
+    <link rel="stylesheet" href="./natsort_files/readthedocs-doc-embed.css" type="text/css">
+
+    <script type="application/json" id="READTHEDOCS_DATA">{
+        "ad_free": false,
+        "api_host": "https://readthedocs.org",
+        "build_date": "2022-01-31T03:20:43Z",
+        "builder": "sphinx",
+        "canonical_url": null,
+        "commit": "e3c32f56",
+        "docroot": "/docs/",
+        "features": {
+            "docsearch_disabled": false
+        },
+        "global_analytics_code": "UA-17997319-1",
+        "language": "en",
+        "page": "howitworks",
+        "programming_language": "py",
+        "project": "natsort",
+        "proxied_api_host": "/_",
+        "source_suffix": ".rst",
+        "subprojects": {},
+        "theme": "sphinx_rtd_theme",
+        "user_analytics_code": "",
+        "version": "master"
+    }</script>
+
+    <!--
+Using this variable directly instead of using `JSON.parse` is deprecated.
+The READTHEDOCS_DATA global variable will be removed in the future.
+-->
+    <script type="text/javascript">
+        READTHEDOCS_DATA = JSON.parse(document.getElementById('READTHEDOCS_DATA').innerHTML);
+    </script>
+    <script type="text/javascript" async="" src="./natsort_files/MathJax.js"></script>
+
+    <script type="text/javascript" src="./natsort_files/readthedocs-analytics.js"
+            async="async"></script>
+
+    <!-- end RTD <extrahead> -->
+    <script src="./natsort_files/js" type="text/javascript" async=""></script>
+    <style type="text/css">.MathJax_Hover_Frame {
+        border-radius: .25em;
+        -webkit-border-radius: .25em;
+        -moz-border-radius: .25em;
+        -khtml-border-radius: .25em;
+        box-shadow: 0px 0px 15px #83A;
+        -webkit-box-shadow: 0px 0px 15px #83A;
+        -moz-box-shadow: 0px 0px 15px #83A;
+        -khtml-box-shadow: 0px 0px 15px #83A;
+        border: 1px solid #A6D ! important;
+        display: inline-block;
+        position: absolute
+    }
+
+    .MathJax_Menu_Button .MathJax_Hover_Arrow {
+        position: absolute;
+        cursor: pointer;
+        display: inline-block;
+        border: 2px solid #AAA;
+        border-radius: 4px;
+        -webkit-border-radius: 4px;
+        -moz-border-radius: 4px;
+        -khtml-border-radius: 4px;
+        font-family: 'Courier New', Courier;
+        font-size: 9px;
+        color: #F0F0F0
+    }
+
+    .MathJax_Menu_Button .MathJax_Hover_Arrow span {
+        display: block;
+        background-color: #AAA;
+        border: 1px solid;
+        border-radius: 3px;
+        line-height: 0;
+        padding: 4px
+    }
+
+    .MathJax_Hover_Arrow:hover {
+        color: white !important;
+        border: 2px solid #CCC !important
+    }
+
+    .MathJax_Hover_Arrow:hover span {
+        background-color: #CCC !important
+    }
+    </style>
+    <style type="text/css">#MathJax_About {
+        position: fixed;
+        left: 50%;
+        width: auto;
+        text-align: center;
+        border: 3px outset;
+        padding: 1em 2em;
+        background-color: #DDDDDD;
+        color: black;
+        cursor: default;
+        font-family: message-box;
+        font-size: 120%;
+        font-style: normal;
+        text-indent: 0;
+        text-transform: none;
+        line-height: normal;
+        letter-spacing: normal;
+        word-spacing: normal;
+        word-wrap: normal;
+        white-space: nowrap;
+        float: none;
+        z-index: 201;
+        border-radius: 15px;
+        -webkit-border-radius: 15px;
+        -moz-border-radius: 15px;
+        -khtml-border-radius: 15px;
+        box-shadow: 0px 10px 20px #808080;
+        -webkit-box-shadow: 0px 10px 20px #808080;
+        -moz-box-shadow: 0px 10px 20px #808080;
+        -khtml-box-shadow: 0px 10px 20px #808080;
+        filter: progid:DXImageTransform.Microsoft.dropshadow(OffX=2, OffY=2, Color='gray', Positive='true')
+    }
+
+    #MathJax_About.MathJax_MousePost {
+        outline: none
+    }
+
+    .MathJax_Menu {
+        position: absolute;
+        background-color: white;
+        color: black;
+        width: auto;
+        padding: 5px 0px;
+        border: 1px solid #CCCCCC;
+        margin: 0;
+        cursor: default;
+        font: menu;
+        text-align: left;
+        text-indent: 0;
+        text-transform: none;
+        line-height: normal;
+        letter-spacing: normal;
+        word-spacing: normal;
+        word-wrap: normal;
+        white-space: nowrap;
+        float: none;
+        z-index: 201;
+        border-radius: 5px;
+        -webkit-border-radius: 5px;
+        -moz-border-radius: 5px;
+        -khtml-border-radius: 5px;
+        box-shadow: 0px 10px 20px #808080;
+        -webkit-box-shadow: 0px 10px 20px #808080;
+        -moz-box-shadow: 0px 10px 20px #808080;
+        -khtml-box-shadow: 0px 10px 20px #808080;
+        filter: progid:DXImageTransform.Microsoft.dropshadow(OffX=2, OffY=2, Color='gray', Positive='true')
+    }
+
+    .MathJax_MenuItem {
+        padding: 1px 2em;
+        background: transparent
+    }
+
+    .MathJax_MenuArrow {
+        position: absolute;
+        right: .5em;
+        padding-top: .25em;
+        color: #666666;
+        font-size: .75em
+    }
+
+    .MathJax_MenuActive .MathJax_MenuArrow {
+        color: white
+    }
+
+    .MathJax_MenuArrow.RTL {
+        left: .5em;
+        right: auto
+    }
+
+    .MathJax_MenuCheck {
+        position: absolute;
+        left: .7em
+    }
+
+    .MathJax_MenuCheck.RTL {
+        right: .7em;
+        left: auto
+    }
+
+    .MathJax_MenuRadioCheck {
+        position: absolute;
+        left: .7em
+    }
+
+    .MathJax_MenuRadioCheck.RTL {
+        right: .7em;
+        left: auto
+    }
+
+    .MathJax_MenuLabel {
+        padding: 1px 2em 3px 1.33em;
+        font-style: italic
+    }
+
+    .MathJax_MenuRule {
+        border-top: 1px solid #DDDDDD;
+        margin: 4px 3px
+    }
+
+    .MathJax_MenuDisabled {
+        color: GrayText
+    }
+
+    .MathJax_MenuActive {
+        background-color: #606872;
+        color: white
+    }
+
+    .MathJax_MenuDisabled:focus, .MathJax_MenuLabel:focus {
+        background-color: #E8E8E8
+    }
+
+    .MathJax_ContextMenu:focus {
+        outline: none
+    }
+
+    .MathJax_ContextMenu .MathJax_MenuItem:focus {
+        outline: none
+    }
+
+    #MathJax_AboutClose {
+        top: .2em;
+        right: .2em
+    }
+
+    .MathJax_Menu .MathJax_MenuClose {
+        top: -10px;
+        left: -10px
+    }
+
+    .MathJax_MenuClose {
+        position: absolute;
+        cursor: pointer;
+        display: inline-block;
+        border: 2px solid #AAA;
+        border-radius: 18px;
+        -webkit-border-radius: 18px;
+        -moz-border-radius: 18px;
+        -khtml-border-radius: 18px;
+        font-family: 'Courier New', Courier;
+        font-size: 24px;
+        color: #F0F0F0
+    }
+
+    .MathJax_MenuClose span {
+        display: block;
+        background-color: #AAA;
+        border: 1.5px solid;
+        border-radius: 18px;
+        -webkit-border-radius: 18px;
+        -moz-border-radius: 18px;
+        -khtml-border-radius: 18px;
+        line-height: 0;
+        padding: 8px 0 6px
+    }
+
+    .MathJax_MenuClose:hover {
+        color: white !important;
+        border: 2px solid #CCC !important
+    }
+
+    .MathJax_MenuClose:hover span {
+        background-color: #CCC !important
+    }
+
+    .MathJax_MenuClose:hover:focus {
+        outline: none
+    }
+    </style>
+    <style type="text/css">.MathJax_Preview .MJXf-math {
+        color: inherit !important
+    }
+    </style>
+    <style type="text/css">.MJX_Assistive_MathML {
+        position: absolute !important;
+        top: 0;
+        left: 0;
+        clip: rect(1px, 1px, 1px, 1px);
+        padding: 1px 0 0 0 !important;
+        border: 0 !important;
+        height: 1px !important;
+        width: 1px !important;
+        overflow: hidden !important;
+        display: block !important;
+        -webkit-touch-callout: none;
+        -webkit-user-select: none;
+        -khtml-user-select: none;
+        -moz-user-select: none;
+        -ms-user-select: none;
+        user-select: none
+    }
+
+    .MJX_Assistive_MathML.MJX_Assistive_MathML_Block {
+        width: 100% !important
+    }
+    </style>
+    <style type="text/css">#MathJax_Zoom {
+        position: absolute;
+        background-color: #F0F0F0;
+        overflow: auto;
+        display: block;
+        z-index: 301;
+        padding: .5em;
+        border: 1px solid black;
+        margin: 0;
+        font-weight: normal;
+        font-style: normal;
+        text-align: left;
+        text-indent: 0;
+        text-transform: none;
+        line-height: normal;
+        letter-spacing: normal;
+        word-spacing: normal;
+        word-wrap: normal;
+        white-space: nowrap;
+        float: none;
+        -webkit-box-sizing: content-box;
+        -moz-box-sizing: content-box;
+        box-sizing: content-box;
+        box-shadow: 5px 5px 15px #AAAAAA;
+        -webkit-box-shadow: 5px 5px 15px #AAAAAA;
+        -moz-box-shadow: 5px 5px 15px #AAAAAA;
+        -khtml-box-shadow: 5px 5px 15px #AAAAAA;
+        filter: progid:DXImageTransform.Microsoft.dropshadow(OffX=2, OffY=2, Color='gray', Positive='true')
+    }
+
+    #MathJax_ZoomOverlay {
+        position: absolute;
+        left: 0;
+        top: 0;
+        z-index: 300;
+        display: inline-block;
+        width: 100%;
+        height: 100%;
+        border: 0;
+        padding: 0;
+        margin: 0;
+        background-color: white;
+        opacity: 0;
+        filter: alpha(opacity=0)
+    }
+
+    #MathJax_ZoomFrame {
+        position: relative;
+        display: inline-block;
+        height: 0;
+        width: 0
+    }
+
+    #MathJax_ZoomEventTrap {
+        position: absolute;
+        left: 0;
+        top: 0;
+        z-index: 302;
+        display: inline-block;
+        border: 0;
+        padding: 0;
+        margin: 0;
+        background-color: white;
+        opacity: 0;
+        filter: alpha(opacity=0)
+    }
+    </style>
+    <style type="text/css">.MathJax_Preview {
+        color: #888
+    }
+
+    #MathJax_Message {
+        position: fixed;
+        left: 1em;
+        bottom: 1.5em;
+        background-color: #E6E6E6;
+        border: 1px solid #959595;
+        margin: 0px;
+        padding: 2px 8px;
+        z-index: 102;
+        color: black;
+        font-size: 80%;
+        width: auto;
+        white-space: nowrap
+    }
+
+    #MathJax_MSIE_Frame {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 0px;
+        z-index: 101;
+        border: 0px;
+        margin: 0px;
+        padding: 0px
+    }
+
+    .MathJax_Error {
+        color: #CC0000;
+        font-style: italic
+    }
+    </style>
+    <script src="./natsort_files/ethicalads.min.js" type="text/javascript" async=""
+            id="ethicaladsjs"></script>
+    <style type="text/css">.MJXp-script {
+        font-size: .8em
+    }
+
+    .MJXp-right {
+        -webkit-transform-origin: right;
+        -moz-transform-origin: right;
+        -ms-transform-origin: right;
+        -o-transform-origin: right;
+        transform-origin: right
+    }
+
+    .MJXp-bold {
+        font-weight: bold
+    }
+
+    .MJXp-italic {
+        font-style: italic
+    }
+
+    .MJXp-scr {
+        font-family: MathJax_Script, 'Times New Roman', Times, STIXGeneral, serif
+    }
+
+    .MJXp-frak {
+        font-family: MathJax_Fraktur, 'Times New Roman', Times, STIXGeneral, serif
+    }
+
+    .MJXp-sf {
+        font-family: MathJax_SansSerif, 'Times New Roman', Times, STIXGeneral, serif
+    }
+
+    .MJXp-cal {
+        font-family: MathJax_Caligraphic, 'Times New Roman', Times, STIXGeneral, serif
+    }
+
+    .MJXp-mono {
+        font-family: MathJax_Typewriter, 'Times New Roman', Times, STIXGeneral, serif
+    }
+
+    .MJXp-largeop {
+        font-size: 150%
+    }
+
+    .MJXp-largeop.MJXp-int {
+        vertical-align: -.2em
+    }
+
+    .MJXp-math {
+        display: inline-block;
+        line-height: 1.2;
+        text-indent: 0;
+        font-family: 'Times New Roman', Times, STIXGeneral, serif;
+        white-space: nowrap;
+        border-collapse: collapse
+    }
+
+    .MJXp-display {
+        display: block;
+        text-align: center;
+        margin: 1em 0
+    }
+
+    .MJXp-math span {
+        display: inline-block
+    }
+
+    .MJXp-box {
+        display: block !important;
+        text-align: center
+    }
+
+    .MJXp-box:after {
+        content: " "
+    }
+
+    .MJXp-rule {
+        display: block !important;
+        margin-top: .1em
+    }
+
+    .MJXp-char {
+        display: block !important
+    }
+
+    .MJXp-mo {
+        margin: 0 .15em
+    }
+
+    .MJXp-mfrac {
+        margin: 0 .125em;
+        vertical-align: .25em
+    }
+
+    .MJXp-denom {
+        display: inline-table !important;
+        width: 100%
+    }
+
+    .MJXp-denom > * {
+        display: table-row !important
+    }
+
+    .MJXp-surd {
+        vertical-align: top
+    }
+
+    .MJXp-surd > * {
+        display: block !important
+    }
+
+    .MJXp-script-box > * {
+        display: table !important;
+        height: 50%
+    }
+
+    .MJXp-script-box > * > * {
+        display: table-cell !important;
+        vertical-align: top
+    }
+
+    .MJXp-script-box > *:last-child > * {
+        vertical-align: bottom
+    }
+
+    .MJXp-script-box > * > * > * {
+        display: block !important
+    }
+
+    .MJXp-mphantom {
+        visibility: hidden
+    }
+
+    .MJXp-munderover, .MJXp-munder {
+        display: inline-table !important
+    }
+
+    .MJXp-over {
+        display: inline-block !important;
+        text-align: center
+    }
+
+    .MJXp-over > * {
+        display: block !important
+    }
+
+    .MJXp-munderover > *, .MJXp-munder > * {
+        display: table-row !important
+    }
+
+    .MJXp-mtable {
+        vertical-align: .25em;
+        margin: 0 .125em
+    }
+
+    .MJXp-mtable > * {
+        display: inline-table !important;
+        vertical-align: middle
+    }
+
+    .MJXp-mtr {
+        display: table-row !important
+    }
+
+    .MJXp-mtd {
+        display: table-cell !important;
+        text-align: center;
+        padding: .5em 0 0 .5em
+    }
+
+    .MJXp-mtr > .MJXp-mtd:first-child {
+        padding-left: 0
+    }
+
+    .MJXp-mtr:first-child > .MJXp-mtd {
+        padding-top: 0
+    }
+
+    .MJXp-mlabeledtr {
+        display: table-row !important
+    }
+
+    .MJXp-mlabeledtr > .MJXp-mtd:first-child {
+        padding-left: 0
+    }
+
+    .MJXp-mlabeledtr:first-child > .MJXp-mtd {
+        padding-top: 0
+    }
+
+    .MJXp-merror {
+        background-color: #FFFF88;
+        color: #CC0000;
+        border: 1px solid #CC0000;
+        padding: 1px 3px;
+        font-style: normal;
+        font-size: 90%
+    }
+
+    .MJXp-scale0 {
+        -webkit-transform: scaleX(.0);
+        -moz-transform: scaleX(.0);
+        -ms-transform: scaleX(.0);
+        -o-transform: scaleX(.0);
+        transform: scaleX(.0)
+    }
+
+    .MJXp-scale1 {
+        -webkit-transform: scaleX(.1);
+        -moz-transform: scaleX(.1);
+        -ms-transform: scaleX(.1);
+        -o-transform: scaleX(.1);
+        transform: scaleX(.1)
+    }
+
+    .MJXp-scale2 {
+        -webkit-transform: scaleX(.2);
+        -moz-transform: scaleX(.2);
+        -ms-transform: scaleX(.2);
+        -o-transform: scaleX(.2);
+        transform: scaleX(.2)
+    }
+
+    .MJXp-scale3 {
+        -webkit-transform: scaleX(.3);
+        -moz-transform: scaleX(.3);
+        -ms-transform: scaleX(.3);
+        -o-transform: scaleX(.3);
+        transform: scaleX(.3)
+    }
+
+    .MJXp-scale4 {
+        -webkit-transform: scaleX(.4);
+        -moz-transform: scaleX(.4);
+        -ms-transform: scaleX(.4);
+        -o-transform: scaleX(.4);
+        transform: scaleX(.4)
+    }
+
+    .MJXp-scale5 {
+        -webkit-transform: scaleX(.5);
+        -moz-transform: scaleX(.5);
+        -ms-transform: scaleX(.5);
+        -o-transform: scaleX(.5);
+        transform: scaleX(.5)
+    }
+
+    .MJXp-scale6 {
+        -webkit-transform: scaleX(.6);
+        -moz-transform: scaleX(.6);
+        -ms-transform: scaleX(.6);
+        -o-transform: scaleX(.6);
+        transform: scaleX(.6)
+    }
+
+    .MJXp-scale7 {
+        -webkit-transform: scaleX(.7);
+        -moz-transform: scaleX(.7);
+        -ms-transform: scaleX(.7);
+        -o-transform: scaleX(.7);
+        transform: scaleX(.7)
+    }
+
+    .MJXp-scale8 {
+        -webkit-transform: scaleX(.8);
+        -moz-transform: scaleX(.8);
+        -ms-transform: scaleX(.8);
+        -o-transform: scaleX(.8);
+        transform: scaleX(.8)
+    }
+
+    .MJXp-scale9 {
+        -webkit-transform: scaleX(.9);
+        -moz-transform: scaleX(.9);
+        -ms-transform: scaleX(.9);
+        -o-transform: scaleX(.9);
+        transform: scaleX(.9)
+    }
+
+    .MathJax_PHTML .noError {
+        vertical-align: ;
+        font-size: 90%;
+        text-align: left;
+        color: black;
+        padding: 1px 3px;
+        border: 1px solid
+    }
+    </style>
+    <style type="text/css">.MathJax_Display {
+        text-align: center;
+        margin: 1em 0em;
+        position: relative;
+        display: block !important;
+        text-indent: 0;
+        max-width: none;
+        max-height: none;
+        min-width: 0;
+        min-height: 0;
+        width: 100%
+    }
+
+    .MathJax .merror {
+        background-color: #FFFF88;
+        color: #CC0000;
+        border: 1px solid #CC0000;
+        padding: 1px 3px;
+        font-style: normal;
+        font-size: 90%
+    }
+
+    .MathJax .MJX-monospace {
+        font-family: monospace
+    }
+
+    .MathJax .MJX-sans-serif {
+        font-family: sans-serif
+    }
+
+    #MathJax_Tooltip {
+        background-color: InfoBackground;
+        color: InfoText;
+        border: 1px solid black;
+        box-shadow: 2px 2px 5px #AAAAAA;
+        -webkit-box-shadow: 2px 2px 5px #AAAAAA;
+        -moz-box-shadow: 2px 2px 5px #AAAAAA;
+        -khtml-box-shadow: 2px 2px 5px #AAAAAA;
+        filter: progid:DXImageTransform.Microsoft.dropshadow(OffX=2, OffY=2, Color='gray', Positive='true');
+        padding: 3px 4px;
+        z-index: 401;
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: auto;
+        height: auto;
+        display: none
+    }
+
+    .MathJax {
+        display: inline;
+        font-style: normal;
+        font-weight: normal;
+        line-height: normal;
+        font-size: 100%;
+        font-size-adjust: none;
+        text-indent: 0;
+        text-align: left;
+        text-transform: none;
+        letter-spacing: normal;
+        word-spacing: normal;
+        word-wrap: normal;
+        white-space: nowrap;
+        float: none;
+        direction: ltr;
+        max-width: none;
+        max-height: none;
+        min-width: 0;
+        min-height: 0;
+        border: 0;
+        padding: 0;
+        margin: 0
+    }
+
+    .MathJax:focus, body :focus .MathJax {
+        display: inline-table
+    }
+
+    .MathJax.MathJax_FullWidth {
+        text-align: center;
+        display: table-cell !important;
+        width: 10000em !important
+    }
+
+    .MathJax img, .MathJax nobr, .MathJax a {
+        border: 0;
+        padding: 0;
+        margin: 0;
+        max-width: none;
+        max-height: none;
+        min-width: 0;
+        min-height: 0;
+        vertical-align: 0;
+        line-height: normal;
+        text-decoration: none
+    }
+
+    img.MathJax_strut {
+        border: 0 !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        vertical-align: 0 !important
+    }
+
+    .MathJax span {
+        display: inline;
+        position: static;
+        border: 0;
+        padding: 0;
+        margin: 0;
+        vertical-align: 0;
+        line-height: normal;
+        text-decoration: none;
+        box-sizing: content-box
+    }
+
+    .MathJax nobr {
+        white-space: nowrap !important
+    }
+
+    .MathJax img {
+        display: inline !important;
+        float: none !important
+    }
+
+    .MathJax * {
+        transition: none;
+        -webkit-transition: none;
+        -moz-transition: none;
+        -ms-transition: none;
+        -o-transition: none
+    }
+
+    .MathJax_Processing {
+        visibility: hidden;
+        position: fixed;
+        width: 0;
+        height: 0;
+        overflow: hidden
+    }
+
+    .MathJax_Processed {
+        display: none !important
+    }
+
+    .MathJax_test {
+        font-style: normal;
+        font-weight: normal;
+        font-size: 100%;
+        font-size-adjust: none;
+        text-indent: 0;
+        text-transform: none;
+        letter-spacing: normal;
+        word-spacing: normal;
+        overflow: hidden;
+        height: 1px
+    }
+
+    .MathJax_test.mjx-test-display {
+        display: table !important
+    }
+
+    .MathJax_test.mjx-test-inline {
+        display: inline !important;
+        margin-right: -1px
+    }
+
+    .MathJax_test.mjx-test-default {
+        display: block !important;
+        clear: both
+    }
+
+    .MathJax_ex_box {
+        display: inline-block !important;
+        position: absolute;
+        overflow: hidden;
+        min-height: 0;
+        max-height: none;
+        padding: 0;
+        border: 0;
+        margin: 0;
+        width: 1px;
+        height: 60ex
+    }
+
+    .MathJax_em_box {
+        display: inline-block !important;
+        position: absolute;
+        overflow: hidden;
+        min-height: 0;
+        max-height: none;
+        padding: 0;
+        border: 0;
+        margin: 0;
+        width: 1px;
+        height: 60em
+    }
+
+    .mjx-test-inline .MathJax_left_box {
+        display: inline-block;
+        width: 0;
+        float: left
+    }
+
+    .mjx-test-inline .MathJax_right_box {
+        display: inline-block;
+        width: 0;
+        float: right
+    }
+
+    .mjx-test-display .MathJax_right_box {
+        display: table-cell !important;
+        width: 10000em !important;
+        min-width: 0;
+        max-width: none;
+        padding: 0;
+        border: 0;
+        margin: 0
+    }
+
+    .MathJax .MathJax_HitBox {
+        cursor: text;
+        background: white;
+        opacity: 0;
+        filter: alpha(opacity=0)
+    }
+
+    .MathJax .MathJax_HitBox * {
+        filter: none;
+        opacity: 1;
+        background: transparent
+    }
+
+    #MathJax_Tooltip * {
+        filter: none;
+        opacity: 1;
+        background: transparent
+    }
+
+    @font-face {
+        font-family: MathJax_Main;
+        src: url('https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/fonts/HTML-CSS/TeX/woff/MathJax_Main-Regular.woff?V=2.7.5') format('woff'), url('https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/fonts/HTML-CSS/TeX/otf/MathJax_Main-Regular.otf?V=2.7.5') format('opentype')
+    }
+
+    @font-face {
+        font-family: MathJax_Main-bold;
+        src: url('https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/fonts/HTML-CSS/TeX/woff/MathJax_Main-Bold.woff?V=2.7.5') format('woff'), url('https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/fonts/HTML-CSS/TeX/otf/MathJax_Main-Bold.otf?V=2.7.5') format('opentype')
+    }
+
+    @font-face {
+        font-family: MathJax_Main-italic;
+        src: url('https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/fonts/HTML-CSS/TeX/woff/MathJax_Main-Italic.woff?V=2.7.5') format('woff'), url('https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/fonts/HTML-CSS/TeX/otf/MathJax_Main-Italic.otf?V=2.7.5') format('opentype')
+    }
+
+    @font-face {
+        font-family: MathJax_Math-italic;
+        src: url('https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/fonts/HTML-CSS/TeX/woff/MathJax_Math-Italic.woff?V=2.7.5') format('woff'), url('https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/fonts/HTML-CSS/TeX/otf/MathJax_Math-Italic.otf?V=2.7.5') format('opentype')
+    }
+
+    @font-face {
+        font-family: MathJax_Caligraphic;
+        src: url('https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/fonts/HTML-CSS/TeX/woff/MathJax_Caligraphic-Regular.woff?V=2.7.5') format('woff'), url('https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/fonts/HTML-CSS/TeX/otf/MathJax_Caligraphic-Regular.otf?V=2.7.5') format('opentype')
+    }
+
+    @font-face {
+        font-family: MathJax_Size1;
+        src: url('https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/fonts/HTML-CSS/TeX/woff/MathJax_Size1-Regular.woff?V=2.7.5') format('woff'), url('https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/fonts/HTML-CSS/TeX/otf/MathJax_Size1-Regular.otf?V=2.7.5') format('opentype')
+    }
+
+    @font-face {
+        font-family: MathJax_Size2;
+        src: url('https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/fonts/HTML-CSS/TeX/woff/MathJax_Size2-Regular.woff?V=2.7.5') format('woff'), url('https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/fonts/HTML-CSS/TeX/otf/MathJax_Size2-Regular.otf?V=2.7.5') format('opentype')
+    }
+
+    @font-face {
+        font-family: MathJax_Size3;
+        src: url('https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/fonts/HTML-CSS/TeX/woff/MathJax_Size3-Regular.woff?V=2.7.5') format('woff'), url('https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/fonts/HTML-CSS/TeX/otf/MathJax_Size3-Regular.otf?V=2.7.5') format('opentype')
+    }
+
+    @font-face {
+        font-family: MathJax_Size4;
+        src: url('https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/fonts/HTML-CSS/TeX/woff/MathJax_Size4-Regular.woff?V=2.7.5') format('woff'), url('https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.5/fonts/HTML-CSS/TeX/otf/MathJax_Size4-Regular.otf?V=2.7.5') format('opentype')
+    }
+
+    .MathJax .noError {
+        vertical-align: ;
+        font-size: 90%;
+        text-align: left;
+        color: black;
+        padding: 1px 3px;
+        border: 1px solid
+    }
+    </style>
+</head>
+
+<body class="wy-body-for-nav" data-new-gr-c-s-check-loaded="14.1056.0" data-gr-ext-installed="">
+<div style="visibility: hidden; overflow: hidden; position: absolute; top: 0px; height: 1px; width: auto; padding: 0px; border: 0px; margin: 0px; text-align: left; text-indent: 0px; text-transform: none; line-height: normal; letter-spacing: normal; word-spacing: normal;">
+    <div id="MathJax_Hidden"></div>
+</div>
+<div id="MathJax_Message" style="display: none;"></div>
+
+
+<div class="wy-grid-for-nav">
+
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+        <div class="wy-side-scroll">
+            <div class="wy-side-nav-search">
+
+
+                <a href="https://natsort.readthedocs.io/en/master/index.html"
+                   class="icon icon-home"> natsort
+
+
+                </a>
+
+
+                <div class="version">
+                    master
+                </div>
+
+
+                <div role="search">
+                    <form id="rtd-search-form" class="wy-form"
+                          action="https://natsort.readthedocs.io/en/master/search.html" method="get"
+                          data-dashlane-rid="3fc47c5ff103c4f0" data-form-type="">
+                        <input type="text" name="q" placeholder="Search docs"
+                               data-dashlane-rid="bedbc3c3771762f0" data-form-type="">
+                        <input type="hidden" name="check_keywords" value="yes">
+                        <input type="hidden" name="area" value="default">
+                    </form>
+                </div>
+
+
+            </div>
+
+            <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation"
+                 aria-label="main navigation">
+
+
+                <ul class="current">
+                    <li class="toctree-l1 current"><a class="reference internal current"
+                                                      href="https://natsort.readthedocs.io/en/master/howitworks.html#"><span
+                            class="toctree-expand"></span>1. How Does Natsort Work?</a>
+                        <ul>
+                            <li class="toctree-l2"><a class="reference internal"
+                                                      href="https://natsort.readthedocs.io/en/master/howitworks.html#first-how-does-natural-sorting-work-at-a-high-level">1.1.
+                                First, How Does Natural Sorting Work At a High Level?</a></li>
+                            <li class="toctree-l2"><a class="reference internal"
+                                                      href="https://natsort.readthedocs.io/en/master/howitworks.html#natsort-s-approach"><span
+                                    class="toctree-expand"></span>1.2. Natsort’s Approach</a>
+                                <ul>
+                                    <li class="toctree-l3"><a class="reference internal"
+                                                              href="https://natsort.readthedocs.io/en/master/howitworks.html#decomposing-strings-into-sub-components">1.2.1.
+                                        Decomposing Strings Into Sub-Components</a></li>
+                                    <li class="toctree-l3"><a class="reference internal"
+                                                              href="https://natsort.readthedocs.io/en/master/howitworks.html#coercing-strings-containing-numbers-into-numbers">1.2.2.
+                                        Coercing Strings Containing Numbers Into Numbers</a></li>
+                                    <li class="toctree-l3"><a class="reference internal"
+                                                              href="https://natsort.readthedocs.io/en/master/howitworks.html#tl-dr-1-the-simple-no-special-cases-algorithm">1.2.3.
+                                        TL;DR 1 - The Simple “No Special Cases” Algorithm</a></li>
+                                </ul>
+                            </li>
+                            <li class="toctree-l2"><a class="reference internal"
+                                                      href="https://natsort.readthedocs.io/en/master/howitworks.html#special-cases-everywhere"><span
+                                    class="toctree-expand"></span>1.3. Special Cases Everywhere!</a>
+                                <ul>
+                                    <li class="toctree-l3"><a class="reference internal"
+                                                              href="https://natsort.readthedocs.io/en/master/howitworks.html#sorting-filesystem-paths">1.3.1.
+                                        Sorting Filesystem Paths</a></li>
+                                    <li class="toctree-l3"><a class="reference internal"
+                                                              href="https://natsort.readthedocs.io/en/master/howitworks.html#comparing-different-types">1.3.2.
+                                        Comparing Different Types</a></li>
+                                    <li class="toctree-l3"><a class="reference internal"
+                                                              href="https://natsort.readthedocs.io/en/master/howitworks.html#handling-nan">1.3.3.
+                                        Handling NaN</a></li>
+                                    <li class="toctree-l3"><a class="reference internal"
+                                                              href="https://natsort.readthedocs.io/en/master/howitworks.html#tl-dr-2-handling-crappy-real-world-input">1.3.4.
+                                        TL;DR 2 - Handling Crappy, Real-World Input</a></li>
+                                </ul>
+                            </li>
+                            <li class="toctree-l2"><a class="reference internal"
+                                                      href="https://natsort.readthedocs.io/en/master/howitworks.html#here-be-dragons-adding-locale-support"><span
+                                    class="toctree-expand"></span>1.4. Here Be Dragons: Adding
+                                Locale Support</a>
+                                <ul>
+                                    <li class="toctree-l3"><a class="reference internal"
+                                                              href="https://natsort.readthedocs.io/en/master/howitworks.html#basic-case-control-support">1.4.1.
+                                        Basic Case Control Support</a></li>
+                                    <li class="toctree-l3"><a class="reference internal"
+                                                              href="https://natsort.readthedocs.io/en/master/howitworks.html#basic-unicode-support">1.4.2.
+                                        Basic Unicode Support</a></li>
+                                    <li class="toctree-l3"><a class="reference internal"
+                                                              href="https://natsort.readthedocs.io/en/master/howitworks.html#using-locale-to-compare-strings">1.4.3.
+                                        Using Locale to Compare Strings</a></li>
+                                    <li class="toctree-l3"><a class="reference internal"
+                                                              href="https://natsort.readthedocs.io/en/master/howitworks.html#unicode-support-with-local"><span
+                                            class="toctree-expand"></span>1.4.4. Unicode Support
+                                        With Local</a>
+                                        <ul>
+                                            <li class="toctree-l4"><a class="reference internal"
+                                                                      href="https://natsort.readthedocs.io/en/master/howitworks.html#handling-broken-locale-on-osx">1.4.4.1.
+                                                Handling Broken Locale On OSX</a></li>
+                                        </ul>
+                                    </li>
+                                    <li class="toctree-l3"><a class="reference internal"
+                                                              href="https://natsort.readthedocs.io/en/master/howitworks.html#handling-locale-aware-numbers">1.4.5.
+                                        Handling Locale-Aware Numbers</a></li>
+                                </ul>
+                            </li>
+                            <li class="toctree-l2"><a class="reference internal"
+                                                      href="https://natsort.readthedocs.io/en/master/howitworks.html#final-thoughts">1.5.
+                                Final Thoughts</a></li>
+                        </ul>
+                    </li>
+                    <li class="toctree-l1"><a class="reference internal"
+                                              href="https://natsort.readthedocs.io/en/master/examples.html">2.
+                        Examples and Recipes</a></li>
+                    <li class="toctree-l1"><a class="reference internal"
+                                              href="https://natsort.readthedocs.io/en/master/api.html">3.
+                        natsort API</a></li>
+                    <li class="toctree-l1"><a class="reference internal"
+                                              href="https://natsort.readthedocs.io/en/master/locale_issues.html">4.
+                        Possible Issues with <code class="docutils literal notranslate"><span
+                                class="pre">humansorted()</span></code> or <code
+                                class="docutils literal notranslate"><span
+                                class="pre">ns.LOCALE</span></code></a></li>
+                    <li class="toctree-l1"><a class="reference internal"
+                                              href="https://natsort.readthedocs.io/en/master/shell.html">5.
+                        Shell Script</a></li>
+                    <li class="toctree-l1"><a class="reference internal"
+                                              href="https://natsort.readthedocs.io/en/master/changelog.html">6.
+                        Changelog</a></li>
+                </ul>
+
+
+            </div>
+            <div id="rtd-sidebar" data-ea-publisher="readthedocs" data-ea-type="readthedocs-sidebar"
+                 data-ea-manual="true" class="ethical-rtd ethical-dark-theme"
+                 data-ea-keywords="natsort|natural-sort|python|readthedocs-project-102926|readthedocs-project-natsort|sorting|sorting-interface"
+                 data-ea-campaign-types="community|house|paid"></div>
+        </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+
+        <nav class="wy-nav-top" aria-label="top navigation">
+
+            <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+            <a href="https://natsort.readthedocs.io/en/master/index.html">natsort</a>
+
+        </nav>
+
+
+        <div class="wy-nav-content">
+
+            <div class="rst-content">
+
+
+                <div role="navigation" aria-label="breadcrumbs navigation">
+
+                    <ul class="wy-breadcrumbs">
+
+                        <li><a href="https://natsort.readthedocs.io/en/master/index.html">Docs</a> »
+                        </li>
+
+                        <li>1. How Does Natsort Work?</li>
+
+
+                        <li class="wy-breadcrumbs-aside">
+
+
+                            <a href="https://github.com/SethMMorton/natsort/blob/master/docs/howitworks.rst"
+                               class="fa fa-github"> Edit on GitHub</a>
+
+
+                        </li>
+
+                    </ul>
+
+
+                    <hr>
+                </div>
+                <div role="main" class="document" itemscope="itemscope"
+                     itemtype="http://schema.org/Article">
+                    <div itemprop="articleBody">
+
+                        <div class="section" id="how-does-natsort-work">
+                            <span id="howitworks"></span>
+                            <h1>1. How Does Natsort Work?<a class="headerlink"
+                                                            href="https://natsort.readthedocs.io/en/master/howitworks.html#how-does-natsort-work"
+                                                            title="Permalink to this headline">¶</a>
+                            </h1>
+                            <div class="contents local topic" id="contents">
+                                <ul class="simple">
+                                    <li><a class="reference internal"
+                                           href="https://natsort.readthedocs.io/en/master/howitworks.html#first-how-does-natural-sorting-work-at-a-high-level"
+                                           id="id8">First, How Does Natural Sorting Work At a High
+                                        Level?</a></li>
+                                    <li><a class="reference internal"
+                                           href="https://natsort.readthedocs.io/en/master/howitworks.html#natsort-s-approach"
+                                           id="id9">Natsort’s Approach</a>
+                                        <ul>
+                                            <li><a class="reference internal"
+                                                   href="https://natsort.readthedocs.io/en/master/howitworks.html#decomposing-strings-into-sub-components"
+                                                   id="id10">Decomposing Strings Into
+                                                Sub-Components</a></li>
+                                            <li><a class="reference internal"
+                                                   href="https://natsort.readthedocs.io/en/master/howitworks.html#coercing-strings-containing-numbers-into-numbers"
+                                                   id="id11">Coercing Strings Containing Numbers
+                                                Into Numbers</a></li>
+                                            <li><a class="reference internal"
+                                                   href="https://natsort.readthedocs.io/en/master/howitworks.html#tl-dr-1-the-simple-no-special-cases-algorithm"
+                                                   id="id12">TL;DR 1 - The Simple “No Special Cases”
+                                                Algorithm</a></li>
+                                        </ul>
+                                    </li>
+                                    <li><a class="reference internal"
+                                           href="https://natsort.readthedocs.io/en/master/howitworks.html#special-cases-everywhere"
+                                           id="id13">Special Cases Everywhere!</a>
+                                        <ul>
+                                            <li><a class="reference internal"
+                                                   href="https://natsort.readthedocs.io/en/master/howitworks.html#sorting-filesystem-paths"
+                                                   id="id14">Sorting Filesystem Paths</a></li>
+                                            <li><a class="reference internal"
+                                                   href="https://natsort.readthedocs.io/en/master/howitworks.html#comparing-different-types"
+                                                   id="id15">Comparing Different Types</a></li>
+                                            <li><a class="reference internal"
+                                                   href="https://natsort.readthedocs.io/en/master/howitworks.html#handling-nan"
+                                                   id="id16">Handling NaN</a></li>
+                                            <li><a class="reference internal"
+                                                   href="https://natsort.readthedocs.io/en/master/howitworks.html#tl-dr-2-handling-crappy-real-world-input"
+                                                   id="id17">TL;DR 2 - Handling Crappy, Real-World
+                                                Input</a></li>
+                                        </ul>
+                                    </li>
+                                    <li><a class="reference internal"
+                                           href="https://natsort.readthedocs.io/en/master/howitworks.html#here-be-dragons-adding-locale-support"
+                                           id="id18">Here Be Dragons: Adding Locale Support</a>
+                                        <ul>
+                                            <li><a class="reference internal"
+                                                   href="https://natsort.readthedocs.io/en/master/howitworks.html#basic-case-control-support"
+                                                   id="id19">Basic Case Control Support</a></li>
+                                            <li><a class="reference internal"
+                                                   href="https://natsort.readthedocs.io/en/master/howitworks.html#basic-unicode-support"
+                                                   id="id20">Basic Unicode Support</a></li>
+                                            <li><a class="reference internal"
+                                                   href="https://natsort.readthedocs.io/en/master/howitworks.html#using-locale-to-compare-strings"
+                                                   id="id21">Using Locale to Compare Strings</a>
+                                            </li>
+                                            <li><a class="reference internal"
+                                                   href="https://natsort.readthedocs.io/en/master/howitworks.html#unicode-support-with-local"
+                                                   id="id22">Unicode Support With Local</a>
+                                                <ul>
+                                                    <li><a class="reference internal"
+                                                           href="https://natsort.readthedocs.io/en/master/howitworks.html#handling-broken-locale-on-osx"
+                                                           id="id23">Handling Broken Locale On
+                                                        OSX</a></li>
+                                                </ul>
+                                            </li>
+                                            <li><a class="reference internal"
+                                                   href="https://natsort.readthedocs.io/en/master/howitworks.html#handling-locale-aware-numbers"
+                                                   id="id24">Handling Locale-Aware Numbers</a></li>
+                                        </ul>
+                                    </li>
+                                    <li><a class="reference internal"
+                                           href="https://natsort.readthedocs.io/en/master/howitworks.html#final-thoughts"
+                                           id="id25">Final Thoughts</a></li>
+                                </ul>
+                            </div>
+                            <p>If you are impatient, you can skip to <a class="reference internal"
+                                                                        href="https://natsort.readthedocs.io/en/master/howitworks.html#tldr1"><span
+                                    class="std std-ref">TL;DR 1 - The Simple “No Special Cases” Algorithm</span></a>
+                                for the algorithm
+                                in the simplest case, and <a class="reference internal"
+                                                             href="https://natsort.readthedocs.io/en/master/howitworks.html#tldr2"><span
+                                        class="std std-ref">TL;DR 2 - Handling Crappy, Real-World Input</span></a>
+                                to see what extra code is needed to handle special cases.</p>
+                            <div class="section"
+                                 id="first-how-does-natural-sorting-work-at-a-high-level">
+                                <h2><a class="toc-backref"
+                                       href="https://natsort.readthedocs.io/en/master/howitworks.html#id8">1.1.
+                                    First, How Does Natural Sorting Work At a High Level?</a><a
+                                        class="headerlink"
+                                        href="https://natsort.readthedocs.io/en/master/howitworks.html#first-how-does-natural-sorting-work-at-a-high-level"
+                                        title="Permalink to this headline">¶</a></h2>
+                                <p>If I want to compare ‘2 ft 7 in’ to ‘2 ft 11 in’, I might do the
+                                    following</p>
+                                <div class="highlight-pycon notranslate">
+                                    <div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span
+                                            class="s1">'2 ft 7 in'</span> <span
+                                            class="o">&lt;</span> <span
+                                            class="s1">'2 ft 11 in'</span>
+<span class="go">False</span>
+</pre>
+                                    </div>
+                                </div>
+                                <p>We as humans know that the above should be true, but why does
+                                    Python think it
+                                    is false? Here is how it is performing the comparison:</p>
+                                <p>At its heart, <code
+                                        class="xref py py-mod docutils literal notranslate"><span
+                                        class="pre">natsort</span></code> is simply a tool to break
+                                    strings into tuples,
+                                    turning numbers in strings (i.e. <code
+                                            class="docutils literal notranslate"><span class="pre">'79'</span></code>)
+                                    into <em>ints</em> and <em>floats</em> as it does this.</p>
+                            </div>
+
+                        </div>
+
+
+                    </div>
+
+                </div>
+                <footer>
+
+                    <div class="rst-footer-buttons" role="navigation"
+                         aria-label="footer navigation">
+
+                        <a href="https://natsort.readthedocs.io/en/master/examples.html"
+                           class="btn btn-neutral float-right" title="2. Examples and Recipes"
+                           accesskey="n" rel="next">Next <span
+                                class="fa fa-arrow-circle-right"></span></a>
+
+
+                        <a href="https://natsort.readthedocs.io/en/master/index.html"
+                           class="btn btn-neutral float-left"
+                           title="natsort: Simple yet flexible natural sorting in Python."
+                           accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span>
+                            Previous</a>
+
+                    </div>
+
+
+                    <hr>
+
+                    <div role="contentinfo">
+                        <p>
+                            © Copyright 2014, Seth M. Morton
+
+                            <span class="commit">
+          Revision <code>e3c32f56</code>.
+        </span>
+
+
+                        </p>
+                    </div>
+                    Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a <a
+                        href="https://github.com/rtfd/sphinx_rtd_theme">theme</a> provided by <a
+                        href="https://readthedocs.org/">Read the Docs</a>.
+
+                </footer>
+
+            </div>
+        </div>
+
+    </section>
+
+</div>
+
+
+<div class="rst-versions" data-toggle="rst-versions" role="note" aria-label="versions">
+    <span class="rst-current-version" data-toggle="rst-current-version">
+      <span class="fa fa-book"> Read the Docs</span>
+      v: master
+      <span class="fa fa-caret-down"></span>
+    </span>
+    <div class="rst-other-versions"><!-- Inserted RTD Footer -->
+
+        <div class="injected">
+
+
+            <dl>
+                <dt>Versions</dt>
+
+                <dd class="rtd-current-item">
+                    <a href="https://natsort.readthedocs.io/en/master/howitworks.html">master</a>
+                </dd>
+
+                <dd>
+                    <a href="https://natsort.readthedocs.io/en/latest/howitworks.html">latest</a>
+                </dd>
+
+                <dd>
+                    <a href="https://natsort.readthedocs.io/en/stable/howitworks.html">stable</a>
+                </dd>
+
+                <dd>
+                    <a href="https://natsort.readthedocs.io/en/8.1.0/howitworks.html">8.1.0</a>
+                </dd>
+
+                <dd>
+                    <a href="https://natsort.readthedocs.io/en/8.0.2/howitworks.html">8.0.2</a>
+                </dd>
+
+                <dd>
+                    <a href="https://natsort.readthedocs.io/en/8.0.1/howitworks.html">8.0.1</a>
+                </dd>
+
+                <dd>
+                    <a href="https://natsort.readthedocs.io/en/8.0.0/howitworks.html">8.0.0</a>
+                </dd>
+
+                <dd>
+                    <a href="https://natsort.readthedocs.io/en/7.2.0/howitworks.html">7.2.0</a>
+                </dd>
+
+                <dd>
+                    <a href="https://natsort.readthedocs.io/en/7.1.1/howitworks.html">7.1.1</a>
+                </dd>
+
+                <dd>
+                    <a href="https://natsort.readthedocs.io/en/7.1.0/howitworks.html">7.1.0</a>
+                </dd>
+
+                <dd>
+                    <a href="https://natsort.readthedocs.io/en/7.0.1/howitworks.html">7.0.1</a>
+                </dd>
+
+                <dd>
+                    <a href="https://natsort.readthedocs.io/en/7.0.0/howitworks.html">7.0.0</a>
+                </dd>
+
+                <dd>
+                    <a href="https://natsort.readthedocs.io/en/6.2.0/howitworks.html">6.2.0</a>
+                </dd>
+
+                <dd>
+                    <a href="https://natsort.readthedocs.io/en/6.1.0/howitworks.html">6.1.0</a>
+                </dd>
+
+                <dd>
+                    <a href="https://natsort.readthedocs.io/en/6.0.0/howitworks.html">6.0.0</a>
+                </dd>
+
+                <dd>
+                    <a href="https://natsort.readthedocs.io/en/5.5.0/howitworks.html">5.5.0</a>
+                </dd>
+
+                <dd>
+                    <a href="https://natsort.readthedocs.io/en/5.4.1/howitworks.html">5.4.1</a>
+                </dd>
+
+                <dd>
+                    <a href="https://natsort.readthedocs.io/en/5.4.0/howitworks.html">5.4.0</a>
+                </dd>
+
+                <dd>
+                    <a href="https://natsort.readthedocs.io/en/5.3.3/howitworks.html">5.3.3</a>
+                </dd>
+
+                <dd>
+                    <a href="https://natsort.readthedocs.io/en/5.3.2/howitworks.html">5.3.2</a>
+                </dd>
+
+                <dd>
+                    <a href="https://natsort.readthedocs.io/en/5.3.1/howitworks.html">5.3.1</a>
+                </dd>
+
+                <dd>
+                    <a href="https://natsort.readthedocs.io/en/5.3.0/howitworks.html">5.3.0</a>
+                </dd>
+
+                <dd>
+                    <a href="https://natsort.readthedocs.io/en/5.2.0/howitworks.html">5.2.0</a>
+                </dd>
+
+                <dd>
+                    <a href="https://natsort.readthedocs.io/en/5.1.1/howitworks.html">5.1.1</a>
+                </dd>
+
+                <dd>
+                    <a href="https://natsort.readthedocs.io/en/5.1.0/howitworks.html">5.1.0</a>
+                </dd>
+
+                <dd>
+                    <a href="https://natsort.readthedocs.io/en/5.0.3/howitworks.html">5.0.3</a>
+                </dd>
+
+                <dd>
+                    <a href="https://natsort.readthedocs.io/en/4.0.4/howitworks.html">4.0.4</a>
+                </dd>
+
+            </dl>
+
+
+            <dl>
+                <dt>Downloads</dt>
+
+                <dd><a href="https://natsort.readthedocs.io/_/downloads/en/master/pdf/">PDF</a></dd>
+
+                <dd><a href="https://natsort.readthedocs.io/_/downloads/en/master/htmlzip/">HTML</a>
+                </dd>
+
+                <dd><a href="https://natsort.readthedocs.io/_/downloads/en/master/epub/">Epub</a>
+                </dd>
+
+            </dl>
+
+
+            <dl>
+
+                <!-- These are kept as relative links for internal installs that are http -->
+                <dt>On Read the Docs</dt>
+                <dd>
+                    <a href="https://readthedocs.org/projects/natsort/">Project Home</a>
+                </dd>
+                <dd>
+                    <a href="https://readthedocs.org/projects/natsort/builds/">Builds</a>
+                </dd>
+                <dd>
+                    <a href="https://readthedocs.org/projects/natsort/downloads/">Downloads</a>
+                </dd>
+            </dl>
+
+
+            <dl>
+                <dt>On GitHub</dt>
+                <dd>
+                    <a href="https://github.com/SethMMorton/natsort/blob/master/docs/howitworks.rst">View</a>
+                </dd>
+
+                <dd>
+                    <a href="https://github.com/SethMMorton/natsort/edit/master/docs/howitworks.rst">Edit</a>
+                </dd>
+
+            </dl>
+
+
+            <dl>
+                <dt>Search</dt>
+                <dd>
+                    <div style="padding: 6px;">
+
+                        <form id="flyout-search-form" class="wy-form" target="_blank"
+                              action="https://readthedocs.org/projects/natsort/search/"
+                              method="get">
+                            <input type="text" name="q" aria-label="Search docs"
+                                   placeholder="Search docs">
+                        </form>
+                    </div>
+                </dd>
+            </dl>
+
+
+            <hr>
+
+
+            <small>
+                <span>Hosted by <a href="https://readthedocs.org/">Read the Docs</a></span>
+                <span> · </span>
+                <a href="https://docs.readthedocs.io/page/privacy-policy.html">Privacy Policy</a>
+            </small>
+
+
+        </div>
+    </div>
+</div>
+
+
+<script type="text/javascript">
+    jQuery(function () {
+        SphinxRtdTheme.Navigation.enable(true);
+    });
+</script>
+
+
+<div style="position: absolute; width: 0px; height: 0px; overflow: hidden; padding: 0px; border: 0px; margin: 0px;">
+    <div id="MathJax_Font_Test"
+         style="position: absolute; visibility: hidden; top: 0px; left: 0px; width: auto; min-width: 0px; max-width: none; padding: 0px; border: 0px; margin: 0px; white-space: nowrap; text-align: left; text-indent: 0px; text-transform: none; line-height: normal; letter-spacing: normal; word-spacing: normal; font-size: 40px; font-weight: normal; font-style: normal; font-family: MathJax_Main, sans-serif;"></div>
+</div>
+</body>
+<grammarly-desktop-integration data-grammarly-shadow-root="true"></grammarly-desktop-integration>
+</html>
