@@ -1,0 +1,29 @@
+url: "https://pint.readthedocs.io/en/stable/index.html"
+allowed_path: "en/stable"
+disallow:
+  - '.*/pdf/*'
+  - '.*/epub/*'
+  - '.*/htmlzip/*'
+disallow_file_types:
+  - bib
+  - py
+  - pdf
+groups:
+  tutorials:
+    path: /en/stable
+    pages:
+      tutorial: tutorial.html
+      defining_quantities: defining-quantities.html
+      nonmult: nonmult.html
+      log_units: log_units.html
+      serialization: serialization.html
+      wrapping: wrapping.html
+      pitheorem: pitheorem.html
+      contexts: contexts.html
+      measurement: measurement.html
+      defining: defining.html
+      systems: systems.html
+
+
+
+

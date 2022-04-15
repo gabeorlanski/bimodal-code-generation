@@ -70,7 +70,7 @@ def parse_tutorials(debug, input_path, output_path):
         output_path.mkdir(parents=True)
     logger.info(f"{len(cfg)} total unique domains to parse")
 
-    domain_run = defaultdict(dict)
+    total_found = {}
     for domain, groups in cfg.items():
         logger.info(f"Looking for {len(groups)} group(s) for {domain}")
         path_to_name = {}
@@ -93,6 +93,8 @@ def parse_tutorials(debug, input_path, output_path):
                 to_parse[d['cleaned_name']] = path_to_name[url_path]
 
         logger.info(f"{len(found)}/{len(path_to_name)} found")
+
+        total_found[domain] = (len(found), len(path_to_name))
         parser = TutorialHTMLParser.by_name(domain)()
 
         files = {crawled_path.joinpath(domain, p): v for p, v in to_parse.items()}
@@ -113,6 +115,10 @@ def parse_tutorials(debug, input_path, output_path):
 
             with domain_out.joinpath(f'{out_name}.json').open('w') as f:
                 json.dump(parsed, f, indent=True)
+
+    logger.info("Found:")
+    for k, v in sorted(total_found.items(), key=lambda e: e[0]):
+        logger.info(f"\t{k:>16} = {v[0]:>5}/{v[1]:<5}")
 
 
 @click.group()
@@ -226,11 +232,15 @@ def make_samples(ctx):
         f"{num_found}/{sum(total_fails.values()) + num_found} are runnable")
     logger.info(f"{sum(total_passed.values())}/{num_found} returned the expected value")
     logger.info("Results in the form Passed Test | Runnable | Total:")
-    for k, v in total_runnable_code.items():
+    for k, v in sorted(total_runnable_code.items(), key=lambda e: e[0]):
         total = v + total_fails[k]
+        if total > 0:
+            pct_ver = total_passed[k] / total
+        else:
+            pct_ver = 0
         logger.info(
             f"\t{k:>16} = {total_passed[k]:>11} | {v:>8} | {total:>7}     "
-            f"{total_passed[k] / total:>7.2%} verified.")
+            f"{pct_ver:>7.2%} verified.")
 
     logger.info(f"Saving to {out_dir}")
 

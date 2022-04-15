@@ -1,0 +1,37 @@
+url: https://docs.scipy.org/doc/scipy-1.8.0/html-scipyorg
+allowed_path: "doc/scipy-1.8.0"
+
+disallow_file_types:
+  - bib
+  - py
+groups:
+  stats:
+    path: /tutorial/stats
+    pages:
+      continuous: continuous.html
+      discrete: discrete.html
+      sampling: sampling.html
+      sampling_dau: sampling_dau.html
+      sampling_dgt: sampling_dgt.html
+      sampling_hinv: sampling_hinv.html
+      sampling_pinv: sampling_pinv.html
+      sampling_srou: sampling_srou.html
+      sampling_tdr: sampling_tdr.html
+  tutorial:
+    path: /tutorial
+    pages:
+      arpack: arpack.html
+      csgraph: csgraph.html
+      fft: fft.html
+      general: general.html
+      index: index.html
+      integrate: integrate.html
+      interpolate: interpolate.html
+      io: io.html
+      linalg: linalg.html
+      ndimage: ndimage.html
+      optimize: optimize.html
+      signal: signal.html
+      spatial: spatial.html
+      special: special.html
+      stats: stats.html

@@ -12,3 +12,9 @@ natsort==8.1.0
 bleach==5.0.0
 pydash==5.1.0
 yarl==1.7.2
+scipy==1.8.0
+numpy==1.22.0
+networkx==2.8
+simplejson==3.17.6
+simpy==4.0.1
+pint==0.19.1

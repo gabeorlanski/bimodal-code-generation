@@ -203,7 +203,7 @@ def test_arrow(tutorial_fixtures_path):
     )
 
     assert result == [{
-        'tag': 'section', 'title': 'Arrow: Better dates & times for Python\n',
+        'tag': 'section', 'title': 'Arrow: Better dates & times for Python',
         'id' : 1, 'id_str': 'arrow-better-dates-times-for-python', 'parent': 0,
         'idx': 0, 'content': [
             {'idx': 1, 'text': 'Release v1.2.2 (Installation) (Changelog) ', 'tag': 'p'}, {
@@ -215,7 +215,7 @@ def test_arrow(tutorial_fixtures_path):
                 'text': 'Arrow is named after the arrow of time and is heavily inspired by moment.js and requests. ',
                 'tag' : 'p'
             }, {
-                'tag'   : 'section', 'title': 'Why use Arrow over built-in modules?\n', 'id': 2,
+                'tag'   : 'section', 'title': 'Why use Arrow over built-in modules?', 'id': 2,
                 'id_str': 'why-use-arrow-over-built-in-modules', 'parent': 1, 'idx': 4, 'content': [
                     {
                         'idx' : 5,
@@ -546,6 +546,161 @@ def test_bleach(tutorial_fixtures_path):
                 }, {
                     'idx' : 16,
                     'text': 'The default value is a relatively conservative list found in bleach.sanitizer.ALLOWED_TAGS. ',
+                    'tag' : 'p'
+                }]
+            }]
+    }]
+
+
+def test_scipy(tutorial_fixtures_path):
+    parser = html_parsers.TutorialHTMLParser.by_name('scipy')()
+    result = parser(
+        tutorial_fixtures_path.joinpath('scipy.html').read_text()
+    )
+
+    assert result == [{
+        'tag'    : 'section', 'title': 'Special functions', 'id': 1,
+        'id_str' : 'special-functions-scipy-special', 'parent': 0, 'idx': 0,
+        'content': [{
+            'idx' : 1,
+            'text': "The main feature",
+            'tag' : 'p'
+        }, {
+            'tag'   : 'section',
+            'title' : 'Bessel functions of real order',
+            'id'    : 2,
+            'id_str': 'bessel-functions-of-real-order-jv-jn-zeros',
+            'parent': 1, 'idx': 2, 'content': [{
+                'idx' : 3,
+                'text': "Bessel functions are a family of solutions to Bessel's differential equation with real or complex order alpha:",
+                'tag' : 'p'
+            }, {
+                'idx' : 4,
+                'text': ' x2d2ydx2+xdydx+(x2-a2)y=0 ',
+                'tag' : 'p'
+            }, {
+                'idx' : 5,
+                'text': 'Among other uses, these functions arise in wave propagation problems, such as the vibrational modes of a thin drum head. Here is an example of a circular drum head anchored at the edge:',
+                'tag' : 'p'
+            }, {
+                'idx' : 6,
+                'text': '>>> from scipy import special\n>>> def drumhead_height(n, k, distance, angle, t):\n...    kth_zero = special.jn_zeros(n, k)[-1]\n...    return np.cos(t) * np.cos(n*angle) * special.jn(n, distance*kth_zero)\n>>> theta = np.r_[0:2*np.pi:50j]\n>>> radius = np.r_[0:1:50j]\n>>> x = np.array([r * np.cos(theta) for r in radius])\n>>> y = np.array([r * np.sin(theta) for r in radius])\n>>> z = np.array([drumhead_height(1, 1, r, theta, 0.5) for r in radius])',
+                'tag' : 'code'
+            }]
+        }]
+    }]
+
+
+def test_numpy(tutorial_fixtures_path):
+    parser = html_parsers.TutorialHTMLParser.by_name('numpy')()
+    result = parser(
+        tutorial_fixtures_path.joinpath('numpy.html').read_text()
+    )
+
+    assert result == [{
+        'tag'   : 'section', 'title': 'NumPy quickstart', 'id': 1,
+        'id_str': 'numpy-quickstart', 'parent': 0, 'idx': 0, 'content': [{
+            'tag'    : 'section',
+            'title'  : 'The Basics',
+            'id'     : 2,
+            'id_str' : 'the-basics',
+            'parent' : 1,
+            'idx'    : 1,
+            'content': [
+                {
+                    'idx' : 2,
+                    'text': "NumPy's main object is the homogeneous multidimensional array. It is a table of elements (usually numbers), all of the same type, indexed by a tuple of non-negative integers. In NumPy dimensions are called axes.",
+                    'tag' : 'p'
+                },
+                {
+                    'idx' : 3,
+                    'text': '[[1., 0., 0.],\n [0., 1., 2.]]',
+                    'tag' : 'code'
+                },
+                {
+                    'idx' : 6,
+                    'text': 'ndarray.ndim',
+                    'tag' : 'p'
+                },
+                {
+                    'idx' : 7,
+                    'text': 'the number of axes (dimensions) of the array. ',
+                    'tag' : 'p'
+                },
+                {
+                    'idx' : 8,
+                    'text': 'ndarray.shape',
+                    'tag' : 'p'
+                },
+                {
+                    'idx' : 9,
+                    'text': 'the dimensions of the array. This is a tuple of integers indicating the size of the array in each dimension. For a matrix with n rows and m columns, shape will be (n,m). The length of the shape tuple is therefore the number of axes, ndim. ',
+                    'tag' : 'p'
+                },
+                {
+                    'idx' : 10,
+                    'text': 'ndarray.size',
+                    'tag' : 'p'
+                },
+                {
+                    'idx' : 11,
+                    'text': 'the total number of elements of the array. This is equal to the product of the elements of shape. ',
+                    'tag' : 'p'
+                },
+                {
+                    'idx' : 12,
+                    'text': 'ndarray.dtype',
+                    'tag' : 'p'
+                },
+                {
+                    'idx' : 13,
+                    'text': "an object describing the type of the elements in the array. One can create or specify dtype's using standard Python types. Additionally NumPy provides types of its own. numpy.int32, numpy.int16, and numpy.float64 are some examples. ",
+                    'tag' : 'p'
+                },
+                {
+                    'idx' : 14,
+                    'text': 'ndarray.itemsize',
+                    'tag' : 'p'
+                },
+                {
+                    'idx' : 15,
+                    'text': 'the size in bytes of each element of the array. For example, an array of elements of type float64 has itemsize 8 (=64/8), while one of type complex32 has itemsize 4 (=32/8). It is equivalent to ndarray.dtype.itemsize. ',
+                    'tag' : 'p'
+                },
+                {
+                    'idx' : 16,
+                    'text': 'ndarray.data',
+                    'tag' : 'p'
+                },
+                {
+                    'idx' : 17,
+                    'text': "the buffer containing the actual elements of the array. Normally, we won't need to use this attribute because we will access the elements in an array using indexing facilities. ",
+                    'tag' : 'p'
+                }]
+        }]
+    }]
+
+
+def test_networkx(tutorial_fixtures_path):
+    parser = html_parsers.TutorialHTMLParser.by_name('networkx')()
+    result = parser(
+        tutorial_fixtures_path.joinpath('networkx.html').read_text()
+    )
+
+    assert result == [{
+        'tag'   : 'section', 'title': 'Tutorial', 'id': 1, 'id_str': 'tutorial',
+        'parent': 0, 'idx': 0, 'content': [
+            {'idx': 1, 'text': 'This guide can help you start working with NetworkX.', 'tag': 'p'},
+            {
+                'tag'   : 'section', 'title': 'Creating a graph', 'id': 2,
+                'id_str': 'creating-a-graph', 'parent': 1, 'idx': 2, 'content': [
+                {'idx': 3, 'text': 'Create an empty graph with no nodes and no edges.', 'tag': 'p'},
+                {
+                    'idx': 4, 'text': '>>>\n>>> import networkx as nx\n>>> G = nx.Graph()',
+                    'tag': 'code'
+                }, {'idx': 7, 'text': 'Note', 'tag': 'p'}, {
+                    'idx' : 8,
+                    'text': "Python's None object is not allowed to be used as a node. It determines whether optional function arguments have been assigned in many functions.",
                     'tag' : 'p'
                 }]
             }]

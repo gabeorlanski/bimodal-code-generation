@@ -26,7 +26,7 @@ def mk_valid_syntax(code_str):
         break
     if all(l.startswith('#') for l in code_lines) or failed:
         return None
-    return [line for line in code_lines if line.strip()]
+    return [line for line in code_lines if line.strip() if 'plt.' not in line]
 
 
 class NotSupportedException(Exception):

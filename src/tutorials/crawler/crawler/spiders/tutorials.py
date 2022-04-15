@@ -27,7 +27,7 @@ class TutorialSpider(CrawlSpider):
             re.sub(r'^www\.', '', urlparse(url).hostname)
         ]
         self.allowed_path = allowed_path if not allowed_path.endswith('/') else allowed_path[:-1]
-        ignore_extensions = ['php', 'rst', 'txt', 'tgz', 'asc', 'gz']
+        ignore_extensions = ['php', 'rst', 'txt', 'tgz', 'asc', 'gz', "bib", "py", "pdf", 'ipynb']
         ignore_extensions += disallow_file_types or []
         self.link_extractor = LinkExtractor(
             allow=urljoin(urlparse(url).hostname, allowed_path) + r'/.*',

@@ -1,0 +1,19 @@
+url: ''
+groups:
+  tutorial:
+    path: /user
+    pages:
+      quickstart: quickstart.html
+      absolute_beginners: absolute_beginners.html
+      basics_creation: basics.creation.html
+      basics_indexing: basics.indexing.html
+      basics_genfromtxt: basics.io.genfromtxt.html
+      basics_types: basics.types.html
+      basics_broadcasting: basics.broadcasting.html
+      basics_byteswapping: basics.byteswapping.html
+      basics_rec: basics.rec.html
+      basics_dispatch: basics.dispatch.html
+      basics_subclassing: basics.subclassing.html
+      basics_ufuncs: basics.ufuncs.html
+      basics_copies: basics.copies.html
+      misc: misc.html

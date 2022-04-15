@@ -1,0 +1,1241 @@
+<!DOCTYPE html>
+<!-- saved from url=(0055)https://networkx.org/documentation/stable/tutorial.html -->
+<html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/">
+
+    <title>Tutorial — NetworkX 2.8 documentation</title>
+
+    <!-- Loaded before other Sphinx assets -->
+    <link href="./networkx_files/theme.css" rel="stylesheet">
+    <link href="./networkx_files/pydata-sphinx-theme.css" rel="stylesheet">
+
+
+    <link rel="stylesheet" href="./networkx_files/all.min.css">
+    <link rel="preload" as="font" type="font/woff2" crossorigin=""
+          href="https://networkx.org/documentation/stable/_static/vendor/fontawesome/5.13.0/webfonts/fa-solid-900.woff2">
+    <link rel="preload" as="font" type="font/woff2" crossorigin=""
+          href="https://networkx.org/documentation/stable/_static/vendor/fontawesome/5.13.0/webfonts/fa-brands-400.woff2">
+
+    <link rel="stylesheet" type="text/css" href="./networkx_files/pygments.css">
+    <link rel="stylesheet" type="text/css" href="./networkx_files/custom.css">
+    <link rel="stylesheet" type="text/css" href="./networkx_files/sg_gallery.css">
+    <link rel="stylesheet" type="text/css" href="./networkx_files/sg_gallery-binder.css">
+    <link rel="stylesheet" type="text/css" href="./networkx_files/sg_gallery-dataframe.css">
+    <link rel="stylesheet" type="text/css" href="./networkx_files/sg_gallery-rendered-html.css">
+
+    <!-- Pre-loaded scripts that we'll load fully later -->
+    <link rel="preload" as="script" href="./networkx_files/pydata-sphinx-theme.js">
+
+    <script data-url_root="./" id="documentation_options"
+            src="./networkx_files/documentation_options.js"></script>
+    <script src="./networkx_files/jquery.js"></script>
+    <script src="./networkx_files/underscore.js"></script>
+    <script src="./networkx_files/doctools.js"></script>
+    <script src="./networkx_files/copybutton.js"></script>
+    <script async="async" src="./networkx_files/tex-mml-chtml.js"></script>
+    <link rel="canonical" href="https://networkx.org/documentation/stable/tutorial.html">
+    <link rel="search" type="application/opensearchdescription+xml"
+          title="Search within NetworkX 2.8 documentation"
+          href="https://networkx.org/documentation/stable/_static/opensearch.xml">
+    <link rel="index" title="Index" href="https://networkx.org/documentation/stable/genindex.html">
+    <link rel="search" title="Search" href="https://networkx.org/documentation/stable/search.html">
+    <link rel="next" title="Reference"
+          href="https://networkx.org/documentation/stable/reference/index.html">
+    <link rel="prev" title="Install" href="https://networkx.org/documentation/stable/install.html">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="docsearch:language" content="None">
+
+
+    <!-- Google Analytics -->
+
+    <style type="text/css">.CtxtMenu_InfoClose {
+        top: .2em;
+        right: .2em;
+    }
+
+    .CtxtMenu_InfoContent {
+        overflow: auto;
+        text-align: left;
+        font-size: 80%;
+        padding: .4em .6em;
+        border: 1px inset;
+        margin: 1em 0px;
+        max-height: 20em;
+        max-width: 30em;
+        background-color: #EEEEEE;
+        white-space: normal;
+    }
+
+    .CtxtMenu_Info.CtxtMenu_MousePost {
+        outline: none;
+    }
+
+    .CtxtMenu_Info {
+        position: fixed;
+        left: 50%;
+        width: auto;
+        text-align: center;
+        border: 3px outset;
+        padding: 1em 2em;
+        background-color: #DDDDDD;
+        color: black;
+        cursor: default;
+        font-family: message-box;
+        font-size: 120%;
+        font-style: normal;
+        text-indent: 0;
+        text-transform: none;
+        line-height: normal;
+        letter-spacing: normal;
+        word-spacing: normal;
+        word-wrap: normal;
+        white-space: nowrap;
+        float: none;
+        z-index: 201;
+        border-radius: 15px; /* Opera 10.5 and IE9 */
+        -webkit-border-radius: 15px; /* Safari and Chrome */
+        -moz-border-radius: 15px; /* Firefox */
+        -khtml-border-radius: 15px; /* Konqueror */
+        box-shadow: 0px 10px 20px #808080; /* Opera 10.5 and IE9 */
+        -webkit-box-shadow: 0px 10px 20px #808080; /* Safari 3 & Chrome */
+        -moz-box-shadow: 0px 10px 20px #808080; /* Forefox 3.5 */
+        -khtml-box-shadow: 0px 10px 20px #808080; /* Konqueror */
+        filter: progid:DXImageTransform.Microsoft.dropshadow(OffX=2, OffY=2, Color="gray", Positive="true"); /* IE */
+    }
+    </style>
+    <style type="text/css">.CtxtMenu_MenuClose {
+        position: absolute;
+        cursor: pointer;
+        display: inline-block;
+        border: 2px solid #AAA;
+        border-radius: 18px;
+        -webkit-border-radius: 18px; /* Safari and Chrome */
+        -moz-border-radius: 18px; /* Firefox */
+        -khtml-border-radius: 18px; /* Konqueror */
+        font-family: "Courier New", Courier;
+        font-size: 24px;
+        color: #F0F0F0
+    }
+
+    .CtxtMenu_MenuClose span {
+        display: block;
+        background-color: #AAA;
+        border: 1.5px solid;
+        border-radius: 18px;
+        -webkit-border-radius: 18px; /* Safari and Chrome */
+        -moz-border-radius: 18px; /* Firefox */
+        -khtml-border-radius: 18px; /* Konqueror */
+        line-height: 0;
+        padding: 8px 0 6px /* may need to be browser-specific */
+    }
+
+    .CtxtMenu_MenuClose:hover {
+        color: white !important;
+        border: 2px solid #CCC !important
+    }
+
+    .CtxtMenu_MenuClose:hover span {
+        background-color: #CCC !important
+    }
+
+    .CtxtMenu_MenuClose:hover:focus {
+        outline: none
+    }
+    </style>
+    <style type="text/css">.CtxtMenu_Menu {
+        position: absolute;
+        background-color: white;
+        color: black;
+        width: auto;
+        padding: 5px 0px;
+        border: 1px solid #CCCCCC;
+        margin: 0;
+        cursor: default;
+        font: menu;
+        text-align: left;
+        text-indent: 0;
+        text-transform: none;
+        line-height: normal;
+        letter-spacing: normal;
+        word-spacing: normal;
+        word-wrap: normal;
+        white-space: nowrap;
+        float: none;
+        z-index: 201;
+        border-radius: 5px; /* Opera 10.5 and IE9 */
+        -webkit-border-radius: 5px; /* Safari and Chrome */
+        -moz-border-radius: 5px; /* Firefox */
+        -khtml-border-radius: 5px; /* Konqueror */
+        box-shadow: 0px 10px 20px #808080; /* Opera 10.5 and IE9 */
+        -webkit-box-shadow: 0px 10px 20px #808080; /* Safari 3 & Chrome */
+        -moz-box-shadow: 0px 10px 20px #808080; /* Forefox 3.5 */
+        -khtml-box-shadow: 0px 10px 20px #808080; /* Konqueror */
+    }
+
+    .CtxtMenu_MenuItem {
+        padding: 1px 2em;
+        background: transparent;
+    }
+
+    .CtxtMenu_MenuArrow {
+        position: absolute;
+        right: .5em;
+        padding-top: .25em;
+        color: #666666;
+        font-family: null;
+        font-size: .75em
+    }
+
+    .CtxtMenu_MenuActive .CtxtMenu_MenuArrow {
+        color: white
+    }
+
+    .CtxtMenu_MenuArrow.CtxtMenu_RTL {
+        left: .5em;
+        right: auto
+    }
+
+    .CtxtMenu_MenuCheck {
+        position: absolute;
+        left: .7em;
+        font-family: null
+    }
+
+    .CtxtMenu_MenuCheck.CtxtMenu_RTL {
+        right: .7em;
+        left: auto
+    }
+
+    .CtxtMenu_MenuRadioCheck {
+        position: absolute;
+        left: .7em;
+    }
+
+    .CtxtMenu_MenuRadioCheck.CtxtMenu_RTL {
+        right: .7em;
+        left: auto
+    }
+
+    .CtxtMenu_MenuInputBox {
+        padding-left: 1em;
+        right: .5em;
+        color: #666666;
+        font-family: null;
+    }
+
+    .CtxtMenu_MenuInputBox.CtxtMenu_RTL {
+        left: .1em;
+    }
+
+    .CtxtMenu_MenuComboBox {
+        left: .1em;
+        padding-bottom: .5em;
+    }
+
+    .CtxtMenu_MenuSlider {
+        left: .1em;
+    }
+
+    .CtxtMenu_SliderValue {
+        position: absolute;
+        right: .1em;
+        padding-top: .25em;
+        color: #333333;
+        font-size: .75em
+    }
+
+    .CtxtMenu_SliderBar {
+        outline: none;
+        background: #d3d3d3
+    }
+
+    .CtxtMenu_MenuLabel {
+        padding: 1px 2em 3px 1.33em;
+        font-style: italic
+    }
+
+    .CtxtMenu_MenuRule {
+        border-top: 1px solid #DDDDDD;
+        margin: 4px 3px;
+    }
+
+    .CtxtMenu_MenuDisabled {
+        color: GrayText
+    }
+
+    .CtxtMenu_MenuActive {
+        background-color: #606872;
+        color: white;
+    }
+
+    .CtxtMenu_MenuDisabled:focus {
+        background-color: #E8E8E8
+    }
+
+    .CtxtMenu_MenuLabel:focus {
+        background-color: #E8E8E8
+    }
+
+    .CtxtMenu_ContextMenu:focus {
+        outline: none
+    }
+
+    .CtxtMenu_ContextMenu .CtxtMenu_MenuItem:focus {
+        outline: none
+    }
+
+    .CtxtMenu_SelectionMenu {
+        position: relative;
+        float: left;
+        border-bottom: none;
+        -webkit-box-shadow: none;
+        -webkit-border-radius: 0px;
+    }
+
+    .CtxtMenu_SelectionItem {
+        padding-right: 1em;
+    }
+
+    .CtxtMenu_Selection {
+        right: 40%;
+        width: 50%;
+    }
+
+    .CtxtMenu_SelectionBox {
+        padding: 0em;
+        max-height: 20em;
+        max-width: none;
+        background-color: #FFFFFF;
+    }
+
+    .CtxtMenu_SelectionDivider {
+        clear: both;
+        border-top: 2px solid #000000;
+    }
+
+    .CtxtMenu_Menu .CtxtMenu_MenuClose {
+        top: -10px;
+        left: -10px
+    }
+    </style>
+    <style id="MJX-CHTML-styles">
+        mjx-container[jax="CHTML"] {
+            line-height: 0;
+        }
+
+        mjx-container [space="1"] {
+            margin-left: .111em;
+        }
+
+        mjx-container [space="2"] {
+            margin-left: .167em;
+        }
+
+        mjx-container [space="3"] {
+            margin-left: .222em;
+        }
+
+        mjx-container [space="4"] {
+            margin-left: .278em;
+        }
+
+        mjx-container [space="5"] {
+            margin-left: .333em;
+        }
+
+        mjx-container [rspace="1"] {
+            margin-right: .111em;
+        }
+
+        mjx-container [rspace="2"] {
+            margin-right: .167em;
+        }
+
+        mjx-container [rspace="3"] {
+            margin-right: .222em;
+        }
+
+        mjx-container [rspace="4"] {
+            margin-right: .278em;
+        }
+
+        mjx-container [rspace="5"] {
+            margin-right: .333em;
+        }
+
+        mjx-container [size="s"] {
+            font-size: 70.7%;
+        }
+
+        mjx-container [size="ss"] {
+            font-size: 50%;
+        }
+
+        mjx-container [size="Tn"] {
+            font-size: 60%;
+        }
+
+        mjx-container [size="sm"] {
+            font-size: 85%;
+        }
+
+        mjx-container [size="lg"] {
+            font-size: 120%;
+        }
+
+        mjx-container [size="Lg"] {
+            font-size: 144%;
+        }
+
+        mjx-container [size="LG"] {
+            font-size: 173%;
+        }
+
+        mjx-container [size="hg"] {
+            font-size: 207%;
+        }
+
+        mjx-container [size="HG"] {
+            font-size: 249%;
+        }
+
+        mjx-container [width="full"] {
+            width: 100%;
+        }
+
+        mjx-box {
+            display: inline-block;
+        }
+
+        mjx-block {
+            display: block;
+        }
+
+        mjx-itable {
+            display: inline-table;
+        }
+
+        mjx-row {
+            display: table-row;
+        }
+
+        mjx-row > * {
+            display: table-cell;
+        }
+
+        mjx-mtext {
+            display: inline-block;
+        }
+
+        mjx-mstyle {
+            display: inline-block;
+        }
+
+        mjx-merror {
+            display: inline-block;
+            color: red;
+            background-color: yellow;
+        }
+
+        mjx-mphantom {
+            visibility: hidden;
+        }
+
+        _::-webkit-full-page-media, _:future, :root mjx-container {
+            will-change: opacity;
+        }
+
+        mjx-assistive-mml {
+            position: absolute !important;
+            top: 0px;
+            left: 0px;
+            clip: rect(1px, 1px, 1px, 1px);
+            padding: 1px 0px 0px 0px !important;
+            border: 0px !important;
+            display: block !important;
+            width: auto !important;
+            overflow: hidden !important;
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            -khtml-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+        }
+
+        mjx-assistive-mml[display="block"] {
+            width: 100% !important;
+        }
+
+        mjx-math {
+            display: inline-block;
+            text-align: left;
+            line-height: 0;
+            text-indent: 0;
+            font-style: normal;
+            font-weight: normal;
+            font-size: 100%;
+            font-size-adjust: none;
+            letter-spacing: normal;
+            word-wrap: normal;
+            word-spacing: normal;
+            white-space: nowrap;
+            direction: ltr;
+            padding: 1px 0;
+        }
+
+        mjx-container[jax="CHTML"][display="true"] {
+            display: block;
+            text-align: center;
+            margin: 1em 0;
+        }
+
+        mjx-container[jax="CHTML"][display="true"][width="full"] {
+            display: flex;
+        }
+
+        mjx-container[jax="CHTML"][display="true"] mjx-math {
+            padding: 0;
+        }
+
+        mjx-container[jax="CHTML"][justify="left"] {
+            text-align: left;
+        }
+
+        mjx-container[jax="CHTML"][justify="right"] {
+            text-align: right;
+        }
+
+        mjx-msub {
+            display: inline-block;
+            text-align: left;
+        }
+
+        mjx-mi {
+            display: inline-block;
+            text-align: left;
+        }
+
+        mjx-c {
+            display: inline-block;
+        }
+
+        mjx-utext {
+            display: inline-block;
+            padding: .75em 0 .2em 0;
+        }
+
+        mjx-TeXAtom {
+            display: inline-block;
+            text-align: left;
+        }
+
+        mjx-mo {
+            display: inline-block;
+            text-align: left;
+        }
+
+        mjx-stretchy-h {
+            display: inline-table;
+            width: 100%;
+        }
+
+        mjx-stretchy-h > * {
+            display: table-cell;
+            width: 0;
+        }
+
+        mjx-stretchy-h > * > mjx-c {
+            display: inline-block;
+            transform: scalex(1.0000001);
+        }
+
+        mjx-stretchy-h > * > mjx-c::before {
+            display: inline-block;
+            width: initial;
+        }
+
+        mjx-stretchy-h > mjx-ext {
+            /* IE */
+            overflow: hidden;
+            /* others */
+            overflow: clip visible;
+            width: 100%;
+        }
+
+        mjx-stretchy-h > mjx-ext > mjx-c::before {
+            transform: scalex(500);
+        }
+
+        mjx-stretchy-h > mjx-ext > mjx-c {
+            width: 0;
+        }
+
+        mjx-stretchy-h > mjx-beg > mjx-c {
+            margin-right: -.1em;
+        }
+
+        mjx-stretchy-h > mjx-end > mjx-c {
+            margin-left: -.1em;
+        }
+
+        mjx-stretchy-v {
+            display: inline-block;
+        }
+
+        mjx-stretchy-v > * {
+            display: block;
+        }
+
+        mjx-stretchy-v > mjx-beg {
+            height: 0;
+        }
+
+        mjx-stretchy-v > mjx-end > mjx-c {
+            display: block;
+        }
+
+        mjx-stretchy-v > * > mjx-c {
+            transform: scaley(1.0000001);
+            transform-origin: left center;
+            overflow: hidden;
+        }
+
+        mjx-stretchy-v > mjx-ext {
+            display: block;
+            height: 100%;
+            box-sizing: border-box;
+            border: 0px solid transparent;
+            /* IE */
+            overflow: hidden;
+            /* others */
+            overflow: visible clip;
+        }
+
+        mjx-stretchy-v > mjx-ext > mjx-c::before {
+            width: initial;
+            box-sizing: border-box;
+        }
+
+        mjx-stretchy-v > mjx-ext > mjx-c {
+            transform: scaleY(500) translateY(.075em);
+            overflow: visible;
+        }
+
+        mjx-mark {
+            display: inline-block;
+            height: 0px;
+        }
+
+        mjx-c::before {
+            display: block;
+            width: 0;
+        }
+
+        .MJX-TEX {
+            font-family: MJXZERO, MJXTEX;
+        }
+
+        .TEX-B {
+            font-family: MJXZERO, MJXTEX-B;
+        }
+
+        .TEX-I {
+            font-family: MJXZERO, MJXTEX-I;
+        }
+
+        .TEX-MI {
+            font-family: MJXZERO, MJXTEX-MI;
+        }
+
+        .TEX-BI {
+            font-family: MJXZERO, MJXTEX-BI;
+        }
+
+        .TEX-S1 {
+            font-family: MJXZERO, MJXTEX-S1;
+        }
+
+        .TEX-S2 {
+            font-family: MJXZERO, MJXTEX-S2;
+        }
+
+        .TEX-S3 {
+            font-family: MJXZERO, MJXTEX-S3;
+        }
+
+        .TEX-S4 {
+            font-family: MJXZERO, MJXTEX-S4;
+        }
+
+        .TEX-A {
+            font-family: MJXZERO, MJXTEX-A;
+        }
+
+        .TEX-C {
+            font-family: MJXZERO, MJXTEX-C;
+        }
+
+        .TEX-CB {
+            font-family: MJXZERO, MJXTEX-CB;
+        }
+
+        .TEX-FR {
+            font-family: MJXZERO, MJXTEX-FR;
+        }
+
+        .TEX-FRB {
+            font-family: MJXZERO, MJXTEX-FRB;
+        }
+
+        .TEX-SS {
+            font-family: MJXZERO, MJXTEX-SS;
+        }
+
+        .TEX-SSB {
+            font-family: MJXZERO, MJXTEX-SSB;
+        }
+
+        .TEX-SSI {
+            font-family: MJXZERO, MJXTEX-SSI;
+        }
+
+        .TEX-SC {
+            font-family: MJXZERO, MJXTEX-SC;
+        }
+
+        .TEX-T {
+            font-family: MJXZERO, MJXTEX-T;
+        }
+
+        .TEX-V {
+            font-family: MJXZERO, MJXTEX-V;
+        }
+
+        .TEX-VB {
+            font-family: MJXZERO, MJXTEX-VB;
+        }
+
+        mjx-stretchy-v mjx-c, mjx-stretchy-h mjx-c {
+            font-family: MJXZERO, MJXTEX-S1, MJXTEX-S4, MJXTEX, MJXTEX-A ! important;
+        }
+
+        @font-face /* 0 */ {
+            font-family: MJXZERO;
+            src: url("https://cdn.jsdelivr.net/npm/mathjax@3/es5/output/chtml/fonts/woff-v2/MathJax_Zero.woff") format("woff");
+        }
+
+        @font-face /* 1 */ {
+            font-family: MJXTEX;
+            src: url("https://cdn.jsdelivr.net/npm/mathjax@3/es5/output/chtml/fonts/woff-v2/MathJax_Main-Regular.woff") format("woff");
+        }
+
+        @font-face /* 2 */ {
+            font-family: MJXTEX-B;
+            src: url("https://cdn.jsdelivr.net/npm/mathjax@3/es5/output/chtml/fonts/woff-v2/MathJax_Main-Bold.woff") format("woff");
+        }
+
+        @font-face /* 3 */ {
+            font-family: MJXTEX-I;
+            src: url("https://cdn.jsdelivr.net/npm/mathjax@3/es5/output/chtml/fonts/woff-v2/MathJax_Math-Italic.woff") format("woff");
+        }
+
+        @font-face /* 4 */ {
+            font-family: MJXTEX-MI;
+            src: url("https://cdn.jsdelivr.net/npm/mathjax@3/es5/output/chtml/fonts/woff-v2/MathJax_Main-Italic.woff") format("woff");
+        }
+
+        @font-face /* 5 */ {
+            font-family: MJXTEX-BI;
+            src: url("https://cdn.jsdelivr.net/npm/mathjax@3/es5/output/chtml/fonts/woff-v2/MathJax_Math-BoldItalic.woff") format("woff");
+        }
+
+        @font-face /* 6 */ {
+            font-family: MJXTEX-S1;
+            src: url("https://cdn.jsdelivr.net/npm/mathjax@3/es5/output/chtml/fonts/woff-v2/MathJax_Size1-Regular.woff") format("woff");
+        }
+
+        @font-face /* 7 */ {
+            font-family: MJXTEX-S2;
+            src: url("https://cdn.jsdelivr.net/npm/mathjax@3/es5/output/chtml/fonts/woff-v2/MathJax_Size2-Regular.woff") format("woff");
+        }
+
+        @font-face /* 8 */ {
+            font-family: MJXTEX-S3;
+            src: url("https://cdn.jsdelivr.net/npm/mathjax@3/es5/output/chtml/fonts/woff-v2/MathJax_Size3-Regular.woff") format("woff");
+        }
+
+        @font-face /* 9 */ {
+            font-family: MJXTEX-S4;
+            src: url("https://cdn.jsdelivr.net/npm/mathjax@3/es5/output/chtml/fonts/woff-v2/MathJax_Size4-Regular.woff") format("woff");
+        }
+
+        @font-face /* 10 */ {
+            font-family: MJXTEX-A;
+            src: url("https://cdn.jsdelivr.net/npm/mathjax@3/es5/output/chtml/fonts/woff-v2/MathJax_AMS-Regular.woff") format("woff");
+        }
+
+        @font-face /* 11 */ {
+            font-family: MJXTEX-C;
+            src: url("https://cdn.jsdelivr.net/npm/mathjax@3/es5/output/chtml/fonts/woff-v2/MathJax_Calligraphic-Regular.woff") format("woff");
+        }
+
+        @font-face /* 12 */ {
+            font-family: MJXTEX-CB;
+            src: url("https://cdn.jsdelivr.net/npm/mathjax@3/es5/output/chtml/fonts/woff-v2/MathJax_Calligraphic-Bold.woff") format("woff");
+        }
+
+        @font-face /* 13 */ {
+            font-family: MJXTEX-FR;
+            src: url("https://cdn.jsdelivr.net/npm/mathjax@3/es5/output/chtml/fonts/woff-v2/MathJax_Fraktur-Regular.woff") format("woff");
+        }
+
+        @font-face /* 14 */ {
+            font-family: MJXTEX-FRB;
+            src: url("https://cdn.jsdelivr.net/npm/mathjax@3/es5/output/chtml/fonts/woff-v2/MathJax_Fraktur-Bold.woff") format("woff");
+        }
+
+        @font-face /* 15 */ {
+            font-family: MJXTEX-SS;
+            src: url("https://cdn.jsdelivr.net/npm/mathjax@3/es5/output/chtml/fonts/woff-v2/MathJax_SansSerif-Regular.woff") format("woff");
+        }
+
+        @font-face /* 16 */ {
+            font-family: MJXTEX-SSB;
+            src: url("https://cdn.jsdelivr.net/npm/mathjax@3/es5/output/chtml/fonts/woff-v2/MathJax_SansSerif-Bold.woff") format("woff");
+        }
+
+        @font-face /* 17 */ {
+            font-family: MJXTEX-SSI;
+            src: url("https://cdn.jsdelivr.net/npm/mathjax@3/es5/output/chtml/fonts/woff-v2/MathJax_SansSerif-Italic.woff") format("woff");
+        }
+
+        @font-face /* 18 */ {
+            font-family: MJXTEX-SC;
+            src: url("https://cdn.jsdelivr.net/npm/mathjax@3/es5/output/chtml/fonts/woff-v2/MathJax_Script-Regular.woff") format("woff");
+        }
+
+        @font-face /* 19 */ {
+            font-family: MJXTEX-T;
+            src: url("https://cdn.jsdelivr.net/npm/mathjax@3/es5/output/chtml/fonts/woff-v2/MathJax_Typewriter-Regular.woff") format("woff");
+        }
+
+        @font-face /* 20 */ {
+            font-family: MJXTEX-V;
+            src: url("https://cdn.jsdelivr.net/npm/mathjax@3/es5/output/chtml/fonts/woff-v2/MathJax_Vector-Regular.woff") format("woff");
+        }
+
+        @font-face /* 21 */ {
+            font-family: MJXTEX-VB;
+            src: url("https://cdn.jsdelivr.net/npm/mathjax@3/es5/output/chtml/fonts/woff-v2/MathJax_Vector-Bold.woff") format("woff");
+        }
+
+        mjx-c.mjx-c1D43A.TEX-I::before {
+            padding: 0.705em 0.786em 0.022em 0;
+            content: "G";
+        }
+
+        mjx-c.mjx-c1D45B.TEX-I::before {
+            padding: 0.442em 0.6em 0.011em 0;
+            content: "n";
+        }
+
+        mjx-c.mjx-c2C::before {
+            padding: 0.121em 0.278em 0.194em 0;
+            content: ",";
+        }
+
+        mjx-c.mjx-c1D45D.TEX-I::before {
+            padding: 0.442em 0.503em 0.194em 0;
+            content: "p";
+        }
+    </style>
+</head>
+<body data-spy="scroll" data-target="#bd-toc-nav" data-offset="60"
+      data-new-gr-c-s-check-loaded="14.1056.0" data-gr-ext-installed="">
+
+<div class="container-fluid" id="banner"></div>
+
+
+<nav class="navbar navbar-light navbar-expand-lg bg-light fixed-top bd-navbar" id="navbar-main">
+    <div class="container-xl">
+
+        <div id="navbar-start">
+
+
+            <a class="navbar-brand" href="https://networkx.org/documentation/stable/index.html">
+                <img src="./networkx_files/networkx_banner.svg" class="logo" alt="logo">
+            </a>
+
+
+        </div>
+
+        <button class="navbar-toggler" type="button" data-toggle="collapse"
+                data-target="#navbar-collapsible" aria-controls="navbar-collapsible"
+                aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+
+
+        <div id="navbar-collapsible" class="col-lg-9 collapse navbar-collapse">
+            <div id="navbar-center" class="mr-auto">
+
+                <div class="navbar-center-item">
+                    <ul id="navbar-main-elements" class="navbar-nav">
+                        <li class="toctree-l1 nav-item">
+                            <a class="reference internal nav-link"
+                               href="https://networkx.org/documentation/stable/install.html">
+                                Install
+                            </a>
+                        </li>
+
+                        <li class="toctree-l1 current active nav-item">
+                            <a class="current reference internal nav-link"
+                               href="https://networkx.org/documentation/stable/tutorial.html#">
+                                Tutorial
+                            </a>
+                        </li>
+
+                        <li class="toctree-l1 nav-item">
+                            <a class="reference internal nav-link"
+                               href="https://networkx.org/documentation/stable/reference/index.html">
+                                Reference
+                            </a>
+                        </li>
+
+                        <li class="toctree-l1 nav-item">
+                            <a class="reference internal nav-link"
+                               href="https://networkx.org/documentation/stable/release/index.html">
+                                Releases
+                            </a>
+                        </li>
+
+                        <li class="toctree-l1 nav-item">
+                            <a class="reference internal nav-link"
+                               href="https://networkx.org/documentation/stable/developer/index.html">
+                                Developer
+                            </a>
+                        </li>
+
+                        <li class="toctree-l1 nav-item">
+                            <a class="reference internal nav-link"
+                               href="https://networkx.org/documentation/stable/auto_examples/index.html">
+                                Gallery
+                            </a>
+                        </li>
+
+
+                        <li class="nav-item">
+                            <a class="nav-link nav-external" href="https://networkx.org/nx-guides/">Guides<i
+                                    class="fas fa-external-link-alt"></i></a>
+                        </li>
+
+                    </ul>
+                </div>
+
+            </div>
+
+            <div id="navbar-end">
+
+                <div class="navbar-end-item">
+                    <ul id="navbar-icon-links" class="navbar-nav" aria-label="Icon Links">
+                        <li class="nav-item">
+                            <a class="nav-link" href="https://networkx.org/" rel="noopener"
+                               target="_blank" title="Home Page"><span><i
+                                    class="fas fa-home"></i></span>
+                                <label class="sr-only">Home Page</label></a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="https://github.com/networkx/networkx"
+                               rel="noopener" target="_blank" title="GitHub"><span><i
+                                    class="fab fa-github-square"></i></span>
+                                <label class="sr-only">GitHub</label></a>
+                        </li>
+                    </ul>
+                </div>
+
+                <div class="navbar-end-item">
+                    <ul class="navbar-nav">
+                        <li class="mr-2 dropdown">
+                            <button type="button"
+                                    class="btn btn-version btn-sm navbar-btn dropdown-toggle"
+                                    id="dLabelMore" data-toggle="dropdown">
+                                v2.8
+                                <span class="caret"></span>
+                            </button>
+                            <ul class="dropdown-menu" aria-labelledby="dLabelMore">
+                                <li><a href="https://networkx.org/documentation/latest/index.html">devel
+                                    (latest)</a></li>
+                                <li><a href="https://networkx.org/documentation/stable/index.html">current
+                                    (stable)</a></li>
+                            </ul>
+                        </li>
+                    </ul>
+                </div>
+
+            </div>
+        </div>
+    </div>
+</nav>
+
+
+<div class="container-xl">
+    <div class="row">
+
+
+        <div class="col-12 col-md-1 col-xl-2 bd-sidebar no-sidebar"></div>
+
+
+        <div class="d-none d-xl-block col-xl-2 bd-toc">
+
+
+            <div class="toc-item">
+                <form class="bd-search d-flex align-items-center"
+                      action="https://networkx.org/documentation/stable/search.html" method="get"
+                      data-dashlane-rid="5ee0e3185a08ebce" data-form-type="">
+                    <i class="icon fas fa-search"></i>
+                    <input type="search" class="form-control" name="q" id="search-input"
+                           placeholder="Search the docs ..." aria-label="Search the docs ..."
+                           autocomplete="off" data-dashlane-rid="c8e4d53621b3bade"
+                           data-form-type="">
+                </form>
+            </div>
+
+            <div class="toc-item">
+
+                <div class="tocsection onthispage mt-5 pt-1 pb-3">
+                    <i class="fas fa-list"></i> On this page
+                </div>
+
+                <nav id="bd-toc-nav">
+                    <ul class="visible nav section-nav flex-column">
+                        <li class="toc-h2 nav-item toc-entry">
+                            <a class="reference internal nav-link"
+                               href="https://networkx.org/documentation/stable/tutorial.html#creating-a-graph">
+                                Creating a graph
+                            </a>
+                        </li>
+                        <li class="toc-h2 nav-item toc-entry">
+                            <a class="reference internal nav-link"
+                               href="https://networkx.org/documentation/stable/tutorial.html#nodes">
+                                Nodes
+                            </a>
+                        </li>
+                        <li class="toc-h2 nav-item toc-entry">
+                            <a class="reference internal nav-link"
+                               href="https://networkx.org/documentation/stable/tutorial.html#edges">
+                                Edges
+                            </a>
+                        </li>
+                        <li class="toc-h2 nav-item toc-entry">
+                            <a class="reference internal nav-link"
+                               href="https://networkx.org/documentation/stable/tutorial.html#examining-elements-of-a-graph">
+                                Examining elements of a graph
+                            </a>
+                        </li>
+                        <li class="toc-h2 nav-item toc-entry">
+                            <a class="reference internal nav-link"
+                               href="https://networkx.org/documentation/stable/tutorial.html#removing-elements-from-a-graph">
+                                Removing elements from a graph
+                            </a>
+                        </li>
+                        <li class="toc-h2 nav-item toc-entry">
+                            <a class="reference internal nav-link"
+                               href="https://networkx.org/documentation/stable/tutorial.html#using-the-graph-constructors">
+                                Using the graph constructors
+                            </a>
+                        </li>
+                        <li class="toc-h2 nav-item toc-entry">
+                            <a class="reference internal nav-link"
+                               href="https://networkx.org/documentation/stable/tutorial.html#what-to-use-as-nodes-and-edges">
+                                What to use as nodes and edges
+                            </a>
+                        </li>
+                        <li class="toc-h2 nav-item toc-entry">
+                            <a class="reference internal nav-link"
+                               href="https://networkx.org/documentation/stable/tutorial.html#accessing-edges-and-neighbors">
+                                Accessing edges and neighbors
+                            </a>
+                        </li>
+                        <li class="toc-h2 nav-item toc-entry">
+                            <a class="reference internal nav-link"
+                               href="https://networkx.org/documentation/stable/tutorial.html#adding-attributes-to-graphs-nodes-and-edges">
+                                Adding attributes to graphs, nodes, and edges
+                            </a>
+                            <ul class="nav section-nav flex-column">
+                                <li class="toc-h3 nav-item toc-entry">
+                                    <a class="reference internal nav-link"
+                                       href="https://networkx.org/documentation/stable/tutorial.html#graph-attributes">
+                                        Graph attributes
+                                    </a>
+                                </li>
+                                <li class="toc-h3 nav-item toc-entry">
+                                    <a class="reference internal nav-link"
+                                       href="https://networkx.org/documentation/stable/tutorial.html#node-attributes">
+                                        Node attributes
+                                    </a>
+                                </li>
+                                <li class="toc-h3 nav-item toc-entry">
+                                    <a class="reference internal nav-link"
+                                       href="https://networkx.org/documentation/stable/tutorial.html#edge-attributes">
+                                        Edge Attributes
+                                    </a>
+                                </li>
+                            </ul>
+                        </li>
+                        <li class="toc-h2 nav-item toc-entry">
+                            <a class="reference internal nav-link"
+                               href="https://networkx.org/documentation/stable/tutorial.html#directed-graphs">
+                                Directed graphs
+                            </a>
+                        </li>
+                        <li class="toc-h2 nav-item toc-entry">
+                            <a class="reference internal nav-link"
+                               href="https://networkx.org/documentation/stable/tutorial.html#multigraphs">
+                                Multigraphs
+                            </a>
+                        </li>
+                        <li class="toc-h2 nav-item toc-entry">
+                            <a class="reference internal nav-link"
+                               href="https://networkx.org/documentation/stable/tutorial.html#graph-generators-and-graph-operations">
+                                Graph generators and graph operations
+                            </a>
+                            <ul class="nav section-nav flex-column">
+                                <li class="toc-h3 nav-item toc-entry">
+                                    <a class="reference internal nav-link"
+                                       href="https://networkx.org/documentation/stable/tutorial.html#applying-classic-graph-operations-such-as">
+                                        1. Applying classic graph operations, such as:
+                                    </a>
+                                </li>
+                                <li class="toc-h3 nav-item toc-entry">
+                                    <a class="reference internal nav-link"
+                                       href="https://networkx.org/documentation/stable/tutorial.html#using-a-call-to-one-of-the-classic-small-graphs-e-g">
+                                        2. Using a call to one of the classic small graphs, e.g.,
+                                    </a>
+                                </li>
+                                <li class="toc-h3 nav-item toc-entry">
+                                    <a class="reference internal nav-link"
+                                       href="https://networkx.org/documentation/stable/tutorial.html#using-a-constructive-generator-for-a-classic-graph-e-g">
+                                        3. Using a (constructive) generator for a classic graph,
+                                        e.g.,
+                                    </a>
+                                </li>
+                                <li class="toc-h3 nav-item toc-entry">
+                                    <a class="reference internal nav-link"
+                                       href="https://networkx.org/documentation/stable/tutorial.html#using-a-stochastic-graph-generator-e-g">
+                                        4. Using a stochastic graph generator, e.g,
+                                    </a>
+                                </li>
+                                <li class="toc-h3 nav-item toc-entry">
+                                    <a class="reference internal nav-link"
+                                       href="https://networkx.org/documentation/stable/tutorial.html#reading-a-graph-stored-in-a-file-using-common-graph-formats">
+                                        5. Reading a graph stored in a file using common graph
+                                        formats
+                                    </a>
+                                </li>
+                            </ul>
+                        </li>
+                        <li class="toc-h2 nav-item toc-entry">
+                            <a class="reference internal nav-link"
+                               href="https://networkx.org/documentation/stable/tutorial.html#analyzing-graphs">
+                                Analyzing graphs
+                            </a>
+                        </li>
+                        <li class="toc-h2 nav-item toc-entry">
+                            <a class="reference internal nav-link"
+                               href="https://networkx.org/documentation/stable/tutorial.html#drawing-graphs">
+                                Drawing graphs
+                            </a>
+                        </li>
+                    </ul>
+
+                </nav>
+            </div>
+
+            <div class="toc-item">
+
+            </div>
+
+
+        </div>
+
+
+        <main class="col-12 col-md-11 col-xl-8 py-md-5 pl-md-5 pr-md-4 bd-content" role="main">
+
+            <div>
+
+                <section id="tutorial">
+                    <h1>Tutorial<a class="headerlink"
+                                   href="https://networkx.org/documentation/stable/tutorial.html#tutorial"
+                                   title="Permalink to this headline">#</a></h1>
+                    <p>This guide can help you start working with NetworkX.</p>
+                    <section id="creating-a-graph">
+                        <h2>Creating a graph<a class="headerlink"
+                                               href="https://networkx.org/documentation/stable/tutorial.html#creating-a-graph"
+                                               title="Permalink to this headline">#</a></h2>
+                        <p>Create an empty graph with no nodes and no edges.</p>
+                        <div class="doctest highlight-default notranslate"
+                             style="position: relative;">
+                            <div class="highlight"><span class="copybutton"
+                                                         title="Hide the prompts and output"
+                                                         style="cursor: pointer; position: absolute; top: 0px; right: 0px; border-color: rgb(201, 201, 201); border-style: solid; border-width: 1px; color: rgb(201, 201, 201); font-family: monospace; padding-left: 0.2em; padding-right: 0.2em; border-radius: 0px 3px 0px 0px;">&gt;&gt;&gt;</span>
+                                <pre><span></span><span class="gp">&gt;&gt;&gt; </span><span
+                                        class="kn">import</span> <span
+                                        class="nn">networkx</span> <span class="k">as</span> <span
+                                        class="nn">nx</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">G</span> <span class="o">=</span> <span
+                                            class="n">nx</span><span class="o">.</span><span
+                                            class="n">Graph</span><span class="p">()</span>
+</pre>
+                            </div>
+                        </div>
+                        <div class="admonition note">
+                            <p class="admonition-title">Note</p>
+                            <p>Python’s <code class="docutils literal notranslate"><span
+                                    class="pre">None</span></code> object is not allowed to be used
+                                as a node. It
+                                determines whether optional function arguments have been assigned in
+                                many
+                                functions.</p>
+                        </div>
+                    </section>
+
+                </section>
+
+
+            </div>
+
+
+        </main>
+
+
+    </div>
+</div>
+
+<!-- Scripts loaded after <body> so the DOM is not blocked -->
+<script src="./networkx_files/pydata-sphinx-theme.js"></script>
+<footer class="footer mt-5 mt-md-0">
+    <div class="container">
+
+        <div class="footer-item">
+            <p class="copyright">
+                © Copyright 2004-2022, NetworkX Developers.<br>
+            </p>
+        </div>
+
+        <div class="footer-item">
+            <p class="sphinx-version">
+                Created using <a href="http://sphinx-doc.org/">Sphinx</a> 4.5.0.<br>
+            </p>
+        </div>
+
+    </div>
+</footer>
+
+</body>
+<grammarly-desktop-integration data-grammarly-shadow-root="true"></grammarly-desktop-integration>
+</html>

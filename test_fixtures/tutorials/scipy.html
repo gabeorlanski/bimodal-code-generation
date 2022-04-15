@@ -1,0 +1,1165 @@
+<!DOCTYPE html>
+<!-- saved from url=(0074)https://docs.scipy.org/doc/scipy-1.8.0/html-scipyorg/tutorial/special.html -->
+<html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Special functions (scipy.special) — SciPy v1.8.0 Manual</title>
+
+    <link href="./scipy_files/theme.css" rel="stylesheet">
+    <link href="./scipy_files/index.c5995385ac14fb8791e8eb36b4908be2.css" rel="stylesheet">
+
+
+    <link rel="stylesheet" href="./scipy_files/all.min.css">
+    <link rel="preload" as="font" type="font/woff2" crossorigin=""
+          href="https://docs.scipy.org/doc/scipy-1.8.0/html-scipyorg/_static/vendor/fontawesome/5.13.0/webfonts/fa-solid-900.woff2">
+    <link rel="preload" as="font" type="font/woff2" crossorigin=""
+          href="https://docs.scipy.org/doc/scipy-1.8.0/html-scipyorg/_static/vendor/fontawesome/5.13.0/webfonts/fa-brands-400.woff2">
+
+
+    <link rel="stylesheet" type="text/css" href="./scipy_files/pygments.css">
+    <link rel="stylesheet" type="text/css" href="./scipy_files/basic.css">
+    <link rel="stylesheet" type="text/css" href="./scipy_files/plot_directive.css">
+    <link rel="stylesheet" type="text/css"
+          href="./scipy_files/panels-main.c949a650a448cc0ae9fd3441c0e17fb0.css">
+    <link rel="stylesheet" type="text/css"
+          href="./scipy_files/panels-variables.06eb56fa6e07937060861dad626602ad.css">
+    <link rel="stylesheet" type="text/css" href="./scipy_files/scipy.css">
+
+    <link rel="preload" as="script" href="./scipy_files/index.1c5a1a01449ed65a7b51.js">
+
+    <script data-url_root="../" id="documentation_options"
+            src="./scipy_files/documentation_options.js"></script>
+    <script src="./scipy_files/jquery.js"></script>
+    <script src="./scipy_files/underscore.js"></script>
+    <script src="./scipy_files/doctools.js"></script>
+    <script async="async" src="./scipy_files/MathJax.js"></script>
+    <script src="./scipy_files/versioncheck.js"></script>
+    <script type="text/javascript" src="./scipy_files/versionwarning.js"></script>
+    <link rel="shortcut icon"
+          href="https://docs.scipy.org/doc/scipy-1.8.0/html-scipyorg/_static/favicon.ico">
+    <link rel="index" title="Index"
+          href="https://docs.scipy.org/doc/scipy-1.8.0/html-scipyorg/genindex.html">
+    <link rel="search" title="Search"
+          href="https://docs.scipy.org/doc/scipy-1.8.0/html-scipyorg/search.html">
+    <link rel="next" title="Integration (scipy.integrate)"
+          href="https://docs.scipy.org/doc/scipy-1.8.0/html-scipyorg/tutorial/integrate.html">
+    <link rel="prev" title="Introduction"
+          href="https://docs.scipy.org/doc/scipy-1.8.0/html-scipyorg/tutorial/general.html">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="docsearch:language" content="en">
+
+    <link rel="canonical"
+          href="https://docs.scipy.org/doc/scipy/html-scipyorg/tutorial/special.html">
+    <style type="text/css">.MathJax_Preview {
+        color: #888
+    }
+
+    #MathJax_Message {
+        position: fixed;
+        left: 1em;
+        bottom: 1.5em;
+        background-color: #E6E6E6;
+        border: 1px solid #959595;
+        margin: 0px;
+        padding: 2px 8px;
+        z-index: 102;
+        color: black;
+        font-size: 80%;
+        width: auto;
+        white-space: nowrap
+    }
+
+    #MathJax_MSIE_Frame {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 0px;
+        z-index: 101;
+        border: 0px;
+        margin: 0px;
+        padding: 0px
+    }
+
+    .MathJax_Error {
+        color: #CC0000;
+        font-style: italic
+    }
+    </style>
+    <style type="text/css">.MathJax_Preview .MJXf-math {
+        color: inherit !important
+    }
+    </style>
+    <style type="text/css">.MJX_Assistive_MathML {
+        position: absolute !important;
+        top: 0;
+        left: 0;
+        clip: rect(1px, 1px, 1px, 1px);
+        padding: 1px 0 0 0 !important;
+        border: 0 !important;
+        height: 1px !important;
+        width: 1px !important;
+        overflow: hidden !important;
+        display: block !important;
+        -webkit-touch-callout: none;
+        -webkit-user-select: none;
+        -khtml-user-select: none;
+        -moz-user-select: none;
+        -ms-user-select: none;
+        user-select: none
+    }
+
+    .MJX_Assistive_MathML.MJX_Assistive_MathML_Block {
+        width: 100% !important
+    }
+    </style>
+    <style type="text/css">.MathJax_Hover_Frame {
+        border-radius: .25em;
+        -webkit-border-radius: .25em;
+        -moz-border-radius: .25em;
+        -khtml-border-radius: .25em;
+        box-shadow: 0px 0px 15px #83A;
+        -webkit-box-shadow: 0px 0px 15px #83A;
+        -moz-box-shadow: 0px 0px 15px #83A;
+        -khtml-box-shadow: 0px 0px 15px #83A;
+        border: 1px solid #A6D ! important;
+        display: inline-block;
+        position: absolute
+    }
+
+    .MathJax_Menu_Button .MathJax_Hover_Arrow {
+        position: absolute;
+        cursor: pointer;
+        display: inline-block;
+        border: 2px solid #AAA;
+        border-radius: 4px;
+        -webkit-border-radius: 4px;
+        -moz-border-radius: 4px;
+        -khtml-border-radius: 4px;
+        font-family: 'Courier New', Courier;
+        font-size: 9px;
+        color: #F0F0F0
+    }
+
+    .MathJax_Menu_Button .MathJax_Hover_Arrow span {
+        display: block;
+        background-color: #AAA;
+        border: 1px solid;
+        border-radius: 3px;
+        line-height: 0;
+        padding: 4px
+    }
+
+    .MathJax_Hover_Arrow:hover {
+        color: white !important;
+        border: 2px solid #CCC !important
+    }
+
+    .MathJax_Hover_Arrow:hover span {
+        background-color: #CCC !important
+    }
+    </style>
+    <style type="text/css">.MathJax_SVG_Display {
+        text-align: center;
+        margin: 1em 0em;
+        position: relative;
+        display: block !important;
+        text-indent: 0;
+        max-width: none;
+        max-height: none;
+        min-width: 0;
+        min-height: 0;
+        width: 100%
+    }
+
+    .MathJax_SVG .MJX-monospace {
+        font-family: monospace
+    }
+
+    .MathJax_SVG .MJX-sans-serif {
+        font-family: sans-serif
+    }
+
+    #MathJax_SVG_Tooltip {
+        background-color: InfoBackground;
+        color: InfoText;
+        border: 1px solid black;
+        box-shadow: 2px 2px 5px #AAAAAA;
+        -webkit-box-shadow: 2px 2px 5px #AAAAAA;
+        -moz-box-shadow: 2px 2px 5px #AAAAAA;
+        -khtml-box-shadow: 2px 2px 5px #AAAAAA;
+        padding: 3px 4px;
+        z-index: 401;
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: auto;
+        height: auto;
+        display: none
+    }
+
+    .MathJax_SVG {
+        display: inline;
+        font-style: normal;
+        font-weight: normal;
+        line-height: normal;
+        font-size: 100%;
+        font-size-adjust: none;
+        text-indent: 0;
+        text-align: left;
+        text-transform: none;
+        letter-spacing: normal;
+        word-spacing: normal;
+        word-wrap: normal;
+        white-space: nowrap;
+        float: none;
+        direction: ltr;
+        max-width: none;
+        max-height: none;
+        min-width: 0;
+        min-height: 0;
+        border: 0;
+        padding: 0;
+        margin: 0
+    }
+
+    .MathJax_SVG * {
+        transition: none;
+        -webkit-transition: none;
+        -moz-transition: none;
+        -ms-transition: none;
+        -o-transition: none
+    }
+
+    .mjx-svg-href {
+        fill: blue;
+        stroke: blue
+    }
+
+    .MathJax_SVG_Processing {
+        visibility: hidden;
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 0;
+        height: 0;
+        overflow: hidden;
+        display: block !important
+    }
+
+    .MathJax_SVG_Processed {
+        display: none !important
+    }
+
+    .MathJax_SVG_ExBox {
+        display: block !important;
+        overflow: hidden;
+        width: 1px;
+        height: 60ex;
+        min-height: 0;
+        max-height: none;
+        padding: 0;
+        border: 0;
+        margin: 0
+    }
+
+    .MathJax_SVG_LineBox {
+        display: table !important
+    }
+
+    .MathJax_SVG_LineBox span {
+        display: table-cell !important;
+        width: 10000em !important;
+        min-width: 0;
+        max-width: none;
+        padding: 0;
+        border: 0;
+        margin: 0
+    }
+
+    .MathJax_SVG .noError {
+        vertical-align: ;
+        font-size: 90%;
+        text-align: left;
+        color: black;
+        padding: 1px 3px;
+        border: 1px solid
+    }
+    </style>
+    <style type="text/css">.MJXp-script {
+        font-size: .8em
+    }
+
+    .MJXp-right {
+        -webkit-transform-origin: right;
+        -moz-transform-origin: right;
+        -ms-transform-origin: right;
+        -o-transform-origin: right;
+        transform-origin: right
+    }
+
+    .MJXp-bold {
+        font-weight: bold
+    }
+
+    .MJXp-italic {
+        font-style: italic
+    }
+
+    .MJXp-scr {
+        font-family: MathJax_Script, 'Times New Roman', Times, STIXGeneral, serif
+    }
+
+    .MJXp-frak {
+        font-family: MathJax_Fraktur, 'Times New Roman', Times, STIXGeneral, serif
+    }
+
+    .MJXp-sf {
+        font-family: MathJax_SansSerif, 'Times New Roman', Times, STIXGeneral, serif
+    }
+
+    .MJXp-cal {
+        font-family: MathJax_Caligraphic, 'Times New Roman', Times, STIXGeneral, serif
+    }
+
+    .MJXp-mono {
+        font-family: MathJax_Typewriter, 'Times New Roman', Times, STIXGeneral, serif
+    }
+
+    .MJXp-largeop {
+        font-size: 150%
+    }
+
+    .MJXp-largeop.MJXp-int {
+        vertical-align: -.2em
+    }
+
+    .MJXp-math {
+        display: inline-block;
+        line-height: 1.2;
+        text-indent: 0;
+        font-family: 'Times New Roman', Times, STIXGeneral, serif;
+        white-space: nowrap;
+        border-collapse: collapse
+    }
+
+    .MJXp-display {
+        display: block;
+        text-align: center;
+        margin: 1em 0
+    }
+
+    .MJXp-math span {
+        display: inline-block
+    }
+
+    .MJXp-box {
+        display: block !important;
+        text-align: center
+    }
+
+    .MJXp-box:after {
+        content: " "
+    }
+
+    .MJXp-rule {
+        display: block !important;
+        margin-top: .1em
+    }
+
+    .MJXp-char {
+        display: block !important
+    }
+
+    .MJXp-mo {
+        margin: 0 .15em
+    }
+
+    .MJXp-mfrac {
+        margin: 0 .125em;
+        vertical-align: .25em
+    }
+
+    .MJXp-denom {
+        display: inline-table !important;
+        width: 100%
+    }
+
+    .MJXp-denom > * {
+        display: table-row !important
+    }
+
+    .MJXp-surd {
+        vertical-align: top
+    }
+
+    .MJXp-surd > * {
+        display: block !important
+    }
+
+    .MJXp-script-box > * {
+        display: table !important;
+        height: 50%
+    }
+
+    .MJXp-script-box > * > * {
+        display: table-cell !important;
+        vertical-align: top
+    }
+
+    .MJXp-script-box > *:last-child > * {
+        vertical-align: bottom
+    }
+
+    .MJXp-script-box > * > * > * {
+        display: block !important
+    }
+
+    .MJXp-mphantom {
+        visibility: hidden
+    }
+
+    .MJXp-munderover {
+        display: inline-table !important
+    }
+
+    .MJXp-over {
+        display: inline-block !important;
+        text-align: center
+    }
+
+    .MJXp-over > * {
+        display: block !important
+    }
+
+    .MJXp-munderover > * {
+        display: table-row !important
+    }
+
+    .MJXp-mtable {
+        vertical-align: .25em;
+        margin: 0 .125em
+    }
+
+    .MJXp-mtable > * {
+        display: inline-table !important;
+        vertical-align: middle
+    }
+
+    .MJXp-mtr {
+        display: table-row !important
+    }
+
+    .MJXp-mtd {
+        display: table-cell !important;
+        text-align: center;
+        padding: .5em 0 0 .5em
+    }
+
+    .MJXp-mtr > .MJXp-mtd:first-child {
+        padding-left: 0
+    }
+
+    .MJXp-mtr:first-child > .MJXp-mtd {
+        padding-top: 0
+    }
+
+    .MJXp-mlabeledtr {
+        display: table-row !important
+    }
+
+    .MJXp-mlabeledtr > .MJXp-mtd:first-child {
+        padding-left: 0
+    }
+
+    .MJXp-mlabeledtr:first-child > .MJXp-mtd {
+        padding-top: 0
+    }
+
+    .MJXp-merror {
+        background-color: #FFFF88;
+        color: #CC0000;
+        border: 1px solid #CC0000;
+        padding: 1px 3px;
+        font-style: normal;
+        font-size: 90%
+    }
+
+    .MJXp-scale0 {
+        -webkit-transform: scaleX(.0);
+        -moz-transform: scaleX(.0);
+        -ms-transform: scaleX(.0);
+        -o-transform: scaleX(.0);
+        transform: scaleX(.0)
+    }
+
+    .MJXp-scale1 {
+        -webkit-transform: scaleX(.1);
+        -moz-transform: scaleX(.1);
+        -ms-transform: scaleX(.1);
+        -o-transform: scaleX(.1);
+        transform: scaleX(.1)
+    }
+
+    .MJXp-scale2 {
+        -webkit-transform: scaleX(.2);
+        -moz-transform: scaleX(.2);
+        -ms-transform: scaleX(.2);
+        -o-transform: scaleX(.2);
+        transform: scaleX(.2)
+    }
+
+    .MJXp-scale3 {
+        -webkit-transform: scaleX(.3);
+        -moz-transform: scaleX(.3);
+        -ms-transform: scaleX(.3);
+        -o-transform: scaleX(.3);
+        transform: scaleX(.3)
+    }
+
+    .MJXp-scale4 {
+        -webkit-transform: scaleX(.4);
+        -moz-transform: scaleX(.4);
+        -ms-transform: scaleX(.4);
+        -o-transform: scaleX(.4);
+        transform: scaleX(.4)
+    }
+
+    .MJXp-scale5 {
+        -webkit-transform: scaleX(.5);
+        -moz-transform: scaleX(.5);
+        -ms-transform: scaleX(.5);
+        -o-transform: scaleX(.5);
+        transform: scaleX(.5)
+    }
+
+    .MJXp-scale6 {
+        -webkit-transform: scaleX(.6);
+        -moz-transform: scaleX(.6);
+        -ms-transform: scaleX(.6);
+        -o-transform: scaleX(.6);
+        transform: scaleX(.6)
+    }
+
+    .MJXp-scale7 {
+        -webkit-transform: scaleX(.7);
+        -moz-transform: scaleX(.7);
+        -ms-transform: scaleX(.7);
+        -o-transform: scaleX(.7);
+        transform: scaleX(.7)
+    }
+
+    .MJXp-scale8 {
+        -webkit-transform: scaleX(.8);
+        -moz-transform: scaleX(.8);
+        -ms-transform: scaleX(.8);
+        -o-transform: scaleX(.8);
+        transform: scaleX(.8)
+    }
+
+    .MJXp-scale9 {
+        -webkit-transform: scaleX(.9);
+        -moz-transform: scaleX(.9);
+        -ms-transform: scaleX(.9);
+        -o-transform: scaleX(.9);
+        transform: scaleX(.9)
+    }
+
+    .MathJax_PHTML .noError {
+        vertical-align: ;
+        font-size: 90%;
+        text-align: left;
+        color: black;
+        padding: 1px 3px;
+        border: 1px solid
+    }
+    </style>
+</head>
+<body data-spy="scroll" data-target="#bd-toc-nav" data-offset="80"
+      data-new-gr-c-s-check-loaded="14.1056.0" data-gr-ext-installed="">
+
+<div id="MathJax_Message" style="display: none;"></div>
+
+<div class="container-fluid" id="banner"></div>
+
+
+<nav class="navbar navbar-light navbar-expand-lg bg-light fixed-top bd-navbar" id="navbar-main">
+    <div class="container-xl">
+
+        <div id="navbar-start">
+
+
+            <a class="navbar-brand"
+               href="https://docs.scipy.org/doc/scipy-1.8.0/html-scipyorg/index.html">
+                <img src="./scipy_files/logo.svg" class="logo" alt="logo">
+            </a>
+
+
+            <a href="https://docs.scipy.org/doc/">
+
+
+                <img src="./scipy_files/release-1.8.0-980F0F" style="margin-left: 1em; width: 60%;">
+
+            </a>
+
+        </div>
+
+        <button class="navbar-toggler" type="button" data-toggle="collapse"
+                data-target="#navbar-collapsible" aria-controls="navbar-collapsible"
+                aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+
+
+        <div id="navbar-collapsible" class="col-lg-9 collapse navbar-collapse">
+            <div id="navbar-center" class="mr-auto">
+
+                <div class="navbar-center-item">
+                    <ul id="navbar-main-elements" class="navbar-nav">
+                        <li class="toctree-l1 nav-item">
+                            <a class="reference internal nav-link"
+                               href="https://docs.scipy.org/doc/scipy-1.8.0/html-scipyorg/getting_started.html">
+                                Getting started
+                            </a>
+                        </li>
+
+                        <li class="toctree-l1 current active nav-item">
+                            <a class="reference internal nav-link"
+                               href="https://docs.scipy.org/doc/scipy-1.8.0/html-scipyorg/tutorial/index.html">
+                                User Guide
+                            </a>
+                        </li>
+
+                        <li class="toctree-l1 nav-item">
+                            <a class="reference internal nav-link"
+                               href="https://docs.scipy.org/doc/scipy-1.8.0/html-scipyorg/reference/index.html">
+                                API reference
+                            </a>
+                        </li>
+
+                        <li class="toctree-l1 nav-item">
+                            <a class="reference internal nav-link"
+                               href="https://docs.scipy.org/doc/scipy-1.8.0/html-scipyorg/dev/index.html">
+                                Development
+                            </a>
+                        </li>
+
+                        <li class="toctree-l1 nav-item">
+                            <a class="reference internal nav-link"
+                               href="https://docs.scipy.org/doc/scipy-1.8.0/html-scipyorg/release.html">
+                                Release notes
+                            </a>
+                        </li>
+
+
+                    </ul>
+                </div>
+
+            </div>
+
+            <div id="navbar-end">
+
+                <div class="navbar-end-item">
+                    <ul id="navbar-icon-links" class="navbar-nav" aria-label="Icon Links">
+                        <li class="nav-item">
+                            <a class="nav-link" href="https://github.com/scipy/scipy" rel="noopener"
+                               target="_blank" title="GitHub">
+                                <span><i class="fab fa-github-square"></i></span>
+                                <label class="sr-only">GitHub</label>
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+
+            </div>
+        </div>
+    </div>
+</nav>
+
+
+<div class="container-xl">
+    <div class="row">
+
+
+        <!-- Only show if we have sidebars configured, else just a small margin  -->
+        <div class="col-12 col-md-3 bd-sidebar">
+            <form class="bd-search d-flex align-items-center"
+                  action="https://docs.scipy.org/doc/scipy-1.8.0/html-scipyorg/search.html"
+                  method="get" data-dashlane-rid="156f800538fb57d0" data-form-type="">
+                <i class="icon fas fa-search"></i>
+                <input type="search" class="form-control" name="q" id="search-input"
+                       placeholder="Search the docs ..." aria-label="Search the docs ..."
+                       autocomplete="off" data-dashlane-rid="101f94f9234e16b5" data-form-type="">
+            </form>
+            <nav class="bd-links" id="bd-docs-nav" aria-label="Main navigation">
+                <div class="bd-toc-item active">
+
+                    <ul class="current nav bd-sidenav">
+                        <li class="toctree-l1">
+                            <a class="reference internal"
+                               href="https://docs.scipy.org/doc/scipy-1.8.0/html-scipyorg/tutorial/general.html">
+                                Introduction
+                            </a>
+                        </li>
+                        <li class="toctree-l1 current active">
+                            <a class="current reference internal"
+                               href="https://docs.scipy.org/doc/scipy-1.8.0/html-scipyorg/tutorial/special.html#">
+                                Special functions (
+                                <code class="xref py py-mod docutils literal notranslate">
+    <span class="pre">
+     scipy.special
+    </span>
+                                </code>
+                                )
+                            </a>
+                        </li>
+                        <li class="toctree-l1">
+                            <a class="reference internal"
+                               href="https://docs.scipy.org/doc/scipy-1.8.0/html-scipyorg/tutorial/integrate.html">
+                                Integration (
+                                <code class="xref py py-mod docutils literal notranslate">
+    <span class="pre">
+     scipy.integrate
+    </span>
+                                </code>
+                                )
+                            </a>
+                        </li>
+                        <li class="toctree-l1">
+                            <a class="reference internal"
+                               href="https://docs.scipy.org/doc/scipy-1.8.0/html-scipyorg/tutorial/optimize.html">
+                                Optimization (
+                                <code class="xref py py-mod docutils literal notranslate">
+    <span class="pre">
+     scipy.optimize
+    </span>
+                                </code>
+                                )
+                            </a>
+                        </li>
+                        <li class="toctree-l1">
+                            <a class="reference internal"
+                               href="https://docs.scipy.org/doc/scipy-1.8.0/html-scipyorg/tutorial/interpolate.html">
+                                Interpolation (
+                                <code class="xref py py-mod docutils literal notranslate">
+    <span class="pre">
+     scipy.interpolate
+    </span>
+                                </code>
+                                )
+                            </a>
+                        </li>
+                        <li class="toctree-l1">
+                            <a class="reference internal"
+                               href="https://docs.scipy.org/doc/scipy-1.8.0/html-scipyorg/tutorial/fft.html">
+                                Fourier Transforms (
+                                <code class="xref py py-mod docutils literal notranslate">
+    <span class="pre">
+     scipy.fft
+    </span>
+                                </code>
+                                )
+                            </a>
+                        </li>
+                        <li class="toctree-l1">
+                            <a class="reference internal"
+                               href="https://docs.scipy.org/doc/scipy-1.8.0/html-scipyorg/tutorial/signal.html">
+                                Signal Processing (
+                                <code class="xref py py-obj docutils literal notranslate">
+    <span class="pre">
+     scipy.signal
+    </span>
+                                </code>
+                                )
+                            </a>
+                        </li>
+                        <li class="toctree-l1">
+                            <a class="reference internal"
+                               href="https://docs.scipy.org/doc/scipy-1.8.0/html-scipyorg/tutorial/linalg.html">
+                                Linear Algebra (
+                                <code class="xref py py-obj docutils literal notranslate">
+    <span class="pre">
+     scipy.linalg
+    </span>
+                                </code>
+                                )
+                            </a>
+                        </li>
+                        <li class="toctree-l1">
+                            <a class="reference internal"
+                               href="https://docs.scipy.org/doc/scipy-1.8.0/html-scipyorg/tutorial/arpack.html">
+                                Sparse eigenvalue problems with ARPACK
+                            </a>
+                        </li>
+                        <li class="toctree-l1">
+                            <a class="reference internal"
+                               href="https://docs.scipy.org/doc/scipy-1.8.0/html-scipyorg/tutorial/csgraph.html">
+                                Compressed Sparse Graph Routines (
+                                <code class="xref py py-obj docutils literal notranslate">
+    <span class="pre">
+     scipy.sparse.csgraph
+    </span>
+                                </code>
+                                )
+                            </a>
+                        </li>
+                        <li class="toctree-l1">
+                            <a class="reference internal"
+                               href="https://docs.scipy.org/doc/scipy-1.8.0/html-scipyorg/tutorial/spatial.html">
+                                Spatial data structures and algorithms (
+                                <code class="xref py py-obj docutils literal notranslate">
+    <span class="pre">
+     scipy.spatial
+    </span>
+                                </code>
+                                )
+                            </a>
+                        </li>
+                        <li class="toctree-l1">
+                            <a class="reference internal"
+                               href="https://docs.scipy.org/doc/scipy-1.8.0/html-scipyorg/tutorial/stats.html">
+                                Statistics (
+                                <code class="xref py py-obj docutils literal notranslate">
+    <span class="pre">
+     scipy.stats
+    </span>
+                                </code>
+                                )
+                            </a>
+                        </li>
+                        <li class="toctree-l1">
+                            <a class="reference internal"
+                               href="https://docs.scipy.org/doc/scipy-1.8.0/html-scipyorg/tutorial/ndimage.html">
+                                Multidimensional image processing (
+                                <code class="xref py py-obj docutils literal notranslate">
+    <span class="pre">
+     scipy.ndimage
+    </span>
+                                </code>
+                                )
+                            </a>
+                        </li>
+                        <li class="toctree-l1">
+                            <a class="reference internal"
+                               href="https://docs.scipy.org/doc/scipy-1.8.0/html-scipyorg/tutorial/io.html">
+                                File IO (
+                                <code class="xref py py-mod docutils literal notranslate">
+    <span class="pre">
+     scipy.io
+    </span>
+                                </code>
+                                )
+                            </a>
+                        </li>
+                    </ul>
+
+
+                </div>
+            </nav>
+        </div>
+
+
+        <div class="d-none d-xl-block col-xl-2 bd-toc">
+
+
+            <div class="toc-item">
+
+                <div class="tocsection onthispage pt-5 pb-3">
+                    <i class="fas fa-list"></i> On this page
+                </div>
+
+                <nav id="bd-toc-nav">
+                    <ul class="visible nav section-nav flex-column">
+                        <li class="toc-h2 nav-item toc-entry">
+                            <a class="reference internal nav-link"
+                               href="https://docs.scipy.org/doc/scipy-1.8.0/html-scipyorg/tutorial/special.html#bessel-functions-of-real-order-jv-jn-zeros">
+                                Bessel functions of real order(
+                                <code class="xref py py-func docutils literal notranslate">
+    <span class="pre">
+     jv
+    </span>
+                                </code>
+                                ,
+                                <code class="xref py py-func docutils literal notranslate">
+    <span class="pre">
+     jn_zeros
+    </span>
+                                </code>
+                                )
+                            </a>
+                        </li>
+                        <li class="toc-h2 nav-item toc-entry">
+                            <a class="reference internal nav-link"
+                               href="https://docs.scipy.org/doc/scipy-1.8.0/html-scipyorg/tutorial/special.html#cython-bindings-for-special-functions-scipy-special-cython-special">
+                                Cython Bindings for Special Functions (
+                                <code class="xref py py-mod docutils literal notranslate">
+    <span class="pre">
+     scipy.special.cython_special
+    </span>
+                                </code>
+                                )
+                            </a>
+                            <ul class="nav section-nav flex-column">
+                                <li class="toc-h3 nav-item toc-entry">
+                                    <a class="reference internal nav-link"
+                                       href="https://docs.scipy.org/doc/scipy-1.8.0/html-scipyorg/tutorial/special.html#avoiding-python-function-overhead">
+                                        Avoiding Python Function Overhead
+                                    </a>
+                                </li>
+                                <li class="toc-h3 nav-item toc-entry">
+                                    <a class="reference internal nav-link"
+                                       href="https://docs.scipy.org/doc/scipy-1.8.0/html-scipyorg/tutorial/special.html#releasing-the-gil">
+                                        Releasing the GIL
+                                    </a>
+                                </li>
+                            </ul>
+                        </li>
+                        <li class="toc-h2 nav-item toc-entry">
+                            <a class="reference internal nav-link"
+                               href="https://docs.scipy.org/doc/scipy-1.8.0/html-scipyorg/tutorial/special.html#functions-not-in-scipy-special">
+                                Functions not in
+                                <code class="xref py py-mod docutils literal notranslate">
+    <span class="pre">
+     scipy.special
+    </span>
+                                </code>
+                            </a>
+                        </li>
+                    </ul>
+
+                </nav>
+            </div>
+
+            <div class="toc-item">
+
+            </div>
+
+
+        </div>
+
+
+        <main class="col-12 col-md-9 col-xl-7 py-md-5 pl-md-5 pr-md-4 bd-content" role="main">
+
+            <div>
+
+                <div class="section" id="special-functions-scipy-special">
+                    <h1>Special functions (<a class="reference internal"
+                                              href="https://docs.scipy.org/doc/scipy-1.8.0/html-scipyorg/reference/special.html#module-scipy.special"
+                                              title="scipy.special"><code
+                            class="xref py py-mod docutils literal notranslate"><span class="pre">scipy.special</span></code></a>)<a
+                            class="headerlink"
+                            href="https://docs.scipy.org/doc/scipy-1.8.0/html-scipyorg/tutorial/special.html#special-functions-scipy-special"
+                            title="Permalink to this headline">¶</a></h1>
+                    <p>The main feature</p>
+                    <div class="section" id="bessel-functions-of-real-order-jv-jn-zeros">
+                        <h2>Bessel functions of real order(<a class="reference internal"
+                                                              href="https://docs.scipy.org/doc/scipy-1.8.0/html-scipyorg/reference/generated/scipy.special.jv.html#scipy.special.jv"
+                                                              title="scipy.special.jv"><code
+                                class="xref py py-func docutils literal notranslate"><span
+                                class="pre">jv</span></code></a>, <a class="reference internal"
+                                                                     href="https://docs.scipy.org/doc/scipy-1.8.0/html-scipyorg/reference/generated/scipy.special.jn_zeros.html#scipy.special.jn_zeros"
+                                                                     title="scipy.special.jn_zeros"><code
+                                class="xref py py-func docutils literal notranslate"><span
+                                class="pre">jn_zeros</span></code></a>)<a class="headerlink"
+                                                                          href="https://docs.scipy.org/doc/scipy-1.8.0/html-scipyorg/tutorial/special.html#bessel-functions-of-real-order-jv-jn-zeros"
+                                                                          title="Permalink to this headline">¶</a>
+                        </h2>
+                        <p>Bessel functions are a family of solutions to Bessel’s differential
+                            equation
+                            with real or complex order alpha:</p>
+                        <div class="math notranslate nohighlight">
+                            <span class="MathJax_Preview"
+                                  style="color: inherit; display: none;"></span>
+                            <div class="MathJax_SVG_Display" style="text-align: center;"><span
+                                    class="MathJax_SVG" id="MathJax-Element-1-Frame" tabindex="0"
+                                    style="font-size: 100%; display: inline-block; position: relative;"
+                                    data-mathml="&lt;math xmlns=&quot;http://www.w3.org/1998/Math/MathML&quot; display=&quot;block&quot;&gt;&lt;msup&gt;&lt;mi&gt;x&lt;/mi&gt;&lt;mn&gt;2&lt;/mn&gt;&lt;/msup&gt;&lt;mfrac&gt;&lt;mrow&gt;&lt;msup&gt;&lt;mi&gt;d&lt;/mi&gt;&lt;mn&gt;2&lt;/mn&gt;&lt;/msup&gt;&lt;mi&gt;y&lt;/mi&gt;&lt;/mrow&gt;&lt;mrow&gt;&lt;mi&gt;d&lt;/mi&gt;&lt;msup&gt;&lt;mi&gt;x&lt;/mi&gt;&lt;mn&gt;2&lt;/mn&gt;&lt;/msup&gt;&lt;/mrow&gt;&lt;/mfrac&gt;&lt;mo&gt;+&lt;/mo&gt;&lt;mi&gt;x&lt;/mi&gt;&lt;mfrac&gt;&lt;mrow&gt;&lt;mi&gt;d&lt;/mi&gt;&lt;mi&gt;y&lt;/mi&gt;&lt;/mrow&gt;&lt;mrow&gt;&lt;mi&gt;d&lt;/mi&gt;&lt;mi&gt;x&lt;/mi&gt;&lt;/mrow&gt;&lt;/mfrac&gt;&lt;mo&gt;+&lt;/mo&gt;&lt;mo stretchy=&quot;false&quot;&gt;(&lt;/mo&gt;&lt;msup&gt;&lt;mi&gt;x&lt;/mi&gt;&lt;mn&gt;2&lt;/mn&gt;&lt;/msup&gt;&lt;mo&gt;&amp;#x2212;&lt;/mo&gt;&lt;msup&gt;&lt;mi&gt;&amp;#x03B1;&lt;/mi&gt;&lt;mn&gt;2&lt;/mn&gt;&lt;/msup&gt;&lt;mo stretchy=&quot;false&quot;&gt;)&lt;/mo&gt;&lt;mi&gt;y&lt;/mi&gt;&lt;mo&gt;=&lt;/mo&gt;&lt;mn&gt;0&lt;/mn&gt;&lt;/math&gt;"
+                                    role="presentation"><svg
+                                    xmlns:xlink="http://www.w3.org/1999/xlink" width="32.204ex"
+                                    height="5.567ex" viewBox="0 -1579.2 13865.5 2397" role="img"
+                                    focusable="false" style="vertical-align: -1.899ex;"
+                                    aria-hidden="true"><g stroke="currentColor" fill="currentColor"
+                                                          stroke-width="0"
+                                                          transform="matrix(1 0 0 -1 0 0)"><use
+                                    href="#MJMATHI-78" x="0" y="0"></use><use
+                                    transform="scale(0.707)" href="#MJMAIN-32" x="809"
+                                    y="583"></use><g transform="translate(1026,0)"><g
+                                    transform="translate(120,0)"><rect stroke="none" width="1669"
+                                                                       height="60" x="0"
+                                                                       y="220"></rect><g
+                                    transform="translate(97,681)"><use href="#MJMATHI-64" x="0"
+                                                                       y="0"></use><use
+                                    transform="scale(0.707)" href="#MJMAIN-32" x="741"
+                                    y="513"></use><use href="#MJMATHI-79" x="978" y="0"></use></g><g
+                                    transform="translate(60,-737)"><use href="#MJMATHI-64" x="0"
+                                                                        y="0"></use><g
+                                    transform="translate(523,0)"><use href="#MJMATHI-78" x="0"
+                                                                      y="0"></use><use
+                                    transform="scale(0.707)" href="#MJMAIN-32" x="809"
+                                    y="408"></use></g></g></g></g><use href="#MJMAIN-2B" x="3158"
+                                                                       y="0"></use><use
+                                    href="#MJMATHI-78" x="4159" y="0"></use><g
+                                    transform="translate(4731,0)"><g transform="translate(120,0)"><rect
+                                    stroke="none" width="1216" height="60" x="0" y="220"></rect><g
+                                    transform="translate(97,681)"><use href="#MJMATHI-64" x="0"
+                                                                       y="0"></use><use
+                                    href="#MJMATHI-79" x="523" y="0"></use></g><g
+                                    transform="translate(60,-686)"><use href="#MJMATHI-64" x="0"
+                                                                        y="0"></use><use
+                                    href="#MJMATHI-78" x="523" y="0"></use></g></g></g><use
+                                    href="#MJMAIN-2B" x="6409" y="0"></use><use href="#MJMAIN-28"
+                                                                                x="7410"
+                                                                                y="0"></use><g
+                                    transform="translate(7800,0)"><use href="#MJMATHI-78" x="0"
+                                                                       y="0"></use><use
+                                    transform="scale(0.707)" href="#MJMAIN-32" x="809"
+                                    y="583"></use></g><use href="#MJMAIN-2212" x="9048" y="0"></use><g
+                                    transform="translate(10049,0)"><use href="#MJMATHI-3B1" x="0"
+                                                                        y="0"></use><use
+                                    transform="scale(0.707)" href="#MJMAIN-32" x="905"
+                                    y="583"></use></g><use href="#MJMAIN-29" x="11143" y="0"></use><use
+                                    href="#MJMATHI-79" x="11533" y="0"></use><use href="#MJMAIN-3D"
+                                                                                  x="12308"
+                                                                                  y="0"></use><use
+                                    href="#MJMAIN-30" x="13365" y="0"></use></g></svg><span
+                                    class="MJX_Assistive_MathML MJX_Assistive_MathML_Block"
+                                    role="presentation"><math
+                                    xmlns="http://www.w3.org/1998/Math/MathML" display="block"><msup><mi>x</mi><mn>2</mn></msup><mfrac><mrow><msup><mi>d</mi><mn>2</mn></msup><mi>y</mi></mrow><mrow><mi>d</mi><msup><mi>x</mi><mn>2</mn></msup></mrow></mfrac><mo>+</mo><mi>x</mi><mfrac><mrow><mi>d</mi><mi>y</mi></mrow><mrow><mi>d</mi><mi>x</mi></mrow></mfrac><mo>+</mo><mo
+                                    stretchy="false">(</mo><msup><mi>x</mi><mn>2</mn></msup><mo>−</mo><msup><mi>α</mi><mn>2</mn></msup><mo
+                                    stretchy="false">)</mo><mi>y</mi><mo>=</mo><mn>0</mn></math></span></span>
+                            </div>
+                            <script type="math/tex; mode=display" id="MathJax-Element-1">
+                                x^2 \frac{d^2 y}{dx^2} + x \frac{dy}{dx} + (x^2 - \alpha^2)y = 0
+
+
+                            </script>
+                        </div>
+                        <p>Among other uses, these functions arise in wave propagation problems,
+                            such as
+                            the vibrational modes of a thin drum head. Here is an example of a
+                            circular
+                            drum head anchored at the edge:</p>
+                        <div class="doctest highlight-default notranslate">
+                            <div class="highlight"><pre><span></span><span
+                                    class="gp">&gt;&gt;&gt; </span><span
+                                    class="kn">from</span> <span class="nn">scipy</span> <span
+                                    class="kn">import</span> <span class="n">special</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">def</span> <span
+                                        class="nf">drumhead_height</span><span
+                                        class="p">(</span><span class="n">n</span><span
+                                        class="p">,</span> <span class="n">k</span><span
+                                        class="p">,</span> <span class="n">distance</span><span
+                                        class="p">,</span> <span class="n">angle</span><span
+                                        class="p">,</span> <span class="n">t</span><span class="p">):</span>
+<span class="gp">... </span>   <span class="n">kth_zero</span> <span class="o">=</span> <span
+                                        class="n">special</span><span class="o">.</span><span
+                                        class="n">jn_zeros</span><span class="p">(</span><span
+                                        class="n">n</span><span class="p">,</span> <span
+                                        class="n">k</span><span class="p">)[</span><span
+                                        class="o">-</span><span class="mi">1</span><span
+                                        class="p">]</span>
+<span class="gp">... </span>   <span class="k">return</span> <span class="n">np</span><span
+                                        class="o">.</span><span class="n">cos</span><span class="p">(</span><span
+                                        class="n">t</span><span class="p">)</span> <span
+                                        class="o">*</span> <span class="n">np</span><span class="o">.</span><span
+                                        class="n">cos</span><span class="p">(</span><span class="n">n</span><span
+                                        class="o">*</span><span class="n">angle</span><span
+                                        class="p">)</span> <span class="o">*</span> <span class="n">special</span><span
+                                        class="o">.</span><span class="n">jn</span><span
+                                        class="p">(</span><span class="n">n</span><span
+                                        class="p">,</span> <span class="n">distance</span><span
+                                        class="o">*</span><span class="n">kth_zero</span><span
+                                        class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">theta</span> <span class="o">=</span> <span
+                                        class="n">np</span><span class="o">.</span><span class="n">r_</span><span
+                                        class="p">[</span><span class="mi">0</span><span
+                                        class="p">:</span><span class="mi">2</span><span
+                                        class="o">*</span><span class="n">np</span><span
+                                        class="o">.</span><span class="n">pi</span><span
+                                        class="p">:</span><span class="mi">50</span><span class="n">j</span><span
+                                        class="p">]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">radius</span> <span class="o">=</span> <span
+                                        class="n">np</span><span class="o">.</span><span class="n">r_</span><span
+                                        class="p">[</span><span class="mi">0</span><span
+                                        class="p">:</span><span class="mi">1</span><span
+                                        class="p">:</span><span class="mi">50</span><span class="n">j</span><span
+                                        class="p">]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">x</span> <span class="o">=</span> <span
+                                        class="n">np</span><span class="o">.</span><span class="n">array</span><span
+                                        class="p">([</span><span class="n">r</span> <span class="o">*</span> <span
+                                        class="n">np</span><span class="o">.</span><span class="n">cos</span><span
+                                        class="p">(</span><span class="n">theta</span><span
+                                        class="p">)</span> <span class="k">for</span> <span
+                                        class="n">r</span> <span class="ow">in</span> <span
+                                        class="n">radius</span><span class="p">])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">y</span> <span class="o">=</span> <span
+                                        class="n">np</span><span class="o">.</span><span class="n">array</span><span
+                                        class="p">([</span><span class="n">r</span> <span class="o">*</span> <span
+                                        class="n">np</span><span class="o">.</span><span class="n">sin</span><span
+                                        class="p">(</span><span class="n">theta</span><span
+                                        class="p">)</span> <span class="k">for</span> <span
+                                        class="n">r</span> <span class="ow">in</span> <span
+                                        class="n">radius</span><span class="p">])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">z</span> <span class="o">=</span> <span
+                                        class="n">np</span><span class="o">.</span><span class="n">array</span><span
+                                        class="p">([</span><span
+                                        class="n">drumhead_height</span><span
+                                        class="p">(</span><span class="mi">1</span><span
+                                        class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span
+                                        class="n">r</span><span class="p">,</span> <span class="n">theta</span><span
+                                        class="p">,</span> <span class="mf">0.5</span><span
+                                        class="p">)</span> <span class="k">for</span> <span
+                                        class="n">r</span> <span class="ow">in</span> <span
+                                        class="n">radius</span><span class="p">])</span>
+</pre>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+
+            </div>
+
+
+            <div class="prev-next-bottom">
+
+                <a class="left-prev" id="prev-link"
+                   href="https://docs.scipy.org/doc/scipy-1.8.0/html-scipyorg/tutorial/general.html"
+                   title="previous page">Introduction</a>
+                <a class="right-next" id="next-link"
+                   href="https://docs.scipy.org/doc/scipy-1.8.0/html-scipyorg/tutorial/integrate.html"
+                   title="next page">Integration (<code
+                        class="xref py py-mod docutils literal notranslate"><span class="pre">scipy.integrate</span></code>)</a>
+
+            </div>
+
+        </main>
+
+
+    </div>
+</div>
+
+<script src="./scipy_files/index.1c5a1a01449ed65a7b51.js"></script>
+
+<footer class="footer mt-5 mt-md-0">
+    <div class="container">
+
+        <div class="footer-item">
+            <p class="copyright">
+                © Copyright 2008-2022, The SciPy community.<br>
+            </p>
+        </div>
+
+        <div class="footer-item">
+            <p class="sphinx-version">
+                Created using <a href="http://sphinx-doc.org/">Sphinx</a> 4.0.2.<br>
+            </p>
+        </div>
+
+    </div>
+</footer>
+
+</body>
+<grammarly-desktop-integration data-grammarly-shadow-root="true"></grammarly-desktop-integration>
+</html>

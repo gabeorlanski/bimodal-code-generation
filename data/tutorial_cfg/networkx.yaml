@@ -1,0 +1,19 @@
+url: "https://networkx.org/documentation/stable/index.html"
+allowed_path: "documentation/stable"
+disallow:
+  - '.*/pdf/*'
+  - '.*/epub/*'
+  - '.*/htmlzip/*'
+disallow_file_types:
+  - bib
+  - py
+  - pdf
+groups:
+  tutorials:
+    path: /documentation/stable
+    pages:
+      tutorial: tutorial.html
+      introduction: reference/introduction.html
+
+
+

@@ -1,0 +1,25 @@
+url: "https://simpy.readthedocs.io/en/stable"
+allowed_path: "en/stable"
+
+disallow_file_types:
+  - bib
+  - py
+  - pdf
+groups:
+  intro:
+    pages:
+      basic_concepts: basic_concepts.html
+      process_interaction: process_interaction.html
+      shared_resources: shared_resources.html
+    path: "/en/stable/simpy_intro"
+  topical:
+    pages:
+      simpy_basics: simpy_basics.html
+      environments: environments.html
+      events: events.html
+      process_interaction: process_interaction.html
+      resources: resources.html
+      real_time_simulations: real-time-simulations.html
+      monitoring: monitoring.html
+      time_and_scheduling: time_and_scheduling.html
+    path: "/en/stable/topical_guides"

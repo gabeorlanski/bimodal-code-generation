@@ -1,6 +1,7 @@
 import json
 import logging
 import re
+import sys
 from collections import defaultdict
 from copy import deepcopy
 import ast
@@ -9,6 +10,8 @@ from typing import List, Dict, Tuple, Union
 import astor
 import numpy as np
 from dataclasses import dataclass, field, asdict
+import matplotlib.pyplot as plt
+from tqdm import tqdm
 
 from src.evaluation.execute import swallow_io, create_tempdir
 
@@ -168,14 +171,20 @@ def does_code_raise_errors(code):
     Executed the code and see if it raises errors
     """
     result = None
+    orig_write = sys.stdout.write
     with create_tempdir():
+        orig_plt_fn = plt.show
         try:
             with swallow_io():
+                plt.show = lambda: None
+                print = lambda f: None
+                sys.stdout.write = lambda *args, **kwargs: None
                 exec(code)
         except AssertionError:
             result = 'AssertionError'
         except Exception as e:
             result = f"{type(e).__name__}: {str(e)}"
+    sys.stdout.write = orig_write
     return result
 
 
@@ -205,6 +214,7 @@ def get_code_from_content(
 
         for snip_num, block in enumerate(get_snippets(name_str, c['text'])):
             block_context = mk_valid_syntax('\n'.join(block['context']))
+
             if block['result']:
                 valid_code = mk_valid_syntax('\n'.join(block['code']))
 
@@ -239,6 +249,8 @@ def get_code_from_content(
                         ))
             if block_context is not None:
                 for line in block_context:
+                    if 'plt.' in line:
+                        continue
                     code_error = does_code_raise_errors('\n'.join(context + [line]))
                     if not code_error:
                         context.append(line)
@@ -355,14 +367,26 @@ def get_code_passes_test(code: List[CodeSample], fixes_by_section, override_all=
                 testing_code.append(f"assert numpy.isclose({c},{result_str}).all()")
             elif 'class' in aligned_out['val']:
                 type_str_name = aligned_out['val'].split('\'')[1]
+
                 testing_code.append(
-                    f"assert str({c}).split(\"\'\")[1] == \"{type_str_name}\""
+                    f"assert repr({c}).split(\"\'\")[1] == \"{type_str_name}\""
                 )
             else:
-                if should_convert_to_str:
-                    testing_code.append(f"assert str({c}) == {result_str}")
+
+                remove_addr = r'(?<=at) [^>]+(?=>)'
+                if re.search(remove_addr, result_str):
+                    result_str = re.sub(remove_addr, '', result_str)
+                    testing_code.append(
+                        f"v = re.sub(r'{remove_addr}','',repr({c}))"
+                    )
+                    testing_code.append(
+                        f"assert v == {result_str}"
+                    )
                 else:
-                    testing_code.append(f"assert {c} == {result_str}")
+                    if should_convert_to_str:
+                        testing_code.append(f"assert repr({c}) == {result_str}")
+                    else:
+                        testing_code.append(f"assert {c} == {result_str}")
         type_conversion_to_run.extend(testing_code)
 
         exec_errors = does_code_raise_errors('\n'.join(type_conversion_to_run))
@@ -414,7 +438,7 @@ def get_code_samples_from_tutorial(name, parsed_tutorial, global_context, fixes_
             fixes_by_section,
             override_all=fixes_by_section.get('override_all', False)
         )
-        logger.info(
+        logger.debug(
             f"{name} has {pass_str + pass_test}/{len(out)} pass, "
             f"{pass_str}/{pass_str + pass_test} required type conversion."
         )
@@ -471,8 +495,9 @@ def parse_domain_path(
     domain_passed = {}
     domain_fail_tests = {}
     parsed_files = []
+    files = list(domain_path.glob('*'))
 
-    for file in domain_path.glob('*'):
+    for file in tqdm(files, desc=f'Parsing {domain_path.stem}'):
         file_context = []
         if domain_context_cfg:
             file_context = domain_context_cfg['files'].get(file.stem, [])
@@ -488,14 +513,15 @@ def parse_domain_path(
         )
         domain_passed[file.stem] = list(map(asdict, passed))
 
-        combined = combine_code_samples_with_parsed(
-            domain_path.stem,
-            file.stem,
-            parsed,
-            passed
-        )
-        combined['idx'] = parsed_idx_offset + len(parsed_files)
-        parsed_files.append(combined)
+        if passed:
+            combined = combine_code_samples_with_parsed(
+                domain_path.stem,
+                file.stem,
+                parsed,
+                passed
+            )
+            combined['idx'] = parsed_idx_offset + len(parsed_files)
+            parsed_files.append(combined)
 
         fail_tests_by_idx = {}
         for failed_sample in fail_tests:

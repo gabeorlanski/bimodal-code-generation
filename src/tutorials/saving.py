@@ -25,7 +25,7 @@ def unravel_parsed(parsed, parent_idx=-1):
 
 def combine_code_samples_with_parsed(domain, name, parsed, code_samples: List[CodeSample]):
     tags = list(unravel_parsed(parsed))
-    logger.info(f"Found {len(tags)} total sections for {name} in {domain}")
+    logger.debug(f"Found {len(tags)} total sections for {name} in {domain}")
     code_samples_by_idx = defaultdict(list)
 
     for sample in code_samples:
