@@ -69,7 +69,7 @@ experiments:
           ++task.sequence_length: 1024
           training:
             dataloader_num_workers: 4
-            fp16_opt_level: 02
+            fp16_opt_level: O2
             learning_rate: 5.0e-05
             warmup_steps: 750
             eval_steps: 500
