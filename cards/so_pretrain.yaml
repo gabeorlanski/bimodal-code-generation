@@ -44,7 +44,6 @@ experiments:
               PreTrain:
                 ++training.batch_size: 32
                 ++training.gradient_accumulation_steps: 1
-                ++training.gradient_checkpointing: True
       - RemoveModality:
           NoNL:
             description: Remove Natural Language
