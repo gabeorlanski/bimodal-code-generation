@@ -1,7 +1,7 @@
 starting_commands: templates/commands/sbatch_experiment.txt
 experiments:
-  TopLanguagesFull:
-    description: "Finetune the base checkpoints first on a mixture of questions from the most popular languages"
+  SO:
+    description: "Test SO finetuning with no repeating"
     overrides:
       ++device: 0
       +processor: stackoverflow
@@ -10,26 +10,31 @@ experiments:
       objective: lm
       ++tracking.tags:
         - O2
-        - StackOverflow
+        - SO
       ++evaluation:
         num_generate_per_step: 200
         remove_input_ids: False
         seq_per_sample: 200
-      ++task.dump_name: top_languages_${..__META__.ablation.name}
-      ++task.raw_dump_name: top_languages
-      ++task.tensorized_name: top_languages_${..__META__.ablation.name}
-      ++processor.params.add_body_to_input_sequence: True
+      ++task.dump_name: python_${..__META__.ablation.name}
+      ++task.raw_dump_name: python
+      ++task.tensorized_name: python_${..__META__.ablation.name}
+      ++processor.params.repeat_prompt_each_answer: False
+      ++processor.params.repeat_body_for_each_answer: False
+      ++prompts:
+        file: templates/so_prompts.yaml
+        pipe:
+          - base
+      ++processor.params.relative_quality: False
     ablations:
       - Model:
-#          Neo125M:
-#            description: GPT Neo 125M
-#            overrides:
-#              ++model: 'EleutherAI/gpt-neo-125M'
-#            step_overrides:
-#              PreTrain:
-#                ++training.batch_size: 32
-#                ++training.gradient_accumulation_steps: 1
-#                ++training.gradient_checkpointing: True
+          Neo125M:
+            description: GPT Neo 125M
+            overrides:
+              ++model: 'EleutherAI/gpt-neo-125M'
+            step_overrides:
+              PreTrain:
+                ++training.batch_size: 32
+                ++training.gradient_accumulation_steps: 1
           ParrotSmall:
             description: CodeParrot Small
             overrides:
@@ -39,6 +44,17 @@ experiments:
                 ++training.batch_size: 32
                 ++training.gradient_accumulation_steps: 1
                 ++training.gradient_checkpointing: True
+      - RemoveModality:
+          NoNL:
+            description: Remove Natural Language
+            hypothesis: Will do better b/c removed bad NL
+            ++processor.params.remove_modality: NL
+          Full:
+            description: Do Not Remove Anything
+            hypothesis: Will be worse than removing NL
+            ++processor.params.remove_modality: null
+
+
     steps:
       - name: PreTrain
         description: Finetune on the SO Data
@@ -51,6 +67,13 @@ experiments:
             log_model: True
           is_checkpoint: False
           ++task.sequence_length: 1024
+          training:
+            dataloader_num_workers: 0
+            fp16_opt_level: O1
+            learning_rate: 5.0e-05
+            warmup_steps: 750
+            eval_steps: 500
+            lr_scheduler_type: cosine
           task: so
     command:
       file: templates/commands/pretrain.txt
@@ -58,7 +81,7 @@ experiments:
         num_return_sequences: 200
         task_name: MBPP
         train_sbatch: train_single_gpu
-        pretrain_time: "47:00:00"
+        pretrain_time: "23:00:00"
         use_cds: True
       fields:
         - model_path

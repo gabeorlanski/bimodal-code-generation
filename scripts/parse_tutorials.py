@@ -232,16 +232,19 @@ def make_samples(ctx):
         f"{num_found}/{sum(total_fails.values()) + num_found} are runnable")
     logger.info(f"{sum(total_passed.values())}/{num_found} returned the expected value")
     logger.info("Results in the form Passed Test | Runnable | Total:")
+    with_one_passed = 0
     for k, v in sorted(total_runnable_code.items(), key=lambda e: e[0]):
         total = v + total_fails[k]
         if total > 0:
             pct_ver = total_passed[k] / total
         else:
             pct_ver = 0
+
+        with_one_passed += total_passed[k] > 0
         logger.info(
             f"\t{k:>16} = {total_passed[k]:>11} | {v:>8} | {total:>7}     "
             f"{pct_ver:>7.2%} verified.")
-
+    logger.info(f"{with_one_passed} had more than one pass")
     logger.info(f"Saving to {out_dir}")
 
     with out_dir.joinpath('parsed.json').open('w') as f:

@@ -2,6 +2,7 @@ import json
 import logging
 import re
 import sys
+import urllib.request
 from collections import defaultdict
 from copy import deepcopy
 import ast

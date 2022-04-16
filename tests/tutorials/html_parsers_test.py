@@ -705,3 +705,23 @@ def test_networkx(tutorial_fixtures_path):
                 }]
             }]
     }]
+
+
+def test_python(tutorial_fixtures_path):
+    parser = html_parsers.TutorialHTMLParser.by_name('python')()
+    result = parser(
+        tutorial_fixtures_path.joinpath('python.html').read_text()
+    )
+
+    assert result == [{
+        'tag'    : 'section', 'title': '3. An Informal Introduction to Python',
+        'id'     : 1, 'id_str': 'an-informal-introduction-to-python', 'parent': 0,
+        'idx'    : 0,
+        'content': [{'idx': 1, 'text': 'In the following examples', 'tag': 'p'},
+                    {'idx': 2, 'text': 'Many of the examples', 'tag': 'p'},
+                    {'idx': 3, 'text': 'Some examples:', 'tag': 'p'}, {
+                        'idx' : 4,
+                        'text': '# this is the first comment\nspam = 1  # and this is the second comment\n          # ... and now a third!\ntext = "# This is not a comment because it\'s inside quotes."',
+                        'tag' : 'code'
+                    }]
+    }]

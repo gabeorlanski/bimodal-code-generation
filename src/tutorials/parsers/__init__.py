@@ -8,3 +8,4 @@ from .passlib_parser import PassLibParser
 from .sphinx_rtd_theme import SphinxRTDTheme
 from .furo_theme import FuroTheme
 from .numpy_theme import ScipyParser, NumpyParser
+from .py_docs_theme import PyDocsTheme

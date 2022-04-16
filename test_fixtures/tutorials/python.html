@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<!-- saved from url=(0054)https://docs.python.org/3.8/tutorial/introduction.html -->
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
+    <title>3. An Informal Introduction to Python — Python 3.8.13 documentation</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <link rel="stylesheet" href="./python_files/pydoctheme.css" type="text/css">
+    <link rel="stylesheet" href="./python_files/pygments.css" type="text/css">
+
+    <script id="documentation_options" data-url_root="../"
+            src="./python_files/documentation_options.js"></script>
+    <script src="./python_files/jquery.js"></script>
+    <script src="./python_files/underscore.js"></script>
+    <script src="./python_files/doctools.js"></script>
+    <script src="./python_files/language_data.js"></script>
+
+    <script src="./python_files/sidebar.js"></script>
+
+    <link rel="search" type="application/opensearchdescription+xml"
+          title="Search within Python 3.8.13 documentation"
+          href="https://docs.python.org/3.8/_static/opensearch.xml">
+    <link rel="author" title="About these documents" href="https://docs.python.org/3.8/about.html">
+    <link rel="index" title="Index" href="https://docs.python.org/3.8/genindex.html">
+    <link rel="search" title="Search" href="https://docs.python.org/3.8/search.html">
+    <link rel="copyright" title="Copyright" href="https://docs.python.org/3.8/copyright.html">
+    <link rel="next" title="4. More Control Flow Tools"
+          href="https://docs.python.org/3.8/tutorial/controlflow.html">
+    <link rel="prev" title="2. Using the Python Interpreter"
+          href="https://docs.python.org/3.8/tutorial/interpreter.html">
+    <link rel="canonical" href="https://docs.python.org/3/tutorial/introduction.html">
+
+
+    <style>
+        @media only screen {
+            table.full-width-table {
+                width: 100%;
+            }
+        }
+    </style>
+    <link rel="shortcut icon" type="image/png" href="./python_files/py.svg">
+    <script type="text/javascript" src="./python_files/copybutton.js"></script>
+    <script type="text/javascript" src="./python_files/menu.js"></script>
+
+</head>
+<body data-new-gr-c-s-check-loaded="14.1056.0" data-gr-ext-installed="">
+<div class="mobile-nav">
+    <input type="checkbox" id="menuToggler" class="toggler__input" aria-controls="navigation"
+           aria-pressed="false" aria-expanded="false" role="button" aria-label="Menu">
+    <label for="menuToggler" class="toggler__label">
+        <span></span>
+    </label>
+    <nav class="nav-content" role="navigation">
+        <a href="https://www.python.org/" class="nav-logo">
+            <img src="./python_files/py.svg" alt="Logo">
+        </a>
+        <div class="version_switcher_placeholder"><select id="version_select">
+            <option value="3.11">dev (3.11)</option>
+            <option value="3.10">3.10</option>
+            <option value="3.9">3.9</option>
+            <option value="3.8" selected="selected">3.8.13</option>
+            <option value="3.7">3.7</option>
+            <option value="3.6">3.6</option>
+            <option value="3.5">3.5</option>
+            <option value="2.7">2.7</option>
+        </select></div>
+        <form role="search" class="search" action="https://docs.python.org/3.8/search.html"
+              method="get" data-dashlane-rid="5885d5f58746a833" data-form-type="">
+            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"
+                 class="search-icon">
+                <path fill-rule="nonzero"
+                      d="M15.5 14h-.79l-.28-.27a6.5 6.5 0 001.48-5.34c-.47-2.78-2.79-5-5.59-5.34a6.505 6.505 0 00-7.27 7.27c.34 2.8 2.56 5.12 5.34 5.59a6.5 6.5 0 005.34-1.48l.27.28v.79l4.25 4.25c.41.41 1.08.41 1.49 0 .41-.41.41-1.08 0-1.49L15.5 14zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"
+                      fill="#444"></path>
+            </svg>
+            <input type="text" name="q" aria-label="Quick search"
+                   data-dashlane-rid="f463565791cd8c16" data-form-type="">
+            <input type="submit" value="Go" data-dashlane-rid="40a3b5ce5fb556c4" data-form-type="">
+        </form>
+    </nav>
+    <div class="menu-wrapper">
+        <nav class="menu" role="navigation" aria-label="main navigation" tabindex="-1">
+            <div class="language_switcher_placeholder"><select id="language_select">
+                <option value="en" selected="selected">English</option>
+                <option value="es">Spanish</option>
+                <option value="fr">French</option>
+                <option value="ja">Japanese</option>
+                <option value="ko">Korean</option>
+                <option value="pt-br">Brazilian Portuguese</option>
+                <option value="zh-cn">Simplified Chinese</option>
+                <option value="zh-tw">Traditional Chinese</option>
+            </select></div>
+            <h3><a href="https://docs.python.org/3.8/contents.html">Table of Contents</a></h3>
+            <ul>
+                <li><a class="reference internal"
+                       href="https://docs.python.org/3.8/tutorial/introduction.html#">3. An Informal
+                    Introduction to Python</a>
+                    <ul>
+                        <li><a class="reference internal"
+                               href="https://docs.python.org/3.8/tutorial/introduction.html#using-python-as-a-calculator">3.1.
+                            Using Python as a Calculator</a>
+                            <ul>
+                                <li><a class="reference internal"
+                                       href="https://docs.python.org/3.8/tutorial/introduction.html#numbers">3.1.1.
+                                    Numbers</a></li>
+                                <li><a class="reference internal"
+                                       href="https://docs.python.org/3.8/tutorial/introduction.html#strings">3.1.2.
+                                    Strings</a></li>
+                                <li><a class="reference internal"
+                                       href="https://docs.python.org/3.8/tutorial/introduction.html#lists">3.1.3.
+                                    Lists</a></li>
+                            </ul>
+                        </li>
+                        <li><a class="reference internal"
+                               href="https://docs.python.org/3.8/tutorial/introduction.html#first-steps-towards-programming">3.2.
+                            First Steps Towards Programming</a></li>
+                    </ul>
+                </li>
+            </ul>
+
+            <h4>Previous topic</h4>
+            <p class="topless"><a href="https://docs.python.org/3.8/tutorial/interpreter.html"
+                                  title="previous chapter"><span class="section-number">2. </span>Using
+                the Python Interpreter</a></p>
+            <h4>Next topic</h4>
+            <p class="topless"><a href="https://docs.python.org/3.8/tutorial/controlflow.html"
+                                  title="next chapter"><span class="section-number">4. </span>More
+                Control Flow Tools</a></p>
+            <div role="note" aria-label="source link">
+                <h3>This Page</h3>
+                <ul class="this-page-menu">
+                    <li><a href="https://docs.python.org/3.8/bugs.html">Report a Bug</a></li>
+                    <li>
+                        <a href="https://github.com/python/cpython/blob/3.8/Doc/tutorial/introduction.rst"
+                           rel="nofollow">Show Source
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </nav>
+    </div>
+</div>
+
+
+<div class="related" role="navigation" aria-label="related navigation">
+    <h3>Navigation</h3>
+    <ul>
+        <li class="right" style="margin-right: 10px">
+            <a href="https://docs.python.org/3.8/genindex.html" title="General Index" accesskey="I">index</a>
+        </li>
+        <li class="right">
+            <a href="https://docs.python.org/3.8/py-modindex.html" title="Python Module Index">modules</a>
+            |
+        </li>
+        <li class="right">
+            <a href="https://docs.python.org/3.8/tutorial/controlflow.html"
+               title="4. More Control Flow Tools" accesskey="N">next</a> |
+        </li>
+        <li class="right">
+            <a href="https://docs.python.org/3.8/tutorial/interpreter.html"
+               title="2. Using the Python Interpreter" accesskey="P">previous</a> |
+        </li>
+
+        <li><img src="./python_files/py.svg" alt="python logo"
+                 style="vertical-align: middle; margin-top: -1px"></li>
+        <li><a href="https://www.python.org/">Python</a> »</li>
+        <li class="switchers">
+            <div class="language_switcher_placeholder"><select id="language_select">
+                <option value="en" selected="selected">English</option>
+                <option value="es">Spanish</option>
+                <option value="fr">French</option>
+                <option value="ja">Japanese</option>
+                <option value="ko">Korean</option>
+                <option value="pt-br">Brazilian Portuguese</option>
+                <option value="zh-cn">Simplified Chinese</option>
+                <option value="zh-tw">Traditional Chinese</option>
+            </select></div>
+            <div class="version_switcher_placeholder"><select id="version_select">
+                <option value="3.11">dev (3.11)</option>
+                <option value="3.10">3.10</option>
+                <option value="3.9">3.9</option>
+                <option value="3.8" selected="selected">3.8.13</option>
+                <option value="3.7">3.7</option>
+                <option value="3.6">3.6</option>
+                <option value="3.5">3.5</option>
+                <option value="2.7">2.7</option>
+            </select></div>
+        </li>
+        <li>
+
+        </li>
+        <li id="cpython-language-and-version">
+            <a href="https://docs.python.org/3.8/index.html">3.8.13 Documentation</a> »
+        </li>
+
+        <li class="nav-item nav-item-1"><a href="https://docs.python.org/3.8/tutorial/index.html"
+                                           accesskey="U">The Python Tutorial</a> »
+        </li>
+        <li class="right">
+
+
+            <div class="inline-search" role="search">
+                <form class="inline-search" action="https://docs.python.org/3.8/search.html"
+                      method="get">
+                    <input placeholder="Quick search" aria-label="Quick search" type="text"
+                           name="q">
+                    <input type="submit" value="Go">
+                    <input type="hidden" name="check_keywords" value="yes">
+                    <input type="hidden" name="area" value="default">
+                </form>
+            </div>
+            |
+        </li>
+
+    </ul>
+</div>
+
+<div class="document">
+    <div class="documentwrapper">
+        <div class="bodywrapper">
+            <div class="body" role="main">
+
+                <div class="section" id="an-informal-introduction-to-python">
+                    <span id="tut-informal"></span>
+                    <h1><span class="section-number">3. </span>An Informal Introduction to Python<a
+                            class="headerlink"
+                            href="https://docs.python.org/3.8/tutorial/introduction.html#an-informal-introduction-to-python"
+                            title="Permalink to this headline">¶</a></h1>
+                    <p>In the following examples</p>
+                    <p id="index-0">Many of the examples</p>
+                    <p>Some examples:</p>
+                    <div class="highlight-python3 notranslate" style="position: relative;">
+                        <div class="highlight"><pre><span></span><span class="c1"># this is the first comment</span>
+<span class="n">spam</span> <span class="o">=</span> <span class="mi">1</span>  <span class="c1"># and this is the second comment</span>
+          <span class="c1"># ... and now a third!</span>
+<span class="n">text</span> <span class="o">=</span> <span class="s2">"# This is not a comment because it's inside quotes."</span>
+</pre>
+                        </div>
+                    </div>
+                </div>
+
+
+            </div>
+        </div>
+    </div>
+    <div class="sphinxsidebar" role="navigation" aria-label="main navigation" style="">
+        <div class="sphinxsidebarwrapper" style="float: left; margin-right: 0px; width: 217px;">
+            <h3><a href="https://docs.python.org/3.8/contents.html">Table of Contents</a></h3>
+            <ul>
+                <li><a class="reference internal"
+                       href="https://docs.python.org/3.8/tutorial/introduction.html#">3. An Informal
+                    Introduction to Python</a>
+                    <ul>
+                        <li><a class="reference internal"
+                               href="https://docs.python.org/3.8/tutorial/introduction.html#using-python-as-a-calculator">3.1.
+                            Using Python as a Calculator</a>
+                            <ul>
+                                <li><a class="reference internal"
+                                       href="https://docs.python.org/3.8/tutorial/introduction.html#numbers">3.1.1.
+                                    Numbers</a></li>
+                                <li><a class="reference internal"
+                                       href="https://docs.python.org/3.8/tutorial/introduction.html#strings">3.1.2.
+                                    Strings</a></li>
+                                <li><a class="reference internal"
+                                       href="https://docs.python.org/3.8/tutorial/introduction.html#lists">3.1.3.
+                                    Lists</a></li>
+                            </ul>
+                        </li>
+                        <li><a class="reference internal"
+                               href="https://docs.python.org/3.8/tutorial/introduction.html#first-steps-towards-programming">3.2.
+                            First Steps Towards Programming</a></li>
+                    </ul>
+                </li>
+            </ul>
+
+            <h4>Previous topic</h4>
+            <p class="topless"><a href="https://docs.python.org/3.8/tutorial/interpreter.html"
+                                  title="previous chapter"><span class="section-number">2. </span>Using
+                the Python Interpreter</a></p>
+            <h4>Next topic</h4>
+            <p class="topless"><a href="https://docs.python.org/3.8/tutorial/controlflow.html"
+                                  title="next chapter"><span class="section-number">4. </span>More
+                Control Flow Tools</a></p>
+            <div role="note" aria-label="source link">
+                <h3>This Page</h3>
+                <ul class="this-page-menu">
+                    <li><a href="https://docs.python.org/3.8/bugs.html">Report a Bug</a></li>
+                    <li>
+                        <a href="https://github.com/python/cpython/blob/3.8/Doc/tutorial/introduction.rst"
+                           rel="nofollow">Show Source
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+        <div id="sidebarbutton" title="Collapse sidebar"
+             style="border-radius: 0px 5px 5px 0px; color: rgb(68, 68, 68); background-color: rgb(204, 204, 204); font-size: 1.2em; cursor: pointer; height: 100%; padding-left: 1px; margin-left: 218px;">
+            <span style="display: block; position: fixed; top: 50%;">«</span></div>
+    </div>
+    <div class="clearer"></div>
+</div>
+<div class="related" role="navigation" aria-label="related navigation">
+    <h3>Navigation</h3>
+    <ul>
+        <li class="right" style="margin-right: 10px">
+            <a href="https://docs.python.org/3.8/genindex.html" title="General Index">index</a></li>
+        <li class="right">
+            <a href="https://docs.python.org/3.8/py-modindex.html" title="Python Module Index">modules</a>
+            |
+        </li>
+        <li class="right">
+            <a href="https://docs.python.org/3.8/tutorial/controlflow.html"
+               title="4. More Control Flow Tools">next</a> |
+        </li>
+        <li class="right">
+            <a href="https://docs.python.org/3.8/tutorial/interpreter.html"
+               title="2. Using the Python Interpreter">previous</a> |
+        </li>
+
+        <li><img src="./python_files/py.svg" alt="python logo"
+                 style="vertical-align: middle; margin-top: -1px"></li>
+        <li><a href="https://www.python.org/">Python</a> »</li>
+        <li class="switchers">
+            <div class="language_switcher_placeholder"><select id="language_select">
+                <option value="en" selected="selected">English</option>
+                <option value="es">Spanish</option>
+                <option value="fr">French</option>
+                <option value="ja">Japanese</option>
+                <option value="ko">Korean</option>
+                <option value="pt-br">Brazilian Portuguese</option>
+                <option value="zh-cn">Simplified Chinese</option>
+                <option value="zh-tw">Traditional Chinese</option>
+            </select></div>
+            <div class="version_switcher_placeholder"><select id="version_select">
+                <option value="3.11">dev (3.11)</option>
+                <option value="3.10">3.10</option>
+                <option value="3.9">3.9</option>
+                <option value="3.8" selected="selected">3.8.13</option>
+                <option value="3.7">3.7</option>
+                <option value="3.6">3.6</option>
+                <option value="3.5">3.5</option>
+                <option value="2.7">2.7</option>
+            </select></div>
+        </li>
+        <li>
+
+        </li>
+        <li id="cpython-language-and-version">
+            <a href="https://docs.python.org/3.8/index.html">3.8.13 Documentation</a> »
+        </li>
+
+        <li class="nav-item nav-item-1"><a href="https://docs.python.org/3.8/tutorial/index.html">The
+            Python Tutorial</a> »
+        </li>
+        <li class="right">
+
+
+            <div class="inline-search" role="search">
+                <form class="inline-search" action="https://docs.python.org/3.8/search.html"
+                      method="get">
+                    <input placeholder="Quick search" aria-label="Quick search" type="text"
+                           name="q">
+                    <input type="submit" value="Go">
+                    <input type="hidden" name="check_keywords" value="yes">
+                    <input type="hidden" name="area" value="default">
+                </form>
+            </div>
+            |
+        </li>
+
+    </ul>
+</div>
+<div class="footer">
+    © <a href="https://docs.python.org/3.8/copyright.html">Copyright</a> 2001-2022, Python Software
+    Foundation.
+    <br>
+    This page is licensed under the Python Software Foundation License Version 2.
+    <br>
+    Examples, recipes, and other code in the documentation are additionally licensed under the Zero
+    Clause BSD License.
+    <br>
+
+    <br>
+
+    The Python Software Foundation is a non-profit corporation.
+    <a href="https://www.python.org/psf/donations/">Please donate.</a>
+    <br>
+    <br>
+
+    Last updated on Mar 17, 2022.
+    <a href="https://docs.python.org/3/bugs.html">Found a bug</a>?
+    <br>
+
+    Created using <a href="https://www.sphinx-doc.org/">Sphinx</a> 2.4.4.
+</div>
+
+<script type="text/javascript" src="./python_files/switchers.js"></script>
+
+</body>
+<grammarly-desktop-integration data-grammarly-shadow-root="true"></grammarly-desktop-integration>
+</html>

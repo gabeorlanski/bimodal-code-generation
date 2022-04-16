@@ -1,0 +1,39 @@
+groups:
+  howto:
+    pages:
+      argparse: howto/argparse.html
+      clinic: howto/clinic.html
+      cporting: howto/cporting.html
+      curses: howto/curses.html
+      descriptor: howto/descriptor.html
+      functional: howto/functional.html
+      index: howto/index.html
+      instrumentation: howto/instrumentation.html
+      ipaddress: howto/ipaddress.html
+      logging: howto/logging.html
+      logging-cookbook: howto/logging-cookbook.html
+      pyporting: howto/pyporting.html
+      regex: howto/regex.html
+      sorting: howto/sorting.html
+      unicode: howto/unicode.html
+    path: /
+  tutorial:
+    pages:
+      appendix: tutorial/appendix.html
+      appetite: tutorial/appetite.html
+      classes: tutorial/classes.html
+      controlflow: tutorial/controlflow.html
+      datastructures: tutorial/datastructures.html
+      errors: tutorial/errors.html
+      floatingpoint: tutorial/floatingpoint.html
+      index: tutorial/index.html
+      inputoutput: tutorial/inputoutput.html
+      interactive: tutorial/interactive.html
+      interpreter: tutorial/interpreter.html
+      introduction: tutorial/introduction.html
+      modules: tutorial/modules.html
+      stdlib: tutorial/stdlib.html
+      stdlib2: tutorial/stdlib2.html
+      venv: tutorial/venv.html
+      whatnow: tutorial/whatnow.html
+    path: /
