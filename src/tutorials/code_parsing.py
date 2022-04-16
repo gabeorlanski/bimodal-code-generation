@@ -16,7 +16,7 @@ from tqdm import tqdm
 
 from src.evaluation.execute import swallow_io, create_tempdir
 
-from .node_visitors import (mk_valid_syntax, PrintTransformer, VariableTracer)
+from .node_visitors import (mk_valid_syntax, PrintTransformer, VariableTracer, NotSupportedException)
 from .saving import combine_code_samples_with_parsed
 from .code_sample import CodeSample, FailedCodeSample
 
@@ -136,9 +136,14 @@ def get_snippets(name, code_str) -> List[Dict]:
         if output is not None and output.strip():
             visitor = PrintTransformer(name)
             cleaned_code = []
-            for new_context, cleaned_snip in visitor(code):
-                block.extend(new_context)
-                cleaned_code.append(cleaned_snip)
+            try:
+                transformed_code = visitor(code)
+                for new_context, cleaned_snip in transformed_code:
+                    block.extend(new_context)
+                    cleaned_code.append(cleaned_snip)
+
+            except NotSupportedException:
+                cleaned_code = []
             if cleaned_code:
 
                 assert len(cleaned_code) == 1
