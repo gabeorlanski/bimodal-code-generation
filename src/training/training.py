@@ -477,14 +477,6 @@ def train_model(cfg: DictConfig, train_args):
             if cur_step_count > step_count:
                 step_count = cur_step_count
                 resume_path = directory
-        if isinstance(train_data, IterableDataset):
-            if isinstance(train_data, TensorizedTask):
-                train_data.skip_to_step = step_count
-            else:
-                logger.info(f"Skipping to step {step_count}")
-                for _, b in tqdm(zip(range(step_count), train_data), total=step_count,
-                                 desc='Resuming to step'):
-                    continue
 
     logger.info(f"Setting up the optimizer")
     total_steps, warmup_steps = get_steps_from_training_args(train_args, train_data)
