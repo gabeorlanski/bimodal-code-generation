@@ -71,6 +71,7 @@ class TensorizedTask(IterableDataset):
             max_samples_to_yield,
             sequence_length=1024,
             buffer_size=1,
+            skip_to_step=-1
     ):
         self.name = name
         self.data_file_path = dump_path.joinpath(f'{raw_data_name}.jsonl')
@@ -98,6 +99,7 @@ class TensorizedTask(IterableDataset):
             f"{self.max_num_lines_in_file} total lines in {self.data_file_path} "
             f"with a buffer of {self.buffer_size}"
         )
+        self.skip_to_step = skip_to_step
 
     def _get_length(self, data_path):
         logger.info(f"Loading tensorized dataset from {data_path}")
@@ -148,6 +150,16 @@ class TensorizedTask(IterableDataset):
         else:
             debug = None
             debug_logged = 0
+
+        if self.skip_to_step > -1:
+            if worker_id == 0:
+                logger.info(f"{worker_id=} Skipping to step {self.skip_to_step}")
+            for _ in range(self.skip_to_step):
+                try:
+                    next(data_iter)
+                except StopIteration:
+                    data_iter = iter(self.data_file_path.open())
+
         while more_examples and total_yielded < max_yielded_per_worker:
             total_restarts += 1
             # Read the file and add the lines to the line buffer. This buffer
