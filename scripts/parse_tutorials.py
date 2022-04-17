@@ -117,8 +117,11 @@ def parse_tutorials(debug, input_path, output_path):
                 json.dump(parsed, f, indent=True)
 
     logger.info("Found:")
+    num_found = 0
     for k, v in sorted(total_found.items(), key=lambda e: e[0]):
         logger.info(f"\t{k:>16} = {v[0]:>5}/{v[1]:<5}")
+        num_found += v[0]
+    logger.info(f"{num_found} total found")
 
 
 @click.group()
@@ -141,15 +144,15 @@ def parse_tutorials_cli(ctx, input_path, output_path):
 
 @main.command('get_code')
 @click.pass_context
-def make_samples(ctx):
+def parse_code_samples(ctx):
     setup_global_logging(
-        "make_samples_from_tutorials",
+        "parse_code_samples",
         PROJECT_ROOT.joinpath('logs'),
         debug=ctx.obj['DEBUG'],
         disable_issues_file=True
     )
-    logger = logging.getLogger('make_samples_from_tutorials')
-    logger.info("Making the samples from the parsed tutorials")
+    logger = logging.getLogger('parse_code_samples')
+    logger.info("Parsing out code samples")
 
     parsed_path = PROJECT_ROOT.joinpath('data/parsed_tutorials')
 
@@ -178,10 +181,10 @@ def make_samples(ctx):
             }
         },
         'jsonschema': {
-            'global': ['from jsonschema import validate'],
+            'global': [
+                'from jsonschema import Draft3Validator, Draft7Validator, ErrorTree, validate'],
             'files' : {
                 'tutorials_errors': [
-                    'from jsonschema import Draft3Validator, Draft7Validator',
                     'schema = {"type" : "array","items" : {"type" : "number", "enum" : [1, 2, 3]},"minItems" : 3,}',
                     'instance = ["spam", 2]',
                     'v = Draft3Validator(schema)',
@@ -193,6 +196,20 @@ def make_samples(ctx):
             'global': ['from cerberus import Validator', 'v = Validator()'],
             'files' : {
             }
+        },
+        'theano'    : {
+            'global': [],
+            'files' : {
+                'basics_broadcasting': ['import theano.tensor as tt']
+            }
+        },
+        'arrow'     : {
+            'global': ['from datetime import datetime'],
+            'files' : {}
+        },
+        'numpy'     : {
+            'global': ['import numpy as np'],
+            'files' : {}
         }
     }
     out_dir = PROJECT_ROOT.joinpath('data/tutorial_code')
@@ -206,14 +223,14 @@ def make_samples(ctx):
 
     directories = list(parsed_path.glob('*'))
     logger.info(f"Found {len(directories)} directories")
-    all_passed = {}
     total_runnable_code = Counter()
     total_fails = Counter()
     total_passed = Counter()
     parsed_file_idx = 0
     all_parsed = []
     for domain_path in directories:
-        parsed_files, passed, num_runnable, num_fail = parse_domain_path(
+        logger.info(f"Parsing {domain_path}")
+        parsed_files, num_runnable, passed, num_fail = parse_domain_path(
             domain_path,
             global_context,
             fixes_by_section,
@@ -222,8 +239,7 @@ def make_samples(ctx):
         )
         parsed_file_idx += len(parsed_files)
         all_parsed.extend(parsed_files)
-        all_passed[domain_path.stem] = passed
-        total_passed[domain_path.stem] += sum(map(len, passed.values()))
+        total_passed[domain_path.stem] = passed
         total_runnable_code[domain_path.stem] = num_runnable
         total_fails[domain_path.stem] = num_fail
 

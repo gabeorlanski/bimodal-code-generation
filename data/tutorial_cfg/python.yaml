@@ -10,8 +10,6 @@ groups:
       index: howto/index.html
       instrumentation: howto/instrumentation.html
       ipaddress: howto/ipaddress.html
-      logging: howto/logging.html
-      logging-cookbook: howto/logging-cookbook.html
       pyporting: howto/pyporting.html
       regex: howto/regex.html
       sorting: howto/sorting.html
@@ -24,7 +22,6 @@ groups:
       classes: tutorial/classes.html
       controlflow: tutorial/controlflow.html
       datastructures: tutorial/datastructures.html
-      errors: tutorial/errors.html
       floatingpoint: tutorial/floatingpoint.html
       index: tutorial/index.html
       inputoutput: tutorial/inputoutput.html

@@ -29,7 +29,7 @@ def combine_code_samples_with_parsed(domain, name, parsed, code_samples: List[Co
     code_samples_by_idx = defaultdict(list)
 
     for sample in code_samples:
-        code_samples_by_idx[sample.idx].append(asdict(sample))
+        code_samples_by_idx[sample.idx].append(sample.to_save_dict())
 
     for idx in code_samples_by_idx:
         code_samples_by_idx[idx] = list(

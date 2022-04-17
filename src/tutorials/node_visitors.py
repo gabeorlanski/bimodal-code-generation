@@ -40,6 +40,7 @@ class PrintTransformer(ast.NodeTransformer):
         self.in_for_loop = False
         self.in_if_statement = False
         self.found_print = False
+        self.in_func = False
         self.var_num = 0
         self.name = name
 
@@ -60,6 +61,7 @@ class PrintTransformer(ast.NodeTransformer):
             self.in_for_loop = False
             self.in_if_statement = False
             self.found_print = False
+            self.in_func = False
             added_out_var = False
             result = self.visit(b)  # type: ignore
 
@@ -102,7 +104,8 @@ class PrintTransformer(ast.NodeTransformer):
         return self.generic_visit(node)
 
     def visit_FunctionDef(self, node):
-        raise NotSupportedException('Function')
+        self.in_func = True
+        return self.generic_visit(node)
 
     def visit_ClassDef(self, node):
         raise NotSupportedException('Class')

@@ -4,19 +4,25 @@ import re
 import sys
 import urllib.request
 from collections import defaultdict
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from copy import deepcopy
 import ast
+from multiprocessing import Manager, Process
 from typing import List, Dict, Tuple, Union
-
+import contextlib
+import io
 import astor
 import numpy as np
 from dataclasses import dataclass, field, asdict
+import multiprocessing as mp
 import matplotlib.pyplot as plt
 from tqdm import tqdm
+import signal
 
 from src.evaluation.execute import swallow_io, create_tempdir
 
-from .node_visitors import (mk_valid_syntax, PrintTransformer, VariableTracer, NotSupportedException)
+from .node_visitors import (mk_valid_syntax, PrintTransformer, VariableTracer,
+                            NotSupportedException)
 from .saving import combine_code_samples_with_parsed
 from .code_sample import CodeSample, FailedCodeSample
 
@@ -33,7 +39,11 @@ REMOVE_PRINT = re.compile(r'print\(([^\n]+)\)', flags=re.DOTALL)
 logger = logging.getLogger(__name__)
 
 
-def get_context(snippet, global_context, excluded_used=None):
+def timeout_handler(signum, frame):
+    raise TimeoutError("Failed to process")
+
+
+def get_context(snippet, prior_context, excluded_used=None):
     """
     Get the context needed from the snippet and the global context.
     """
@@ -57,7 +67,7 @@ def get_context(snippet, global_context, excluded_used=None):
         remaining_vars_needed.update(current_trace['used'])
 
     out = []
-    context_body, context_traced, imports, import_names = visitor(global_context)
+    context_body, context_traced, imports, import_names = visitor(prior_context)
     excluded_used += import_names
     for n in import_names:
         if n in remaining_vars_needed:
@@ -85,8 +95,9 @@ def get_context(snippet, global_context, excluded_used=None):
                 out.append(body)
                 remaining_vars_needed.update([u for u in c_trace['used'] if u not in excluded_used])
 
-    out = imports + list(reversed(out))
-    return list(map(lambda o: astor.to_source(o).strip(), out))
+    out = list(map(lambda o: astor.to_source(o).strip(), reversed(out)))
+    imports = list(set(map(lambda o: astor.to_source(o).strip(), imports)))
+    return out, imports
 
 
 def get_snippets(name, code_str) -> List[Dict]:
@@ -97,6 +108,7 @@ def get_snippets(name, code_str) -> List[Dict]:
     out = []
     output = ''
     first_start = 0
+    code_str = code_str.replace(';', '\n>>>')
 
     for match in GET_CODE_BLOCK.finditer(code_str):
         leading_space, snippet, output = match.groups()
@@ -145,8 +157,8 @@ def get_snippets(name, code_str) -> List[Dict]:
             except NotSupportedException:
                 cleaned_code = []
             if cleaned_code:
-
-                assert len(cleaned_code) == 1
+                if len(cleaned_code) != 1:
+                    assert len(cleaned_code) == 1
                 if not block and out:
                     out[-1]['code'].extend(cleaned_code)
                     out[-1]['result'].append(output.strip())
@@ -174,23 +186,32 @@ def get_snippets(name, code_str) -> List[Dict]:
 
 def does_code_raise_errors(code):
     """
-    Executed the code and see if it raises errors
+    Executed the code and see if it raises errors. Wrapper for the main
+    function so that we can call it from another process.
     """
     result = None
-    orig_write = sys.stdout.write
     with create_tempdir():
-        orig_plt_fn = plt.show
         try:
-            with swallow_io():
-                plt.show = lambda: None
-                print = lambda f: None
-                sys.stdout.write = lambda *args, **kwargs: None
-                exec(code)
+            signal.signal(signal.SIGALRM, timeout_handler)
+            signal.alarm(10)
+            stdout_f = io.StringIO()
+            stderr_f = io.StringIO()
+            with contextlib.redirect_stdout(stdout_f):
+                with contextlib.redirect_stderr(stderr_f):
+                    plt.show = lambda: None
+                    # sys.stdout.write = lambda *args, **kwargs: None
+                    exec(code)
         except AssertionError:
             result = 'AssertionError'
         except Exception as e:
-            result = f"{type(e).__name__}: {str(e)}"
-    sys.stdout.write = orig_write
+            try:
+                result = f"{type(e).__name__}: {str(e)}"
+            except Exception as e:
+                try:
+                    result = f"{type(e).__name__}"
+                except:
+                    result = "BAD ERROR OCCUR"
+    signal.alarm(0)
     return result
 
 
@@ -199,11 +220,13 @@ def get_code_from_content(
         content,
         context,
         global_context,
-        path=None
+        path=None,
+        exclude_idx=None
 ) -> Tuple[List[Union[CodeSample, FailedCodeSample]], List[str]]:
     path = path or []
     out = []
     name_str = '-'.join(name)
+    exclude_idx = exclude_idx or []
 
     for i, c in enumerate(content):
         if c['tag'] == 'section':
@@ -211,11 +234,13 @@ def get_code_from_content(
                 name + [c['title']],
                 c['content'],
                 context,
-                deepcopy(global_context),
+                global_context,
                 path + [i]
             )
             out.extend(child_out)
         if c['tag'] != 'code' or '>>>' not in c['text']:
+            continue
+        if c['idx'] in exclude_idx:
             continue
 
         for snip_num, block in enumerate(get_snippets(name_str, c['text'])):
@@ -226,12 +251,14 @@ def get_code_from_content(
 
                 if valid_code is not None and block_context is not None:
                     snippet = '\n'.join(block_context + valid_code)
-                    snippet_context = get_context(snippet, '\n'.join(context))
-                    to_run = snippet_context + block_context + valid_code
-                    if to_run[:len(global_context)] != list(global_context):
-                        to_run = [*global_context, *to_run]
-                        snippet_context = [*global_context, *snippet_context]
+                    snippet_context, imports = get_context(snippet, '\n'.join(context))
 
+                    for line in imports:
+                        if line not in global_context and line not in snippet_context:
+                            snippet_context = [line] + snippet_context
+
+                    run_context = list(deepcopy(global_context)) + snippet_context
+                    to_run = run_context + block_context + valid_code
                     code_error = does_code_raise_errors('\n'.join(to_run))
 
                     if code_error is None:
@@ -243,7 +270,7 @@ def get_code_from_content(
                             start_char_idx=block['start_char_idx'],
                             return_code=block['code'],
                             expected_result=block['result'],
-                            context=snippet_context
+                            context=run_context
                         ))
                     else:
                         out.append(FailedCodeSample(
@@ -295,124 +322,114 @@ def convert_raw_result_to_supported_type(raw_result_str, target_type):
 
 
 def get_returned_values(code, context):
-    to_run = context
     RESULT_VALUES = {}
-    # to_run.append('RESULT_VALUES={}')
+    to_run = [*context]
     for i, c in enumerate(code):
         to_run.append(f"RESULT_VALUES['OUT_{i}'] = {c}")
-    exec('\n'.join(to_run))
+    with create_tempdir():
 
+        stdout_f = io.StringIO()
+        stderr_f = io.StringIO()
+        plt.show = lambda: None
+        with contextlib.redirect_stdout(stdout_f):
+            with contextlib.redirect_stderr(stderr_f):
+                exec('\n'.join(to_run))
     out = {}
     for k, v in RESULT_VALUES.items():
-        out[k] = {'val': str(v), 'type': type(v)}
-
+        out[k] = {'val': str(v), 'type': type(v) if v is not None else None}
+    out['STDOUT'] = stdout_f.getvalue()
+    out['STDERR'] = stderr_f.getvalue()
+    stdout_f.close()
+    stderr_f.close()
     return out
 
 
-def get_code_passes_test(code: List[CodeSample], fixes_by_section, override_all=False):
-    passes_test = 0
-    passes_type_conversion = 0
-    samples_passed = []
-    failed = []
+def proc_get_returned_values(code, context):
+    manager = mp.Manager()
 
-    # This mess is to try and check if the code samples passes the mined tests
+    d = manager.dict()
+    p = Process(target=get_returned_values, args=(code, context, d))
+    p.start()
+    p.join(timeout=10)
+    if p.is_alive():
+        p.kill()
+        raise TimeoutError('Timeout')
+    return d
 
-    for sample in code:
 
-        sample_fixes = fixes_by_section.get('/'.join(sample.section_path), {})
-        sample_overrides = sample_fixes.get('overrides', [])
+def get_code_passes_test(domain: str, file: str, sample: Dict):
+    sample = CodeSample(**sample)
+    try:
+        actual_returned_values = get_returned_values(
+            sample.return_code,
+            sample.context + sample.body_code
+        )
+        sample.actual_returned = deepcopy(actual_returned_values)
+        found_none = False
+        for k, v in actual_returned_values.items():
+            if k in ['STDOUT', 'STDERR']:
+                continue
+            if v['type'] is None:
+                found_none = True
 
-        # Some tests will fail because of bad issues, instead override them
-        # because we know they are correct.
-        if (
-                sample.idx in sample_overrides
-                or override_all
-        ):
-            samples_passed.append(sample)
-            passes_test += 1
-            continue
-
-        original_to_run = sample.context + sample.body_code
-        for c, r in sample.aligned_returns_and_results():
-            original_to_run.append(f"assert {c} == {r}")
-
-        exec_errors = does_code_raise_errors('\n'.join(original_to_run))
-        if exec_errors is None:
-            samples_passed.append(sample)
-            passes_test += 1
-            continue
-        sample.errors.append(exec_errors)
-        try:
-            actual_returned_values = get_returned_values(
-                sample.return_code,
-                sample.context + sample.body_code
-            )
-            sample.actual_returned = deepcopy(actual_returned_values)
-            for k in actual_returned_values.keys():
-                sample.actual_returned[k]['type'] = actual_returned_values[k]['type'].__name__
-        except Exception as e:
-            sample.errors.append(str(e))
-            failed.append(sample)
-            continue
-
-        # Try with converting the output and expected result to a string.
-        type_conversion_to_run = sample.context + sample.body_code
-        testing_code = []
-        for i, (c, r) in enumerate(sample.aligned_returns_and_results()):
-            aligned_out = actual_returned_values[f"OUT_{i}"]
-
-            should_convert_to_str, result_str = convert_raw_result_to_supported_type(
-                r,
-                aligned_out['type']
-            )
-
-            # Some types need special code to convert them. This does that.
-            if aligned_out['type'] == np.ndarray:
-                if not any('import numpy' == line for line in type_conversion_to_run):
-                    type_conversion_to_run = ['import numpy'] + type_conversion_to_run
-                testing_code.append(f"assert numpy.isclose({c},{result_str}).all()")
-            elif 'class' in aligned_out['val']:
-                type_str_name = aligned_out['val'].split('\'')[1]
-
-                testing_code.append(
-                    f"assert repr({c}).split(\"\'\")[1] == \"{type_str_name}\""
-                )
+                sample.actual_returned[k]['type'] = None
             else:
+                sample.actual_returned[k]['type'] = v['type'].__name__
+        if found_none:
+            sample.errors.append("NoneType")
+            return {'file': file, 'sample': sample, 'passed': False}
 
-                remove_addr = r'(?<=at) [^>]+(?=>)'
-                if re.search(remove_addr, result_str):
-                    result_str = re.sub(remove_addr, '', result_str)
-                    testing_code.append(
-                        f"v = re.sub(r'{remove_addr}','',repr({c}))"
-                    )
-                    testing_code.append(
-                        f"assert v == {result_str}"
-                    )
-                else:
-                    if should_convert_to_str:
-                        testing_code.append(f"assert repr({c}) == {result_str}")
-                    else:
-                        testing_code.append(f"assert {c} == {result_str}")
-        type_conversion_to_run.extend(testing_code)
+    except Exception as e:
+        sample.errors.append(str(e))
+        return {'file': file, 'sample': sample, 'passed': False}
 
-        exec_errors = does_code_raise_errors('\n'.join(type_conversion_to_run))
-        if exec_errors is None:
-            sample.errors = []
-            sample.testing_code = testing_code
-            samples_passed.append(sample)
-            passes_type_conversion += 1
+    if actual_returned_values.get('STDOUT', '').strip():
+        sample.errors.append("STDOUT not empty")
+        return {'file': file, 'sample': sample, 'passed': False}
+    try:
+        deterministic_check_returned = get_returned_values(
+            sample.return_code,
+            sample.context + sample.body_code
+        )
+    except Exception as e:
+        sample.errors.append(f"DETERMINISTIC_CHECK: {str(e)}")
+        return {'file': file, 'sample': sample, 'passed': False}
+
+    if set(deterministic_check_returned) != set(actual_returned_values):
+        sample.errors.append("STDOUT not empty")
+        return {'file': file, 'sample': sample, 'passed': False}
+
+    failed_deterministic_check = False
+    for k, v in deterministic_check_returned.items():
+        if k == 'STDOUT' or k == 'STDERR':
             continue
-        sample.errors.append(exec_errors)
-        sample.testing_code = testing_code
-        sample.errors.append(exec_errors)
-        failed.append(sample)
 
-    return samples_passed, failed, passes_test, passes_type_conversion
+        if isinstance(v, np.ndarray):
+            has_correct_value = np.isclose(v, actual_returned_values[k]).all()
+        else:
+            has_correct_value = v == actual_returned_values[k]
+
+        if not has_correct_value:
+            failed_deterministic_check = True
+            sample.errors.append(
+                f"Failed deterministic check {k}:  "
+                f"{v}!= {actual_returned_values[k]}"
+            )
+            break
+
+    if failed_deterministic_check:
+        return {'file': file, 'sample': sample, 'passed': False}
+    return {'file': file, 'sample': sample, 'passed': True}
+
+
+def mp_get_code_passes_tests_wrapper(args):
+    return get_code_passes_test(**args)
 
 
 def get_code_samples_from_tutorial(name, parsed_tutorial, global_context, fixes_by_section):
     logger.debug(f"{len(parsed_tutorial)} top level section(s) for {name}")
     logger.debug(f"The global context is {global_context}")
+
     out = []
     failed = defaultdict(list)
     for i, section in enumerate(parsed_tutorial):
@@ -423,7 +440,9 @@ def get_code_samples_from_tutorial(name, parsed_tutorial, global_context, fixes_
             section['content'],
             deepcopy(global_context),
             tuple(global_context),
-            [i]
+            [i],
+            exclude_idx=fixes_by_section.get('exclude_idx', [])
+
         )
         for sample in results:
             if isinstance(sample, FailedCodeSample):
@@ -434,21 +453,7 @@ def get_code_samples_from_tutorial(name, parsed_tutorial, global_context, fixes_
         out.extend(
             found_code
         )
-    passed = []
-    failed_tests = []
-    if out:
-        if fixes_by_section.get('override_all'):
-            logger.warning(f"{name} Has override all enabled")
-        passed, failed_tests, pass_test, pass_str = get_code_passes_test(
-            out,
-            fixes_by_section,
-            override_all=fixes_by_section.get('override_all', False)
-        )
-        logger.debug(
-            f"{name} has {pass_str + pass_test}/{len(out)} pass, "
-            f"{pass_str}/{pass_str + pass_test} required type conversion."
-        )
-    return failed, passed, failed_tests
+    return out, failed
 
 
 def unravel_code_list_into_tree(code):
@@ -490,18 +495,16 @@ def parse_domain_path(
         out_dir,
         parsed_idx_offset
 ):
-    logger.info(f"Parsing {domain_path}")
     domain_context_cfg = global_context_dict.get(domain_path.stem, {})
     domain_context = domain_context_cfg.get('global', [])
     domain_fixes = fixes_by_section.get(domain_path.stem, {})
 
-    total_num_runnable = 0
-    total_num_fails = 0
-    failures = {}
-    domain_passed = {}
-    domain_fail_tests = {}
-    parsed_files = []
+    parse_fails_by_file = {}
+    parsed_by_file = {}
+    num_failed = 0
+    num_runnable = 0
     files = list(domain_path.glob('*'))
+    stem_to_path = {}
 
     for file in tqdm(files, desc=f'Parsing {domain_path.stem}'):
         file_context = []
@@ -510,55 +513,90 @@ def parse_domain_path(
         tutorial_fixes = {}
         if domain_fixes:
             tutorial_fixes = domain_fixes.get(file.stem, {})
-        parsed = json.loads(file.read_text())
-        fail, passed, fail_tests = get_code_samples_from_tutorial(
+        stem_to_path[file.stem] = file
+        parsed_file = json.loads(file.read_text())
+        parsed, failed = get_code_samples_from_tutorial(
             file.stem,
-            parsed,
+            parsed_file,
             domain_context + file_context,
             tutorial_fixes
         )
-        domain_passed[file.stem] = list(map(asdict, passed))
-
-        if passed:
-            combined = combine_code_samples_with_parsed(
-                domain_path.stem,
-                file.stem,
-                parsed,
-                passed
-            )
-            combined['idx'] = parsed_idx_offset + len(parsed_files)
-            parsed_files.append(combined)
-
-        fail_tests_by_idx = {}
-        for failed_sample in fail_tests:
-            failed_name = '/'.join(failed_sample.section_path)
-            if failed_name not in fail_tests_by_idx:
-                fail_tests_by_idx[failed_name] = {}
-            if failed_sample.idx not in fail_tests_by_idx[failed_name]:
-                fail_tests_by_idx[failed_name][failed_sample.idx] = []
-            fail_tests_by_idx[failed_name][failed_sample.idx].append(asdict(failed_sample))
-
-        for name in fail_tests_by_idx:
-            for idx in fail_tests_by_idx[name]:
-                fail_tests_by_idx[name][idx] = list(sorted(
-                    fail_tests_by_idx[name][idx],
-                    key=lambda snip: snip['snippet_idx']
-                ))
-
-        num_runnable = len(passed) + len(fail_tests)
-        domain_fail_tests[file.stem] = fail_tests_by_idx
-        failures[file.stem] = fail
-        total_num_runnable += num_runnable
-        total_num_fails += sum(map(len, fail.values()))
-        logger.debug(f"{file} had {sum(map(len, fail.values()))} failures")
+        num_failed += sum(map(len, failed.values()))
+        num_runnable += len(parsed)
+        parse_fails_by_file[file.stem] = failed
+        parsed_by_file[file.stem] = parsed
+        logger.debug(f"{file} had {num_failed} failures")
         logger.debug(f"{file} had {num_runnable} code snippets")
+
+    passed_by_file = defaultdict(list)
+    failed_by_file = defaultdict(lambda: defaultdict(list))
+
+    mp_test_args = []
+
+    total_passed_tests = 0
+    for file, samples in parsed_by_file.items():
+        tutorial_fixes = {}
+        if domain_fixes:
+            tutorial_fixes = domain_fixes.get(file, {})
+        override_all = tutorial_fixes.get('override_all', False)
+        for sample in samples:
+            sample_fixes = tutorial_fixes.get('/'.join(sample.section_path), {})
+            sample_overrides = sample_fixes.get('overrides', [])
+
+            # Some tests will fail because of bad issues, instead override them
+            # because we know they are correct.
+            if (
+                    sample.idx in sample_overrides
+                    or override_all
+            ):
+                passed_by_file[file].append(sample)
+                total_passed_tests += 1
+                continue
+
+            mp_test_args.append(
+                {'domain': domain_path.stem, 'file': file, 'sample': asdict(sample)}
+            )
+
+    logger.debug(f"{domain_path.stem} has {len(mp_test_args)} programs to check")
+    total_failed_tests = 0
+
+    with mp.Pool(4) as pool:
+        results = list(tqdm(
+            pool.imap_unordered(mp_get_code_passes_tests_wrapper, mp_test_args),
+            total=len(mp_test_args),
+            desc=f"Testing {domain_path.stem} code"
+        ))
+        for result in results:
+            if result['passed']:
+                passed_by_file[result['file']].append(result['sample'])
+                total_passed_tests += 1
+            else:
+                failed_sample = result['sample']
+                failed_name = '/'.join(failed_sample.section_path)
+                failed_by_file[failed_name][failed_sample.idx].append(
+                    asdict(failed_sample)
+                )
+                total_failed_tests += 1
+
+    parsed_files = []
+
+    for file, passed in tqdm(passed_by_file.items(), desc=f"Saving {domain_path.stem}"):
+        parsed = json.loads(stem_to_path[file].read_text())
+        combined = combine_code_samples_with_parsed(
+            domain_path.stem,
+            file,
+            parsed,
+            passed
+        )
+        combined['idx'] = parsed_idx_offset + len(parsed_files)
+        parsed_files.append(combined)
 
     fail_dir = out_dir.joinpath(f'{domain_path.stem}_fails')
     fail_dir.mkdir()
     with fail_dir.joinpath('parse.json').open('w') as f:
-        json.dump(failures, f, indent=True)
+        json.dump(parse_fails_by_file, f, indent=True)
 
     with fail_dir.joinpath('test.json').open('w') as f:
-        json.dump(domain_fail_tests, f, indent=True)
+        json.dump(failed_by_file, f, indent=True)
 
-    return parsed_files, domain_passed, total_num_runnable, total_num_fails
+    return parsed_files, num_runnable, total_passed_tests, num_failed

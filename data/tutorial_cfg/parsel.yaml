@@ -1,4 +1,4 @@
-url: "https://simplejson.readthedocs.io/en/latest/"
+url: "https://parsel.readthedocs.io/en/latest/"
 allowed_path: "en/latest"
 disallow:
   - '.*/pdf/*'
@@ -12,7 +12,7 @@ groups:
   tutorials:
     path: /en/latest
     pages:
-      index: ''
+      usage: usage.html
 
 
 

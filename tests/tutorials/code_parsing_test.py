@@ -6,6 +6,7 @@ import pytest
 
 from src.common import FIXTURES_ROOT
 from src.tutorials import code_parsing
+from src.tutorials.code_sample import CodeSample
 from pathlib import Path
 
 
@@ -103,83 +104,64 @@ def test_get_snippets_none():
 
 def test_get_code_samples_from_tutorial():
     input_file = json.loads(FIXTURES_ROOT.joinpath('tutorials', 'parsed.json').read_text())
-    failed, passed, failed_tests = code_parsing.get_code_samples_from_tutorial(
+    parsed, faild_parse = code_parsing.get_code_samples_from_tutorial(
         'test',
         input_file,
         global_context=['from lxml import etree'],
         fixes_by_section={'The Element class': {'overrides': [9]}}
     )
 
-    assert dict(failed) == {
+    assert dict(faild_parse) == {
         'The Element class': [{
-            'idx'        : 10,
-            'error'      : 'TypeError: can only concatenate str (not "int") to str',
-            'code'       : ['from lxml import etree', "'1' + 1"],
-            'snippet_idx': 0
+            'idx'  : 10, 'snippet_idx': 0,
+            'error': 'TypeError: can only concatenate str (not "int") to str',
+            'code' : ['from lxml import etree', "'1' + 1"]
         }]
     }
 
-    passed = [asdict(c) for c in passed]
-    assert passed == [
-        {
-            'actual_returned': {
-                'OUT_0': {'type': 'str', 'val': 'root'},
-                'OUT_1': {'type': 'bool', 'val': 'True'}
-            },
-            'body_code'      : [],
-            'context'        : ['from lxml import etree',
-                                "root = etree.Element('root')"],
-            'errors'         : [],
-            'expected_result': ['root', 'True'],
-            'idx'            : 3,
-            'return_code'    : ['root.tag', 'isinstance(root.tag, str)'],
-            'section_path'   : ['The Element class'],
-            'snippet_idx'    : 0,
-            'testing_code'   : ["assert str(root.tag) == 'root'",
-                                'assert isinstance(root.tag, str) == True'],
-
-            'start_char_idx' : 0,
-        },
-        {
-            'actual_returned': {},
-            'body_code'      : [],
-            'context'        : ['from lxml import etree',
-                                "root = etree.Element('root')",
-                                "root.append(etree.Element('child1'))",
-                                "child2 = etree.SubElement(root, 'child2')",
-                                "child3 = etree.SubElement(root, 'child3')"],
-            'errors'         : [],
-            'expected_result': [
-                '<root>\n  <child1/>\n  <child2/>\n  <child3/>\n</root>'],
-            'idx'            : 9,
-            'return_code'    : ['etree.tostring(root, pretty_print=True)'],
-            'section_path'   : ['The Element class'],
-            'snippet_idx'    : 0,
-            'testing_code'   : [],
-            'start_char_idx' : 0,
-        }]
-
-    failed_tests = [asdict(c) for c in failed_tests]
-    assert failed_tests == [{
-        'actual_returned': {'OUT_0': {'type': 'list', 'val': "['child1']"}},
-        'body_code'      : ['out_0 = []', 'for i in [root[0]]:',
-                            '    out_0.append(i.tag)'],
+    parsed = [asdict(c) for c in parsed]
+    assert parsed == [{
+        'section_path'   : [
+            'The Element class'],
+        'idx'            : 3,
+        'snippet_idx'    : 0,
+        'body_code'      : [],
+        'return_code'    : [
+            'root.tag', 'isinstance(root.tag, str)'],
+        'expected_result': [
+            'root', 'True'],
+        'start_char_idx' : 0,
+        'context'        : [
+            'from lxml import etree', "root = etree.Element('root')"],
+        'errors'         : [],
+        'testing_code'   : [],
+        'actual_returned': {}
+    }, {
+        'section_path'   : ['The Element class'], 'idx': 9, 'snippet_idx': 0,
+        'body_code'      : [],
+        'return_code'    : ['etree.tostring(root, pretty_print=True)'],
+        'expected_result': [
+            '<root>\n  <child1/>\n  <child2/>\n  <child3/>\n</root>'],
+        'start_char_idx' : 0,
         'context'        : ['from lxml import etree',
                             "root = etree.Element('root')",
                             "root.append(etree.Element('child1'))",
                             "child2 = etree.SubElement(root, 'child2')",
                             "child3 = etree.SubElement(root, 'child3')"],
-        'errors'         : [
-            'SyntaxError: invalid syntax (<string>, line 9)',
-            'AssertionError',
-            'AssertionError'],
-        'expected_result': ['This Will Fail Tests'],
-        'idx'            : 1,
-        'return_code'    : ['out_0'],
-        'section_path'   : ['The Element class', 'Elements are lists'],
-        'snippet_idx'    : 0,
-        'testing_code'   : ["assert str(out_0) == 'This Will Fail Tests'"],
-        'start_char_idx' : 0,
+        'errors'         : [], 'testing_code': [], 'actual_returned': {}
+    }, {
+        'section_path'   : ['The Element class', 'Elements are lists'], 'idx': 1,
+        'snippet_idx'    : 0, 'body_code': ['import random'],
+        'return_code'    : ['random.randint(0, 1000)'],
+        'expected_result': ['This Will Fail Tests'], 'start_char_idx': 0,
+        'context'        : ['from lxml import etree'], 'errors': [],
+        'testing_code'   : [], 'actual_returned': {}
+    }, {
+        'section_path'   : ['The Element class', 'Elements are lists'], 'idx': 5,
+        'snippet_idx'    : 0, 'body_code': [], 'return_code': ['None'],
+        'expected_result': ['None'], 'start_char_idx': 0,
+        'context'        : ['from lxml import etree', 'import random'],
+        'errors'         : [], 'testing_code': [], 'actual_returned': {}
     }]
 
 
@@ -198,7 +180,6 @@ def test_variable_tracing():
     ]
 
     expected_context = [
-        'from lxml import etree',
         'x = 1',
         'x.y = 1',
         'y = x + 1',
@@ -213,8 +194,9 @@ def test_variable_tracing():
     assert astor.to_source(imported[0]).strip() == 'from lxml import etree'
     assert import_names == ['etree']
 
-    result = code_parsing.get_context("print(f'{y} {x}')", code)
+    result, imported = code_parsing.get_context("print(f'{y} {x}')", code)
     assert result == expected_context
+    assert imported == ['from lxml import etree']
 
 
 def test_get_context():
@@ -226,13 +208,13 @@ def test_get_context():
               'etree.SubElement(root, "another").text = "Child 3"\n'
     code = "print(etree.tostring(root, pretty_print=True))"
 
-    result = code_parsing.get_context(code, context)
+    result, imported = code_parsing.get_context(code, context)
     assert result == [
-        'from lxml import etree',
         'root = etree.Element(\'root\')',
         'etree.SubElement(root, \'child\').text = \'Child 1\'',
         'etree.SubElement(root, \'another\').text = \'Child 3\''
     ]
+    assert imported == ['from lxml import etree']
 
 
 def test_get_context_multi_use():
@@ -245,11 +227,74 @@ def test_get_context_multi_use():
         'child3 = etree.SubElement(root, "child3")',
     ]
     code = 'print(etree.tostring(root, pretty_print=True))'
-    result = code_parsing.get_context(code, '\n'.join(context))
+    result, imported = code_parsing.get_context(code, '\n'.join(context))
     assert result == [
-        'from lxml import etree',
         'root = etree.Element(\'root\')',
         'root.append(etree.Element(\'child1\'))',
         'child2 = etree.SubElement(root, \'child2\')',
         'child3 = etree.SubElement(root, \'child3\')',
     ]
+    assert imported == [
+        'from lxml import etree']
+
+
+def test_get_returned_values():
+    code = ['x', 'y', 'z']
+    context = ['x = 1', 'print(x)', 'y=2', 'z=3']
+
+    result = code_parsing.get_returned_values(
+        code,
+        context
+    )
+    for k in result:
+        if isinstance(result[k], dict):
+            result[k]['type'] = result[k]['type'].__name__
+
+    assert result == {
+        'OUT_0' : {'val': '1', 'type': 'int'},
+        'OUT_1' : {'val': '2', 'type': 'int'},
+        'OUT_2' : {'val': '3', 'type': 'int'},
+        'STDOUT': '1\n',
+        'STDERR': ''
+    }
+
+
+def test_get_code_passes_test():
+    sample = CodeSample(
+        ['Testing'],
+        0,
+        0,
+        ['x=1'],
+        ['x'],
+        ['1'],
+        0
+    )
+    result = code_parsing.get_code_passes_test('test', 'testing', sample)
+
+    assert result['file'] == 'testing'
+    assert result['passed']
+    assert result['sample'] == sample
+
+
+@pytest.mark.parametrize(
+    'body_code, return_code',
+    [
+        ['import random', 'random.randint(0,1000)'],
+        ['x=None', 'x'],
+    ],
+    ids=['random', 'none']
+)
+def test_get_code_passes_test_fails(body_code, return_code):
+    sample = CodeSample(
+        ['Testing'],
+        0,
+        0,
+        body_code.split('\n'),
+        return_code.split('\n'),
+        ['1'],
+        0
+    )
+    result = code_parsing.get_code_passes_test('test', 'testing', sample)
+
+    assert result['file'] == 'testing'
+    assert not result['passed']

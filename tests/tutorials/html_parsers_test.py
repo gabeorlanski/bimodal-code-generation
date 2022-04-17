@@ -725,3 +725,31 @@ def test_python(tutorial_fixtures_path):
                         'tag' : 'code'
                     }]
     }]
+
+
+def test_humanize(tutorial_fixtures_path):
+    parser = html_parsers.TutorialHTMLParser.by_name('humanize')()
+    result = parser(
+        tutorial_fixtures_path.joinpath('humanize.html').read_text()
+    )
+
+    assert result == [{
+        'tag'   : 'section', 'title': 'humanize', 'id': 1, 'id_str': None,
+        'parent': 0, 'idx': 0, 'content': [
+            {'idx': 1, 'text': 'Welcome to the humanize API reference.', 'tag': 'p'},
+            {'idx': 2, 'text': '* \nNumber\n\n* Time\n\n* Filesize\n\n* I18n\n', 'tag': 'p'},
+            {'idx': 3, 'text': 'Usage', 'tag': 'section_title'},
+            {'idx': 4, 'text': 'Integer humanization', 'tag': 'section_title'}, {
+                'idx' : 5,
+                'text': ">>> import humanize\n>>> humanize.intcomma(12345)\n'12,345'\n>>> humanize.intword(123455913)\n'123.5 million'\n>>> humanize.intword(12345591313)\n'12.3 billion'\n>>> humanize.apnumber(4)\n'four'\n>>> humanize.apnumber(41)\n'41'\n\n",
+                'tag' : 'code'
+            }, {'idx': 6, 'text': 'Date & time humanization', 'tag': 'section_title'}, {
+                'idx' : 7,
+                'text': ">>> import humanize\n>>> import datetime as dt\n>>> humanize.naturalday(dt.datetime.now())\n'today'\n>>> humanize.naturaldelta(dt.timedelta(seconds=1001))\n'16 minutes'\n>>> humanize.naturalday(dt.datetime.now() - dt.timedelta(days=1))\n'yesterday'\n>>> humanize.naturalday(dt.date(2007, 6, 5))\n'Jun 05'\n>>> humanize.naturaldate(dt.date(2007, 6, 5))\n'Jun 05 2007'\n>>> humanize.naturaltime(dt.datetime.now() - dt.timedelta(seconds=1))\n'a second ago'\n>>> humanize.naturaltime(dt.datetime.now() - dt.timedelta(seconds=3600))\n'an hour ago'\n\n",
+                'tag' : 'code'
+            }, {'idx': 8, 'text': 'Precise time delta', 'tag': 'section_title'}, {
+                'idx' : 9,
+                'text': '>>> import humanize\n>>> import datetime as dt\n>>> delta = dt.timedelta(seconds=3633, days=2, microseconds=123000)\n>>> humanize.precisedelta(delta)\n\'2 days, 1 hour and 33.12 seconds\'\n>>> humanize.precisedelta(delta, minimum_unit="microseconds")\n\'2 days, 1 hour, 33 seconds and 123 milliseconds\'\n>>> humanize.precisedelta(delta, suppress=["days"], format="%0.4f")\n\'49 hours and 33.1230 seconds\'\n\n',
+                'tag' : 'code'
+            }]
+    }]

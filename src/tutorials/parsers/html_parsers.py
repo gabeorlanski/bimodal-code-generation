@@ -133,6 +133,7 @@ class TutorialHTMLParser(Registrable):
         if header_link is not None:
             header_link.extract()
 
+
         out = self.clean_text(tag.get_text()).strip()
         if out.endswith('P'):
             return out[:-1].strip()
@@ -204,16 +205,15 @@ class TutorialHTMLParser(Registrable):
             if isinstance(tag, NavigableString):
                 continue
             if tag.name in header_tag:
-                if not is_section:
+                if not is_section or section_title is not None:
 
                     out.append({
                         'idx' : tag_idx,
-                        'text': self.parse_paragraph(tag),
-                        'tag' : 'p'
+                        'text': self.parse_title(tag),
+                        'tag' : 'section_title'
                     })
                     tag_idx += 1
                 else:
-                    assert section_title is None
                     section_title = self.parse_title(tag)
                 continue
 
@@ -292,7 +292,7 @@ class TutorialHTMLParser(Registrable):
             id_counter=0,
             idx_offset=0
     ):
-        section_str_id = section.attrs['id']
+        section_str_id = section.attrs.get('id')
 
         id_counter += 1
         section_id = id_counter

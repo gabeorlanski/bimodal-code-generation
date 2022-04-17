@@ -46,7 +46,7 @@
                 "idx": 9,
                 "text": ">>> print(etree.tostring(root, pretty_print=True))\n<root>\n  <child1/>\n  <child2/>\n  <child3/>\n</root>\n",
                 "tag": "code"
-            },{
+            }, {
                 "idx": 10,
                 "text": ">>> '1'+1\n23",
                 "tag": "code"
@@ -63,16 +63,20 @@
                         "tag": "p"
                     }, {
                         "idx": 1,
-                        "text": ">>> for i in [root[0]]:\n    print(i.tag)\nThis Will Fail Tests\n",
+                        "text": ">>> import random\n>>>random.randint(0,1000)\nThis Will Fail Tests\n",
                         "tag": "code"
                     }, {
-                        "idx": 2,
+                        "idx": 3,
                         "text": "Prior to ElementTree 1.3 and lxml 2.0, you could also check the truth value of an Element to see if it has children, i.e. if the list of children is empty:",
 
                         "tag": "p"
                     }, {
-                        "idx": 2,
+                        "idx": 4,
                         "text": "if root:   # this no longer works!\n    print(\"The root element has children\")\n",
+                        "tag": "code"
+                    }, {
+                        "idx": 5,
+                        "text": ">>> print(None)\nNone\n",
                         "tag": "code"
                     }
                 ]

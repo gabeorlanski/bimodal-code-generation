@@ -4,6 +4,7 @@ from bs4.element import Tag
 from .html_parsers import TutorialHTMLParser, TagType
 
 
+@TutorialHTMLParser.register('parsel')
 @TutorialHTMLParser.register('simpy')
 @TutorialHTMLParser.register('simplejson')
 @TutorialHTMLParser.register('natsort')

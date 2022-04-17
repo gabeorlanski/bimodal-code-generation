@@ -13,6 +13,7 @@ from transformers import (
 from functools import partial
 from datasets import set_caching_enabled, Dataset, load_dataset
 from datasets.iterable_dataset import iterable_dataset
+from torch.utils.data import DataLoader, IterableDataset
 import torch
 from tio import Task
 from src import config
@@ -462,6 +463,25 @@ def train_model(cfg: DictConfig, train_args):
                 }
             json.dump(data_to_save, f, indent=True, sort_keys=True)
 
+    resume_path = None
+    if cfg.get('resume_from_checkpoint') is not None:
+        logger.info("Resuming from last checkpoint")
+        chk_path = Path('checkpoints')
+        assert chk_path.exists()
+        step_count = -1
+        for directory in chk_path.glob('*'):
+            if not directory.is_dir():
+                continue
+            *_, cur_step_count = directory.stem.split('-')
+            cur_step_count = int(cur_step_count)
+            if cur_step_count > step_count:
+                step_count = cur_step_count
+                resume_path = directory
+        if isinstance(train_data, IterableDataset):
+            logger.info(f"Skipping to step {step_count}")
+            for _, b in train_data:
+                continue
+
     logger.info(f"Setting up the optimizer")
     total_steps, warmup_steps = get_steps_from_training_args(train_args, train_data)
     if not train_args.deepspeed:
@@ -508,10 +528,7 @@ def train_model(cfg: DictConfig, train_args):
         optimizers=optimizer_arg
 
     )
-    resume_path = None
-    if cfg.get('resume_from_checkpoint') is not None:
-        logger.info(f"Resuming from checkpoint {cfg.get('resume_from_checkpoint')}")
-        resume_path = str(Path('checkpoints', cfg.get('resume_from_checkpoint')))
+
     trainer.train(resume_path)
 
     with open_dict(cfg):

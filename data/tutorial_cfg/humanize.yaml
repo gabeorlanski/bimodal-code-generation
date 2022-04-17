@@ -1,0 +1,9 @@
+url: "https://python-humanize.readthedocs.io/en/latest/"
+allowed_path: "en/latest"
+groups:
+  tutorials:
+    path: /en/latest
+    pages:
+      index: ''
+
+
