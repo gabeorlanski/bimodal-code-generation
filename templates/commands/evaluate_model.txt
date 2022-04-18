@@ -44,6 +44,7 @@ echo "scancel $eval_jid{{idx}}" >> {{cancel_file}}
 
 # MBPP Code Execute After Eval
 exec_jid{{idx}}=$(sbatch --parsable --job-name='{{ job_name }}_execute' \
+	--dependency=afterok:$eval_jid{{idx}} \
 	eval_code.sbatch \
 	eval_results/{{ name }}/MBPP/{{ ablation_name }}_Eval)
 echo "Submitted CodeEval(id=$exec_jid{{idx}})"
