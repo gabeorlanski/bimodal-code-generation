@@ -227,7 +227,7 @@ def parse_code_samples(ctx):
     total_fails = Counter()
     total_passed = Counter()
     parsed_file_idx = 0
-    all_parsed = []
+    all_parsed = {}
     for domain_path in directories:
         logger.info(f"Parsing {domain_path}")
         parsed_files, num_runnable, passed, num_fail = parse_domain_path(
@@ -238,14 +238,15 @@ def parse_code_samples(ctx):
             parsed_file_idx
         )
         parsed_file_idx += len(parsed_files)
-        all_parsed.extend(parsed_files)
+        all_parsed[domain_path.stem] = parsed_files
         total_passed[domain_path.stem] = passed
         total_runnable_code[domain_path.stem] = num_runnable
         total_fails[domain_path.stem] = num_fail
 
     num_found = sum(total_runnable_code.values())
     logger.info(
-        f"{num_found}/{sum(total_fails.values()) + num_found} are runnable")
+        f"{num_found}/{sum(total_fails.values()) + num_found} are runnable"
+    )
     logger.info(f"{sum(total_passed.values())}/{num_found} returned the expected value")
     logger.info("Results in the form Passed Test | Runnable | Total:")
     with_one_passed = 0
@@ -265,39 +266,6 @@ def parse_code_samples(ctx):
 
     with out_dir.joinpath('parsed.json').open('w') as f:
         json.dump(all_parsed, f, indent=True)
-
-
-@main.command('download')
-@click.argument('download_cfg')
-@click.pass_context
-def download(ctx, download_cfg):
-    out_path = PROJECT_ROOT.joinpath('data', 'tutorials')
-    print(f"Reading cfg from {download_cfg}")
-    cfg = yaml.load(
-        PROJECT_ROOT.joinpath(download_cfg).open('r'),
-        yaml.Loader
-    )
-    print(f"{len(cfg)} total sites to download from")
-    if out_path.exists():
-        shutil.rmtree(out_path)
-    out_path.mkdir(parents=True)
-
-    for name, site_cfg in cfg.items():
-        print(f"Downloading from {name}")
-
-        site_path = out_path.joinpath(name)
-        site_path.mkdir()
-
-        print(f"{len(site_cfg)} total section(s)")
-
-        for section_name, section_cfg in site_cfg.items():
-            base_url = section_cfg['url']
-
-            print(f"Section {section_name} has {len(section_cfg['pages'])} total files to download")
-            for file_name, path in tqdm(section_cfg['pages'].items(), desc='Downloading'):
-                r = requests.get(urljoin(base_url, path))
-                with site_path.joinpath(f'{section_name}_{file_name}.html').open('w') as f:
-                    f.write(r.text)
 
 
 if __name__ == '__main__':
