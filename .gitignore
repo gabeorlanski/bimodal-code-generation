@@ -173,8 +173,6 @@ data/urls/
 data/ds_info
 data/tags/
 
-data/tutorials/
-
 data/parsed_tutorials/
 
 data/crawled_maps/
@@ -187,3 +185,8 @@ data/domain_run_results.json
 data/tutorial_code/
 
 .DS_Store
+data/repos/
+
+data/tutorial_fails/
+
+data/tutorials/parsed/
