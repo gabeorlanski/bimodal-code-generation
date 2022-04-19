@@ -190,3 +190,7 @@ data/repos/
 data/tutorial_fails/
 
 data/tutorials/parsed/
+
+data/tutorials/code/
+
+data/tutorials/fails/
