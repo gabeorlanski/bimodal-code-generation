@@ -14,10 +14,10 @@ cerberus:
     override_all: True
 delorean:
   tutorials_quickstart:
-    override_all: True
+    override_all: False
 arrow:
   tutorials_main:
-    override_all: True
+    override_all: False
 python:
   tutorial_controlflow:
     exclude_idx: [37]

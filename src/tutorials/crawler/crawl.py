@@ -21,7 +21,7 @@ def crawl(name):
     settings = get_project_settings()
     if not root.joinpath('data/crawled_maps').exists():
         root.joinpath('data/crawled_maps').mkdir()
-    cfg = yaml.load(root.joinpath(f"data/tutorial_cfg/{name}.yaml").open(), yaml.Loader)
+    cfg = yaml.load(root.joinpath(f"data/tutorials/cfg/{name}.yaml").open(), yaml.Loader)
 
     with root.joinpath(f'data/crawled_maps/{name}.json').open('w'):
         pass

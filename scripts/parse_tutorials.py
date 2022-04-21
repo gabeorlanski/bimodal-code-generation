@@ -8,7 +8,7 @@ from copy import deepcopy
 from pathlib import Path
 import sys
 from dataclasses import asdict
-from urllib.parse import urlparse
+from urllib.parse import urlparse, urljoin
 
 import psutil
 import ujson
@@ -47,7 +47,7 @@ def parse_tutorials(debug, input_path, output_path):
 
     domains = list(PROJECT_ROOT.joinpath(input_path).glob('*.yaml'))
     logger.info(f"{len(domains)} domain configs found")
-
+    domain_to_urls = {}
     cfg = {}
     for domain_path in domains:
         logger.info(f"Loading config from {domain_path}")
@@ -57,11 +57,15 @@ def parse_tutorials(debug, input_path, output_path):
         except KeyError:
             logger.error(f"Skipping {domain_path.stem}, no parser found")
             continue
-
-        cfg[domain_path.stem] = yaml.load(
+        loaded_cfg = yaml.load(
             domain_path.open(),
             yaml.Loader
-        )['groups']
+        )
+        cfg[domain_path.stem] = loaded_cfg['groups']
+        try:
+            domain_to_urls[domain_path.stem] = loaded_cfg['url']
+        except KeyError:
+            raise KeyError(f"{domain_path.stem} missing 'url'")
 
     maps_path = PROJECT_ROOT.joinpath('data', 'crawled_maps')
     crawled_path = PROJECT_ROOT.joinpath('data', 'crawled_tutorials')
@@ -71,6 +75,7 @@ def parse_tutorials(debug, input_path, output_path):
     logger.info(f"{len(cfg)} total unique domains to parse")
 
     total_found = {}
+    parsed_file_to_url = defaultdict(dict)
     for domain, groups in cfg.items():
         logger.info(f"Looking for {len(groups)} group(s) for {domain}")
         path_to_name = {}
@@ -82,6 +87,7 @@ def parse_tutorials(debug, input_path, output_path):
 
         json_map = json.loads(maps_path.joinpath(f'{domain}.json').read_text())
 
+        full_url = domain_to_urls[domain]
         to_parse = {}
         found = []
         for d in json_map:
@@ -90,7 +96,10 @@ def parse_tutorials(debug, input_path, output_path):
                 if path_to_name[url_path] in found:
                     raise ValueError("!!!DUPLICATES!!!")
                 found.append(path_to_name[url_path])
-                to_parse[d['cleaned_name']] = path_to_name[url_path]
+                to_parse[d['cleaned_name']] = {
+                    'name': path_to_name[url_path],
+                    'url' : urljoin(full_url, url_path)
+                }
 
         logger.info(f"{len(found)}/{len(path_to_name)} found")
 
@@ -106,7 +115,10 @@ def parse_tutorials(debug, input_path, output_path):
         logger.info(f"Saving to {domain_out}")
         domain_out.mkdir()
 
-        for file, out_name in tqdm(files.items(), desc='parsing'):
+        for file, file_dict in tqdm(files.items(), desc='parsing'):
+            out_name = file_dict['name']
+            url = file_dict['url']
+
             try:
                 parsed = parser(file.read_text())
             except Exception as e:
@@ -115,7 +127,9 @@ def parse_tutorials(debug, input_path, output_path):
 
             with domain_out.joinpath(f'{out_name}.json').open('w') as f:
                 json.dump(parsed, f, indent=True)
-
+            parsed_file_to_url[domain][out_name] = url
+    with PROJECT_ROOT.joinpath('data/tutorials/parsed_to_url.json').open('w') as f:
+        json.dump(parsed_file_to_url, f)
     logger.info("Found:")
     num_found = 0
     for k, v in sorted(total_found.items(), key=lambda e: e[0]):
@@ -135,7 +149,7 @@ def main(ctx, debug):
 @main.command('parse')
 @click.argument('input_path',
                 callback=lambda c, p, v: PROJECT_ROOT.joinpath(v))
-@click.option('--output-path', '-o', default='data/parsed_tutorials', help='Output path for saving',
+@click.option('--output-path', '-o', default='data/tutorials/parsed', help='Output path for saving',
               callback=lambda c, p, v: PROJECT_ROOT.joinpath(v))
 @click.pass_context
 def parse_tutorials_cli(ctx, input_path, output_path):
@@ -143,8 +157,10 @@ def parse_tutorials_cli(ctx, input_path, output_path):
 
 
 @main.command('get_code')
+@click.option('--num-ctx', '-c', type=int, default=None)
+@click.option('-annotations', is_flag=True, default=False, help='Annotation formats')
 @click.pass_context
-def parse_code_samples(ctx):
+def parse_code_samples(ctx, num_ctx, annotations):
     setup_global_logging(
         "parse_code_samples",
         PROJECT_ROOT.joinpath('logs'),
@@ -154,7 +170,7 @@ def parse_code_samples(ctx):
     logger = logging.getLogger('parse_code_samples')
     logger.info("Parsing out code samples")
 
-    parsed_path = PROJECT_ROOT.joinpath('data/parsed_tutorials')
+    parsed_path = PROJECT_ROOT.joinpath('data/tutorials/parsed')
 
     global_context = {
         'lxml'      : {
@@ -212,36 +228,49 @@ def parse_code_samples(ctx):
             'files' : {}
         }
     }
-    out_dir = PROJECT_ROOT.joinpath('data/tutorial_code')
+    fail_dir = PROJECT_ROOT.joinpath('data/tutorials/fails')
+    out_dir = PROJECT_ROOT.joinpath('data/tutorials/code')
+    if annotations:
+        out_dir = PROJECT_ROOT.joinpath('data/tutorials/raw_annotations')
     if out_dir.exists():
         shutil.rmtree(out_dir)
     out_dir.mkdir(parents=True)
+    if fail_dir.exists():
+        shutil.rmtree(fail_dir)
+    fail_dir.mkdir(parents=True)
     fixes_by_section = yaml.load(
         PROJECT_ROOT.joinpath('data', 'tutorial_code_fixes.yaml').open(),
         yaml.Loader
     )
 
-    directories = list(parsed_path.glob('*'))
+    directories = [f for f in parsed_path.glob('*') if f.is_dir()]
     logger.info(f"Found {len(directories)} directories")
     total_runnable_code = Counter()
     total_fails = Counter()
     total_passed = Counter()
     parsed_file_idx = 0
-    all_parsed = {}
+    parsed_to_url = json.loads(
+        PROJECT_ROOT.joinpath('data/tutorials/parsed_to_url.json').read_text())
+
     for domain_path in directories:
         logger.info(f"Parsing {domain_path}")
         parsed_files, num_runnable, passed, num_fail = parse_domain_path(
             domain_path,
             global_context,
             fixes_by_section,
-            out_dir,
-            parsed_file_idx
+            fail_dir,
+            parsed_file_idx,
+            num_ctx,
+            parsed_to_url[domain_path.stem],
+            annotations
         )
         parsed_file_idx += len(parsed_files)
-        all_parsed[domain_path.stem] = parsed_files
+        # all_parsed[domain_path.stem] = parsed_files
         total_passed[domain_path.stem] = passed
         total_runnable_code[domain_path.stem] = num_runnable
         total_fails[domain_path.stem] = num_fail
+        with out_dir.joinpath(f'{domain_path.stem}.json').open('w') as f:
+            json.dump(parsed_files, f, indent=True)
 
     num_found = sum(total_runnable_code.values())
     logger.info(
@@ -262,10 +291,10 @@ def parse_code_samples(ctx):
             f"\t{k:>16} = {total_passed[k]:>11} | {v:>8} | {total:>7}     "
             f"{pct_ver:>7.2%} verified.")
     logger.info(f"{with_one_passed} had more than one pass")
-    logger.info(f"Saving to {out_dir}")
-
-    with out_dir.joinpath('parsed.json').open('w') as f:
-        json.dump(all_parsed, f, indent=True)
+    # logger.info(f"Saving to {out_dir}")
+    #
+    # with out_dir.joinpath('parsed.json').open('w') as f:
+    #     json.dump(all_parsed, f, indent=True)
 
 
 if __name__ == '__main__':

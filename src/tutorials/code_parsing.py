@@ -18,12 +18,14 @@ import multiprocessing as mp
 import matplotlib.pyplot as plt
 from tqdm import tqdm
 import signal
+from datetime import datetime
+from arrow import Arrow
 
 from src.evaluation.execute import swallow_io, create_tempdir
 
 from .node_visitors import (mk_valid_syntax, PrintTransformer, VariableTracer,
                             NotSupportedException)
-from .saving import combine_code_samples_with_parsed
+from .saving import get_context_tags_for_code
 from .code_sample import CodeSample, FailedCodeSample
 
 GET_CODE_BLOCK = re.compile(
@@ -336,7 +338,7 @@ def get_returned_values(code, context):
                 exec('\n'.join(to_run))
     out = {}
     for k, v in RESULT_VALUES.items():
-        out[k] = {'val': str(v), 'type': type(v) if v is not None else None}
+        out[k] = {'val': repr(v), 'type': type(v) if v is not None else None}
     out['STDOUT'] = stdout_f.getvalue()
     out['STDERR'] = stderr_f.getvalue()
     stdout_f.close()
@@ -404,10 +406,27 @@ def get_code_passes_test(domain: str, file: str, sample: Dict):
         if k == 'STDOUT' or k == 'STDERR':
             continue
 
+        if domain == 'arrow' and isinstance(v, Arrow):
+            v = v.datetime
+
         if isinstance(v, np.ndarray):
             has_correct_value = np.isclose(v, actual_returned_values[k]).all()
+        elif isinstance(v, datetime):
+            actual = actual_returned_values[k]
+            if isinstance(actual, Arrow):
+                actual = actual.datetime
+            if not isinstance(actual, datetime):
+                has_correct_value = False
+            else:
+                has_correct_value = True
+                if v.year != actual.year:
+                    has_correct_value = False
+                if v.month != actual.month:
+                    has_correct_value = False
+                if v.day != actual.day:
+                    has_correct_value = False
         else:
-            has_correct_value = v == actual_returned_values[k]
+            has_correct_value = repr(v) == repr(actual_returned_values[k])
 
         if not has_correct_value:
             failed_deterministic_check = True
@@ -493,7 +512,10 @@ def parse_domain_path(
         global_context_dict,
         fixes_by_section,
         out_dir,
-        parsed_idx_offset
+        parsed_idx_offset,
+        num_prior_for_ctx,
+        url_dict,
+        annotations
 ):
     domain_context_cfg = global_context_dict.get(domain_path.stem, {})
     domain_context = domain_context_cfg.get('global', [])
@@ -533,6 +555,8 @@ def parse_domain_path(
 
     mp_test_args = []
 
+    bad_result = re.compile(r'<[^\s]+ [^>]+(?:\.\.\.)>')
+
     total_passed_tests = 0
     for file, samples in parsed_by_file.items():
         tutorial_fixes = {}
@@ -540,6 +564,15 @@ def parse_domain_path(
             tutorial_fixes = domain_fixes.get(file, {})
         override_all = tutorial_fixes.get('override_all', False)
         for sample in samples:
+            if (
+                    any(bad_result.search(v) is not None for v in sample.expected_result)
+                    and domain_path.stem not in ['delorean', 'arrow']
+            ):
+                sample.errors.append('BAD EXPECTED')
+                failed_name = '/'.join(sample.section_path)
+                failed_by_file[failed_name][sample.idx].append(asdict(sample))
+                continue
+
             sample_fixes = tutorial_fixes.get('/'.join(sample.section_path), {})
             sample_overrides = sample_fixes.get('overrides', [])
 
@@ -578,20 +611,23 @@ def parse_domain_path(
                 )
                 total_failed_tests += 1
 
-    parsed_files = []
+    parsed_files = {}
 
     for file, passed in tqdm(passed_by_file.items(), desc=f"Saving {domain_path.stem}"):
         parsed = json.loads(stem_to_path[file].read_text())
-        combined = combine_code_samples_with_parsed(
+        combined = get_context_tags_for_code(
             domain_path.stem,
             file,
             parsed,
-            passed
+            passed,
+            num_context_to_keep=num_prior_for_ctx,
+            url=url_dict[file],
+            annotation_mode=annotations
         )
         combined['idx'] = parsed_idx_offset + len(parsed_files)
-        parsed_files.append(combined)
+        parsed_files[combined['name']] = combined
 
-    fail_dir = out_dir.joinpath(f'{domain_path.stem}_fails')
+    fail_dir = out_dir.joinpath(f'{domain_path.stem}')
     fail_dir.mkdir()
     with fail_dir.joinpath('parse.json').open('w') as f:
         json.dump(parse_fails_by_file, f, indent=True)

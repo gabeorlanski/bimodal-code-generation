@@ -1,6 +1,7 @@
 """
 Tests for the MBPP dataset features
 """
+import random
 from pathlib import Path
 import pytest
 import json
@@ -8,7 +9,7 @@ import shutil
 from unittest.mock import patch
 
 from src.common import FIXTURES_ROOT
-from scripts.setup_mbpp import setup_mbpp_splits
+from scripts.setup_datasets import setup_mbpp
 
 
 def setup_tmpdir(tmpdir_path, copy_mbpp=True, copy_sanitized=True) -> Path:
@@ -49,8 +50,8 @@ def test_setup_mbpp_splits(tmpdir):
         map(
             json.loads,
             FIXTURES_ROOT.joinpath("MBPP", "mbpp.jsonl")
-            .read_text("utf-8")
-            .splitlines(True),
+                .read_text("utf-8")
+                .splitlines(True),
         )
     )
     expected_edited = json.loads(
@@ -58,16 +59,16 @@ def test_setup_mbpp_splits(tmpdir):
     )
 
     expected_files = {
-        "few_shot.jsonl": expected_mbpp[:2],
-        "test.jsonl": expected_mbpp[2:6],
-        "train.jsonl": expected_mbpp[6:11],
-        "edited.jsonl": expected_edited,
+        "few_shot.jsonl"  : expected_mbpp[:2],
+        "test.jsonl"      : expected_mbpp[2:6],
+        "train.jsonl"     : expected_mbpp[6:11],
+        "edited.jsonl"    : expected_edited,
         "validation.jsonl": expected_mbpp[11:],
     }
 
-    with patch("scripts.setup_mbpp.random.shuffle", new_callable=lambda: None):
-        setup_mbpp_splits(
-            tmpdir_path,
+    with patch("scripts.setup_datasets.random.shuffle", new_callable=lambda: None):
+        setup_mbpp(
+            str(tmpdir_path),
             test_size=test_split_size,
             few_shot_size=few_shot_size,
             fine_tuning_size=fine_tuning_size,
@@ -89,12 +90,13 @@ def test_setup_mbpp_splits(tmpdir):
 )
 def test_setup_mbpp_splits_errors(tmpdir, copy_mbpp, copy_sanitized):
     tmpdir_path = setup_tmpdir(tmpdir, copy_mbpp, copy_sanitized)
+    random.seed(1)
     if copy_mbpp and copy_sanitized:
-        setup_mbpp_splits(tmpdir_path, 1)
+        setup_mbpp(str(tmpdir_path))
         return
 
     with pytest.raises(FileExistsError) as exception_info:
-        setup_mbpp_splits(tmpdir_path, 1)
+        setup_mbpp(str(tmpdir_path))
 
     if not copy_mbpp:
         expected = "Could not find 'mbpp.jsonl'"

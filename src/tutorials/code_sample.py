@@ -19,16 +19,27 @@ class CodeSample:
     def aligned_returns_and_results(self):
         return zip(self.return_code, self.expected_result)
 
-    def to_save_dict(self):
+    def to_save_dict(self, annotation_mode=False):
+        if annotation_mode:
+            return {
+                'idx'            : self.idx,
+                'inputs'         : {},
+                'snippet_idx'    : self.snippet_idx,
+                'body_code'      : self.body_code,
+                'return_code'    : self.return_code,
+                'expected_result': self.expected_result,
+                'context'        : '\n'.join(self.context),
+            }
         return {
             'idx'            : self.idx,
             'snippet_idx'    : self.snippet_idx,
-            'body_code'      : '\n'.join(self.body_code),
+            'body_code'      : self.body_code,
             'return_code'    : self.return_code,
             'expected_result': self.expected_result,
             'start_char_idx' : self.start_char_idx,
             'context'        : '\n'.join(self.context),
-            'section_path'   : '/'.join(self.section_path)
+            'section_path'   : '/'.join(self.section_path),
+            'returned'       : self.actual_returned
         }
 
 
