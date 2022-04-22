@@ -1,0 +1,6 @@
+base: "{{ context }}{{code}}
+
+{{ test_stmt }}{{ '\n' }}"
+console: "{{ context }}{{code}}
+  
+>>> {{ test_stmt }}{{ '\n' }}"

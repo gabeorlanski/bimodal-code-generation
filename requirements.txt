@@ -19,3 +19,4 @@ jinja2==3.1.1
 wandb==0.12.14
 matplotlib==3.5.1
 markdownify==0.11.1
+scikit-learn==1.0.2

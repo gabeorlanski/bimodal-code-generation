@@ -219,7 +219,7 @@ def eval_from_checkpoint(
     )
 
     if not cfg.get('zero_shot', False):
-        print("USING ZERO SHOT MODE")
+        print("NOT USING ZERO SHOT MODE")
         if train_dir.stem != 'best_model':
             best_model_path = train_dir.joinpath('best_model')
         else:
@@ -238,6 +238,7 @@ def eval_from_checkpoint(
             cfg.is_checkpoint = True
         else:
             cfg.model_path = None
+            cfg.is_checkpoint=False
             
         cfg.task = task_cfg
 

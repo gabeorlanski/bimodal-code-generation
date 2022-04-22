@@ -1,0 +1,15 @@
+name: npv
+
+params:
+  prompt: console
+  choices:
+    - False
+    - True
+
+preprocessors: []
+postprocessors: []
+metrics:
+  - exact-match
+eval_splits:
+  - test
+

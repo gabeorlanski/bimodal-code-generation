@@ -1,0 +1,5 @@
+test:
+  mbpp:
+    - mbpp.jsonl
+  human_eval:
+    - human_eval.jsonl

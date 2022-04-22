@@ -10,6 +10,8 @@ from pathlib import Path
 import random
 from typing import List, Union
 
+import sklearn
+from torch.nn import functional as F
 import datasets
 import numpy as np
 import wandb
@@ -26,7 +28,8 @@ from src.config import (
 )
 
 from jinja2 import BaseLoader, Environment, StrictUndefined
-from apex import amp
+from sklearn.metrics import precision_recall_fscore_support
+
 import multiprocessing as mp
 
 logger = logging.getLogger(__name__)
@@ -276,7 +279,7 @@ def generate_predictions(
     }
 
 
-def evaluate_model(
+def evaluate_model_generation_task(
         cfg: DictConfig,
         model: PreTrainedModel
 ):
@@ -399,6 +402,187 @@ def evaluate_model(
     return metrics, serialized_predictions
 
 
+def evaluate_model_classification_task(
+        cfg: DictConfig,
+        model: PreTrainedModel
+):
+    task = load_task_from_cfg(cfg)
+    logger.info(f"Reading data from '{cfg['data_path']}'")
+    debug = cfg.debug
+
+    assert hasattr(task, 'choices')
+    choice_list = list(map(str, task.choices))  # type: ignore
+    logger.info(f"Getting the data for split {cfg.split}")
+    dataset = task.preprocess(cfg.split)
+    debug_num_samples = cfg.get('debug_num_samples', None)
+
+    def tokenize(example, idx):
+        # We do not pop so that we can still remove the columns later.
+        out = {
+            "idx": idx, **task.tokenizer(example["input_sequence"])
+        }
+        target_tokenized = task.tokenizer(example['target'])
+        out.update(
+            {
+                "labels": target_tokenized["input_ids"],
+            }
+        )
+        return out
+
+    tokenized = dataset.map(
+        tokenize,
+        with_indices=True,
+        num_proc=cfg.num_proc,
+        remove_columns=[c for c in dataset.column_names],
+    )
+
+    tokenized = tokenized.map(
+        lambda ex: {
+            'len': len(ex['input_ids']),
+            **ex
+        }
+    ).filter(lambda ex: ex['len'] < 1024)
+    logger.info(f"{len(dataset)} total samples found")
+
+    tokenized = tokenized.sort('len', reverse=True)
+    if debug_num_samples is not None:
+        logger.warning(f"DEBUG NUMBER OF SAMPLES={debug_num_samples}")
+        tokenized = tokenized.select(list(range(debug_num_samples)))
+
+    device = get_device_from_cfg(cfg)
+    model = model.to(device)
+    # model = amp.initialize(model)
+    logger.info(f"Model is on {model.device}")
+    logger.debug(f"{type(dataset)=}")
+    if cfg.objective == 'lm':
+        task.tokenizer.pad_token = task.tokenizer.eos_token
+        model.config.eos_token_id = task.tokenizer.eos_token_id
+        model.config.pad_token_id = task.tokenizer.eos_token_id
+        model.config.bos_token_id = task.tokenizer.eos_token_id
+        task.tokenizer.padding_side = 'left'
+
+    collator = DataCollatorForSeq2Seq(
+        tokenizer=task.tokenizer,
+        padding='longest',
+        pad_to_multiple_of=1,
+        return_tensors='pt',
+        label_pad_token_id=task.tokenizer.pad_token_id
+    )
+
+    choices_tokenized = [task.tokenizer(str(c))['input_ids'] for c in choice_list]  # type:ignore
+
+    sequential_sampler = torch.utils.data.SequentialSampler(tokenized)
+    batch_size = cfg.evaluation.num_generate_per_step
+    logger.info(f"{batch_size=}")
+
+    dataloader = torch.utils.data.DataLoader(
+        tokenized,
+        batch_size=batch_size,
+        collate_fn=collator,
+        num_workers=0,
+        shuffle=False,
+        sampler=sequential_sampler,
+    )
+    pred_probs = []
+    targets = []
+    indices = []
+
+    model.eval()
+    with torch.inference_mode():
+        if not debug:
+            progress_bar = tqdm(
+                total=math.ceil(len(dataset) / batch_size),
+                desc='Generating'
+            )
+        else:
+            progress_bar = None
+        completed = 0
+        longest_choice = max(map(len, choices_tokenized))
+        for batch in dataloader:
+            n_seqs = batch['input_ids'].size(0)
+            input_size = batch['input_ids'].size(1)
+            max_len = input_size + longest_choice
+
+            local_input_ids = torch.zeros((n_seqs, max_len)).long()
+            local_input_ids[:, :input_size] = batch['input_ids']
+            local_attention_mask = torch.zeros((n_seqs, max_len)).long()
+            local_attention_mask[:, :input_size] = batch['attention_mask']
+
+            local_predictions = defaultdict(list)
+            targets.extend([dataset[i.item()]['target'] for i in batch['idx']])
+
+            for choice, choice_tokens in zip(choice_list, choices_tokenized):
+                choice_tensor = torch.tensor([choice_tokens] * n_seqs).long()
+                labels = -100 * torch.ones((n_seqs, max_len)).long()
+                labels[:, input_size:input_size + choice_tensor.size(1)] = choice_tensor
+
+                local_input_ids = local_input_ids.to(device)
+                local_attention_mask = local_attention_mask.to(device)
+
+                logits = model(
+                    input_ids=local_input_ids,
+                    attention_mask=local_attention_mask
+                ).logits.cpu()[:, :-1].contiguous()
+                logit_shape = logits.shape
+
+                logits = logits.view(-1, logit_shape[-1])
+
+                ce_list = F.cross_entropy(
+                    logits,
+                    labels[:, 1:].contiguous().view(-1),
+                    reduction='none'
+                )
+                ce_list = ce_list.view(n_seqs, max_len - 1).sum(dim=1).squeeze().tolist()
+
+                for idx, p in zip(batch['idx'], ce_list):
+                    local_predictions[idx.item()].append(p)
+            for k, v in local_predictions.items():
+                indices.append(dataset[k]['task_id'])
+                pred_probs.append(v)
+
+            if progress_bar:
+                progress_bar.update(1)
+            completed += n_seqs
+            if not progress_bar:
+                logger.info(f"Finished {completed}/{len(dataset)} generations")
+
+    predictions_int = torch.tensor(pred_probs).argmin(dim=-1).tolist()
+    predictions = list(map(lambda i: choice_list[i], predictions_int))
+
+    metrics = {
+        "accuracy" : 100 * sklearn.metrics.accuracy_score(targets, predictions),
+        "f1"       : 100 * sklearn.metrics.f1_score(targets, predictions, labels=choice_list,
+                                                    average='macro'),
+        "recall"   : 100 * sklearn.metrics.recall_score(targets, predictions, average='macro',
+                                                        labels=choice_list),
+        "precision": 100 * sklearn.metrics.precision_score(targets, predictions, average='macro',
+                                                           labels=choice_list),
+    }
+
+    precision, recall, f1_arr, occurrences = sklearn.metrics.precision_recall_fscore_support(
+        targets, predictions, average=None, labels=choice_list
+    )
+
+    for i, (p, r, f1, o) in enumerate(zip(precision, recall, f1_arr, occurrences)):
+        metrics[f'precision_{choice_list[i]}'] = p * 100
+        metrics[f'recall_{choice_list[i]}'] = r * 100
+        metrics[f'f1_{choice_list[i]}'] = f1 * 100
+
+    # Get the full metrics suite for the predictions and the labels
+    logger.info("Results:")
+    for k, v in metrics.items():
+        logger.info(f"\t{k:>20} = {v:0.3f}")
+
+    serialized_predictions = []
+    serialize_generator = task.serialize_predictions(cfg.split, indices, predictions)
+    for i, serialized_dict in tqdm(enumerate(serialize_generator), total=len(indices),
+                                   desc="Serializing"):
+        choice_probs = {c: pred_probs[i][j] for j, c in enumerate(choice_list)}
+        serialized_predictions.append({'prob': choice_probs, **serialized_dict})
+
+    return metrics, serialized_predictions
+
+
 def evaluate(
         cfg,
         model,
@@ -423,12 +607,17 @@ def evaluate(
 
     set_caching_enabled(not cfg.get('disable_cache', False))
 
+    if cfg.task.name in ['npv']:
+        eval_fn = evaluate_model_classification_task
+    else:
+        eval_fn = evaluate_model_classification_task
+
     if not dry_run:
         for split in splits_to_use:
             logger.info(f"Evaluating split {split}")
             with open_dict(cfg):
                 cfg.split = split
-            metrics, predictions = evaluate_model(
+            metrics, predictions = eval_fn(
                 copy.deepcopy(cfg),
                 model=model
             )
