@@ -3,8 +3,8 @@ name: npv
 params:
   prompt: base
   choices:
-    - False
-    - True
+    - "False"
+    - "True"
   n_ctx_pairs: 0
   ctx_true_pct: 0.5
   shuffle_ctx_pairs: False
