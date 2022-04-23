@@ -574,6 +574,10 @@ def evaluate_model_classification_task(
     predictions = list(map(lambda i: choice_list[i], pred_ints.tolist()))
 
     metrics = {
+        "accuracy"       : 100 * accuracy_score(
+            targets,
+            predictions
+        ),
         "f1"       : 100 * f1_score(
             targets,
             predictions,
