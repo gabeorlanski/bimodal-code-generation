@@ -68,22 +68,22 @@ experiments:
             description: 1 True and 1 False example
             ++task.n_ctx_pairs: 2
             ++task.ctx_true_pct: .5
-          0T2F:
-            description: 0 True and 2 False example
-            ++task.n_ctx_pairs: 2
-            ++task.ctx_true_pct: 0
-          2T0F:
-            description: 2 True and 0 False example
-            ++task.n_ctx_pairs: 2
-            ++task.ctx_true_pct: 1
+#          0T2F:
+#            description: 0 True and 2 False example
+#            ++task.n_ctx_pairs: 2
+#            ++task.ctx_true_pct: 0
+#          2T0F:
+#            description: 2 True and 0 False example
+#            ++task.n_ctx_pairs: 2
+#            ++task.ctx_true_pct: 1
           2T1F:
             description: 2 True and 1 False example
             ++task.n_ctx_pairs: 3
             ++task.ctx_true_pct: .5
-          1T2F:
-            description: 1 True and 2 False example
-            ++task.n_ctx_pairs: 3
-            ++task.ctx_true_pct: .25
+#          1T2F:
+#            description: 1 True and 2 False example
+#            ++task.n_ctx_pairs: 3
+#            ++task.ctx_true_pct: .25
 
     steps:
       - name: NPV
