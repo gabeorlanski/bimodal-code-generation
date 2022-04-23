@@ -703,7 +703,7 @@ def evaluate(
             job_type='evaluate'
         )
 
-        run.log({f"eval/{k}": v for k, v in all_metrics.items()}, step=1)
+        run.log({k: v for k, v in all_metrics.items()}, step=1)
         preds_artifact = wandb.Artifact(get_run_base_name_from_cfg(cfg, "preds"),
                                         type='predictions')
 

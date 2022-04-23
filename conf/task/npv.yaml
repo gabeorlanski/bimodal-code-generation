@@ -1,11 +1,11 @@
 name: npv
 
 params:
-  prompt: full_console
+  prompt: base
   choices:
     - False
     - True
-  n_ctx_pairs: 2
+  n_ctx_pairs: 0
   ctx_true_pct: 0.5
   shuffle_ctx_pairs: False
   stmt_prompt: "{stmt}"

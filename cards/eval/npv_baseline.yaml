@@ -1,0 +1,105 @@
+starting_commands: templates/commands/sbatch_experiment.txt
+experiments:
+  Baselines:
+    add_name: True
+    description: "Evaluate the baseline models"
+    overrides:
+      ++device: 0
+      is_checkpoint: false
+      objective: lm
+      tracking:
+        tags:
+          - Baseline
+      ++zero_shot: True
+      task: npv
+      ++tracking.entity: nyu-code-research
+    ablations:
+      - Model:
+          Neo125M:
+            description: GPT Neo 125M
+            ++model: 'EleutherAI/gpt-neo-125M'
+            ++evaluation.num_generate_per_step: 10
+          Neo1B:
+            description: GPT Neo 1.3B
+            ++model: 'EleutherAI/gpt-neo-1.3B'
+            ++evaluation.num_generate_per_step: 10
+          Neo1B:
+            description: GPT Neo 1.3B
+            ++model: 'EleutherAI/gpt-neo-1.3B'
+            ++evaluation.num_generate_per_step: 10
+          Neo2B:
+            description: GPT Neo 2B
+            ++model: 'EleutherAI/gpt-neo-2.7B'
+            ++evaluation.num_generate_per_step: 10
+          GPTJ:
+            description: GPT J 6B
+            ++model: 'EleutherAI/gpt-j-6B'
+            ++evaluation.num_generate_per_step: 10
+          Incoder1B:
+            description: Incoder 1B
+            ++model: 'facebook/incoder-1B'
+            ++evaluation.num_generate_per_step: 10
+          Incoder6B:
+            description: Incoder 6B
+            ++model: 'facebook/incoder-6B'
+            ++evaluation.num_generate_per_step: 10
+          ParrotSmall:
+            description: CodeParrot Small
+            ++model: 'lvwerra/codeparrot-small'
+            ++evaluation.num_generate_per_step: 10
+          Parrot:
+            description: CodeParrot Normal
+            ++model: 'lvwerra/codeparrot'
+            ++evaluation.num_generate_per_step: 10
+      - TaskPrompt:
+          Base:
+            description: Base Prompt with no formatting
+            ++task.prompt: base
+          OutConsole:
+            description: Base Prompt with output formatted as the console
+            ++task.prompt: console
+          FullConsole:
+            description: Full Console Prompt
+            ++task.prompt: full_console
+          Description:
+            description: Base Prompt with description
+            ++task.prompt: base_with_description
+      - ContextExamples:
+          Zero:
+            description: No Context Examples
+            ++task.n_ctx_pairs: 0
+          1T1F:
+            description: 1 True and 1 False example
+            ++task.n_ctx_pairs: 2
+            ++task.ctx_true_pct: .5
+          0T2F:
+            description: 0 True and 2 False example
+            ++task.n_ctx_pairs: 2
+            ++task.ctx_true_pct: 0
+          2T0F:
+            description: 2 True and 0 False example
+            ++task.n_ctx_pairs: 2
+            ++task.ctx_true_pct: 1
+          2T0F:
+            description: 2 True and 1 False example
+            ++task.n_ctx_pairs: 3
+            ++task.ctx_true_pct: .5
+
+    steps:
+      - name: NPV
+        description: Zero Shot eval on NPV
+        add_name: False
+        base: train_config.yaml
+        group: NPV
+        overrides:
+          model_path: outputs/so/${..__META__.ablation.name}
+
+    command:
+      file: templates/commands/npv_eval.txt
+      kwargs:
+        train_sbatch: train_single_gpu
+        finetune_time: "12:00:00"
+        pretrain_time: "12:00:00"
+        use_cds: True
+      fields:
+        - model_path
