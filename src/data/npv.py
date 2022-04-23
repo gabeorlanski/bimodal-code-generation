@@ -155,9 +155,9 @@ class NPV(Task):
     def _load_samples(self, split: str) -> Dataset:
         return self._dataset_mapping[split]
 
-    def make_stmt_from_io(self, input_stmt, op, output_stmt, target=None):
+    def make_stmt_from_io(self, input_stmt, op, output_stmt, is_ctx=False):
         out = self.stmt_prompt.format(stmt=f"{input_stmt} {op} {output_stmt}")
-        if self.trailing_newline:
+        if self.trailing_newline and not is_ctx:
             return f"{out}\n"
         return out
 
@@ -178,11 +178,12 @@ class NPV(Task):
         for true_example, false_example in zip_longest(true_examples, false_examples):
             if true_example is not None:
                 context_examples.append([self.make_stmt_from_io(
-                    true_example['input'], true_example['op'], true_example['output']
+                    true_example['input'], true_example['op'], true_example['output'], is_ctx=True
                 ), 'True'])
             if false_example is not None:
                 context_examples.append([self.make_stmt_from_io(
-                    false_example['input'], false_example['op'], false_example['output']
+                    false_example['input'], false_example['op'], false_example['output'],
+                    is_ctx=True
                 ), 'False'])
 
         if self.shuffle_ctx_pairs:

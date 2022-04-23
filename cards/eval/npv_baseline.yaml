@@ -23,18 +23,14 @@ experiments:
             description: GPT Neo 1.3B
             ++model: 'EleutherAI/gpt-neo-1.3B'
             ++evaluation.num_generate_per_step: 10
-          Neo1B:
-            description: GPT Neo 1.3B
-            ++model: 'EleutherAI/gpt-neo-1.3B'
-            ++evaluation.num_generate_per_step: 10
           Neo2B:
             description: GPT Neo 2B
             ++model: 'EleutherAI/gpt-neo-2.7B'
-            ++evaluation.num_generate_per_step: 10
+            ++evaluation.num_generate_per_step: 12
           GPTJ:
             description: GPT J 6B
             ++model: 'EleutherAI/gpt-j-6B'
-            ++evaluation.num_generate_per_step: 10
+            ++evaluation.num_generate_per_step: 6
           Incoder1B:
             description: Incoder 1B
             ++model: 'facebook/incoder-1B'
@@ -42,7 +38,7 @@ experiments:
           Incoder6B:
             description: Incoder 6B
             ++model: 'facebook/incoder-6B'
-            ++evaluation.num_generate_per_step: 10
+            ++evaluation.num_generate_per_step: 6
           ParrotSmall:
             description: CodeParrot Small
             ++model: 'lvwerra/codeparrot-small'
@@ -50,7 +46,7 @@ experiments:
           Parrot:
             description: CodeParrot Normal
             ++model: 'lvwerra/codeparrot'
-            ++evaluation.num_generate_per_step: 10
+            ++evaluation.num_generate_per_step: 24
       - TaskPrompt:
 #          Base:
 #            description: Base Prompt with no formatting
@@ -80,10 +76,14 @@ experiments:
 #            description: 2 True and 0 False example
 #            ++task.n_ctx_pairs: 2
 #            ++task.ctx_true_pct: 1
-          2T1F:
-            description: 2 True and 1 False example
+#          2T1F:
+#            description: 2 True and 1 False example
+#            ++task.n_ctx_pairs: 3
+#            ++task.ctx_true_pct: .5
+          1T2F:
+            description: 1 True and 2 False example
             ++task.n_ctx_pairs: 3
-            ++task.ctx_true_pct: .5
+            ++task.ctx_true_pct: .25
 
     steps:
       - name: NPV

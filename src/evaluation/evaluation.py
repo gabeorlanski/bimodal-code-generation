@@ -394,7 +394,7 @@ def evaluate_model_generation_task(
     # Get the full metrics suite for the predictions and the labels
     logger.info("Results:")
     for k, v in metrics.items():
-        if isinstance(v,int):
+        if isinstance(v, int):
             logger.info(f"\t{k:>20} = {v}")
         else:
             logger.info(f"\t{k:>20} = {v:0.3f}")
@@ -421,6 +421,9 @@ def evaluate_model_classification_task(
     dataset = task.preprocess(cfg.split)
     debug_num_samples = cfg.get('debug_num_samples', None)
     if cfg.objective == 'lm':
+        eos_token = task.tokenizer.eos_token or task.tokenizer.bos_token
+        task.tokenizer.eos_token = eos_token
+        task.tokenizer.bos_token = eos_token
         task.tokenizer.pad_token = task.tokenizer.eos_token
         model.config.eos_token_id = task.tokenizer.eos_token_id
         model.config.pad_token_id = task.tokenizer.eos_token_id
@@ -605,7 +608,7 @@ def evaluate_model_classification_task(
     # Get the full metrics suite for the predictions and the labels
     logger.info("Results:")
     for k, v in metrics.items():
-        if isinstance(v,int):
+        if isinstance(v, int):
             logger.info(f"\t{k:>20} = {v}")
         else:
             logger.info(f"\t{k:>20} = {v:0.3f}")
@@ -619,7 +622,7 @@ def evaluate_model_classification_task(
     serialize_generator = task.serialize_predictions(cfg.split, indices, predictions)
     for i, serialized_dict in tqdm(enumerate(serialize_generator), total=len(indices),
                                    desc="Serializing"):
-        choice_probs = {c: round(pred_probs[i][j],5) for j, c in enumerate(choice_list)}
+        choice_probs = {c: round(pred_probs[i][j], 5) for j, c in enumerate(choice_list)}
         serialized_predictions.append({'prob': choice_probs, **serialized_dict})
 
     return metrics, serialized_predictions
@@ -646,7 +649,7 @@ def evaluate(
     logger.info(f"Using split '{splits_to_use}' for task '{cfg.task.name}'")
     all_metrics = {}
     split_paths = []
-    if cfg.get('disable_cache',False):
+    if cfg.get('disable_cache', False):
         datasets.disable_caching()
     else:
         datasets.enable_caching()
