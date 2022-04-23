@@ -239,8 +239,8 @@ def eval_from_checkpoint(
         else:
             cfg.model_path = None
             cfg.is_checkpoint=False
-            
-        cfg.task = task_cfg
+        if 'task' not in cfg or cfg.task.name != task_name:
+            cfg.task = task_cfg
 
     evaluate_from_ctx_and_cfg(ctx, cfg)
 
@@ -275,7 +275,8 @@ def eval_from_cfg(
         )
     )
     with open_dict(cfg):
-        cfg.task = task_cfg
+        if 'task' not in cfg or cfg.task.name != task_name:
+            cfg.task = task_cfg
 
     evaluate_from_ctx_and_cfg(ctx, cfg)
 
