@@ -1,11 +1,15 @@
 import json
 import logging
+import math
+import random
 import re
 from collections import defaultdict
 from copy import deepcopy
 from pathlib import Path
 from typing import List, Dict, Tuple, Callable
-
+from itertools import chain, zip_longest
+import contextlib
+import io
 import yaml
 from datasets import Dataset, DatasetDict
 from tqdm import tqdm
@@ -15,6 +19,7 @@ from tio import Task
 from transformers import PreTrainedTokenizer
 from src.common import PathType, PROJECT_ROOT
 
+from src.evaluation.execute import create_tempdir
 from jinja2 import BaseLoader, Environment, StrictUndefined
 
 logger = logging.getLogger(__name__)
@@ -22,7 +27,8 @@ logger = logging.getLogger(__name__)
 __all__ = [
     "make_samples_from_dict",
     "SUPPORTED_TASKS",
-    "NPV"
+    "NPV",
+    "check_code_executes_properly"
 ]
 OP_TO_STR = {
     ast.Eq   : '==',
@@ -70,6 +76,13 @@ class CustomSourceGenerator(astor.SourceGenerator):
         self.write(')')
 
 
+JINJA_ENV = Environment(loader=BaseLoader)  # type: ignore
+JINJA_ENV.globals.update(zip=zip)
+JINJA_ENV.undefined = StrictUndefined
+
+PROMPT_TO_USE = None
+
+
 @Task.register("npv")
 class NPV(Task):
     SPLIT_MAPPING = {
@@ -88,7 +101,12 @@ class NPV(Task):
             metric_fns: List[Callable],
             split_mapping: Dict[str, PathType] = None,
             prompt: str = "base",
-            choices: List[str] = None
+            choices: List[str] = None,
+            n_ctx_pairs: int = 0,
+            ctx_true_pct: float = 0.5,
+            shuffle_ctx_pairs: bool = False,
+            stmt_prompt: str = "{stmt}",
+            trailing_newline: bool = False
     ):
         super(NPV, self).__init__(
             preprocessors=preprocessors,
@@ -104,62 +122,32 @@ class NPV(Task):
         prompt_dict = yaml.load(PROJECT_ROOT.joinpath('templates/npv_prompts.yaml').open(),
                                 yaml.Loader)
 
-        self.JINJA_ENV = Environment(loader=BaseLoader)  # type:ignore
-
-        # Allow the python function zip()
-        self.JINJA_ENV.globals.update(zip=zip)
-        self.JINJA_ENV.undefined = StrictUndefined
-        self.prompt = self.JINJA_ENV.from_string(prompt_dict[prompt])
+        global PROMPT_TO_USE
+        PROMPT_TO_USE = JINJA_ENV.from_string(prompt_dict[prompt])
         self.include_target_in_prompt_kwargs = False
+        self.num_context_pairs = n_ctx_pairs
+        self.num_true_ctx_pairs = math.ceil(ctx_true_pct * self.num_context_pairs)
+        self.num_false_ctx_pairs = max(0, self.num_context_pairs - self.num_true_ctx_pairs)
+        self.shuffle_ctx_pairs = shuffle_ctx_pairs
+        self.stmt_prompt = stmt_prompt
+        self.trailing_newline = trailing_newline
 
     def initialize_data(self):
         out = {}
         for split, path in self.SPLIT_MAPPING.items():
             split_dict = defaultdict(list)
-            for d in map(json.loads, Path(path).read_text('utf-8').splitlines(False)):
+            for d in tqdm(
+                    map(json.loads, Path(path).read_text('utf-8').splitlines(False)),
+                    desc=f"Reading '{split}'"
+            ):
 
                 excluded = {}
-                for k in self.EXCLUDE_KEYS:
-                    excluded[k] = d.pop(k)
-
-                task_name = excluded['task']
-
-                io_pairs = d.pop('input_output_pairs')
-                test_fixes = d.pop('test_negations', [])
-                exclude_tests = d.pop('exclude_tests', [])
-                io_combos = set()
-                for i, left in enumerate(io_pairs):
-                    to_keep = []
-                    for j, right in enumerate(io_pairs):
-                        op = left['ops']
-                        result = right['output'] == left['output']
-                        is_manual_fix = False
-                        io_pair = f"{left['input']} {right['output']}"
-                        if io_pair in exclude_tests:
-                            continue
-                        if io_pair in test_fixes:
-                            result = True
-                            is_manual_fix = True
-
-                        combo = f"{left['input']} {op} {right['output']}"
-                        if combo not in io_combos:
-                            io_combos.add(combo)
-                            to_keep.append(
-                                [left['input'], right['output'], op, result, is_manual_fix]
-                            )
-                    for pred_idx, (input_val, output_val, op, res, is_manual_fix) in enumerate(
-                            to_keep):
-                        for k, v in d.items():
-                            split_dict[k].append(v)
-
-                        split_dict['task_id'].append(f"{task_name}_{d['instance_idx']}_{pred_idx}")
-                        self.excluded_columns_data[
-                            f"{task_name}_{d['instance_idx']}_{pred_idx}"] = excluded
-                        split_dict['input'].append(input_val)
-                        split_dict['op'].append(op)
-                        split_dict['output'].append(output_val)
-                        split_dict['result'].append(str(res))
-                        split_dict['is_manual_fix'].append(is_manual_fix)
+                for k, v in d.items():
+                    if k in self.EXCLUDE_KEYS:
+                        excluded[k] = v
+                    else:
+                        split_dict[k].append(v)
+                self.excluded_columns_data[d['task_id']] = excluded
 
             out[split] = Dataset.from_dict(split_dict, split=split)
         return DatasetDict(out)
@@ -167,27 +155,65 @@ class NPV(Task):
     def _load_samples(self, split: str) -> Dataset:
         return self._dataset_mapping[split]
 
+    def make_stmt_from_io(self, input_stmt, op, output_stmt, target=None):
+        out = self.stmt_prompt.format(stmt=f"{input_stmt} {op} {output_stmt}")
+        if self.trailing_newline:
+            return f"{out}\n"
+        return out
+
     def map_to_standard_entries(self, sample: Dict) -> Dict:
         sample['target'] = sample['result']
-        test_stmt = f"{sample['input']} " \
-                    f"{sample['op']} {sample['output']}"
+        test_stmt = self.make_stmt_from_io(sample['input'], sample['op'], sample['output'])
+
+        true_examples = random.sample(
+            sample['context_io_pairs']['True'],
+            k=min(self.num_true_ctx_pairs, len(sample['context_io_pairs']['True']))
+        )
+        false_examples = random.sample(
+            sample['context_io_pairs']['False'],
+            k=min(self.num_false_ctx_pairs, len(sample['context_io_pairs']['False']))
+        )
+
+        context_examples = []
+        for true_example, false_example in zip_longest(true_examples, false_examples):
+            if true_example is not None:
+                context_examples.append([self.make_stmt_from_io(
+                    true_example['input'], true_example['op'], true_example['output']
+                ), 'True'])
+            if false_example is not None:
+                context_examples.append([self.make_stmt_from_io(
+                    false_example['input'], false_example['op'], false_example['output']
+                ), 'False'])
+
+        if self.shuffle_ctx_pairs:
+            random.shuffle(context_examples)
+
+        # Some are VERY long, so we need to adapt for that by removing context
+        # examples until we either have no context or have under the threshold.
+        # num_required_chars = len(sample['context'] + sample['code'].lstrip())
+        # context_example_chars = sum(map(len, context_examples))
+        # if num_required_chars + context_example_chars >= 1000:
+        #     logger.warning(f"{sample['task_id']} has too many characters, "
+        #                    f"removing some context examples")
+        #     while num_required_chars + context_example_chars >= 1000 and context_examples:
+        #         context_example_chars -= len(context_examples.pop(-1))
 
         prompt_kwargs = {
-            "context"  : sample['context'] + '\n',
-            'code'     : sample['code'].lstrip(),
-            'test_stmt': test_stmt
+            "context_code"    : sample['context'],
+            'context_examples': context_examples,
+            'description'     : sample['description'],
+            'code'            : sample['code'].lstrip(),
+            'test_stmt'       : test_stmt
         }
         if self.include_target_in_prompt_kwargs:
             prompt_kwargs['target'] = sample['result']
-
-        sample['input_sequence'] = self.prompt.render(prompt_kwargs)
+        assert PROMPT_TO_USE is not None
+        sample['input_sequence'] = PROMPT_TO_USE.render(prompt_kwargs)
         return sample
 
     def serialize_task_features(self, idx: int, predictions: List, processed_sample: Dict) -> Dict:
         return {
-            'task'       : self.excluded_columns_data[idx]['task'],
-            'source_file': self.excluded_columns_data[idx]['source_file'],
-            **processed_sample
+            **self.excluded_columns_data[idx]
         }
 
 
@@ -379,6 +405,66 @@ SUPPORTED_TASKS = {
 }
 
 
+def execute_code(code):
+    result = None
+    with create_tempdir():
+        try:
+            stdout_f = io.StringIO()
+            stderr_f = io.StringIO()
+            with contextlib.redirect_stdout(stdout_f):
+                with contextlib.redirect_stderr(stderr_f):
+                    # sys.stdout.write = lambda *args, **kwargs: None
+                    exec(code, globals(), locals())
+        except Exception as e:
+            result = e
+    return result
+
+
+def check_code_executes_properly(split, unverified_samples):
+    results = defaultdict(list)
+    test_negations = defaultdict(list)
+    exclude_programs = defaultdict(list)
+    exec_fails = []
+    num_failed_tests = 0
+    instances_passed = 0
+    for i, program_dict in tqdm(enumerate(unverified_samples), desc='Executing',
+                                total=len(unverified_samples)):
+
+        code = ['def test_fn():']
+        raw_code = [program_dict['context'], program_dict['code']]
+        for block in map(lambda b: b.split('\n'), raw_code):
+            for line in filter(lambda b: b.strip(), block):
+                code.append(f"\t{line}")
+
+        test_code = f"{program_dict['input']} {program_dict['op']} {program_dict['output']}"
+        code.append(f"\tassert ({test_code})=={program_dict['result']}")
+        code.append("test_fn()")
+        result = execute_code('\n'.join(code))
+        if result is None:
+
+            instances_passed += 1
+        else:
+            results[program_dict['instance_idx']].append(program_dict['task_id'])
+            num_failed_tests += 1
+
+            exec_fails.append(program_dict)
+            if isinstance(result, AssertionError):
+                test_negations[program_dict['instance_idx']].append(
+                    f"{program_dict['input']} {program_dict['output']}"
+                )
+
+            else:
+                exclude_programs[program_dict['instance_idx']].append(
+                    f"{program_dict['input']} {program_dict['output']}"
+                )
+    logger.info(
+        f"{num_failed_tests}/{num_failed_tests + instances_passed} total "
+        f"failed verification for '{split}'"
+    )
+
+    return results, test_negations, exclude_programs, exec_fails
+
+
 def make_samples_from_dict(single_instance):
     io_pairs = single_instance.pop('input_output_pairs')
     specific_fixes = single_instance.pop('test_negations', [])
@@ -388,6 +474,7 @@ def make_samples_from_dict(single_instance):
     out = []
 
     io_combos = set()
+    pred_idx = 0
     for i, left in enumerate(io_pairs):
         to_keep = []
         for j, right in enumerate(io_pairs):
@@ -398,7 +485,7 @@ def make_samples_from_dict(single_instance):
             if io_pair in excluded:
                 continue
             if io_pair in specific_fixes:
-                result = True
+                result = not result
                 is_manual_fix = True
 
             combo = f"{left['input']} {op} {right['output']}"
@@ -410,12 +497,13 @@ def make_samples_from_dict(single_instance):
                 to_keep.append(
                     [exec_info, result, is_manual_fix]
                 )
-        for pred_idx, (execute_info, res, is_manual_fix) in enumerate(to_keep):
+        for execute_info, res, is_manual_fix in to_keep:
             pred_dict = deepcopy(single_instance)
             pred_dict['task_id'] = f"{pred_dict['task']}_{pred_dict['instance_idx']}_{pred_idx}"
             pred_dict.update(execute_info)
             pred_dict['result'] = str(res)
             pred_dict['is_manual_fix'] = is_manual_fix
             out.append(pred_dict)
+            pred_idx += 1
 
     return out

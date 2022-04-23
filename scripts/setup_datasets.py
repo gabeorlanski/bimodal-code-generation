@@ -1,6 +1,4 @@
-import contextlib
-import io
-from collections import defaultdict
+from collections import defaultdict, Counter
 from copy import deepcopy
 from itertools import chain
 from pathlib import Path
@@ -25,8 +23,7 @@ if str(Path(__file__).parents[1]) not in sys.path:
 from src.common import PROJECT_ROOT
 from src.common import setup_global_logging
 from src.common.file_util import validate_files_exist
-from src.data.npv import make_samples_from_dict, SUPPORTED_TASKS, NPV
-from src.evaluation.execute import create_tempdir
+from src.data.npv import make_samples_from_dict, SUPPORTED_TASKS, check_code_executes_properly
 
 
 def setup_mbpp(
@@ -109,22 +106,7 @@ def setup_mbpp(
     progress_bar.close()
 
 
-def execute_code(code):
-    result = None
-    with create_tempdir():
-        try:
-            stdout_f = io.StringIO()
-            stderr_f = io.StringIO()
-            with contextlib.redirect_stdout(stdout_f):
-                with contextlib.redirect_stderr(stderr_f):
-                    # sys.stdout.write = lambda *args, **kwargs: None
-                    exec(code, globals(), locals())
-        except Exception as e:
-            result = e
-    return result
-
-
-def setup_npv():
+def setup_npv(debug, num_false_pair_mod):
     logger = logging.getLogger('setup_datasets')
     data_path = Path(PROJECT_ROOT.joinpath('data/raw_npv'))
     logger.info(f"Making NPV data from files {data_path}")
@@ -152,94 +134,180 @@ def setup_npv():
                 for instance in parsed_dataset:
                     instance['instance_idx'] = len(raw_instances)
                     raw_instances.append(instance)
-                raw_instances.extend(parsed_dataset)
                 if parse_fails:
                     logger.info(f"{file_name} had {len(parse_fails)} fail(s)")
                     fails.extend(parse_fails)
 
         logger.info(f"Found {len(raw_instances)} samples for {split}")
-        random.shuffle(raw_instances)
-        #
-        # logger.info(f"Saving to {out_path.joinpath(f'{split}.jsonl')}")
-        # with raw_path.joinpath(f'{split}.jsonl').open('w') as f:
-        #     for i, v in enumerate(raw_instances):
-        #         f.write(f"{json.dumps(v)}\n")
 
-        logger.info(f"Making samples from {len(raw_instances)} raw instances")
+        if debug:
+            raw_instances = raw_instances[:25]
+        logger.info(f"Making samples from {len(raw_instances)} programs")
         unverified_samples = []
+        num_samples_per = {}
         for i, instance in tqdm(enumerate(raw_instances), total=len(raw_instances)):
-            unverified_samples.extend(make_samples_from_dict(deepcopy(instance)))
+            instance_samples = make_samples_from_dict(deepcopy(instance))
+            num_samples_per[instance['instance_idx']] = len(instance_samples)
+            unverified_samples.extend(instance_samples)
 
         logger.info(f"{len(unverified_samples)} total samples to verify")
-
-        results = {}
-        test_negations = defaultdict(list)
-        exclude_tests = defaultdict(list)
-        num_failed_tests = 0
-        for i, program_dict in tqdm(enumerate(unverified_samples), desc='Executing',
-                                    total=len(unverified_samples)):
-
-            code = ['def test_fn():']
-            raw_code = [program_dict['context'], program_dict['code']]
-            for block in map(lambda b: b.split('\n'), raw_code):
-                for line in filter(lambda b: b.strip(), block):
-                    code.append(f"\t{line}")
-
-            test_code = f"{program_dict['input']} {program_dict['op']} {program_dict['output']}"
-            code.append(f"\tassert ({test_code})=={program_dict['result']}")
-            code.append("test_fn()")
-            result = execute_code('\n'.join(code))
-            if result is None:
-                results[program_dict['instance_idx']] = True
-            else:
-                results[program_dict['instance_idx']] = False
-                num_failed_tests += 1
-
-                exec_fails.append(program_dict)
-                if isinstance(result, AssertionError):
-                    test_negations[program_dict['instance_idx']].append(
-                        f"{program_dict['input']} {program_dict['output']}"
-                    )
-                else:
-                    exclude_tests[program_dict['instance_idx']].append(
-                        f"{program_dict['input']} {program_dict['output']}"
-                    )
-        logger.info(f"{num_failed_tests} total failed the test for {split}")
+        results, test_negations, exclude_pairs, split_exec_fails = check_code_executes_properly(
+            split,
+            unverified_samples
+        )
         passed_programs = []
+        split_failed_execution = 0
         with raw_path.joinpath(f'{split}.jsonl').open('w') as f:
             for i, v in enumerate(raw_instances):
-                if not results[v['instance_idx']]:
-                    total_fail_exec += 1
+                if len(results[v['instance_idx']]) >= num_samples_per[v['instance_idx']]:
+                    split_failed_execution += 1
                     continue
 
                 v['test_negations'] = test_negations[v['instance_idx']]
-                v['exclude_tests'] = exclude_tests[v['instance_idx']]
+                v['exclude_tests'] = exclude_pairs[v['instance_idx']]
                 passed_programs.append(v)
                 out_str = f"{json.dumps(v)}\n"
                 f.write(out_str)
 
-        logger.info(f"Saving {len(passed_programs)} passed programs")
-        with out_path.joinpath(f'{split}.jsonl').open('w') as f:
-            for program_dict in tqdm(passed_programs):
-                all_samples = make_samples_from_dict(deepcopy(program_dict))
-                all_io_pairs = defaultdict(list)
-                for sample in all_samples:
-                    all_io_pairs[sample['input']].append({
-                        'input': sample['input'], 'op': sample['op'], 'ouptut': sample['output']
+        logger.info(f"{split_failed_execution} programs failed all sample execution for '{split}'")
+        total_fail_exec += split_failed_execution
+
+        # Verify the samples again, and this time if they fail, discard them.
+        unverified_samples = []
+        total_true_examples = 0
+        total_false_examples = 0
+        verified_samples_by_idx = defaultdict(dict)
+        for i, instance in tqdm(enumerate(passed_programs), total=len(raw_instances)):
+            samples = make_samples_from_dict(deepcopy(instance))
+            has_true = False
+            has_false = False
+            for sample in samples:
+                verified_samples_by_idx[instance['instance_idx']][sample['task_id']] = deepcopy(
+                    sample
+                )
+                if sample['result'] == 'True':
+                    total_true_examples += 1
+                    has_true = True
+                else:
+                    has_false = True
+                    total_false_examples += 1
+            if not has_true or not has_false:
+                raise ValueError(
+                    f"{instance['source_file']}[{instance['task']}] {instance['task_id']}")
+            unverified_samples.extend(samples)
+        logger.info(
+            f"After first verification pass for {split}, {total_true_examples} "
+            f"true examples and {total_false_examples} false examples"
+        )
+        logger.info(f"Doing second verification pass for '{split}'")
+        results, test_negations, _, _ = check_code_executes_properly(
+            split,
+            unverified_samples
+        )
+
+        removed_failed = 0
+        for instance_idx, failed_samples in results.items():
+            for task_id in failed_samples:
+                verified_samples_by_idx[instance_idx].pop(task_id)
+                removed_failed += 1
+        logger.info(f"Removed {removed_failed} program(s) because they failed twice")
+        total_fail_exec += removed_failed
+
+        count_tracker = Counter()
+        count_tracker['no_true_pairs'] = 0
+        count_tracker['not_eq_pair_keys'] = 0
+        mean_tracker = defaultdict(list)
+
+        all_false_instances = []
+        all_true_instances = []
+        to_save_false = []
+
+        false_count = Counter()
+        true_count = Counter()
+        for program_idx, sample_dict in tqdm(verified_samples_by_idx.items()):
+            false_count[program_idx] = 0
+            correct_io_pairs = defaultdict(list)
+            incorrect_io_pairs = defaultdict(list)
+            num_true_pairs = 0
+            num_false_pairs = 0
+            for sample in sample_dict.values():
+                if str(sample['result']) == 'True':
+                    num_true_pairs += 1
+                    correct_io_pairs[sample['input']].append({
+                        'input': sample['input'], 'op': sample['op'], 'output': sample['output']
+                    })
+                else:
+                    num_false_pairs += 1
+                    incorrect_io_pairs[sample['input']].append({
+                        'input': sample['input'], 'op': sample['op'], 'output': sample['output']
                     })
 
-                # Want to keep a dict of IO examples that are NOT the same as
-                # the one that is tested. So make a map storing it.
-                context_io_pair_map = {k: [] for k in all_io_pairs}
-                for input_str, outputs in all_io_pairs.items():
-                    for k in context_io_pair_map:
-                        if k == input_str:
-                            continue
-                        context_io_pair_map[k].extend(outputs)
+            if num_true_pairs == 0:
+                count_tracker['no_true_pairs'] += 1
 
-                for sample in all_samples:
-                    sample['context_io_pairs'] = context_io_pair_map[sample['input']]
-                    f.write(json.dumps(sample) + '\n')
+            if set(incorrect_io_pairs) != set(correct_io_pairs):
+                count_tracker['not_eq_pair_keys'] += 1
+
+            true_count[program_idx] = num_true_pairs
+            mean_tracker['created_false_pairs'].append(num_false_pairs)
+
+            # Want to keep a dict of IO examples that are NOT the same as
+            # the one that is tested. So make a map storing it.
+            context_io_pair_map = {k: {'True': [], 'False': []} for k in
+                                   set(correct_io_pairs).union(set(incorrect_io_pairs))}
+            for input_str, outputs in correct_io_pairs.items():
+                for k in context_io_pair_map:
+                    if k == input_str:
+                        continue
+                    context_io_pair_map[k]['True'].extend(outputs)
+                    context_io_pair_map[k]['False'].extend(incorrect_io_pairs[input_str])
+
+            program_false_samples = []
+            for sample in sample_dict.values():
+                sample['context_io_pairs'] = context_io_pair_map[sample['input']]
+                if str(sample['result']) == 'True':
+                    all_true_instances.append(sample)
+                else:
+                    program_false_samples.append(sample)
+            if not program_false_samples:
+                raise ValueError()
+
+            false_to_save = program_false_samples.pop(
+                random.choice(range(len(program_false_samples)))
+            )
+            false_count[program_idx] += 1
+            to_save_false.append(false_to_save)
+            all_false_instances.extend(program_false_samples)
+        to_save_samples = all_true_instances
+
+        num_false_to_save = max(0, num_false_pair_mod * len(to_save_samples) - len(to_save_false))
+        num_false_to_save = int(min(len(all_false_instances), num_false_to_save))
+
+        # Add them back to the list of ones to save after calculating the number
+        # of false to save so that we do not factor them back into the pool.
+        to_save_samples.extend(to_save_false)
+        logger.info(f"{len(to_save_samples)}/{len(all_false_instances)} are guaranteed to be saved")
+        logger.info(f"Randomly selecting {num_false_to_save}/{len(all_false_instances)} "
+                    f"from the false samples")
+
+        for idx in random.sample(range(len(all_false_instances)), k=num_false_to_save):
+            sample = all_false_instances[idx]
+            false_count[sample['instance_idx']] += 1  # type:ignore
+            to_save_samples.append(sample)
+
+        for k, v in true_count.items():
+            mean_tracker['selected_false'].append(false_count[k])
+            mean_tracker['true_pairs'].append(v)
+            mean_tracker['total_pairs'].append(v + false_count[k])
+        random.shuffle(to_save_samples)
+        with out_path.joinpath(f'{split}.jsonl').open('w') as f:
+            for sample in to_save_samples:
+                f.write(json.dumps(sample) + '\n')
+        logger.info(f"Stats for '{split}':")
+        for k, v in count_tracker.items():
+            logger.info(f"\t{k:>20} = {v}")
+        for k, v in mean_tracker.items():
+            logger.info(f"\t{k:>20} = {np.mean(v):.2f}")
 
     with out_path.joinpath('parse_fails.jsonl').open('w') as f:
         for fail in fails:
@@ -274,9 +342,13 @@ def setup_mbpp_cli(
 
 
 @setup_datasets.command('npv')
+@click.option(
+    '--num-false-pairs-mod', '-fratio', type=float, default=1.0,
+    help=f"Float ratio for number of false samples to number of true samples"
+)
 @click.pass_context
-def setup_npv_cli(ctx):
-    setup_npv()
+def setup_npv_cli(ctx, num_false_pairs_mod):
+    setup_npv(ctx.obj['DEBUG'], num_false_pairs_mod)
 
 
 if __name__ == "__main__":

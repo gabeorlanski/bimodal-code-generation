@@ -28,7 +28,9 @@ from src.config import (
 )
 
 from jinja2 import BaseLoader, Environment, StrictUndefined
-from sklearn.metrics import precision_recall_fscore_support
+from sklearn.metrics import (
+    precision_recall_fscore_support, precision_score, accuracy_score, recall_score, f1_score
+)
 
 import multiprocessing as mp
 
@@ -392,7 +394,10 @@ def evaluate_model_generation_task(
     # Get the full metrics suite for the predictions and the labels
     logger.info("Results:")
     for k, v in metrics.items():
-        logger.info(f"\t{k:>20} = {v:0.3f}")
+        if isinstance(v,int):
+            logger.info(f"\t{k:>20} = {v}")
+        else:
+            logger.info(f"\t{k:>20} = {v:0.3f}")
 
     serialized_predictions = []
     serialize_generator = task.serialize_predictions(cfg.split, indices, predictions)
@@ -415,13 +420,29 @@ def evaluate_model_classification_task(
     logger.info(f"Getting the data for split {cfg.split}")
     dataset = task.preprocess(cfg.split)
     debug_num_samples = cfg.get('debug_num_samples', None)
+    if cfg.objective == 'lm':
+        task.tokenizer.pad_token = task.tokenizer.eos_token
+        model.config.eos_token_id = task.tokenizer.eos_token_id
+        model.config.pad_token_id = task.tokenizer.eos_token_id
+        model.config.bos_token_id = task.tokenizer.eos_token_id
+        task.tokenizer.padding_side = 'left'
+        task.tokenizer.truncation_side = 'left'
 
     def tokenize(example, idx):
         # We do not pop so that we can still remove the columns later.
         out = {
-            "idx": idx, **task.tokenizer(example["input_sequence"])
+            "idx": idx,
+            **task.tokenizer(
+                example["input_sequence"],
+                truncation=True,
+                max_length=task.tokenizer.model_max_length - 1
+            )
         }
-        target_tokenized = task.tokenizer(example['target'])
+        target_tokenized = task.tokenizer(
+            example['target'],
+            truncation=True,
+            max_length=task.tokenizer.model_max_length - 1
+        )
         out.update(
             {
                 "labels": target_tokenized["input_ids"],
@@ -441,10 +462,10 @@ def evaluate_model_classification_task(
             'len': len(ex['input_ids']),
             **ex
         }
-    ).filter(lambda ex: ex['len'] < 1024)
+    )
     logger.info(f"{len(dataset)} total samples found")
 
-    tokenized = tokenized.sort('len', reverse=True)
+    tokenized = tokenized.sort('len', reverse=not debug)
     if debug_num_samples is not None:
         logger.warning(f"DEBUG NUMBER OF SAMPLES={debug_num_samples}")
         tokenized = tokenized.select(list(range(debug_num_samples)))
@@ -454,12 +475,6 @@ def evaluate_model_classification_task(
     # model = amp.initialize(model)
     logger.info(f"Model is on {model.device}")
     logger.debug(f"{type(dataset)=}")
-    if cfg.objective == 'lm':
-        task.tokenizer.pad_token = task.tokenizer.eos_token
-        model.config.eos_token_id = task.tokenizer.eos_token_id
-        model.config.pad_token_id = task.tokenizer.eos_token_id
-        model.config.bos_token_id = task.tokenizer.eos_token_id
-        task.tokenizer.padding_side = 'left'
 
     collator = DataCollatorForSeq2Seq(
         tokenizer=task.tokenizer,
@@ -519,6 +534,8 @@ def evaluate_model_classification_task(
                 local_input_ids = local_input_ids.to(device)
                 local_attention_mask = local_attention_mask.to(device)
 
+                # This was heavily inspired and has elements from:
+                # https://github.com/peterwestuw/surface-form-competition/blob/main/utils.py
                 logits = model(
                     input_ids=local_input_ids,
                     attention_mask=local_attention_mask
@@ -533,7 +550,10 @@ def evaluate_model_classification_task(
                     reduction='none'
                 )
                 ce_list = ce_list.view(n_seqs, max_len - 1).sum(dim=1).squeeze().tolist()
-
+                try:
+                    len(ce_list)
+                except:
+                    ce_list = [ce_list]
                 for idx, p in zip(batch['idx'], ce_list):
                     local_predictions[idx.item()].append(p)
             for k, v in local_predictions.items():
@@ -546,38 +566,60 @@ def evaluate_model_classification_task(
             if not progress_bar:
                 logger.info(f"Finished {completed}/{len(dataset)} generations")
 
-    predictions_int = torch.tensor(pred_probs).argmin(dim=-1).tolist()
-    predictions = list(map(lambda i: choice_list[i], predictions_int))
+    pred_probs = torch.tensor(pred_probs)
+    pred_ints = pred_probs.argmin(dim=-1)
+    predictions = list(map(lambda i: choice_list[i], pred_ints.tolist()))
 
     metrics = {
-        "accuracy" : 100 * sklearn.metrics.accuracy_score(targets, predictions),
-        "f1"       : 100 * sklearn.metrics.f1_score(targets, predictions, labels=choice_list,
-                                                    average='macro'),
-        "recall"   : 100 * sklearn.metrics.recall_score(targets, predictions, average='macro',
-                                                        labels=choice_list),
-        "precision": 100 * sklearn.metrics.precision_score(targets, predictions, average='macro',
-                                                           labels=choice_list),
+        "f1"       : 100 * f1_score(
+            targets,
+            predictions,
+            labels=choice_list,
+            average='macro'
+        ),
+        "recall"   : 100 * recall_score(
+            targets,
+            predictions,
+            average='macro',
+            labels=choice_list
+        ),
+        "precision": 100 * precision_score(
+            targets,
+            predictions,
+            average='macro',
+            labels=choice_list
+        ),
     }
 
-    precision, recall, f1_arr, occurrences = sklearn.metrics.precision_recall_fscore_support(
+    precision, recall, f1_arr, occurrences = precision_recall_fscore_support(
         targets, predictions, average=None, labels=choice_list
     )
 
+    pred_counts = pred_ints.bincount()
     for i, (p, r, f1, o) in enumerate(zip(precision, recall, f1_arr, occurrences)):
-        metrics[f'precision_{choice_list[i]}'] = p * 100
-        metrics[f'recall_{choice_list[i]}'] = r * 100
-        metrics[f'f1_{choice_list[i]}'] = f1 * 100
+        metrics[f'{choice_list[i]}_precision'] = p * 100
+        metrics[f'{choice_list[i]}_recall'] = r * 100
+        metrics[f'{choice_list[i]}_f1'] = f1 * 100
+        metrics[f'{choice_list[i]}_count'] = pred_counts[i].item()
 
     # Get the full metrics suite for the predictions and the labels
     logger.info("Results:")
     for k, v in metrics.items():
-        logger.info(f"\t{k:>20} = {v:0.3f}")
+        if isinstance(v,int):
+            logger.info(f"\t{k:>20} = {v}")
+        else:
+            logger.info(f"\t{k:>20} = {v:0.3f}")
+
+    # Apply softmax to rescale the log probabilities (also multiply by -1 as CE
+    # returns a positive number) then multiply by 100 and round to 5 decimal
+    # places for sanity. Then convert back to a list for saving.
+    pred_probs = (torch.softmax(pred_probs * -1, dim=-1) * 100).tolist()
 
     serialized_predictions = []
     serialize_generator = task.serialize_predictions(cfg.split, indices, predictions)
     for i, serialized_dict in tqdm(enumerate(serialize_generator), total=len(indices),
                                    desc="Serializing"):
-        choice_probs = {c: pred_probs[i][j] for j, c in enumerate(choice_list)}
+        choice_probs = {c: round(pred_probs[i][j],5) for j, c in enumerate(choice_list)}
         serialized_predictions.append({'prob': choice_probs, **serialized_dict})
 
     return metrics, serialized_predictions
@@ -604,8 +646,10 @@ def evaluate(
     logger.info(f"Using split '{splits_to_use}' for task '{cfg.task.name}'")
     all_metrics = {}
     split_paths = []
-
-    set_caching_enabled(not cfg.get('disable_cache', False))
+    if cfg.get('disable_cache',False):
+        datasets.disable_caching()
+    else:
+        datasets.enable_caching()
 
     if cfg.task.name in ['npv']:
         eval_fn = evaluate_model_classification_task

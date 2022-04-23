@@ -1,6 +1,7 @@
 import contextlib
 import io
 import json
+from copy import deepcopy
 from pathlib import Path
 
 import pytest
@@ -196,87 +197,17 @@ def test_special_mbpp(tmpdir):
     }
 
 
-@pytest.fixture(scope='module')
-def npv_task() -> npv.NPV:
-    out = Task.by_name('npv')(
-        tokenizer=AutoTokenizer.from_pretrained("patrickvonplaten/t5-tiny-random"),
-        preprocessors=[],
-        postprocessors=[],
-        metric_fns=[]
-    )
-    out.SPLIT_MAPPING = {
-        'test': FIXTURES_ROOT.joinpath('npv', 'npv.jsonl')
+def test_error():
+    instance = {
+        'source_file'       : 'mbpp_train.jsonl', 'task': 'MBPP', 'task_id': 667,
+        'description'       : 'Write a python function to count number of vowels in the string.',
+        'code'              : 'def Check_Vow(string, vowels): \n    final = [each for each in string if each in vowels] \n    return(len(final))',
+        'input_output_pairs': [
+            {'input': "Check_Vow('corner', 'AaEeIiOoUu')", 'output': '2', 'ops': '=='},
+            {'input': "Check_Vow('valid', 'AaEeIiOoUu')", 'output': '2', 'ops': '=='},
+            {'input': "Check_Vow('true', 'AaEeIiOoUu')", 'output': '2', 'ops': '=='}],
+        'context'           : '', 'instance_idx': 656, 'test_negations': [],
+        'exclude_tests'     : []
     }
-    out.excluded_columns_data = {}
-    out.dataset = None
-    out.excluded_columns_data = {}
-    out._dataset_mapping = out.initialize_data()
-    yield out
-
-
-class TestNPVTask:
-    def test_initialize(self, npv_task: npv.NPV):
-        result = npv_task._dataset_mapping
-        assert len(npv_task.excluded_columns_data) == 3
-        assert len(result) == 1
-        all_results = result['test']
-        assert len(all_results) == 42
-        result = all_results[:9]
-
-        for k in ['description', 'code', 'context', 'idx']:
-            assert all(v == result[k][0] for v in result[k]), k
-
-        assert result['input'] == ['count_binary_seq(1)', 'count_binary_seq(1)',
-                                   'count_binary_seq(1)', 'count_binary_seq(2)',
-                                   'count_binary_seq(2)', 'count_binary_seq(2)',
-                                   'count_binary_seq(3)', 'count_binary_seq(3)',
-                                   'count_binary_seq(3)']
-        assert result['op'] == ["=="] * 9
-        assert result['output'] == ["2.0", "6.0", "20.0"] * 3
-        assert result['result'] == ['True', 'False', 'False', 'False', 'True', 'False', 'False',
-                                    'False', 'True']
-
-        result = all_results[34:]
-
-        assert result['input'] == ['is_equal_to_sum_even(4)', 'is_equal_to_sum_even(4)',
-                                   'is_equal_to_sum_even(6)', 'is_equal_to_sum_even(6)',
-                                   'is_equal_to_sum_even(8)', 'is_equal_to_sum_even(8)',
-                                   'is_equal_to_sum_even(10)', 'is_equal_to_sum_even(10)']
-        assert result['output'] == ['False', 'True', 'False', 'True', 'False', 'True', 'False',
-                                    'True']
-        assert result['result'] == ['True', 'False', 'True', 'False', 'False', 'True', 'False',
-                                    'True']
-
-    @staticmethod
-    def assert_code_executes(code):
-        with create_tempdir():
-            try:
-                stdout_f = io.StringIO()
-                stderr_f = io.StringIO()
-                with contextlib.redirect_stdout(stdout_f):
-                    with contextlib.redirect_stderr(stderr_f):
-                        # sys.stdout.write = lambda *args, **kwargs: None
-                        exec(code, globals(), locals())
-            except Exception as e:
-                raise AssertionError(str(e))
-
-    def test_all_execute(self):
-        set_caching_enabled(False)
-        npv_task = Task.by_name('npv')(
-            tokenizer=AutoTokenizer.from_pretrained("patrickvonplaten/t5-tiny-random"),
-            preprocessors=[],
-            postprocessors=[],
-            metric_fns=[]
-        )
-        npv_task.prompt = npv_task.JINJA_ENV.from_string(
-            "def test_fn():{%- for line in context.split('\n') %}\n    {{line}}\n{%-endfor%}"
-            "\n{% for line in code.split('\n') %}\n    {{line}}\n{%- endfor %}"
-            "\n    assert ({{ test_stmt }}) == {{ target }}"
-            "\ntest_fn()"
-        )
-        npv_task.include_target_in_prompt_kwargs = True
-
-        ds = npv_task.preprocess('test', overwrite_cache=True)
-
-        for i, c in enumerate(ds['input_sequence']):
-            self.assert_code_executes(c)
+    result =npv.make_samples_from_dict(instance)
+    assert len(result)

@@ -1,6 +1,52 @@
-base: "{{ context }}{{code}}
+base: "{%- if context_code -%}{{ context_code }}{%- endif -%}
 
-{{ test_stmt }}{{ '\n' }}"
-console: "{{ context }}{{code}}
+{{code}}
+
+{% if context_examples -%}
+{%- for stmt, result in context_examples -%}
+{{ stmt ~ '\n' }}{{ result ~ '\n' }}
+{%- endfor -%}
+{%- endif -%}
+
+{{ test_stmt }}"
+base_with_description: "{{ description }}
+
+{% if context_code -%}{{ context_code }}{%- endif -%}
+
+{{code}}
+
+{% if context_examples -%}
+{%- for stmt, result in context_examples -%}
+{{ stmt ~ '\n' }}{{ result  ~  '\n' }}
+{%- endfor -%}
+{%- endif -%}
+
+{{ test_stmt }}"
+console: "{%- if context_code -%}{{ context_code }}{%- endif -%}
+
+{{code}}
+
+{% if context_examples -%}
+{%- for stmt,result in context_examples -%}
+>>> {{ stmt ~ '\n' }}{{ result ~ '\n' }}
+{%- endfor -%}
+{%- endif -%}
   
->>> {{ test_stmt }}{{ '\n' }}"
+>>> {{ test_stmt }}"
+full_console: "{%- if context_code -%}
+{%- for line in context_code.split('\n') -%}
+{%- if loop.index==1 -%}>>>{%- else -%}...{%- endif %}{{' '~line ~ '\n'}}
+{%- endfor-%}
+{%- endif -%}
+
+{%- for line in code.split('\n') -%}
+{%- if loop.index==1 -%}>>>{%- else -%}...{%- endif %}{{' '~line ~ '\n'}}
+{%- endfor-%}
+
+{% if context_examples -%}
+{%- for stmt,result in context_examples -%}
+>>> {{ stmt }}{{ '\n' }}{{ result ~ '\n' }}
+{%- endfor -%}
+{%- endif -%}
+  
+>>> {{ test_stmt }}"

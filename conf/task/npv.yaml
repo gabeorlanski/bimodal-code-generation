@@ -1,10 +1,15 @@
 name: npv
 
 params:
-  prompt: console
+  prompt: full_console
   choices:
     - False
     - True
+  n_ctx_pairs: 2
+  ctx_true_pct: 0.5
+  shuffle_ctx_pairs: False
+  stmt_prompt: "{stmt}"
+  trailing_newline: True
 
 preprocessors: []
 postprocessors: []
