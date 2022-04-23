@@ -48,38 +48,38 @@ experiments:
             ++model: 'lvwerra/codeparrot'
             ++evaluation.num_generate_per_step: 24
       - TaskPrompt:
-#          Base:
-#            description: Base Prompt with no formatting
-#            ++task.prompt: base
-#          OutConsole:
-#            description: Base Prompt with output formatted as the console
-#            ++task.prompt: console
-#          FullConsole:
-#            description: Full Console Prompt
-#            ++task.prompt: full_console
+          Base:
+            description: Base Prompt with no formatting
+            ++task.prompt: base
+          OutConsole:
+            description: Base Prompt with output formatted as the console
+            ++task.prompt: console
+          FullConsole:
+            description: Full Console Prompt
+            ++task.prompt: full_console
           Description:
             description: Base Prompt with description
             ++task.prompt: base_with_description
       - ContextExamples:
-#          Zero:
-#            description: No Context Examples
-#            ++task.n_ctx_pairs: 0
-#          1T1F:
-#            description: 1 True and 1 False example
-#            ++task.n_ctx_pairs: 2
-#            ++task.ctx_true_pct: .5
-#          0T2F:
-#            description: 0 True and 2 False example
-#            ++task.n_ctx_pairs: 2
-#            ++task.ctx_true_pct: 0
-#          2T0F:
-#            description: 2 True and 0 False example
-#            ++task.n_ctx_pairs: 2
-#            ++task.ctx_true_pct: 1
-#          2T1F:
-#            description: 2 True and 1 False example
-#            ++task.n_ctx_pairs: 3
-#            ++task.ctx_true_pct: .5
+          Zero:
+            description: No Context Examples
+            ++task.n_ctx_pairs: 0
+          1T1F:
+            description: 1 True and 1 False example
+            ++task.n_ctx_pairs: 2
+            ++task.ctx_true_pct: .5
+          0T2F:
+            description: 0 True and 2 False example
+            ++task.n_ctx_pairs: 2
+            ++task.ctx_true_pct: 0
+          2T0F:
+            description: 2 True and 0 False example
+            ++task.n_ctx_pairs: 2
+            ++task.ctx_true_pct: 1
+          2T1F:
+            description: 2 True and 1 False example
+            ++task.n_ctx_pairs: 3
+            ++task.ctx_true_pct: .5
           1T2F:
             description: 1 True and 2 False example
             ++task.n_ctx_pairs: 3
