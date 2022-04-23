@@ -19,4 +19,4 @@ simplejson==3.17.6
 simpy==4.0.1
 pint==0.19.1
 humanize==4.0.0
-parcel==1.6.0
+parsel==1.6.0
