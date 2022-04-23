@@ -194,3 +194,7 @@ data/tutorials/parsed/
 data/tutorials/code/
 
 data/tutorials/fails/
+data/NPV/test.jsonl
+data/NPV/train.jsonl
+data/NPV/validation.jsonl
+data/NPV/val.jsonl

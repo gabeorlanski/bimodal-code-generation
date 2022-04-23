@@ -1,6 +1,8 @@
 import contextlib
 import io
 from collections import defaultdict
+from copy import deepcopy
+from itertools import chain
 from pathlib import Path
 import logging
 import json
@@ -23,7 +25,7 @@ if str(Path(__file__).parents[1]) not in sys.path:
 from src.common import PROJECT_ROOT
 from src.common import setup_global_logging
 from src.common.file_util import validate_files_exist
-from src.data.npv import make_npv_data_from_dicts, SUPPORTED_TASKS, NPV
+from src.data.npv import make_samples_from_dict, SUPPORTED_TASKS, NPV
 from src.evaluation.execute import create_tempdir
 
 
@@ -130,89 +132,120 @@ def setup_npv():
     cfg = yaml.load(data_path.joinpath('cfg.yaml').open(), yaml.Loader)
 
     out_path = PROJECT_ROOT.joinpath('data/NPV')
+    raw_path = out_path.joinpath('raw')
     if not out_path.exists():
         out_path.mkdir(parents=True)
+    if not raw_path.exists():
+        raw_path.mkdir(parents=True)
     fails = []
     exec_fails = []
+    total_fail_exec = 0
     for split, file_cfg in cfg.items():
-        out = []
+        raw_instances = []
         for task, files in file_cfg.items():
             logger.info(f"{len(files)} files to use for task {task} in split {split}")
             for file_name in files:
                 logger.info(f"Parsing {file_name}")
                 file_path = data_path.joinpath(split, file_name)
 
-                parsed_dataset, parse_fails = make_npv_data_from_dicts(file_path, task)
-                out.extend(parsed_dataset)
+                parsed_dataset, parse_fails = SUPPORTED_TASKS[task](file_path)
+                for instance in parsed_dataset:
+                    instance['instance_idx'] = len(raw_instances)
+                    raw_instances.append(instance)
+                raw_instances.extend(parsed_dataset)
                 if parse_fails:
                     logger.info(f"{file_name} had {len(parse_fails)} fail(s)")
                     fails.extend(parse_fails)
 
-        logger.info(f"Found {len(out)} samples for {split}")
-        random.shuffle(out)
+        logger.info(f"Found {len(raw_instances)} samples for {split}")
+        random.shuffle(raw_instances)
+        #
+        # logger.info(f"Saving to {out_path.joinpath(f'{split}.jsonl')}")
+        # with raw_path.joinpath(f'{split}.jsonl').open('w') as f:
+        #     for i, v in enumerate(raw_instances):
+        #         f.write(f"{json.dumps(v)}\n")
 
-        logger.info(f"Saving to {out_path.joinpath(f'{split}.jsonl')}")
-        with out_path.joinpath(f'tmp_{split}.jsonl').open('w') as f:
-            for i, v in enumerate(out):
-                v['instance_idx'] = i
-                out_str = f"{json.dumps(v)}\n"
-                f.write(out_str)
-        NPV.SPLIT_MAPPING = {
-            split: out_path.joinpath(f'tmp_{split}.jsonl')
-        }
+        logger.info(f"Making samples from {len(raw_instances)} raw instances")
+        unverified_samples = []
+        for i, instance in tqdm(enumerate(raw_instances), total=len(raw_instances)):
+            unverified_samples.extend(make_samples_from_dict(deepcopy(instance)))
 
-        task = NPV(
-            tokenizer=AutoTokenizer.from_pretrained("patrickvonplaten/t5-tiny-random"),
-            preprocessors=[],
-            postprocessors=[],
-            metric_fns=[]
-        )
-        task.prompt = task.JINJA_ENV.from_string(
-            "def test_fn():{%- for line in context.split('\n') %}\n    {{line}}\n{%-endfor%}"
-            "\n{% for line in code.split('\n') %}\n    {{line}}\n{%- endfor %}"
-            "\n    assert ({{ test_stmt }}) == {{ target }}"
-            "\ntest_fn()"
-        )
-        task.include_target_in_prompt_kwargs = True
+        logger.info(f"{len(unverified_samples)} total samples to verify")
 
-        ds = task.preprocess('test', overwrite_cache=True)
         results = {}
         test_negations = defaultdict(list)
         exclude_tests = defaultdict(list)
         num_failed_tests = 0
-        for i, (idx, c) in tqdm(enumerate(zip(ds['instance_idx'], ds['input_sequence'])), desc='Executing',
-                                total=len(ds)):
+        for i, program_dict in tqdm(enumerate(unverified_samples), desc='Executing',
+                                    total=len(unverified_samples)):
 
-            task_id = task.excluded_columns_data[idx]['task_id']
+            code = ['def test_fn():']
+            raw_code = [program_dict['context'], program_dict['code']]
+            for block in map(lambda b: b.split('\n'), raw_code):
+                for line in filter(lambda b: b.strip(), block):
+                    code.append(f"\t{line}")
 
-            result = execute_code(c)
+            test_code = f"{program_dict['input']} {program_dict['op']} {program_dict['output']}"
+            code.append(f"\tassert ({test_code})=={program_dict['result']}")
+            code.append("test_fn()")
+            result = execute_code('\n'.join(code))
             if result is None:
-                results[task_id] = True
+                results[program_dict['instance_idx']] = True
             else:
-                results[task_id] = False
+                results[program_dict['instance_idx']] = False
                 num_failed_tests += 1
+
+                exec_fails.append(program_dict)
                 if isinstance(result, AssertionError):
-                    test_negations[idx].append(f"{ds[i]['input']} {ds[i]['output']}")
+                    test_negations[program_dict['instance_idx']].append(
+                        f"{program_dict['input']} {program_dict['output']}"
+                    )
                 else:
-                    exclude_tests[idx].append(f"{ds[i]['input']} {ds[i]['output']}")
-        logger.info(f"{num_failed_tests} total failed the test")
-        with out_path.joinpath(f'{split}.jsonl').open('w') as f:
-            for i, v in enumerate(out):
-                if not results[v['task_id']]:
-                    exec_fails.append(v)
+                    exclude_tests[program_dict['instance_idx']].append(
+                        f"{program_dict['input']} {program_dict['output']}"
+                    )
+        logger.info(f"{num_failed_tests} total failed the test for {split}")
+        passed_programs = []
+        with raw_path.joinpath(f'{split}.jsonl').open('w') as f:
+            for i, v in enumerate(raw_instances):
+                if not results[v['instance_idx']]:
+                    total_fail_exec += 1
                     continue
 
                 v['test_negations'] = test_negations[v['instance_idx']]
                 v['exclude_tests'] = exclude_tests[v['instance_idx']]
+                passed_programs.append(v)
                 out_str = f"{json.dumps(v)}\n"
                 f.write(out_str)
-        out_path.joinpath(f'tmp_{split}.jsonl').unlink()
+
+        logger.info(f"Saving {len(passed_programs)} passed programs")
+        with out_path.joinpath(f'{split}.jsonl').open('w') as f:
+            for program_dict in tqdm(passed_programs):
+                all_samples = make_samples_from_dict(deepcopy(program_dict))
+                all_io_pairs = defaultdict(list)
+                for sample in all_samples:
+                    all_io_pairs[sample['input']].append({
+                        'input': sample['input'], 'op': sample['op'], 'ouptut': sample['output']
+                    })
+
+                # Want to keep a dict of IO examples that are NOT the same as
+                # the one that is tested. So make a map storing it.
+                context_io_pair_map = {k: [] for k in all_io_pairs}
+                for input_str, outputs in all_io_pairs.items():
+                    for k in context_io_pair_map:
+                        if k == input_str:
+                            continue
+                        context_io_pair_map[k].extend(outputs)
+
+                for sample in all_samples:
+                    sample['context_io_pairs'] = context_io_pair_map[sample['input']]
+                    f.write(json.dumps(sample) + '\n')
 
     with out_path.joinpath('parse_fails.jsonl').open('w') as f:
         for fail in fails:
             f.write(json.dumps(fail) + '\n')
 
-    logger.info(f"{len(exec_fails)} failed execution")
+    logger.info(f"{total_fail_exec} failed execution")
     with out_path.joinpath('exec_fails.jsonl').open('w') as f:
         for fail in exec_fails:
             f.write(json.dumps(fail) + '\n')

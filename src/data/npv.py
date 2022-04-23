@@ -2,6 +2,7 @@ import json
 import logging
 import re
 from collections import defaultdict
+from copy import deepcopy
 from pathlib import Path
 from typing import List, Dict, Tuple, Callable
 
@@ -19,7 +20,7 @@ from jinja2 import BaseLoader, Environment, StrictUndefined
 logger = logging.getLogger(__name__)
 
 __all__ = [
-    "make_npv_data_from_dicts",
+    "make_samples_from_dict",
     "SUPPORTED_TASKS",
     "NPV"
 ]
@@ -76,7 +77,7 @@ class NPV(Task):
     }
 
     EXCLUDE_KEYS = [
-        'source_file', 'task', 'task_id'
+        'source_file', 'task', 'original_task_id'
     ]
 
     def __init__(
@@ -152,7 +153,8 @@ class NPV(Task):
                             split_dict[k].append(v)
 
                         split_dict['task_id'].append(f"{task_name}_{d['instance_idx']}_{pred_idx}")
-                        self.excluded_columns_data[f"{task_name}_{d['instance_idx']}_{pred_idx}"] = excluded
+                        self.excluded_columns_data[
+                            f"{task_name}_{d['instance_idx']}_{pred_idx}"] = excluded
                         split_dict['input'].append(input_val)
                         split_dict['op'].append(op)
                         split_dict['output'].append(output_val)
@@ -377,5 +379,43 @@ SUPPORTED_TASKS = {
 }
 
 
-def make_npv_data_from_dicts(file_path, task):
-    return SUPPORTED_TASKS[task](file_path)
+def make_samples_from_dict(single_instance):
+    io_pairs = single_instance.pop('input_output_pairs')
+    specific_fixes = single_instance.pop('test_negations', [])
+    excluded = single_instance.pop('exclude_tests', [])
+
+    single_instance['original_task_id'] = single_instance.pop("task_id")
+    out = []
+
+    io_combos = set()
+    for i, left in enumerate(io_pairs):
+        to_keep = []
+        for j, right in enumerate(io_pairs):
+            op = left['ops']
+            result = right['output'] == left['output']
+            is_manual_fix = False
+            io_pair = f"{left['input']} {right['output']}"
+            if io_pair in excluded:
+                continue
+            if io_pair in specific_fixes:
+                result = True
+                is_manual_fix = True
+
+            combo = f"{left['input']} {op} {right['output']}"
+            if combo not in io_combos:
+                io_combos.add(combo)
+                exec_info = {
+                    'input': left['input'], 'output': right['output'], 'op': op
+                }
+                to_keep.append(
+                    [exec_info, result, is_manual_fix]
+                )
+        for pred_idx, (execute_info, res, is_manual_fix) in enumerate(to_keep):
+            pred_dict = deepcopy(single_instance)
+            pred_dict['task_id'] = f"{pred_dict['task']}_{pred_dict['instance_idx']}_{pred_idx}"
+            pred_dict.update(execute_info)
+            pred_dict['result'] = str(res)
+            pred_dict['is_manual_fix'] = is_manual_fix
+            out.append(pred_dict)
+
+    return out
