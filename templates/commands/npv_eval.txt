@@ -4,7 +4,7 @@
 {% set account_str="\\" %}
 {%- endif -%}
 {%- set cancel_file="generated_experiments/cancel_scripts/"~job_name~".sh" -%}
-mkdir -p {{cancel_file}}
+mkdir -p generated_experiments/cancel_scripts
 rm -f {{ cancel_file }}
 echo "#!/bin/bash" >> {{cancel_file}}
 
