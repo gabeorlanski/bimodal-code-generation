@@ -15,48 +15,49 @@ experiments:
       ++tracking.entity: nyu-code-research
     ablations:
       - Model:
-          Neo125M:
-            description: GPT Neo 125M
-            ++model: 'EleutherAI/gpt-neo-125M'
-            ++evaluation.num_generate_per_step: 64
-          Neo1B:
-            description: GPT Neo 1.3B
-            ++model: 'EleutherAI/gpt-neo-1.3B'
-            ++evaluation.num_generate_per_step: 24
-          Neo2B:
-            description: GPT Neo 2B
-            ++model: 'EleutherAI/gpt-neo-2.7B'
-            ++evaluation.num_generate_per_step: 12
-          GPTJ:
-            description: GPT J 6B
-            ++model: 'EleutherAI/gpt-j-6B'
-            ++evaluation.num_generate_per_step: 6
-          Incoder1B:
-            description: Incoder 1B
-            ++model: 'facebook/incoder-1B'
-            ++evaluation.num_generate_per_step: 32
+
           Incoder6B:
             description: Incoder 6B
             ++model: 'facebook/incoder-6B'
             ++evaluation.num_generate_per_step: 6
-          ParrotSmall:
-            description: CodeParrot Small
-            ++model: 'lvwerra/codeparrot-small'
-            ++evaluation.num_generate_per_step: 64
+          GPTJ:
+            description: GPT J 6B
+            ++model: 'EleutherAI/gpt-j-6B'
+            ++evaluation.num_generate_per_step: 6
+          Neo2B:
+            description: GPT Neo 2B
+            ++model: 'EleutherAI/gpt-neo-2.7B'
+            ++evaluation.num_generate_per_step: 12
           Parrot:
             description: CodeParrot Normal
             ++model: 'lvwerra/codeparrot'
             ++evaluation.num_generate_per_step: 24
+          Neo1B:
+            description: GPT Neo 1.3B
+            ++model: 'EleutherAI/gpt-neo-1.3B'
+            ++evaluation.num_generate_per_step: 24
+          Incoder1B:
+            description: Incoder 1B
+            ++model: 'facebook/incoder-1B'
+            ++evaluation.num_generate_per_step: 32
+          ParrotSmall:
+            description: CodeParrot Small
+            ++model: 'lvwerra/codeparrot-small'
+            ++evaluation.num_generate_per_step: 64
+          Neo125M:
+            description: GPT Neo 125M
+            ++model: 'EleutherAI/gpt-neo-125M'
+            ++evaluation.num_generate_per_step: 64
       - TaskPrompt:
-#          Base:
-#            description: Base Prompt with no formatting
-#            ++task.params.prompt: base
-#          OutConsole:
-#            description: Base Prompt with output formatted as the console
-#            ++task.params.prompt: console
-#          FullConsole:
-#            description: Full Console Prompt
-#            ++task.params.prompt: full_console
+          Base:
+            description: Base Prompt with no formatting
+            ++task.params.prompt: base
+          OutConsole:
+            description: Base Prompt with output formatted as the console
+            ++task.params.prompt: console
+          FullConsole:
+            description: Full Console Prompt
+            ++task.params.prompt: full_console
           Description:
             description: Base Prompt with description
             ++task.params.prompt: base_with_description

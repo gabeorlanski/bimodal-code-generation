@@ -1,4 +1,4 @@
-base: "{%- if context_code -%}{{ context_code }}{%- endif -%}
+base: "{%- if context_code -%}{{ context_code ~ '\n' }}{%- endif -%}
 
 {{code}}
 
@@ -11,7 +11,7 @@ base: "{%- if context_code -%}{{ context_code }}{%- endif -%}
 {{ test_stmt }}"
 base_with_description: "{{ description }}
 
-{% if context_code -%}{{ context_code }}{%- endif -%}
+{% if context_code -%}{{ context_code ~ '\n' }}{%- endif -%}
 
 {{code}}
 
@@ -22,7 +22,7 @@ base_with_description: "{{ description }}
 {%- endif -%}
 
 {{ test_stmt }}"
-console: "{%- if context_code -%}{{ context_code }}{%- endif -%}
+console: "{%- if context_code -%}{{ context_code ~ '\n' }}{%- endif -%}
 
 {{code}}
 
