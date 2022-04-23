@@ -1,8 +1,8 @@
 #!/bin/bash
 #SBATCH --output=./sbatch_logs/%x.out
 #SBATCH --gres=gpu:rtx8000:1
-#SBATCH --mem=64G
-#SBATCH -c 4
+#SBATCH --mem=128G
+#SBATCH -c 8
 #SBATCH --account=cds
 #SBATCH --qos=cds
 #SBATCH --kill-on-invalid-dep=yes

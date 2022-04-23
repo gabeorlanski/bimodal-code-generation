@@ -18,11 +18,11 @@ experiments:
           Neo125M:
             description: GPT Neo 125M
             ++model: 'EleutherAI/gpt-neo-125M'
-            ++evaluation.num_generate_per_step: 10
+            ++evaluation.num_generate_per_step: 64
           Neo1B:
             description: GPT Neo 1.3B
             ++model: 'EleutherAI/gpt-neo-1.3B'
-            ++evaluation.num_generate_per_step: 10
+            ++evaluation.num_generate_per_step: 24
           Neo2B:
             description: GPT Neo 2B
             ++model: 'EleutherAI/gpt-neo-2.7B'
@@ -34,7 +34,7 @@ experiments:
           Incoder1B:
             description: Incoder 1B
             ++model: 'facebook/incoder-1B'
-            ++evaluation.num_generate_per_step: 10
+            ++evaluation.num_generate_per_step: 32
           Incoder6B:
             description: Incoder 6B
             ++model: 'facebook/incoder-6B'
@@ -42,7 +42,7 @@ experiments:
           ParrotSmall:
             description: CodeParrot Small
             ++model: 'lvwerra/codeparrot-small'
-            ++evaluation.num_generate_per_step: 10
+            ++evaluation.num_generate_per_step: 64
           Parrot:
             description: CodeParrot Normal
             ++model: 'lvwerra/codeparrot'
@@ -98,8 +98,8 @@ experiments:
       file: templates/commands/npv_eval.txt
       kwargs:
         train_sbatch: train_single_gpu
-        finetune_time: "12:00:00"
-        pretrain_time: "12:00:00"
+        finetune_time: "4:00:00"
+        pretrain_time: "4:00:00"
         use_cds: True
       fields:
         - model_path

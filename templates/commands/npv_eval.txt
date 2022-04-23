@@ -12,7 +12,7 @@ echo "#!/bin/bash" >> {{cancel_file}}
 eval_jid{{idx}}=$(sbatch --parsable \
 	--time={{ finetune_time }} \
 	--job-name={{ job_name }}_eval \
-	--dependency=afterok:$train_jid{{ idx}} eval.sbatch \
+	eval.sbatch \
 	{{NPV.model_path}} npv {{ NPV.path }})
 echo "Submitted Eval $eval_jid{{idx}} to run after $1(id=$train_jid{{ idx}})"
 echo "scancel $eval_jid{{idx}}" >> {{cancel_file}}
