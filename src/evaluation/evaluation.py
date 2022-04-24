@@ -639,7 +639,7 @@ def evaluate(
         out_path: Path,
         dry_run: bool
 ):
-    datasets.logging.disable_progress_bar()
+    # datasets.logging.disable_progress_bar()
     seed = cfg["seed"]
     logger.debug(f"Setting the seed to {seed}")
     random.seed(seed)
