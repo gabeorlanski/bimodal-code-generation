@@ -374,7 +374,7 @@ def generate_more_io_pairs(
     tokenizer.padding_side = 'left'
     tokenizer.truncation_side = 'left'
 
-    num_rtr_sequences = 5
+    num_rtr_sequences = 10
     generation_kwargs = {
         'do_sample'           : True,
         'temperature'         : temperature,
@@ -425,7 +425,7 @@ def generate_more_io_pairs(
             prompts_tok = tokenizer(prompts, return_tensors='pt', padding='longest')
             max_length = prompts_tok['input_ids'].size(1) + 128
 
-            for _ in range(5):
+            for _ in range(2):
                 results = model.generate(
                     max_length=max_length,
                     **{k: v.to(device) for k, v in prompts_tok.items()},
