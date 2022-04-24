@@ -405,9 +405,15 @@ def generate_more_io_pairs(
     with torch.inference_mode():
         pbar = tqdm(total=num_rtr_sequences * math.ceil(len(instances) / batch_size),
                     desc='Generating')
+
+        sorted_instances = list(sorted(
+            instances,
+            key=lambda inst: sum(map(lambda io_p: len(io_p['input']), inst['input_output_pairs'])),
+            reverse=True)
+        )
         for i in range(0, len(instances), batch_size):
             prompts = []
-            batch = instances[i:i + batch_size]
+            batch = sorted_instances[i:i + batch_size]
             for idx, instance in enumerate(batch):
                 idx_to_instance_idx[instance['instance_idx']] = i + idx
                 prompt = ""
