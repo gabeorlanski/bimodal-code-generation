@@ -375,6 +375,7 @@ def generate_more_io_pairs(
     tokenizer.truncation_side = 'left'
 
     num_rtr_sequences = 10
+    num_iters = 2
     generation_kwargs = {
         'do_sample'           : True,
         'temperature'         : temperature,
@@ -403,7 +404,7 @@ def generate_more_io_pairs(
     torch.backends.cudnn.benchmark = True
     model.eval()
     with torch.inference_mode():
-        pbar = tqdm(total=num_rtr_sequences * math.ceil(len(instances) / batch_size),
+        pbar = tqdm(total=num_rtr_sequences* num_iters* math.ceil(len(instances) / batch_size),
                     desc='Generating')
 
         sorted_instances = list(sorted(
@@ -425,7 +426,7 @@ def generate_more_io_pairs(
             prompts_tok = tokenizer(prompts, return_tensors='pt', padding='longest')
             max_length = prompts_tok['input_ids'].size(1) + 128
 
-            for _ in range(2):
+            for _ in range(num_iters):
                 results = model.generate(
                     max_length=max_length,
                     **{k: v.to(device) for k, v in prompts_tok.items()},
@@ -449,7 +450,7 @@ def generate_more_io_pairs(
                             )
                         ))
                     )
-                pbar.update(1)
+                pbar.update(num_rtr_sequences)
         pbar.close()
 
     mp_args = []
