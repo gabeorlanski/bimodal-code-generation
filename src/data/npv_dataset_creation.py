@@ -3,6 +3,7 @@ import contextlib
 import io
 import json
 import logging
+import math
 import re
 import signal
 from collections import defaultdict
@@ -402,7 +403,9 @@ def generate_more_io_pairs(
 
     model.eval()
     with torch.inference_mode():
-        for i in tqdm(range(0, len(instances), batch_size), desc='Generating'):
+        pbar = tqdm(total=num_rtr_sequences * math.ceil(len(instances) / batch_size),
+                    desc='Generating')
+        for i in range(0, len(instances), batch_size):
             prompts = []
             batch = instances[i:i + batch_size]
             for idx, instance in enumerate(batch):
@@ -414,7 +417,7 @@ def generate_more_io_pairs(
                 prompts.append(prompt)
 
             prompts_tok = tokenizer(prompts, return_tensors='pt', padding='longest')
-            max_length = prompts_tok['input_ids'].size(1) * 2
+            max_length = prompts_tok['input_ids'].size(1) + 128
 
             for _ in range(5):
                 results = model.generate(
@@ -440,6 +443,8 @@ def generate_more_io_pairs(
                             )
                         ))
                     )
+                pbar.update(1)
+        pbar.close()
 
     mp_args = []
     for instance_idx, generated in generated_io_by_instance_idx.items():
