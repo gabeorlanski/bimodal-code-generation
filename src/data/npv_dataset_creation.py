@@ -374,7 +374,7 @@ def generate_more_io_pairs(
     tokenizer.padding_side = 'left'
     tokenizer.truncation_side = 'left'
 
-    num_rtr_sequences = 10
+    num_rtr_sequences = 5
     num_iters = 2
     generation_kwargs = {
         'do_sample'           : True,
