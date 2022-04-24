@@ -468,10 +468,11 @@ def evaluate_model_classification_task(
     )
     logger.info(f"{len(dataset)} total samples found")
 
-    tokenized = tokenized.sort('len', reverse=not debug)
-    if debug_num_samples is not None:
-        logger.warning(f"DEBUG NUMBER OF SAMPLES={debug_num_samples}")
-        tokenized = tokenized.select(list(range(debug_num_samples)))
+    if debug_num_samples is not None or debug:
+        tokenized = tokenized.sort('len', reverse=debug_num_samples is None)
+        if debug_num_samples is not None:
+            logger.warning(f"DEBUG NUMBER OF SAMPLES={debug_num_samples}")
+            tokenized = tokenized.select(list(range(debug_num_samples)))
 
     device = get_device_from_cfg(cfg)
     model = model.to(device)
@@ -574,7 +575,7 @@ def evaluate_model_classification_task(
     predictions = list(map(lambda i: choice_list[i], pred_ints.tolist()))
 
     metrics = {
-        "accuracy"       : 100 * accuracy_score(
+        "accuracy" : 100 * accuracy_score(
             targets,
             predictions
         ),

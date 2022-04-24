@@ -1,34 +1,29 @@
-import json
-import logging
-import math
-import random
-import re
-from collections import defaultdict
-from copy import deepcopy
-from pathlib import Path
-from typing import List, Dict, Tuple, Callable
-from itertools import chain, zip_longest
+import ast
 import contextlib
 import io
-import yaml
-from datasets import Dataset, DatasetDict
-from tqdm import tqdm
-import ast
+import json
+import logging
+import re
+import signal
+from collections import defaultdict
+from copy import deepcopy
+from typing import List, Dict, Tuple
+from transformers import AutoTokenizer, AutoModelForCausalLM
+import torch
 import astor
-from tio import Task
-from transformers import PreTrainedTokenizer
-from src.common import PathType, PROJECT_ROOT
-
+from tqdm import tqdm
+import multiprocessing as mp
+import pickle
+import inspect
 from src.evaluation.execute import create_tempdir
-from jinja2 import BaseLoader, Environment, StrictUndefined
 
 logger = logging.getLogger(__name__)
 
 __all__ = [
     "make_samples_from_dict",
     "SUPPORTED_TASKS",
-    "NPV",
-    "check_code_executes_properly"
+    "check_io_sample_executes_correctly",
+    "generate_more_io_pairs"
 ]
 OP_TO_STR = {
     ast.Eq   : '==',
@@ -41,6 +36,16 @@ OP_TO_STR = {
     ast.IsNot: "is not",
     ast.In   : "in",
     ast.NotIn: "not in"
+}
+
+OP_NEGATION_MAP = {
+    k: v for a, b in [
+        ("!=", '=='),
+        ("<", '>='),
+        (">", '<='),
+        ("is not", "is"),
+        ("not in", "in"),
+    ] for k, v in [(a, b), (b, a)]
 }
 
 PROG_SPLIT = re.compile(r'(class |def )')
@@ -76,148 +81,6 @@ class CustomSourceGenerator(astor.SourceGenerator):
         self.write(')')
 
 
-JINJA_ENV = Environment(loader=BaseLoader)  # type: ignore
-JINJA_ENV.globals.update(zip=zip)
-JINJA_ENV.undefined = StrictUndefined
-
-PROMPT_TO_USE = None
-
-
-@Task.register("npv")
-class NPV(Task):
-    SPLIT_MAPPING = {
-        "test": str(PROJECT_ROOT.joinpath('data', 'NPV', 'test.jsonl')),
-    }
-
-    EXCLUDE_KEYS = [
-        'source_file', 'task', 'original_task_id'
-    ]
-
-    def __init__(
-            self,
-            tokenizer: PreTrainedTokenizer,
-            preprocessors: List[Callable],
-            postprocessors: List[Callable],
-            metric_fns: List[Callable],
-            split_mapping: Dict[str, PathType] = None,
-            prompt: str = "base",
-            choices: List[str] = None,
-            n_ctx_pairs: int = 0,
-            ctx_true_pct: float = 0.5,
-            shuffle_ctx_pairs: bool = False,
-            stmt_prompt: str = "{stmt}",
-            trailing_newline: bool = False
-    ):
-        super(NPV, self).__init__(
-            preprocessors=preprocessors,
-            tokenizer=tokenizer,
-            postprocessors=postprocessors,
-            metric_fns=metric_fns,
-            split_mapping=split_mapping
-        )
-        self.dataset = None
-        self.excluded_columns_data = {}
-        self._dataset_mapping = self.initialize_data()
-        self.choices = choices or ["False", 'True']
-        prompt_dict = yaml.load(PROJECT_ROOT.joinpath('templates/npv_prompts.yaml').open(),
-                                yaml.Loader)
-
-        global PROMPT_TO_USE
-        PROMPT_TO_USE = JINJA_ENV.from_string(prompt_dict[prompt])
-        self.include_target_in_prompt_kwargs = False
-        self.num_context_pairs = n_ctx_pairs
-        self.num_true_ctx_pairs = math.ceil(ctx_true_pct * self.num_context_pairs)
-        self.num_false_ctx_pairs = max(0, self.num_context_pairs - self.num_true_ctx_pairs)
-        self.shuffle_ctx_pairs = shuffle_ctx_pairs
-        self.stmt_prompt = stmt_prompt
-        self.trailing_newline = trailing_newline
-
-    def initialize_data(self):
-        out = {}
-        for split, path in self.SPLIT_MAPPING.items():
-            split_dict = defaultdict(list)
-            for d in tqdm(
-                    map(json.loads, Path(path).read_text('utf-8').splitlines(False)),
-                    desc=f"Reading '{split}'"
-            ):
-
-                excluded = {}
-                for k, v in d.items():
-                    if k in self.EXCLUDE_KEYS:
-                        excluded[k] = v
-                    else:
-                        split_dict[k].append(v)
-                self.excluded_columns_data[d['task_id']] = excluded
-
-            out[split] = Dataset.from_dict(split_dict, split=split)
-        return DatasetDict(out)
-
-    def _load_samples(self, split: str) -> Dataset:
-        return self._dataset_mapping[split]
-
-    def make_stmt_from_io(self, input_stmt, op, output_stmt, is_ctx=False):
-        out = self.stmt_prompt.format(stmt=f"{input_stmt} {op} {output_stmt}")
-        if self.trailing_newline and not is_ctx:
-            return f"{out}\n"
-        return out
-
-    def map_to_standard_entries(self, sample: Dict) -> Dict:
-        sample['target'] = sample['result']
-        test_stmt = self.make_stmt_from_io(sample['input'], sample['op'], sample['output'])
-
-        true_examples = random.sample(
-            sample['context_io_pairs']['True'],
-            k=min(self.num_true_ctx_pairs, len(sample['context_io_pairs']['True']))
-        )
-        false_examples = random.sample(
-            sample['context_io_pairs']['False'],
-            k=min(self.num_false_ctx_pairs, len(sample['context_io_pairs']['False']))
-        )
-
-        context_examples = []
-        for true_example, false_example in zip_longest(true_examples, false_examples):
-            if true_example is not None:
-                context_examples.append([self.make_stmt_from_io(
-                    true_example['input'], true_example['op'], true_example['output'], is_ctx=True
-                ), 'True'])
-            if false_example is not None:
-                context_examples.append([self.make_stmt_from_io(
-                    false_example['input'], false_example['op'], false_example['output'],
-                    is_ctx=True
-                ), 'False'])
-
-        if self.shuffle_ctx_pairs:
-            random.shuffle(context_examples)
-
-        # Some are VERY long, so we need to adapt for that by removing context
-        # examples until we either have no context or have under the threshold.
-        # num_required_chars = len(sample['context'] + sample['code'].lstrip())
-        # context_example_chars = sum(map(len, context_examples))
-        # if num_required_chars + context_example_chars >= 1000:
-        #     logger.warning(f"{sample['task_id']} has too many characters, "
-        #                    f"removing some context examples")
-        #     while num_required_chars + context_example_chars >= 1000 and context_examples:
-        #         context_example_chars -= len(context_examples.pop(-1))
-
-        prompt_kwargs = {
-            "context_code"    : sample['context'],
-            'context_examples': context_examples,
-            'description'     : sample['description'],
-            'code'            : sample['code'].lstrip(),
-            'test_stmt'       : test_stmt
-        }
-        if self.include_target_in_prompt_kwargs:
-            prompt_kwargs['target'] = sample['result']
-        assert PROMPT_TO_USE is not None
-        sample['input_sequence'] = PROMPT_TO_USE.render(prompt_kwargs)
-        return sample
-
-    def serialize_task_features(self, idx: int, predictions: List, processed_sample: Dict) -> Dict:
-        return {
-            **self.excluded_columns_data[idx]
-        }
-
-
 class IOPairsFromAssertVisitor(ast.NodeVisitor):
     def __init__(self):
         self.io_pairs = []
@@ -230,6 +93,13 @@ class IOPairsFromAssertVisitor(ast.NodeVisitor):
         assert not node.keywords
         self.func_name = node.func.id  # type: ignore
         return node.args
+
+    def visit_Call(self, node):
+        try:
+            self.func_name = node.func.id
+        except:
+            pass
+        self.generic_visit(node)
 
     def visit_Compare(self, node):
         # if not node.ops or not isinstance(node.left, list):  # type: ignore
@@ -251,6 +121,8 @@ class IOPairsFromAssertVisitor(ast.NodeVisitor):
             'ops'   : OP_TO_STR[type(node.ops[0])]  # type:ignore
         })
 
+        self.generic_visit(node)
+
 
 def serialize_instance_to_dict(
         source_file,
@@ -258,11 +130,13 @@ def serialize_instance_to_dict(
         task_id: str,
         description: str,
         program: str,
+        func_name: str,
         input_output_pairs: List[Dict],
         context: str = ''
 ):
     return {
         'source_file'       : source_file,
+        'function'          : func_name,
         "task"              : task,
         "task_id"           : task_id,
         "description"       : description,
@@ -346,6 +220,7 @@ def parse_human_eval(file_path) -> Tuple[List[Dict], List[Dict]]:
         out.append(serialize_instance_to_dict(
             source_file=file_path.stem + file_path.suffix,
             task='HUMAN_EVAL',
+            func_name=line['entry_point'],
             task_id=line['task_id'],
             description=description,
             program=program.strip(),
@@ -391,6 +266,7 @@ def parse_mbpp(file_path) -> Tuple[List[Dict], List[Dict]]:
         out.append(serialize_instance_to_dict(
             source_file=file_path.stem + file_path.suffix,
             task='MBPP',
+            func_name=visitor.func_name,
             task_id=line['task_id'],
             description=line['text'].replace('\r', ''),
             program=program,
@@ -421,7 +297,20 @@ def execute_code(code):
     return result
 
 
-def check_code_executes_properly(split, unverified_samples):
+def make_code_sample(code_str, context, test_stmt):
+    code = ['def test_fn():']
+    raw_code = [context, code_str]
+    for block in map(lambda b: b.split('\n'), raw_code):
+        for line in filter(lambda b: b.strip(), block):
+            code.append(f"\t{line}")
+
+    for line in test_stmt.split('\n'):
+        code.append(f"\t{line}")
+    code.append("RETURN_VALUE = test_fn()")
+    return '\n'.join(code)
+
+
+def check_io_sample_executes_correctly(split, unverified_samples):
     results = defaultdict(list)
     test_negations = defaultdict(list)
     exclude_programs = defaultdict(list)
@@ -430,17 +319,12 @@ def check_code_executes_properly(split, unverified_samples):
     instances_passed = 0
     for i, program_dict in tqdm(enumerate(unverified_samples), desc='Executing',
                                 total=len(unverified_samples)):
+        test_stmt = f"{program_dict['input']} {program_dict['op']} {program_dict['output']}"
+        test_stmt = f"assert ({test_stmt})=={program_dict['result']}"
 
-        code = ['def test_fn():']
-        raw_code = [program_dict['context'], program_dict['code']]
-        for block in map(lambda b: b.split('\n'), raw_code):
-            for line in filter(lambda b: b.strip(), block):
-                code.append(f"\t{line}")
-
-        test_code = f"{program_dict['input']} {program_dict['op']} {program_dict['output']}"
-        code.append(f"\tassert ({test_code})=={program_dict['result']}")
-        code.append("test_fn()")
-        result = execute_code('\n'.join(code))
+        result = execute_code(
+            make_code_sample(program_dict['code'], program_dict['context'], test_stmt)
+        )
         if result is None:
 
             instances_passed += 1
@@ -466,7 +350,204 @@ def check_code_executes_properly(split, unverified_samples):
     return results, test_negations, exclude_programs, exec_fails
 
 
-def make_samples_from_dict(single_instance):
+def generate_more_io_pairs(
+        instances,
+        model_name,
+        temperature,
+        p_val,
+        batch_size,
+        workers
+):
+    logger.info(f"Generating more io pairs for {len(instances)} instances")
+    device = torch.device('cuda:0')
+    tokenizer = AutoTokenizer.from_pretrained(model_name)
+    model = AutoModelForCausalLM.from_pretrained(model_name).to(device)
+
+    eos_token = tokenizer.eos_token or tokenizer.bos_token
+    tokenizer.eos_token = eos_token
+    tokenizer.bos_token = eos_token
+    tokenizer.pad_token = tokenizer.eos_token
+    model.config.eos_token_id = tokenizer.eos_token_id
+    model.config.pad_token_id = tokenizer.eos_token_id
+    model.config.bos_token_id = tokenizer.eos_token_id
+    tokenizer.padding_side = 'left'
+    tokenizer.truncation_side = 'left'
+
+    num_rtr_sequences = 5
+    generation_kwargs = {
+        'do_sample'           : True,
+        'temperature'         : temperature,
+        'top_p'               : p_val,
+        'num_return_sequences': num_rtr_sequences
+    }
+    generated_io_by_instance_idx = defaultdict(list)
+    idx_to_instance_idx = {}
+
+    def get_func_from_line(line, prompt_str, func_name):
+        if not line.startswith(">>>"):
+            return None
+
+        if func_name not in line:
+            return None
+
+        func_str = line.split('>>>')[-1].strip().split('#')[0].strip()
+        if func_str in prompt_str:
+            return None
+
+        try:
+            ast.parse(func_str)
+        except SyntaxError as e:
+            return None
+        return func_str
+
+    model.eval()
+    with torch.inference_mode():
+        for i in tqdm(range(0, len(instances), batch_size), desc='Generating'):
+            prompts = []
+            batch = instances[i:i + batch_size]
+            for idx, instance in enumerate(batch):
+                idx_to_instance_idx[instance['instance_idx']] = i + idx
+                prompt = ""
+                for input_str in map(lambda d: d['input'], instance['input_output_pairs']):
+                    prompt += f">>> {input_str}\n"
+                prompt += f">>> {instance['function']}("
+                prompts.append(prompt)
+
+            prompts_tok = tokenizer(prompts, return_tensors='pt', padding='longest')
+            max_length = prompts_tok['input_ids'].size(1) * 2
+
+            for _ in range(5):
+                results = model.generate(
+                    max_length=max_length,
+                    **{k: v.to(device) for k, v in prompts_tok.items()},
+                    **generation_kwargs
+                )
+
+                decoded = tokenizer.batch_decode(results.tolist(), skip_special_tokens=True)
+
+                for j, seq in enumerate(decoded):
+                    batch_idx = j % num_rtr_sequences
+                    generated_io_by_instance_idx[batch[batch_idx]['instance_idx']].extend(
+                        list(filter(
+                            lambda x: x,
+                            map(
+                                lambda l: get_func_from_line(
+                                    l,
+                                    prompts[batch_idx],
+                                    batch[batch_idx]['function']
+                                ),
+                                seq.split('\n')
+                            )
+                        ))
+                    )
+
+    mp_args = []
+    for instance_idx, generated in generated_io_by_instance_idx.items():
+        program_dict = instances[instance_idx]
+        assert program_dict['instance_idx'] == instance_idx
+        for i, test_stmt in enumerate(generated):
+            mp_args.append(
+                (
+                    instance_idx,
+                    i,
+                    (
+                            program_dict['code'] + '\n'
+                            + program_dict['context'] + '\n'
+                            + f"RESULT_VALUE['result'] = {test_stmt}"
+                    )
+                )
+            )
+
+    logger.info(f"{len(mp_args)} potential code samples generated")
+
+    passed_by_idx = defaultdict(dict)
+    fails_by_idx = defaultdict(dict)
+    passed = 0
+    with mp.Pool(workers) as pool:
+        results = list(tqdm(
+            pool.imap_unordered(is_sample_valid, mp_args),
+            total=len(mp_args),
+            desc='Validating Samples'
+        ))
+
+        for result in results:
+            if not result['passed']:
+                fails_by_idx[result['idx']][result['code_idx']] = result['result']
+                continue
+            if result['result'] is None:
+                fails_by_idx[result['idx']][result['code_idx']] = "None"
+                continue
+            elif len(str(result['result'])) >= 256:
+                fails_by_idx[result['idx']][result['code_idx']] = "Length"
+                continue
+
+            passed_by_idx[result['idx']][result['code_idx']] = result['result']
+            passed += 1
+    logger.info(f"{passed}/{len(mp_args)} passed")
+
+    all_generated = defaultdict(list)
+    for instance_idx, passed_code in passed_by_idx.items():
+        for code_idx, output in passed_code.items():
+            sample = {
+                'input' : generated_io_by_instance_idx[instance_idx][code_idx],
+                'output': output,
+                'ops'   : "=="
+            }
+            all_generated[instance_idx].append(sample)
+            instances[instance_idx]['input_output_pairs'].append(
+                sample
+            )
+
+    return instances, all_generated
+
+
+def timeout_handler(signum, frame):
+    raise TimeoutError("Failed to process")
+
+
+def is_sample_valid(args):
+    instance_idx, code_idx, code_sample = args
+    RESULT_VALUE = {}
+
+    signal.signal(signal.SIGALRM, timeout_handler)
+    signal.alarm(10)
+    try:
+        with create_tempdir():
+            try:
+                stdout_f = io.StringIO()
+                stderr_f = io.StringIO()
+                with contextlib.redirect_stdout(stdout_f):
+                    with contextlib.redirect_stderr(stderr_f):
+                        _locals = locals()
+                        exec(code_sample, globals(), _locals)
+                        RESULT_VALUE = _locals['RESULT_VALUE']
+            except Exception as e:
+                return {
+                    'idx'   : instance_idx, 'code_idx': code_idx, 'passed': False,
+                    'result': str(e)
+                }
+        output = {
+            'idx'     : instance_idx,
+            'code_idx': code_idx,
+            'passed'  : True,
+            'result'  : repr(RESULT_VALUE['result'])
+        }
+
+        if inspect.isfunction(RESULT_VALUE['result']) or inspect.isclass(RESULT_VALUE['result']):
+            return {
+                'idx'   : instance_idx, 'code_idx': code_idx, 'passed': False,
+                'result': 'Not Literal'
+            }
+        try:
+            pickle.dumps(output)
+        except Exception as e:
+            return {'idx': instance_idx, 'code_idx': code_idx, 'passed': False, 'result': str(e)}
+        return output
+    except Exception as e:
+        return {'idx': instance_idx, 'code_idx': code_idx, 'passed': False, 'result': str(e)}
+
+
+def make_samples_from_dict(single_instance, with_negation=False):
     io_pairs = single_instance.pop('input_output_pairs')
     specific_fixes = single_instance.pop('test_negations', [])
     excluded = single_instance.pop('exclude_tests', [])
@@ -499,12 +580,28 @@ def make_samples_from_dict(single_instance):
                     [exec_info, result, is_manual_fix]
                 )
         for execute_info, res, is_manual_fix in to_keep:
+            original_pred_id = f"{single_instance['task']}_{single_instance['instance_idx']}_{pred_idx}"
+
+            # Add in the correct pair first, then add in the negated pair.
             pred_dict = deepcopy(single_instance)
-            pred_dict['task_id'] = f"{pred_dict['task']}_{pred_dict['instance_idx']}_{pred_idx}"
+            pred_dict['task_id'] = original_pred_id
             pred_dict.update(execute_info)
             pred_dict['result'] = str(res)
             pred_dict['is_manual_fix'] = is_manual_fix
+            pred_dict['is_negation_of'] = None
             out.append(pred_dict)
             pred_idx += 1
+
+            if res in [True, False] and with_negation:
+                negation_pred_id = f"{single_instance['task']}_{single_instance['instance_idx']}_{pred_idx}"
+                negation_pred_dict = deepcopy(single_instance)
+                negation_pred_dict['task_id'] = negation_pred_id
+                execute_info['op'] = OP_NEGATION_MAP[execute_info['op']]
+                negation_pred_dict.update(execute_info)
+                negation_pred_dict['result'] = str(not res)
+                negation_pred_dict['is_manual_fix'] = is_manual_fix
+                negation_pred_dict['is_negation_of'] = original_pred_id
+                out.append(negation_pred_dict)
+                pred_idx += 1
 
     return out

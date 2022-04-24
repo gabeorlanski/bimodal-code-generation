@@ -7,6 +7,7 @@ import json
 import random
 from typing import Union
 
+import torch
 import yaml
 from tqdm import tqdm
 import click
@@ -16,14 +17,15 @@ import sys
 
 # If this file is called by itself (for creating the splits) then it will
 # have import issues.
-from transformers import AutoTokenizer
-
 if str(Path(__file__).parents[1]) not in sys.path:
     sys.path.insert(0, str(Path(__file__).parents[1]))
 from src.common import PROJECT_ROOT
 from src.common import setup_global_logging
 from src.common.file_util import validate_files_exist
-from src.data.npv import make_samples_from_dict, SUPPORTED_TASKS, check_code_executes_properly
+from src.data.npv_dataset_creation import (
+    make_samples_from_dict, SUPPORTED_TASKS,
+    check_io_sample_executes_correctly, generate_more_io_pairs
+)
 
 
 def setup_mbpp(
@@ -106,7 +108,16 @@ def setup_mbpp(
     progress_bar.close()
 
 
-def setup_npv(debug, num_false_pair_mod):
+def setup_npv(
+        debug,
+        num_false_pair_mod,
+        use_negation,
+        model_name,
+        temperature,
+        p_val,
+        batch_size,
+        workers
+):
     logger = logging.getLogger('setup_datasets')
     data_path = Path(PROJECT_ROOT.joinpath('data/raw_npv'))
     logger.info(f"Making NPV data from files {data_path}")
@@ -141,17 +152,32 @@ def setup_npv(debug, num_false_pair_mod):
         logger.info(f"Found {len(raw_instances)} samples for {split}")
 
         if debug:
-            raw_instances = raw_instances[:25]
+            raw_instances = raw_instances[:50]
+
+        if model_name is not None:
+            raw_instances, generated = generate_more_io_pairs(
+                raw_instances,
+                model_name,
+                temperature=temperature,
+                p_val=p_val,
+                batch_size=batch_size,
+                workers=workers
+            )
+
+            with raw_path.joinpath(f'generated_{split}.json').open('w') as f:
+                f.write(json.dumps(generated))
+
         logger.info(f"Making samples from {len(raw_instances)} programs")
         unverified_samples = []
         num_samples_per = {}
         for i, instance in tqdm(enumerate(raw_instances), total=len(raw_instances)):
-            instance_samples = make_samples_from_dict(deepcopy(instance))
+            instance_samples = make_samples_from_dict(deepcopy(instance),
+                                                      with_negation=use_negation)
             num_samples_per[instance['instance_idx']] = len(instance_samples)
             unverified_samples.extend(instance_samples)
 
         logger.info(f"{len(unverified_samples)} total samples to verify")
-        results, test_negations, exclude_pairs, split_exec_fails = check_code_executes_properly(
+        results, test_negations, exclude_pairs, split_exec_fails = check_io_sample_executes_correctly(
             split,
             unverified_samples
         )
@@ -178,7 +204,7 @@ def setup_npv(debug, num_false_pair_mod):
         total_false_examples = 0
         verified_samples_by_idx = defaultdict(dict)
         for i, instance in tqdm(enumerate(passed_programs), total=len(raw_instances)):
-            samples = make_samples_from_dict(deepcopy(instance))
+            samples = make_samples_from_dict(deepcopy(instance), with_negation=use_negation)
             has_true = False
             has_false = False
             for sample in samples:
@@ -200,7 +226,7 @@ def setup_npv(debug, num_false_pair_mod):
             f"true examples and {total_false_examples} false examples"
         )
         logger.info(f"Doing second verification pass for '{split}'")
-        results, test_negations, _, _ = check_code_executes_properly(
+        results, test_negations, _, _ = check_io_sample_executes_correctly(
             split,
             unverified_samples
         )
@@ -280,13 +306,20 @@ def setup_npv(debug, num_false_pair_mod):
             all_false_instances.extend(program_false_samples)
         to_save_samples = all_true_instances
 
-        num_false_to_save = max(0, num_false_pair_mod * len(to_save_samples) - len(to_save_false))
-        num_false_to_save = int(min(len(all_false_instances), num_false_to_save))
+        if num_false_pair_mod > -1:
+            num_false_to_save = max(0,
+                                    num_false_pair_mod * len(to_save_samples) - len(to_save_false))
+            num_false_to_save = int(min(len(all_false_instances), num_false_to_save))
+        else:
+            num_false_to_save = len(all_false_instances)
 
         # Add them back to the list of ones to save after calculating the number
         # of false to save so that we do not factor them back into the pool.
         to_save_samples.extend(to_save_false)
-        logger.info(f"{len(to_save_samples)}/{len(all_false_instances)} are guaranteed to be saved")
+        logger.info(
+            f"{len(to_save_false)}/{len(all_false_instances)} False examples "
+            f"are guaranteed to be saved"
+        )
         logger.info(f"Randomly selecting {num_false_to_save}/{len(all_false_instances)} "
                     f"from the false samples")
 
@@ -328,6 +361,9 @@ def setup_datasets(ctx, seed, debug):
     ctx.obj['DEBUG'] = debug
     ctx.obj['SEED'] = seed
     random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)
     setup_global_logging("setup_datasets", PROJECT_ROOT, disable_issues_file=True, debug=debug)
 
 
@@ -343,12 +379,52 @@ def setup_mbpp_cli(
 
 @setup_datasets.command('npv')
 @click.option(
-    '--num-false-pairs-mod', '-fratio', type=float, default=1.0,
+    '--num-false-pairs-mod', '-fratio', type=float, default=-1,
     help=f"Float ratio for number of false samples to number of true samples"
 )
+@click.option('--negation', is_flag=True, default=False,
+              help='Use negation for creating more samples')
+@click.option(
+    '--p-val', '-p', type=float, default=0.95,
+    help=f"P value for nucleus sampling"
+)
+@click.option(
+    '--temperature', '-T', type=float, default=1.5,
+    help=f"Temperature for sampling"
+)
+@click.option(
+    '--model-name', '-model', default=None,
+    help=f"Model name to use"
+)
+@click.option(
+    '--workers', '-n', type=int, default=1,
+    help=f"# Workers to use"
+)
+@click.option(
+    '--batch-size', '-b', type=int, default=1,
+    help=f"Batch size to use"
+)
 @click.pass_context
-def setup_npv_cli(ctx, num_false_pairs_mod):
-    setup_npv(ctx.obj['DEBUG'], num_false_pairs_mod)
+def setup_npv_cli(
+        ctx,
+        num_false_pairs_mod,
+        negation,
+        p_val,
+        temperature,
+        model_name,
+        workers,
+        batch_size
+):
+    setup_npv(
+        ctx.obj['DEBUG'],
+        num_false_pairs_mod,
+        negation,
+        model_name=model_name,
+        temperature=temperature,
+        p_val=p_val,
+        batch_size=batch_size,
+        workers=workers
+    )
 
 
 if __name__ == "__main__":
