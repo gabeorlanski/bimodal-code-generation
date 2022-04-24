@@ -400,7 +400,7 @@ def generate_more_io_pairs(
         except SyntaxError as e:
             return None
         return func_str
-
+    torch.backends.cudnn.benchmark = True
     model.eval()
     with torch.inference_mode():
         pbar = tqdm(total=num_rtr_sequences * math.ceil(len(instances) / batch_size),
@@ -435,7 +435,7 @@ def generate_more_io_pairs(
                 decoded = tokenizer.batch_decode(results.tolist(), skip_special_tokens=True)
 
                 for j, seq in enumerate(decoded):
-                    batch_idx = j % num_rtr_sequences
+                    batch_idx = j // num_rtr_sequences
                     generated_io_by_instance_idx[batch[batch_idx]['instance_idx']].extend(
                         list(filter(
                             lambda x: x,
