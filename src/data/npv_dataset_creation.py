@@ -4,9 +4,10 @@ import io
 import json
 import logging
 import math
+import random
 import re
 import signal
-from collections import defaultdict
+from collections import defaultdict, Counter
 from copy import deepcopy
 from typing import List, Dict, Tuple
 from transformers import AutoTokenizer, AutoModelForCausalLM
@@ -24,7 +25,8 @@ __all__ = [
     "make_samples_from_dict",
     "SUPPORTED_TASKS",
     "check_io_sample_executes_correctly",
-    "generate_more_io_pairs"
+    "generate_more_io_pairs",
+    "get_true_and_false_instances_from_verified"
 ]
 OP_TO_STR = {
     ast.Eq   : '==',
@@ -619,3 +621,78 @@ def make_samples_from_dict(single_instance, with_negation=False):
                 pred_idx += 1
 
     return out
+
+
+def get_true_and_false_instances_from_verified(verified_samples_by_idx):
+    count_tracker = Counter()
+    count_tracker['no_true_pairs'] = 0
+    count_tracker['not_eq_pair_keys'] = 0
+    mean_tracker = defaultdict(list)
+
+    all_false_instances = []
+    all_true_instances = []
+    to_save_false = []
+
+    false_count = Counter()
+    true_count = Counter()
+    for program_idx, sample_dict in tqdm(verified_samples_by_idx.items()):
+        false_count[program_idx] = 0
+        correct_io_pairs = defaultdict(list)
+        incorrect_io_pairs = defaultdict(list)
+        num_true_pairs = 0
+        num_false_pairs = 0
+        for sample in sample_dict.values():
+            io_pair_dict = {
+                'input'         : sample['input'],
+                'op'            : sample['op'],
+                'output'        : sample['output'],
+                'is_manual_fix' : sample['is_manual_fix'],
+                'is_negation_of': sample['is_negation_of'],
+                'task_id'       : sample['task_id']
+            }
+            if str(sample['result']) == 'True':
+                num_true_pairs += 1
+                correct_io_pairs[sample['input']].append(io_pair_dict)
+            else:
+                num_false_pairs += 1
+                incorrect_io_pairs[sample['input']].append(io_pair_dict)
+
+        if num_true_pairs == 0:
+            count_tracker['no_true_pairs'] += 1
+
+        if set(incorrect_io_pairs) != set(correct_io_pairs):
+            count_tracker['not_eq_pair_keys'] += 1
+
+        true_count[program_idx] = num_true_pairs
+        mean_tracker['created_false_pairs'].append(num_false_pairs)
+
+        # Want to keep a dict of IO examples that are NOT the same as
+        # the one that is tested. So make a map storing it.
+        context_io_pair_map = {k: {'True': [], 'False': []} for k in
+                               set(correct_io_pairs).union(set(incorrect_io_pairs))}
+        for input_str, outputs in correct_io_pairs.items():
+            for k in context_io_pair_map:
+                if k == input_str:
+                    continue
+                context_io_pair_map[k]['True'].extend(outputs)
+                context_io_pair_map[k]['False'].extend(incorrect_io_pairs[input_str])
+
+        program_false_samples = []
+        for sample in sample_dict.values():
+            sample['context_io_pairs'] = context_io_pair_map[sample['input']]
+            if str(sample['result']) == 'True':
+                all_true_instances.append(sample)
+            else:
+                program_false_samples.append(sample)
+        if not program_false_samples:
+            raise ValueError()
+
+        false_to_save = program_false_samples.pop(
+            random.choice(range(len(program_false_samples)))
+        )
+        false_count[program_idx] += 1
+        to_save_false.append(false_to_save)
+        all_false_instances.extend(program_false_samples)
+
+    stats = (true_count, false_count, mean_tracker, count_tracker)
+    return all_true_instances, to_save_false, all_false_instances, stats

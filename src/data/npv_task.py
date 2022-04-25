@@ -26,7 +26,6 @@ __all__ = [
 
 PROG_SPLIT = re.compile(r'(class |def )')
 
-
 JINJA_ENV = Environment(loader=BaseLoader)  # type: ignore
 JINJA_ENV.globals.update(zip=zip)
 JINJA_ENV.undefined = StrictUndefined
@@ -96,14 +95,7 @@ class NPV(Task):
                 excluded = {}
 
                 d['test_stmt'] = self.make_stmt_from_io(d['input'], d['op'], d['output'])
-                true_examples = random.sample(
-                    d['context_io_pairs']['True'],
-                    k=min(self.num_true_ctx_pairs, len(d['context_io_pairs']['True']))
-                )
-                false_examples = random.sample(
-                    d['context_io_pairs']['False'],
-                    k=min(self.num_false_ctx_pairs, len(d['context_io_pairs']['False']))
-                )
+                true_examples, false_examples = self.get_true_false_examples(d)
 
                 context_examples = []
                 for true_example, false_example in zip_longest(true_examples, false_examples):
@@ -131,6 +123,17 @@ class NPV(Task):
 
             out[split] = Dataset.from_dict(split_dict, split=split)
         return DatasetDict(out)
+
+    def get_true_false_examples(self, sample):
+        true_examples = random.sample(
+            sample['context_io_pairs']['True'],
+            k=min(self.num_true_ctx_pairs, len(sample['context_io_pairs']['True']))
+        )
+        false_examples = random.sample(
+            sample['context_io_pairs']['False'],
+            k=min(self.num_false_ctx_pairs, len(sample['context_io_pairs']['False']))
+        )
+        return true_examples, false_examples
 
     def _load_samples(self, split: str) -> Dataset:
         return self._dataset_mapping[split]
@@ -169,6 +172,10 @@ class NPV(Task):
 
     def serialize_task_features(self, idx: int, predictions: List, processed_sample: Dict) -> Dict:
         return {
+            'is_negation_of': processed_sample['is_negation_of'],
+            'is_manual_fix' : processed_sample['is_manual_fix'],
+            'op'            : processed_sample['op'],
+            'input'         : processed_sample['input'],
+            'output'        : processed_sample['output'],
             **self.excluded_columns_data[idx]
         }
-
