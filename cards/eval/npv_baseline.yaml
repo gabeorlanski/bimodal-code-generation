@@ -31,23 +31,23 @@ experiments:
           Parrot:
             description: CodeParrot Normal
             ++model: 'lvwerra/codeparrot'
-            ++evaluation.num_generate_per_step: 20
+            ++evaluation.num_generate_per_step: 24
           Neo1B:
             description: GPT Neo 1.3B
             ++model: 'EleutherAI/gpt-neo-1.3B'
-            ++evaluation.num_generate_per_step: 20
+            ++evaluation.num_generate_per_step: 24
           Incoder1B:
             description: Incoder 1B
             ++model: 'facebook/incoder-1B'
-            ++evaluation.num_generate_per_step: 20
+            ++evaluation.num_generate_per_step: 24
           ParrotSmall:
             description: CodeParrot Small
             ++model: 'lvwerra/codeparrot-small'
-            ++evaluation.num_generate_per_step: 28
+            ++evaluation.num_generate_per_step: 64
           Neo125M:
             description: GPT Neo 125M
             ++model: 'EleutherAI/gpt-neo-125M'
-            ++evaluation.num_generate_per_step: 28
+            ++evaluation.num_generate_per_step: 64
       - TaskPrompt:
           Base:
             description: Base Prompt with no formatting
