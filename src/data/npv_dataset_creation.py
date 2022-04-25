@@ -401,10 +401,11 @@ def generate_more_io_pairs(
         except SyntaxError as e:
             return None
         return func_str
+
     torch.backends.cudnn.benchmark = True
     model.eval()
     with torch.inference_mode():
-        pbar = tqdm(total=num_rtr_sequences* num_iters* math.ceil(len(instances) / batch_size),
+        pbar = tqdm(total=num_rtr_sequences * num_iters * math.ceil(len(instances) / batch_size),
                     desc='Generating')
 
         sorted_instances = list(sorted(
@@ -568,6 +569,7 @@ def make_samples_from_dict(single_instance, with_negation=False):
     out = []
 
     io_combos = set()
+
     pred_idx = 0
     for i, left in enumerate(io_pairs):
         to_keep = []
