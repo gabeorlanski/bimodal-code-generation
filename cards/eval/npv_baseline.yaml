@@ -22,7 +22,7 @@ experiments:
           Neo125M:
             description: GPT Neo 125M
             ++model: 'EleutherAI/gpt-neo-125M'
-            ++evaluation.num_generate_per_step: 48
+            ++evaluation.num_generate_per_step: 40
           Incoder6B:
             description: Incoder 6B
             ++model: 'facebook/incoder-6B'
