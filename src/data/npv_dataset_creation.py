@@ -590,7 +590,10 @@ def make_samples_from_dict(single_instance, with_negation=False):
             if combo not in io_combos:
                 io_combos.add(combo)
                 exec_info = {
-                    'input': left['input'], 'output': right['output'], 'op': op
+                    'input'      : left['input'],
+                    'output'     : right['output'],
+                    'op'         : op,
+                    'is_original': i == j
                 }
                 to_keep.append(
                     [exec_info, result, is_manual_fix]
