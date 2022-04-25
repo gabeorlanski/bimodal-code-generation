@@ -471,6 +471,8 @@ def evaluate_model_classification_task(
             }
         )
         logger.info(f'IN DEBUG MODE')
+        if debug_num_samples is None:
+            logger.info("Sorting by length")
         tokenized = tokenized.sort('len', reverse=debug_num_samples is None)
         if debug_num_samples is not None:
             logger.warning(f"DEBUG NUMBER OF SAMPLES={debug_num_samples}")
@@ -533,6 +535,7 @@ def evaluate_model_classification_task(
             targets.extend([dataset[i.item()]['target'] for i in batch['idx']])
 
             for choice, choice_tokens in zip(choice_list, choices_tokenized):
+
                 choice_tensor = torch.tensor([choice_tokens] * n_seqs).long()
                 labels = -100 * torch.ones((n_seqs, max_len)).long()
                 labels[:, input_size:input_size + choice_tensor.size(1)] = choice_tensor
@@ -544,7 +547,8 @@ def evaluate_model_classification_task(
                 # https://github.com/peterwestuw/surface-form-competition/blob/main/utils.py
                 logits = model(
                     input_ids=local_input_ids,
-                    attention_mask=local_attention_mask
+                    attention_mask=local_attention_mask,
+                    # labels=local_input_ids
                 ).logits.cpu()[:, :-1].contiguous()
                 logit_shape = logits.shape
 
@@ -562,6 +566,7 @@ def evaluate_model_classification_task(
                     ce_list = [ce_list]
                 for idx, p in zip(batch['idx'], ce_list):
                     local_predictions[idx.item()].append(p)
+
             for k, v in local_predictions.items():
                 indices.append(dataset[k]['task_id'])
                 pred_probs.append(v)

@@ -57,7 +57,7 @@ class NPV(Task):
             ctx_true_pct: float = 0.5,
             shuffle_ctx_pairs: bool = False,
             stmt_prompt: str = "{stmt}",
-            trailing_newline: bool = False
+            trailing_newline: bool = False,
     ):
         super(NPV, self).__init__(
             preprocessors=preprocessors,
