@@ -174,6 +174,7 @@ class NPV(Task):
         return {
             'is_negation_of': processed_sample['is_negation_of'],
             'is_manual_fix' : processed_sample['is_manual_fix'],
+            'is_original'   : processed_sample['is_original'],
             'op'            : processed_sample['op'],
             'input'         : processed_sample['input'],
             'output'        : processed_sample['output'],

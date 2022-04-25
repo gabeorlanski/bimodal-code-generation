@@ -10,6 +10,7 @@ from pathlib import Path
 import random
 from typing import List, Union
 
+import pandas as pd
 import sklearn
 from torch.nn import functional as F
 import datasets
@@ -617,13 +618,7 @@ def evaluate_model_classification_task(
         metrics[f'{choice_list[i]}_f1'] = f1 * 100
         metrics[f'{choice_list[i]}_count'] = pred_counts[i].item()
 
-    # Get the full metrics suite for the predictions and the labels
-    logger.info("Results:")
-    for k, v in metrics.items():
-        if isinstance(v, int):
-            logger.info(f"\t{k:>20} = {v}")
-        else:
-            logger.info(f"\t{k:>20} = {v:0.3f}")
+
 
     # Apply softmax to rescale the log probabilities (also multiply by -1 as CE
     # returns a positive number) then multiply by 100 and round to 5 decimal
@@ -636,6 +631,17 @@ def evaluate_model_classification_task(
                                    desc="Serializing"):
         choice_probs = {c: round(pred_probs[i][j], 5) for j, c in enumerate(choice_list)}
         serialized_predictions.append({'prob': choice_probs, **serialized_dict})
+
+    if cfg.task.name == 'npv':
+        df = pd.DataFrame.from_records(serialized_predictions)
+
+    # Get the full metrics suite for the predictions and the labels
+    logger.info("Results:")
+    for k, v in metrics.items():
+        if isinstance(v, int):
+            logger.info(f"\t{k:>20} = {v}")
+        else:
+            logger.info(f"\t{k:>20} = {v:0.3f}")
 
     return metrics, serialized_predictions
 

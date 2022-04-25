@@ -300,7 +300,7 @@ def execute_code(code):
     return result
 
 
-def make_code_sample(code_str, context, test_stmt):
+def make_code_sample(code_str, context, input_expr, output_expr, test_stmt):
     code = ['def test_fn():']
     raw_code = [context, code_str]
     for block in map(lambda b: b.split('\n'), raw_code):
@@ -310,7 +310,8 @@ def make_code_sample(code_str, context, test_stmt):
     for line in test_stmt.split('\n'):
         code.append(f"\t{line}")
     code.append("RETURN_VALUE = test_fn()")
-    return '\n'.join(code)
+    code = '\n'.join(code)
+    return code.replace('__INPUT__', input_expr).replace('__OUTPUT__', output_expr)
 
 
 def check_io_sample_executes_correctly(split, unverified_samples):
@@ -320,13 +321,16 @@ def check_io_sample_executes_correctly(split, unverified_samples):
     exec_fails = []
     num_failed_tests = 0
     instances_passed = 0
+    assert_fails = 0
     for i, program_dict in tqdm(enumerate(unverified_samples), desc='Executing',
                                 total=len(unverified_samples)):
-        test_stmt = f"{program_dict['input']} {program_dict['op']} {program_dict['output']}"
-        test_stmt = f"assert ({test_stmt})=={program_dict['result']}"
-
+        cleaned_output = program_dict['output']
+        test_stmt = f"{program_dict['op']} __OUTPUT__"
+        cleaned_input = program_dict['input']
+        test_stmt = f"RESULT_VALUE = __INPUT__\nassert (RESULT_VALUE {test_stmt})=={program_dict['result']},RESULT_VALUE"
         result = execute_code(
-            make_code_sample(program_dict['code'], program_dict['context'], test_stmt)
+            make_code_sample(program_dict['code'], program_dict['context'], cleaned_input,
+                             cleaned_output, test_stmt)
         )
         if result is None:
 
@@ -340,6 +344,7 @@ def check_io_sample_executes_correctly(split, unverified_samples):
                 test_negations[program_dict['instance_idx']].append(
                     f"{program_dict['input']} {program_dict['output']}"
                 )
+                assert_fails += 1
 
             else:
                 exclude_programs[program_dict['instance_idx']].append(
@@ -349,6 +354,7 @@ def check_io_sample_executes_correctly(split, unverified_samples):
         f"{num_failed_tests}/{num_failed_tests + instances_passed} total "
         f"failed verification for '{split}'"
     )
+    logger.info(f"{assert_fails} assert fails")
 
     return results, test_negations, exclude_programs, exec_fails
 
@@ -562,7 +568,7 @@ def is_sample_valid(args):
         return {'idx': instance_idx, 'code_idx': code_idx, 'passed': False, 'result': str(e)}
 
 
-def make_samples_from_dict(single_instance, with_negation=False):
+def make_samples_from_dict(single_instance, with_negation=False, false_to_true_num_mod=-1):
     io_pairs = single_instance.pop('input_output_pairs')
     specific_fixes = single_instance.pop('test_negations', [])
     excluded = single_instance.pop('exclude_tests', [])
@@ -573,8 +579,9 @@ def make_samples_from_dict(single_instance, with_negation=False):
     io_combos = set()
 
     pred_idx = 0
+    to_keep_by_result = defaultdict(list)
     for i, left in enumerate(io_pairs):
-        to_keep = []
+
         for j, right in enumerate(io_pairs):
             op = left['ops']
             result = right['output'] == left['output']
@@ -595,33 +602,52 @@ def make_samples_from_dict(single_instance, with_negation=False):
                     'op'         : op,
                     'is_original': i == j
                 }
-                to_keep.append(
+                to_keep_by_result[str(result)].append(
                     [exec_info, result, is_manual_fix]
                 )
-        for execute_info, res, is_manual_fix in to_keep:
-            original_pred_id = f"{single_instance['task']}_{single_instance['instance_idx']}_{pred_idx}"
 
-            # Add in the correct pair first, then add in the negated pair.
-            pred_dict = deepcopy(single_instance)
-            pred_dict['task_id'] = original_pred_id
-            pred_dict.update(execute_info)
-            pred_dict['result'] = str(res)
-            pred_dict['is_manual_fix'] = is_manual_fix
-            pred_dict['is_negation_of'] = None
-            out.append(pred_dict)
+    if false_to_true_num_mod != -1:
+        num_false_to_keep = int(min(len(to_keep_by_result['False']), len(to_keep_by_result['True']) * false_to_true_num_mod))
+
+        to_keep_by_result['False'] = random.sample(
+            to_keep_by_result['False'],
+            num_false_to_keep
+        )
+    to_keep = to_keep_by_result['True'] + to_keep_by_result['False']
+    comparisons = set()
+    for execute_info, res, is_manual_fix in to_keep:
+        original_pred_id = f"{single_instance['task']}_{single_instance['instance_idx']}_{pred_idx}"
+
+        # Add in the correct pair first, then add in the negated pair.
+        pred_dict = deepcopy(single_instance)
+        pred_dict['task_id'] = original_pred_id
+        pred_dict.update(execute_info)
+        pred_dict['result'] = str(res)
+        pred_dict['is_manual_fix'] = is_manual_fix
+        pred_dict['is_negation_of'] = None
+        out.append(pred_dict)
+        comparisons.add(
+            f"{execute_info['input']} {execute_info['op']} {execute_info['output']} {res}"
+        )
+        pred_idx += 1
+
+        if res in [True, False] and with_negation:
+            negated_op = OP_NEGATION_MAP[execute_info['op']]
+            negate_comparison = f"{execute_info['input']} {negated_op} " \
+                                f"{execute_info['output']} {not res}"
+            if negate_comparison in comparisons:
+                continue
+            negation_pred_id = f"{single_instance['task']}_{single_instance['instance_idx']}_{pred_idx}"
+            negation_pred_dict = deepcopy(single_instance)
+            negation_pred_dict['task_id'] = negation_pred_id
+            execute_info['op'] = negated_op
+            negation_pred_dict.update(execute_info)
+            negation_pred_dict['result'] = str(not res)
+            negation_pred_dict['is_manual_fix'] = is_manual_fix
+            negation_pred_dict['is_negation_of'] = original_pred_id
+            out.append(negation_pred_dict)
             pred_idx += 1
-
-            if res in [True, False] and with_negation:
-                negation_pred_id = f"{single_instance['task']}_{single_instance['instance_idx']}_{pred_idx}"
-                negation_pred_dict = deepcopy(single_instance)
-                negation_pred_dict['task_id'] = negation_pred_id
-                execute_info['op'] = OP_NEGATION_MAP[execute_info['op']]
-                negation_pred_dict.update(execute_info)
-                negation_pred_dict['result'] = str(not res)
-                negation_pred_dict['is_manual_fix'] = is_manual_fix
-                negation_pred_dict['is_negation_of'] = original_pred_id
-                out.append(negation_pred_dict)
-                pred_idx += 1
+            comparisons.add(negate_comparison)
 
     return out
 
@@ -632,12 +658,10 @@ def get_true_and_false_instances_from_verified(verified_samples_by_idx):
     count_tracker['not_eq_pair_keys'] = 0
     mean_tracker = defaultdict(list)
 
-    all_false_instances = []
-    all_true_instances = []
-    to_save_false = []
+    all_instances = []
 
-    false_count = Counter()
-    true_count = Counter()
+    false_count = {}
+    true_count = {}
     for program_idx, sample_dict in tqdm(verified_samples_by_idx.items()):
         false_count[program_idx] = 0
         correct_io_pairs = defaultdict(list)
@@ -651,13 +675,18 @@ def get_true_and_false_instances_from_verified(verified_samples_by_idx):
                 'output'        : sample['output'],
                 'is_manual_fix' : sample['is_manual_fix'],
                 'is_negation_of': sample['is_negation_of'],
+                'is_original'   : sample['is_original'],
                 'task_id'       : sample['task_id']
             }
+
+            is_negation = io_pair_dict['is_negation_of'] is None
+
             if str(sample['result']) == 'True':
-                num_true_pairs += 1
+
+                num_true_pairs += is_negation
                 correct_io_pairs[sample['input']].append(io_pair_dict)
             else:
-                num_false_pairs += 1
+                num_false_pairs += is_negation
                 incorrect_io_pairs[sample['input']].append(io_pair_dict)
 
         if num_true_pairs == 0:
@@ -667,7 +696,7 @@ def get_true_and_false_instances_from_verified(verified_samples_by_idx):
             count_tracker['not_eq_pair_keys'] += 1
 
         true_count[program_idx] = num_true_pairs
-        mean_tracker['created_false_pairs'].append(num_false_pairs)
+        false_count[program_idx] = num_false_pairs
 
         # Want to keep a dict of IO examples that are NOT the same as
         # the one that is tested. So make a map storing it.
@@ -684,18 +713,16 @@ def get_true_and_false_instances_from_verified(verified_samples_by_idx):
         for sample in sample_dict.values():
             sample['context_io_pairs'] = context_io_pair_map[sample['input']]
             if str(sample['result']) == 'True':
-                all_true_instances.append(sample)
+                all_instances.append(sample)
             else:
+                # Do not add to all instances as we need to check if it is not
+                # empty.
                 program_false_samples.append(sample)
         if not program_false_samples:
             raise ValueError()
 
-        false_to_save = program_false_samples.pop(
-            random.choice(range(len(program_false_samples)))
-        )
-        false_count[program_idx] += 1
-        to_save_false.append(false_to_save)
-        all_false_instances.extend(program_false_samples)
+        all_instances.extend(program_false_samples)
 
     stats = (true_count, false_count, mean_tracker, count_tracker)
-    return all_true_instances, to_save_false, all_false_instances, stats
+    random.shuffle(all_instances)
+    return all_instances, stats

@@ -195,7 +195,7 @@ def test_make_instances_with_negation():
         'input_output_pairs': [
             {'input': "Check_Vow('corner', 'AaEeIiOoUu')", 'output': '2', 'ops': '=='},
             {'input': "Check_Vow('aeo', 'AaEeIiOoUu')", 'output': '3', 'ops': '=='},
-            {'input': "Check_Vow('true', 'AaEeIiOoUu')", 'output': '2', 'ops': '=='}],
+        ],
         'context'           : '',
         'instance_idx'      : 656,
         'test_negations'    : [],
@@ -203,87 +203,59 @@ def test_make_instances_with_negation():
     }
     result = npv_dataset_creation.make_samples_from_dict(instance, True)
     assert result == [{
-        'source_file'   : 'mbpp_train.jsonl', 'task': 'MBPP',
-        'description'   : 'Test', 'code': 'Test', 'context': '',
-        'instance_idx'  : 656, 'original_task_id': 667, 'task_id': 'MBPP_656_0',
-        'input'         : "Check_Vow('corner', 'AaEeIiOoUu')", 'output': '2',
-        'op'            : '==', 'result': 'True', 'is_manual_fix': False,
-        'is_negation_of': None
+        'source_file'  : 'mbpp_train.jsonl', 'task': 'MBPP',
+        'description'  : 'Test', 'code': 'Test', 'context': '',
+        'instance_idx' : 656, 'original_task_id': 667, 'task_id': 'MBPP_656_0',
+        'input'        : "Check_Vow('corner', 'AaEeIiOoUu')", 'output': '2',
+        'op'           : '==', 'is_original': True, 'result': 'True',
+        'is_manual_fix': False, 'is_negation_of': None
     }, {
-        'source_file'   : 'mbpp_train.jsonl', 'task': 'MBPP',
-        'description'   : 'Test', 'code': 'Test', 'context': '',
-        'instance_idx'  : 656, 'original_task_id': 667, 'task_id': 'MBPP_656_1',
-        'input'         : "Check_Vow('corner', 'AaEeIiOoUu')", 'output': '2',
-        'op'            : '!=', 'result': 'False', 'is_manual_fix': False,
-        'is_negation_of': 'MBPP_656_0'
+        'source_file'  : 'mbpp_train.jsonl', 'task': 'MBPP',
+        'description'  : 'Test', 'code': 'Test', 'context': '',
+        'instance_idx' : 656, 'original_task_id': 667, 'task_id': 'MBPP_656_1',
+        'input'        : "Check_Vow('corner', 'AaEeIiOoUu')", 'output': '2',
+        'op'           : '!=', 'is_original': True, 'result': 'False',
+        'is_manual_fix': False, 'is_negation_of': 'MBPP_656_0'
     }, {
-        'source_file'   : 'mbpp_train.jsonl', 'task': 'MBPP',
-        'description'   : 'Test', 'code': 'Test', 'context': '',
-        'instance_idx'  : 656, 'original_task_id': 667, 'task_id': 'MBPP_656_2',
-        'input'         : "Check_Vow('corner', 'AaEeIiOoUu')", 'output': '3',
-        'op'            : '==', 'result': 'False', 'is_manual_fix': False,
-        'is_negation_of': None
+        'source_file'  : 'mbpp_train.jsonl', 'task': 'MBPP',
+        'description'  : 'Test', 'code': 'Test', 'context': '',
+        'instance_idx' : 656, 'original_task_id': 667, 'task_id': 'MBPP_656_2',
+        'input'        : "Check_Vow('aeo', 'AaEeIiOoUu')", 'output': '3',
+        'op'           : '==', 'is_original': True, 'result': 'True',
+        'is_manual_fix': False, 'is_negation_of': None
     }, {
-        'source_file'   : 'mbpp_train.jsonl', 'task': 'MBPP',
-        'description'   : 'Test', 'code': 'Test', 'context': '',
-        'instance_idx'  : 656, 'original_task_id': 667, 'task_id': 'MBPP_656_3',
-        'input'         : "Check_Vow('corner', 'AaEeIiOoUu')", 'output': '3',
-        'op'            : '!=', 'result': 'True', 'is_manual_fix': False,
-        'is_negation_of': 'MBPP_656_2'
+        'source_file'  : 'mbpp_train.jsonl', 'task': 'MBPP',
+        'description'  : 'Test', 'code': 'Test', 'context': '',
+        'instance_idx' : 656, 'original_task_id': 667, 'task_id': 'MBPP_656_3',
+        'input'        : "Check_Vow('aeo', 'AaEeIiOoUu')", 'output': '3',
+        'op'           : '!=', 'is_original': True, 'result': 'False',
+        'is_manual_fix': False, 'is_negation_of': 'MBPP_656_2'
     }, {
-        'source_file'   : 'mbpp_train.jsonl', 'task': 'MBPP',
-        'description'   : 'Test', 'code': 'Test', 'context': '',
-        'instance_idx'  : 656, 'original_task_id': 667, 'task_id': 'MBPP_656_4',
-        'input'         : "Check_Vow('aeo', 'AaEeIiOoUu')", 'output': '2',
-        'op'            : '==', 'result': 'False', 'is_manual_fix': False,
-        'is_negation_of': None
+        'source_file'  : 'mbpp_train.jsonl', 'task': 'MBPP',
+        'description'  : 'Test', 'code': 'Test', 'context': '',
+        'instance_idx' : 656, 'original_task_id': 667, 'task_id': 'MBPP_656_4',
+        'input'        : "Check_Vow('corner', 'AaEeIiOoUu')", 'output': '3',
+        'op'           : '==', 'is_original': False, 'result': 'False',
+        'is_manual_fix': False, 'is_negation_of': None
     }, {
-        'source_file'   : 'mbpp_train.jsonl', 'task': 'MBPP',
-        'description'   : 'Test', 'code': 'Test', 'context': '',
-        'instance_idx'  : 656, 'original_task_id': 667, 'task_id': 'MBPP_656_5',
-        'input'         : "Check_Vow('aeo', 'AaEeIiOoUu')", 'output': '2',
-        'op'            : '!=', 'result': 'True', 'is_manual_fix': False,
-        'is_negation_of': 'MBPP_656_4'
+        'source_file'  : 'mbpp_train.jsonl', 'task': 'MBPP',
+        'description'  : 'Test', 'code': 'Test', 'context': '',
+        'instance_idx' : 656, 'original_task_id': 667, 'task_id': 'MBPP_656_5',
+        'input'        : "Check_Vow('corner', 'AaEeIiOoUu')", 'output': '3',
+        'op'           : '!=', 'is_original': False, 'result': 'True',
+        'is_manual_fix': False, 'is_negation_of': 'MBPP_656_4'
     }, {
-        'source_file'   : 'mbpp_train.jsonl', 'task': 'MBPP',
-        'description'   : 'Test', 'code': 'Test', 'context': '',
-        'instance_idx'  : 656, 'original_task_id': 667, 'task_id': 'MBPP_656_6',
-        'input'         : "Check_Vow('aeo', 'AaEeIiOoUu')", 'output': '3',
-        'op'            : '==', 'result': 'True', 'is_manual_fix': False,
-        'is_negation_of': None
+        'source_file'  : 'mbpp_train.jsonl', 'task': 'MBPP',
+        'description'  : 'Test', 'code': 'Test', 'context': '',
+        'instance_idx' : 656, 'original_task_id': 667, 'task_id': 'MBPP_656_6',
+        'input'        : "Check_Vow('aeo', 'AaEeIiOoUu')", 'output': '2',
+        'op'           : '==', 'is_original': False, 'result': 'False',
+        'is_manual_fix': False, 'is_negation_of': None
     }, {
-        'source_file'   : 'mbpp_train.jsonl', 'task': 'MBPP',
-        'description'   : 'Test', 'code': 'Test', 'context': '',
-        'instance_idx'  : 656, 'original_task_id': 667, 'task_id': 'MBPP_656_7',
-        'input'         : "Check_Vow('aeo', 'AaEeIiOoUu')", 'output': '3',
-        'op'            : '!=', 'result': 'False', 'is_manual_fix': False,
-        'is_negation_of': 'MBPP_656_6'
-    }, {
-        'source_file'   : 'mbpp_train.jsonl', 'task': 'MBPP',
-        'description'   : 'Test', 'code': 'Test', 'context': '',
-        'instance_idx'  : 656, 'original_task_id': 667, 'task_id': 'MBPP_656_8',
-        'input'         : "Check_Vow('true', 'AaEeIiOoUu')", 'output': '2',
-        'op'            : '==', 'result': 'True', 'is_manual_fix': False,
-        'is_negation_of': None
-    }, {
-        'source_file'   : 'mbpp_train.jsonl', 'task': 'MBPP',
-        'description'   : 'Test', 'code': 'Test', 'context': '',
-        'instance_idx'  : 656, 'original_task_id': 667, 'task_id': 'MBPP_656_9',
-        'input'         : "Check_Vow('true', 'AaEeIiOoUu')", 'output': '2',
-        'op'            : '!=', 'result': 'False', 'is_manual_fix': False,
-        'is_negation_of': 'MBPP_656_8'
-    }, {
-        'source_file'   : 'mbpp_train.jsonl', 'task': 'MBPP',
-        'description'   : 'Test', 'code': 'Test', 'context': '',
-        'instance_idx'  : 656, 'original_task_id': 667, 'task_id': 'MBPP_656_10',
-        'input'         : "Check_Vow('true', 'AaEeIiOoUu')", 'output': '3',
-        'op'            : '==', 'result': 'False', 'is_manual_fix': False,
-        'is_negation_of': None
-    }, {
-        'source_file'   : 'mbpp_train.jsonl', 'task': 'MBPP',
-        'description'   : 'Test', 'code': 'Test', 'context': '',
-        'instance_idx'  : 656, 'original_task_id': 667, 'task_id': 'MBPP_656_11',
-        'input'         : "Check_Vow('true', 'AaEeIiOoUu')", 'output': '3',
-        'op'            : '!=', 'result': 'True', 'is_manual_fix': False,
-        'is_negation_of': 'MBPP_656_10'
+        'source_file'  : 'mbpp_train.jsonl', 'task': 'MBPP',
+        'description'  : 'Test', 'code': 'Test', 'context': '',
+        'instance_idx' : 656, 'original_task_id': 667, 'task_id': 'MBPP_656_7',
+        'input'        : "Check_Vow('aeo', 'AaEeIiOoUu')", 'output': '2',
+        'op'           : '!=', 'is_original': False, 'result': 'True',
+        'is_manual_fix': False, 'is_negation_of': 'MBPP_656_6'
     }]

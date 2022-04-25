@@ -205,7 +205,11 @@ def setup_npv(
         total_false_examples = 0
         verified_samples_by_idx = defaultdict(dict)
         for i, instance in tqdm(enumerate(passed_programs), total=len(raw_instances)):
-            samples = make_samples_from_dict(deepcopy(instance), with_negation=use_negation)
+            samples = make_samples_from_dict(
+                deepcopy(instance),
+                with_negation=use_negation,
+                false_to_true_num_mod=num_false_pair_mod
+            )
             has_true = False
             has_false = False
             for sample in samples:
@@ -240,31 +244,10 @@ def setup_npv(
         logger.info(f"Removed {removed_failed} program(s) because they failed twice")
         total_fail_exec += removed_failed
         parsed_instances = get_true_and_false_instances_from_verified(verified_samples_by_idx)
-        all_true_instances, to_save_false, all_false_instances, stats = parsed_instances
+        to_save_samples, stats = parsed_instances
         true_count, false_count, mean_tracker, count_tracker = stats
-        to_save_samples = all_true_instances
 
-        if num_false_pair_mod > -1:
-            num_false_to_save = max(0,
-                                    num_false_pair_mod * len(to_save_samples) - len(to_save_false))
-            num_false_to_save = int(min(len(all_false_instances), num_false_to_save))
-        else:
-            num_false_to_save = len(all_false_instances)
-
-        # Add them back to the list of ones to save after calculating the number
-        # of false to save so that we do not factor them back into the pool.
-        to_save_samples.extend(to_save_false)
-        logger.info(
-            f"{len(to_save_false)}/{len(all_false_instances)} False examples "
-            f"are guaranteed to be saved"
-        )
-        logger.info(f"Randomly selecting {num_false_to_save}/{len(all_false_instances)} "
-                    f"from the false samples")
-
-        for idx in random.sample(range(len(all_false_instances)), k=num_false_to_save):
-            sample = all_false_instances[idx]
-            false_count[sample['instance_idx']] += 1  # type:ignore
-            to_save_samples.append(sample)
+        logger.info(f"{len(to_save_samples)} to save")
 
         for k, v in true_count.items():
             mean_tracker['selected_false'].append(false_count[k])
