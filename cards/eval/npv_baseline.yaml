@@ -15,7 +15,14 @@ experiments:
       ++tracking.entity: nyu-code-research
     ablations:
       - Model:
-
+          ParrotSmall:
+            description: CodeParrot Small
+            ++model: 'lvwerra/codeparrot-small'
+            ++evaluation.num_generate_per_step: 48
+          Neo125M:
+            description: GPT Neo 125M
+            ++model: 'EleutherAI/gpt-neo-125M'
+            ++evaluation.num_generate_per_step: 48
           Incoder6B:
             description: Incoder 6B
             ++model: 'facebook/incoder-6B'
@@ -40,14 +47,6 @@ experiments:
             description: Incoder 1B
             ++model: 'facebook/incoder-1B'
             ++evaluation.num_generate_per_step: 20
-          ParrotSmall:
-            description: CodeParrot Small
-            ++model: 'lvwerra/codeparrot-small'
-            ++evaluation.num_generate_per_step: 48
-          Neo125M:
-            description: GPT Neo 125M
-            ++model: 'EleutherAI/gpt-neo-125M'
-            ++evaluation.num_generate_per_step: 48
       - TaskPrompt:
           Base:
             description: Base Prompt with no formatting
