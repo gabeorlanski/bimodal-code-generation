@@ -61,9 +61,9 @@ experiments:
 #            description: Base Prompt with description
 #            ++task.params.prompt: base_with_description
       - ContextExamples:
-          Zero:
-            description: No Context Examples
-            ++task.n_ctx_pairs: 0
+#          Zero:
+#            description: No Context Examples
+#            ++task.n_ctx_pairs: 0
 #          1T0F:
 #            description: 1 True and 0 False example
 #            ++task.params.n_ctx_pairs: 1
