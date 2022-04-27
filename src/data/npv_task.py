@@ -123,15 +123,13 @@ class NPV(Task):
                         self.num_true_ctx_pairs,
                         true_ctx_examples_pool,
                         all_instances,
-                        task_input,
-                        task_dict['output']
+                        task_input
                     )
                     false_samples = self.get_ctx_examples_from_pool(
                         self.num_false_ctx_pairs,
                         false_ctx_examples_pool,
                         all_instances,
-                        task_input,
-                        task_dict['output']
+                        task_input
                     )
                     context_samples = []
                     i = j = 0
@@ -164,8 +162,7 @@ class NPV(Task):
             out[split] = Dataset.from_dict(split_dict, split=split)
         return DatasetDict(out)
 
-    def get_ctx_examples_from_pool(self, num_to_get, example_pool, all_instances, input_str,
-                                   output_str):
+    def get_ctx_examples_from_pool(self, num_to_get, example_pool, all_instances, input_str):
         out = []
         pool_iter = iter(example_pool)
         while len(out) < num_to_get:
@@ -176,8 +173,8 @@ class NPV(Task):
             if next_input == input_str and not self.allow_ctx_same_input:
                 continue
             next_example_dict = all_instances[next_example]
-            if not self.allow_ctx_same_output and next_example_dict['output'] == output_str:
-                continue
+            # if not self.allow_ctx_same_output and next_example_dict['output'] == output_str:
+            #     continue
             out.append(next_example)
         return out
 
