@@ -68,10 +68,10 @@ experiments:
 #            description: 1 True and 0 False example
 #            ++task.params.n_ctx_pairs: 1
 #            ++task.params.ctx_true_pct: 1
-#          0T1F:
-#            description: 1 True and 0 False example
-#            ++task.params.n_ctx_pairs: 1
-#            ++task.params.ctx_true_pct: 0
+          0T1F:
+            description: 1 True and 0 False example
+            ++task.params.n_ctx_pairs: 1
+            ++task.params.ctx_true_pct: 0
 #          1T1F:
 #            description: 1 True and 1 False example
 #            ++task.params.n_ctx_pairs: 2
