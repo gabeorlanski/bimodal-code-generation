@@ -2,7 +2,7 @@ import json
 from pathlib import Path
 
 from src.common import FIXTURES_ROOT
-from src.data import npv_dataset_creation
+from src.npv import program_parsing
 
 
 def test_parse_mbpp():
@@ -10,7 +10,7 @@ def test_parse_mbpp():
 
     lines = list(map(json.loads, file_path.open()))
 
-    result, _ = npv_dataset_creation.parse_mbpp(file_path)
+    result, _ = program_parsing.parse_mbpp(file_path)
     assert len(result) == 3
 
     expected_io_pairs = [
@@ -93,7 +93,7 @@ def test_parse_mbpp():
 def test_parse_human_eval():
     file_path = FIXTURES_ROOT.joinpath('npv', 'HUMAN_EVAL.jsonl')
 
-    result, _ = npv_dataset_creation.parse_human_eval(file_path)
+    result, _ = program_parsing.parse_human_eval(file_path)
     assert len(result) == 1
 
     io_pairs = [
@@ -169,7 +169,7 @@ def test_special_mbpp(tmpdir):
             "challenge_test_list": []
         }))
 
-    result, _ = npv_dataset_creation.parse_mbpp(tmpdir_path.joinpath('test.jsonl'))
+    result, _ = program_parsing.parse_mbpp(tmpdir_path.joinpath('test.jsonl'))
     assert len(result) == 1
     assert result[0] == {
         'source_file'       : 'test.jsonl',
@@ -185,77 +185,3 @@ def test_special_mbpp(tmpdir):
         ],
         'context'           : 'NO_OF_CHARS = 256'
     }
-
-
-def test_make_instances_with_negation():
-    instance = {
-        'source_file'       : 'mbpp_train.jsonl', 'task': 'MBPP', 'task_id': 667,
-        'description'       : 'Test',
-        'code'              : 'Test',
-        'input_output_pairs': [
-            {'input': "Check_Vow('corner', 'AaEeIiOoUu')", 'output': '2', 'ops': '=='},
-            {'input': "Check_Vow('aeo', 'AaEeIiOoUu')", 'output': '3', 'ops': '=='},
-        ],
-        'context'           : '',
-        'instance_idx'      : 656,
-        'test_negations'    : [],
-        'exclude_tests'     : []
-    }
-    result = npv_dataset_creation.make_samples_from_dict(instance, True)
-    assert result == [{
-        'source_file'  : 'mbpp_train.jsonl', 'task': 'MBPP',
-        'description'  : 'Test', 'code': 'Test', 'context': '',
-        'instance_idx' : 656, 'original_task_id': 667, 'task_id': 'MBPP_656_0',
-        'input'        : "Check_Vow('corner', 'AaEeIiOoUu')", 'output': '2',
-        'op'           : '==', 'is_original': True, 'result': 'True',
-        'is_manual_fix': False, 'is_negation_of': None
-    }, {
-        'source_file'  : 'mbpp_train.jsonl', 'task': 'MBPP',
-        'description'  : 'Test', 'code': 'Test', 'context': '',
-        'instance_idx' : 656, 'original_task_id': 667, 'task_id': 'MBPP_656_1',
-        'input'        : "Check_Vow('corner', 'AaEeIiOoUu')", 'output': '2',
-        'op'           : '!=', 'is_original': True, 'result': 'False',
-        'is_manual_fix': False, 'is_negation_of': 'MBPP_656_0'
-    }, {
-        'source_file'  : 'mbpp_train.jsonl', 'task': 'MBPP',
-        'description'  : 'Test', 'code': 'Test', 'context': '',
-        'instance_idx' : 656, 'original_task_id': 667, 'task_id': 'MBPP_656_2',
-        'input'        : "Check_Vow('aeo', 'AaEeIiOoUu')", 'output': '3',
-        'op'           : '==', 'is_original': True, 'result': 'True',
-        'is_manual_fix': False, 'is_negation_of': None
-    }, {
-        'source_file'  : 'mbpp_train.jsonl', 'task': 'MBPP',
-        'description'  : 'Test', 'code': 'Test', 'context': '',
-        'instance_idx' : 656, 'original_task_id': 667, 'task_id': 'MBPP_656_3',
-        'input'        : "Check_Vow('aeo', 'AaEeIiOoUu')", 'output': '3',
-        'op'           : '!=', 'is_original': True, 'result': 'False',
-        'is_manual_fix': False, 'is_negation_of': 'MBPP_656_2'
-    }, {
-        'source_file'  : 'mbpp_train.jsonl', 'task': 'MBPP',
-        'description'  : 'Test', 'code': 'Test', 'context': '',
-        'instance_idx' : 656, 'original_task_id': 667, 'task_id': 'MBPP_656_4',
-        'input'        : "Check_Vow('corner', 'AaEeIiOoUu')", 'output': '3',
-        'op'           : '==', 'is_original': False, 'result': 'False',
-        'is_manual_fix': False, 'is_negation_of': None
-    }, {
-        'source_file'  : 'mbpp_train.jsonl', 'task': 'MBPP',
-        'description'  : 'Test', 'code': 'Test', 'context': '',
-        'instance_idx' : 656, 'original_task_id': 667, 'task_id': 'MBPP_656_5',
-        'input'        : "Check_Vow('corner', 'AaEeIiOoUu')", 'output': '3',
-        'op'           : '!=', 'is_original': False, 'result': 'True',
-        'is_manual_fix': False, 'is_negation_of': 'MBPP_656_4'
-    }, {
-        'source_file'  : 'mbpp_train.jsonl', 'task': 'MBPP',
-        'description'  : 'Test', 'code': 'Test', 'context': '',
-        'instance_idx' : 656, 'original_task_id': 667, 'task_id': 'MBPP_656_6',
-        'input'        : "Check_Vow('aeo', 'AaEeIiOoUu')", 'output': '2',
-        'op'           : '==', 'is_original': False, 'result': 'False',
-        'is_manual_fix': False, 'is_negation_of': None
-    }, {
-        'source_file'  : 'mbpp_train.jsonl', 'task': 'MBPP',
-        'description'  : 'Test', 'code': 'Test', 'context': '',
-        'instance_idx' : 656, 'original_task_id': 667, 'task_id': 'MBPP_656_7',
-        'input'        : "Check_Vow('aeo', 'AaEeIiOoUu')", 'output': '2',
-        'op'           : '!=', 'is_original': False, 'result': 'True',
-        'is_manual_fix': False, 'is_negation_of': 'MBPP_656_6'
-    }]

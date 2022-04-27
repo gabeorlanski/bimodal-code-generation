@@ -4,6 +4,7 @@ import math
 import random
 import re
 from collections import defaultdict
+from copy import deepcopy
 from itertools import zip_longest
 from pathlib import Path
 from typing import List, Dict, Callable
@@ -57,6 +58,8 @@ class NPV(Task):
             shuffle_ctx_pairs: bool = False,
             stmt_prompt: str = "{stmt}",
             trailing_newline: bool = False,
+            allow_ctx_same_input: bool = False,
+            allow_ctx_same_output: bool = False
     ):
         super(NPV, self).__init__(
             preprocessors=preprocessors,
@@ -80,11 +83,14 @@ class NPV(Task):
         self.shuffle_ctx_pairs = shuffle_ctx_pairs
         self.stmt_prompt = stmt_prompt
         self.trailing_newline = trailing_newline
+        self.allow_ctx_same_input = allow_ctx_same_input
+        self.allow_ctx_same_output = allow_ctx_same_output
 
         self._dataset_mapping = self.initialize_data()
 
     def initialize_data(self):
         out = {}
+        no_save_keys = ['tid_by_result', 'instances', 'all_tasks']
         for split, path in self.SPLIT_MAPPING.items():
             split_dict = defaultdict(list)
             for d in tqdm(
@@ -92,47 +98,102 @@ class NPV(Task):
                     desc=f"Reading '{split}'"
             ):
 
-                excluded = {}
+                all_instances = d.pop('all_tasks')
+                instances_to_keep = d.pop('instances')
+                # d['test_stmt'] = self.make_stmt_from_io(d['input'], d['op'], d['output'])
+                true_ctx_examples_pool, false_ctx_examples_pool = self.get_true_false_examples(d)
 
-                d['test_stmt'] = self.make_stmt_from_io(d['input'], d['op'], d['output'])
-                true_examples, false_examples = self.get_true_false_examples(d)
+                excluded_vals = {k: d[k] for k in self.EXCLUDE_KEYS}
 
-                context_examples = []
-                for true_example, false_example in zip_longest(true_examples, false_examples):
-                    if true_example is not None:
-                        context_examples.append([self.make_stmt_from_io(
-                            true_example['input'], true_example['op'], true_example['output'],
-                            is_ctx=True
-                        ), 'True'])
-                    if false_example is not None:
-                        context_examples.append([self.make_stmt_from_io(
-                            false_example['input'], false_example['op'], false_example['output'],
-                            is_ctx=True
-                        ), 'False'])
+                to_keep_dict = {
+                    k: v for k, v in d.items() if k not in self.EXCLUDE_KEYS + no_save_keys
+                }
 
-                if self.shuffle_ctx_pairs:
-                    random.shuffle(context_examples)
-                d['context_examples'] = context_examples
+                for task_dict in map(lambda t: all_instances[t], instances_to_keep):
+                    task_to_save = deepcopy(to_keep_dict)
 
-                for k, v in d.items():
-                    if k in self.EXCLUDE_KEYS:
-                        excluded[k] = v
-                    else:
+                    task_input = task_dict['input']
+                    task_to_save['test_stmt'] = self.make_stmt_from_io(
+                        task_dict['input'],
+                        task_dict['op'],
+                        task_dict['output']
+                    )
+                    task_to_save.update(task_dict)
+                    true_samples = self.get_ctx_examples_from_pool(
+                        self.num_true_ctx_pairs,
+                        true_ctx_examples_pool,
+                        all_instances,
+                        task_input,
+                        task_dict['output']
+                    )
+                    false_samples = self.get_ctx_examples_from_pool(
+                        self.num_false_ctx_pairs,
+                        false_ctx_examples_pool,
+                        all_instances,
+                        task_input,
+                        task_dict['output']
+                    )
+                    context_samples = []
+                    i = j = 0
+                    while i < len(true_samples) or j < len(false_samples):
+                        if i < len(true_samples):
+                            sample = all_instances[true_samples[i]]
+                            stmt = self.make_stmt_from_io(
+                                sample['input'], sample['op'], sample['output'],
+                                is_ctx=True
+                            )
+                            context_samples.append((stmt, 'True'))
+                            i += 1
+                        if j < len(false_samples):
+                            sample = all_instances[false_samples[j]]
+                            stmt = self.make_stmt_from_io(
+                                sample['input'], sample['op'], sample['output'],
+                                is_ctx=True
+                            )
+                            context_samples.append((stmt, 'False'))
+                            j += 1
+
+                    if self.shuffle_ctx_pairs:
+                        random.shuffle(context_samples)
+                    task_to_save['context_examples'] = context_samples
+
+                    for k, v in task_to_save.items():
                         split_dict[k].append(v)
-                self.excluded_columns_data[d['task_id']] = excluded
+                    self.excluded_columns_data[task_dict['task_id']] = excluded_vals
 
             out[split] = Dataset.from_dict(split_dict, split=split)
         return DatasetDict(out)
 
-    def get_true_false_examples(self, sample):
-        true_examples = random.sample(
-            sample['context_io_pairs']['True'],
-            k=min(self.num_true_ctx_pairs, len(sample['context_io_pairs']['True']))
-        )
-        false_examples = random.sample(
-            sample['context_io_pairs']['False'],
-            k=min(self.num_false_ctx_pairs, len(sample['context_io_pairs']['False']))
-        )
+    def get_ctx_examples_from_pool(self, num_to_get, example_pool, all_instances, input_str,
+                                   output_str):
+        out = []
+        pool_iter = iter(example_pool)
+        while len(out) < num_to_get:
+            try:
+                next_input, next_example = next(pool_iter)
+            except StopIteration:
+                break
+            if next_input == input_str and not self.allow_ctx_same_input:
+                continue
+            next_example_dict = all_instances[next_example]
+            if not self.allow_ctx_same_output and next_example_dict['output'] == output_str:
+                continue
+            out.append(next_example)
+        return out
+
+    @staticmethod
+    def get_true_false_examples(sample):
+        false_examples = []
+        true_examples = []
+
+        for input_str, tid_list in sample['tid_by_result']['True'].items():
+            true_examples.extend([(input_str, tid) for tid in tid_list])
+        for input_str, tid_list in sample['tid_by_result']['False'].items():
+            false_examples.extend([(input_str, tid) for tid in tid_list])
+
+        random.shuffle(true_examples)
+        random.shuffle(false_examples)
+
         return true_examples, false_examples
 
     def _load_samples(self, split: str) -> Dataset:

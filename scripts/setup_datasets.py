@@ -22,10 +22,10 @@ if str(Path(__file__).parents[1]) not in sys.path:
 from src.common import PROJECT_ROOT
 from src.common import setup_global_logging
 from src.common.file_util import validate_files_exist
-from src.data.npv_dataset_creation import (
+from src.npv import (
     make_samples_from_dict, SUPPORTED_TASKS,
-    check_io_sample_executes_correctly, generate_more_io_pairs,
-    get_true_and_false_instances_from_verified
+    check_io_sample_executes_correctly,
+    get_instances_to_save
 )
 
 
@@ -113,10 +113,10 @@ def setup_npv(
         debug,
         num_false_pair_mod,
         use_negation,
-        model_name,
-        temperature,
-        p_val,
-        batch_size,
+        # model_name,
+        # temperature,
+        # p_val,
+        # batch_size,
         workers
 ):
     logger = logging.getLogger('setup_datasets')
@@ -155,19 +155,6 @@ def setup_npv(
         if debug:
             raw_instances = raw_instances[:50]
 
-        if model_name is not None:
-            raw_instances, generated = generate_more_io_pairs(
-                raw_instances,
-                model_name,
-                temperature=temperature,
-                p_val=p_val,
-                batch_size=batch_size,
-                workers=workers
-            )
-
-            with raw_path.joinpath(f'generated_{split}.json').open('w') as f:
-                f.write(json.dumps(generated))
-
         logger.info(f"Making samples from {len(raw_instances)} programs")
         unverified_samples = []
         num_samples_per = {}
@@ -178,20 +165,27 @@ def setup_npv(
             unverified_samples.extend(instance_samples)
 
         logger.info(f"{len(unverified_samples)} total samples to verify")
-        results, test_negations, exclude_pairs, split_exec_fails = check_io_sample_executes_correctly(
+        returned_values, results = check_io_sample_executes_correctly(
             split,
-            unverified_samples
+            unverified_samples,
+            workers
         )
+
+        failed_counts = results['failed_counts']
+
+        logger.info(f"{sum(map(len, results['failed_tests'].values()))} total failed tests.")
+        logger.info(f"{sum(map(len, results['had_errors'].values()))} total had errors.")
+
         passed_programs = []
         split_failed_execution = 0
         with raw_path.joinpath(f'{split}.jsonl').open('w') as f:
             for i, v in enumerate(raw_instances):
-                if len(results[v['instance_idx']]) >= num_samples_per[v['instance_idx']]:
+                if failed_counts[v['instance_idx']] >= num_samples_per[v['instance_idx']]:
                     split_failed_execution += 1
                     continue
 
-                v['test_negations'] = test_negations[v['instance_idx']]
-                v['exclude_tests'] = exclude_pairs[v['instance_idx']]
+                v['test_negations'] = list(results['failed_tests'][v['instance_idx']].values())
+                v['exclude_tests'] = list(results['had_errors'][v['instance_idx']].values())
                 passed_programs.append(v)
                 out_str = f"{json.dumps(v)}\n"
                 f.write(out_str)
@@ -207,8 +201,7 @@ def setup_npv(
         for i, instance in tqdm(enumerate(passed_programs), total=len(raw_instances)):
             samples = make_samples_from_dict(
                 deepcopy(instance),
-                with_negation=use_negation,
-                false_to_true_num_mod=num_false_pair_mod
+                with_negation=use_negation
             )
             has_true = False
             has_false = False
@@ -231,20 +224,33 @@ def setup_npv(
             f"true examples and {total_false_examples} false examples"
         )
         logger.info(f"Doing second verification pass for '{split}'")
-        results, test_negations, _, _ = check_io_sample_executes_correctly(
+        rtr_values, exec_results = check_io_sample_executes_correctly(
             split,
-            unverified_samples
+            unverified_samples,
+            num_workers=workers,
+            with_assert=True
         )
 
         removed_failed = 0
-        for instance_idx, failed_samples in results.items():
+
+        logger.debug("Removing failed tests")
+        for instance_idx, failed_samples in exec_results['failed_tests'].items():
             for task_id in failed_samples:
                 verified_samples_by_idx[instance_idx].pop(task_id)
                 removed_failed += 1
+
+        logger.debug("Removing had errors")
+        for instance_idx, failed_samples in exec_results['had_errors'].items():
+            for task_id in failed_samples:
+                verified_samples_by_idx[instance_idx].pop(task_id)
+                removed_failed += 1
+
         logger.info(f"Removed {removed_failed} program(s) because they failed twice")
         total_fail_exec += removed_failed
-        parsed_instances = get_true_and_false_instances_from_verified(verified_samples_by_idx)
-        to_save_samples, stats = parsed_instances
+        to_save_samples, stats = get_instances_to_save(
+            verified_samples_by_idx,
+            false_to_true_num_mod=num_false_pair_mod
+        )
         true_count, false_count, mean_tracker, count_tracker = stats
 
         logger.info(f"{len(to_save_samples)} to save")
@@ -305,45 +311,45 @@ def setup_mbpp_cli(
 )
 @click.option('--negation', is_flag=True, default=False,
               help='Use negation for creating more samples')
-@click.option(
-    '--p-val', '-p', type=float, default=0.95,
-    help=f"P value for nucleus sampling"
-)
-@click.option(
-    '--temperature', '-T', type=float, default=1.5,
-    help=f"Temperature for sampling"
-)
-@click.option(
-    '--model-name', '-model', default=None,
-    help=f"Model name to use"
-)
+# @click.option(
+#     '--p-val', '-p', type=float, default=0.95,
+#     help=f"P value for nucleus sampling"
+# )
+# @click.option(
+#     '--temperature', '-T', type=float, default=1.5,
+#     help=f"Temperature for sampling"
+# )
+# @click.option(
+#     '--model-name', '-model', default=None,
+#     help=f"Model name to use"
+# )
 @click.option(
     '--workers', '-n', type=int, default=1,
     help=f"# Workers to use"
 )
-@click.option(
-    '--batch-size', '-b', type=int, default=1,
-    help=f"Batch size to use"
-)
+# @click.option(
+#     '--batch-size', '-b', type=int, default=1,
+#     help=f"Batch size to use"
+# )
 @click.pass_context
 def setup_npv_cli(
         ctx,
         num_false_pairs_mod,
         negation,
-        p_val,
-        temperature,
-        model_name,
+        # p_val,
+        # temperature,
+        # model_name,
         workers,
-        batch_size
+        # batch_size
 ):
     setup_npv(
         ctx.obj['DEBUG'],
         num_false_pairs_mod,
         negation,
-        model_name=model_name,
-        temperature=temperature,
-        p_val=p_val,
-        batch_size=batch_size,
+        # model_name=model_name,
+        # temperature=temperature,
+        # p_val=p_val,
+        # batch_size=batch_size,
         workers=workers
     )
 

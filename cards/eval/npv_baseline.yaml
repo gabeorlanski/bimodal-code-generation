@@ -61,21 +61,21 @@ experiments:
 #            description: Base Prompt with description
 #            ++task.params.prompt: base_with_description
       - ContextExamples:
-#          Zero:
-#            description: No Context Examples
-#            ++task.n_ctx_pairs: 0
-#          1T0F:
-#            description: 1 True and 0 False example
-#            ++task.params.n_ctx_pairs: 1
-#            ++task.params.ctx_true_pct: 1
+          Zero:
+            description: No Context Examples
+            ++task.n_ctx_pairs: 0
+          1T0F:
+            description: 1 True and 0 False example
+            ++task.params.n_ctx_pairs: 1
+            ++task.params.ctx_true_pct: 1
           0T1F:
             description: 1 True and 0 False example
             ++task.params.n_ctx_pairs: 1
             ++task.params.ctx_true_pct: 0
-#          1T1F:
-#            description: 1 True and 1 False example
-#            ++task.params.n_ctx_pairs: 2
-#            ++task.params.ctx_true_pct: .5
+          1T1F:
+            description: 1 True and 1 False example
+            ++task.params.n_ctx_pairs: 2
+            ++task.params.ctx_true_pct: .5
           0T2F:
             description: 0 True and 2 False example
             ++task.n_ctx_pairs: 2
@@ -92,6 +92,14 @@ experiments:
 #            description: 1 True and 2 False example
 #            ++task.n_ctx_pairs: 3
 #            ++task.ctx_true_pct: .25
+#          3T0F:
+#            description: 3 True and 0 False example
+#            ++task.n_ctx_pairs: 3
+#            ++task.ctx_true_pct: 1
+#          3T0F:
+#            description: 3 True and 0 False example
+#            ++task.n_ctx_pairs: 3
+#            ++task.ctx_true_pct: 1
 
     steps:
       - name: NPV

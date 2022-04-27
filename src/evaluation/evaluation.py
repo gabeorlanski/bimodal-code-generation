@@ -637,23 +637,23 @@ def evaluate_model_classification_task(
 
         def get_subset_stats(name, subset_df):
             return {
-                f"{name}_accuracy": 100 * accuracy_score(
+                f"{name}_accuracy" : 100 * accuracy_score(
                     subset_df['target'],
                     subset_df['prediction']
                 ),
-                f"{name}_recall"  : 100 * recall_score(
+                f"{name}_recall"   : 100 * recall_score(
                     subset_df['target'],
                     subset_df['prediction'],
                     average='macro',
                     labels=choice_list
                 ),
-                f"{name}_precision"  : 100 * precision_score(
+                f"{name}_precision": 100 * precision_score(
                     subset_df['target'],
                     subset_df['prediction'],
                     average='macro',
                     labels=choice_list
                 ),
-                f"{name}_f1"  : 100 * f1_score(
+                f"{name}_f1"       : 100 * f1_score(
                     subset_df['target'],
                     subset_df['prediction'],
                     average='macro',
@@ -661,9 +661,9 @@ def evaluate_model_classification_task(
                 )
             }
 
-        metrics.update(get_subset_stats('Actual',df[df['is_original']]))
-        metrics.update(get_subset_stats('Negations',df[df['is_negation']]))
-        metrics.update(get_subset_stats('Original',df[~df['is_negation']]))
+        # metrics.update(get_subset_stats('Actual',df[df['is_original']]))
+        metrics.update(get_subset_stats('Negations', df[df['is_negation']]))
+        metrics.update(get_subset_stats('Original', df[~df['is_negation']]))
 
     # Get the full metrics suite for the predictions and the labels
     logger.info("Results:")
