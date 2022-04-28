@@ -633,7 +633,8 @@ def evaluate_model_classification_task(
     if cfg.task.name == 'npv':
         df = pd.DataFrame.from_records(serialized_predictions)
         df['is_negation'] = pd.isnull(df['is_negation_of'])
-        df['is_generated'] = df['is_output_generated'] or df['is_output_generated']
+        # df['is_generated'] =
+        is_generated_mask = (df['is_input_generated'] | df['is_output_generated'])
         df = df[['prediction', 'target', 'is_negation', 'is_original', 'is_manual_fix', 'op']]
 
         def get_subset_stats(name, subset_df):
@@ -665,8 +666,12 @@ def evaluate_model_classification_task(
         # metrics.update(get_subset_stats('Actual',df[df['is_original']]))
         metrics.update(get_subset_stats('Negations', df[df['is_negation']]))
         metrics.update(get_subset_stats('Original', df[~df['is_negation']]))
-        metrics.update(get_subset_stats('Generated', df[df['is_generated']]))
-        metrics.update(get_subset_stats('Gold', df[~df['is_generated']]))
+        metrics.update(
+            get_subset_stats('Generated', df[is_generated_mask])
+        )
+        metrics.update(
+            get_subset_stats('Gold', df[~is_generated_mask])
+        )
 
     # Get the full metrics suite for the predictions and the labels
     logger.info("Results:")

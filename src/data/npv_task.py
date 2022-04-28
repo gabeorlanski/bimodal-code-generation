@@ -230,11 +230,13 @@ class NPV(Task):
 
     def serialize_task_features(self, idx: int, predictions: List, processed_sample: Dict) -> Dict:
         return {
-            'is_negation_of': processed_sample['is_negation_of'],
-            'is_manual_fix' : processed_sample['is_manual_fix'],
-            'is_original'   : processed_sample['is_original'],
-            'op'            : processed_sample['op'],
-            'input'         : processed_sample['input'],
-            'output'        : processed_sample['output'],
+            'is_negation_of'    : processed_sample['is_negation_of'],
+            'is_manual_fix'     : processed_sample['is_manual_fix'],
+            'is_original'       : processed_sample['is_original'],
+            'is_input_generated': processed_sample['is_input_generated'],
+            'is_output_generated': processed_sample['is_output_generated'],
+            'op'                : processed_sample['op'],
+            'input'             : processed_sample['input'],
+            'output'            : processed_sample['output'],
             **self.excluded_columns_data[idx]
         }
