@@ -152,7 +152,7 @@ def check_io_sample_executes_correctly(split, unverified_samples, num_workers, w
                     'value': result['result']
                 }
 
-                assert not result['kwargs']
+                # assert not result['kwargs']
                 result_sig = []
                 for arg in result['args']:
                     arg_type = type(arg).__name__
