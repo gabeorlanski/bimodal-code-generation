@@ -283,21 +283,27 @@ def add_random_inputs(programs, signatures, pool, random_inputs_to_add, workers)
         num_sigs_to_generate = 2*random_inputs_to_add
         tries = 0
         sampled_functions = set()
+        signal.signal(signal.SIGALRM, timeout_handler)
+        signal.alarm(10)
+        try:
+            while len(sampled_functions) < num_sigs_to_generate and tries < 100:
+                sampled_sig = [
+                    ast.parse(random.choice(pool[sig_type])).body[0].value
+                    for sig_type in signatures[program['instance_idx']]
+                ]
 
-        while len(sampled_functions) < num_sigs_to_generate and tries < 100:
-            sampled_sig = [
-                ast.parse(random.choice(pool[sig_type])).body[0].value
-                for sig_type in signatures[program['instance_idx']]
-            ]
-
-            func_node.args = sampled_sig
-            func_string = astor.to_source(
-                func_node,
-                source_generator_class=CustomSourceGenerator
-            ).strip()
-            if func_string not in sampled_functions and func_string not in all_inputs:
-                sampled_functions.add(func_string)
-            tries += 1
+                func_node.args = sampled_sig
+                func_string = astor.to_source(
+                    func_node,
+                    source_generator_class=CustomSourceGenerator
+                ).strip()
+                if func_string not in sampled_functions and func_string not in all_inputs:
+                    sampled_functions.add(func_string)
+                tries += 1
+            signal.alarm(0)
+        except TimeoutError:
+            logger.error(f"{program_idx} timed out")
+            continue
 
         for i, func in enumerate(sampled_functions):
             funcs_to_test.append(
