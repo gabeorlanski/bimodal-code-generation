@@ -148,7 +148,7 @@ experiments:
       - TaskPrompt:
           FullConsole:
             description: Full Console Formatted Prompt
-            ++task.params.prompt: base
+            ++task.params.prompt: full_console
 
       - ContextExamples:
           Zero:
