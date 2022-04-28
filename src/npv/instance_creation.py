@@ -209,18 +209,12 @@ def get_instances_to_save(verified_samples_by_idx, false_to_true_num_mod):
 
         num_input_generated = 0
         num_output_generated = 0
-        num_input_random = 0
-        num_output_random = 0
 
         for tid in true_tids + false_examples_to_use:
             if tid_to_io_dict[tid]['is_output_generated']:
                 num_output_generated += 1
             if tid_to_io_dict[tid]['is_input_generated']:
                 num_input_generated += 1
-            if tid_to_io_dict[tid]['is_output_from_random']:
-                num_output_random += 1
-            if tid_to_io_dict[tid]['is_input_from_random']:
-                num_input_random += 1
 
             to_save_task_ids.append(tid)
             if tid in negations:
@@ -230,8 +224,6 @@ def get_instances_to_save(verified_samples_by_idx, false_to_true_num_mod):
 
         mean_tracker['input_generated'].append(num_input_generated)
         mean_tracker['output_generated'].append(num_output_generated)
-        mean_tracker['input_random'].append(num_input_random)
-        mean_tracker['output_random'].append(num_output_random)
 
         instance_dict['all_tasks'] = tid_to_io_dict
         instance_dict['instances'] = to_save_task_ids
