@@ -53,8 +53,8 @@ class NPV(Task):
             split_mapping: Dict[str, PathType] = None,
             prompt: str = "base",
             choices: List[str] = None,
-            n_ctx_pairs: int = 0,
-            ctx_true_pct: float = 0.5,
+            true_ctx_examples: int = 0,
+            false_ctx_examples: int = 0,
             shuffle_ctx_pairs: bool = False,
             stmt_prompt: str = "{stmt}",
             trailing_newline: bool = False,
@@ -71,15 +71,15 @@ class NPV(Task):
         self.dataset = None
         self.excluded_columns_data = {}
         self.choices = choices or ["False", 'True']
-        prompt_dict = yaml.load(PROJECT_ROOT.joinpath('templates/npv_prompts.yaml').open(),
+        prompt_dict = yaml.load(PROJECT_ROOT.joinpath('templates/npv_prompts.yaml.yaml').open(),
                                 yaml.Loader)
 
         global PROMPT_TO_USE
         PROMPT_TO_USE = JINJA_ENV.from_string(prompt_dict[prompt])
         self.include_target_in_prompt_kwargs = False
-        self.num_context_pairs = n_ctx_pairs
-        self.num_true_ctx_pairs = math.ceil(ctx_true_pct * self.num_context_pairs)
-        self.num_false_ctx_pairs = max(0, self.num_context_pairs - self.num_true_ctx_pairs)
+        self.num_context_pairs = true_ctx_examples + false_ctx_examples
+        self.num_true_ctx_pairs = true_ctx_examples
+        self.num_false_ctx_pairs = false_ctx_examples
         self.shuffle_ctx_pairs = shuffle_ctx_pairs
         self.stmt_prompt = stmt_prompt
         self.trailing_newline = trailing_newline
