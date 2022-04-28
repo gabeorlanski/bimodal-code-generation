@@ -68,14 +68,14 @@ experiments:
             description: 1 True and 1 False example
             ++task.params.true_ctx_examples: 1
             ++task.params.false_ctx_examples: 1
-          0T2F:
-            description: 0 True and 2 False example
-            ++task.params.true_ctx_examples: 0
-            ++task.params.false_ctx_examples: 2
-          2T0F:
-            description: 2 True and 0 False example
-            ++task.params.true_ctx_examples: 2
-            ++task.params.false_ctx_examples: 0
+#          0T2F:
+#            description: 0 True and 2 False example
+#            ++task.params.true_ctx_examples: 0
+#            ++task.params.false_ctx_examples: 2
+#          2T0F:
+#            description: 2 True and 0 False example
+#            ++task.params.true_ctx_examples: 2
+#            ++task.params.false_ctx_examples: 0
           2T1F:
             description: 2 True and 1 False example
             ++task.params.true_ctx_examples: 2
