@@ -115,8 +115,7 @@ def setup_raw_npv(
         debug,
         use_negation,
         workers,
-        generated_test_path,
-        random_inputs
+        generated_test_path
 ):
     logger = logging.getLogger('setup_datasets')
     data_path = Path(PROJECT_ROOT.joinpath('data/raw_npv'))
@@ -160,8 +159,7 @@ def setup_raw_npv(
             debug,
             use_negation,
             workers,
-            generated_tests,
-            random_inputs
+            generated_tests
         )
         fails.extend(split_fails)
         total_fail_exec += split_failed_exec
@@ -207,22 +205,18 @@ def setup_mbpp_cli(
 )
 @click.option('--generated-test', '-gen',
               default=None, help='Path to the file with generated tests.')
-@click.option('--random-inputs', '-rinputs',
-              default=0, type=int, help='# rand inputs to add')
 @click.pass_context
 def setup_raw_npv_cli(
         ctx,
         negation,
         workers,
-        generated_test,
-        random_inputs
+        generated_test
 ):
     setup_raw_npv(
         ctx.obj['DEBUG'],
         negation,
         workers=workers,
-        generated_test_path=generated_test,
-        random_inputs=random_inputs
+        generated_test_path=generated_test
     )
 
 

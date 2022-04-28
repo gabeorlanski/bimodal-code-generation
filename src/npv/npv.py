@@ -10,7 +10,7 @@ from tqdm import tqdm
 
 from src.npv import (
     make_samples_from_dict, check_io_sample_executes_correctly,
-    get_instances_to_save, add_random_inputs
+    get_instances_to_save
 )
 from .program_parsing import SUPPORTED_TASKS
 
@@ -30,8 +30,7 @@ def parse_raw_examples_for_split(
         debug,
         use_negation,
         workers,
-        generated_tests,
-        random_inputs
+        generated_tests
 ):
     fails = []
     raw_instances = []
@@ -54,7 +53,7 @@ def parse_raw_examples_for_split(
                     generated_for_instance = random.sample(
                         generated_for_instance,
                         min(len(generated_for_instance),
-                            len(instance['input_output_pairs']))
+                            len(instance['input_output_pairs'])*2)
                     )
                     for generated in generated_for_instance:
                         instance['input_output_pairs'].append({'is_generated': True, **generated})
@@ -79,7 +78,7 @@ def parse_raw_examples_for_split(
         unverified_samples.extend(instance_samples)
 
     logger.info(f"{len(unverified_samples)} total samples to verify")
-    arguments_info, returned_values, results = check_io_sample_executes_correctly(
+    _, returned_values, results = check_io_sample_executes_correctly(
         split,
         unverified_samples,
         workers
@@ -87,11 +86,6 @@ def parse_raw_examples_for_split(
 
     logger.info(f"{sum(map(len, results['failed_tests'].values()))} functions failed tests.")
     logger.info(f"{sum(map(len, results['had_errors'].values()))} had errors.")
-
-    arg_pool, signatures = arguments_info
-
-    # Need to convert to list to sample from
-    arg_pool = {k: list(v) for k, v in arg_pool.items()}
 
     failed_counts = results['failed_counts']
 
@@ -102,9 +96,6 @@ def parse_raw_examples_for_split(
             split_failed_execution += 1
             continue
         passed_programs.append(v)
-
-    passed_programs = add_random_inputs(passed_programs, signatures, arg_pool,
-                                        random_inputs, workers)
 
     with raw_path.joinpath(f'{split}.jsonl').open('w') as f:
         for i, v in enumerate(passed_programs):
