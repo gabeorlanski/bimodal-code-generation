@@ -71,7 +71,7 @@ class NPV(Task):
         self.dataset = None
         self.excluded_columns_data = {}
         self.choices = choices or ["False", 'True']
-        prompt_dict = yaml.load(PROJECT_ROOT.joinpath('templates/npv_prompts.yaml.yaml').open(),
+        prompt_dict = yaml.load(PROJECT_ROOT.joinpath('templates/npv_prompts.yaml').open(),
                                 yaml.Loader)
 
         global PROMPT_TO_USE

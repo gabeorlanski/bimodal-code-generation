@@ -114,13 +114,34 @@ def setup_mbpp(
 def setup_raw_npv(
         debug,
         use_negation,
-        workers
+        workers,
+        generated_test_path,
+        random_inputs
 ):
     logger = logging.getLogger('setup_datasets')
     data_path = Path(PROJECT_ROOT.joinpath('data/raw_npv'))
     logger.info(f"Making NPV data from files {data_path}")
     assert data_path.joinpath('cfg.yaml').exists()
     cfg = yaml.load(data_path.joinpath('cfg.yaml').open(), yaml.Loader)
+
+    generated_tests = defaultdict(list)
+    if generated_test_path:
+        raw_generated_tests = json.loads(PROJECT_ROOT.joinpath(generated_test_path).read_text())
+        for k, test_list in raw_generated_tests.items():
+            potential_names = set(
+                fn.split(' ')[-1].split('.')[0] for t in test_list for fn in t['input'].split('(')
+            )
+            name_use = None
+            for name in potential_names:
+                if not name.strip():
+                    continue
+                if all(name in test['input'] for test in test_list):
+                    generated_tests[name] = test_list
+                    name_use = name
+                    generated_tests[name_use].extend(test_list)
+            if name_use is None:
+                logger.info(f"{k} has no valid generated tests")
+                continue
 
     out_path = PROJECT_ROOT.joinpath('data/NPV')
     raw_path = out_path.joinpath('raw')
@@ -138,7 +159,9 @@ def setup_raw_npv(
             data_path,
             debug,
             use_negation,
-            workers
+            workers,
+            generated_tests,
+            random_inputs
         )
         fails.extend(split_fails)
         total_fail_exec += split_failed_exec
@@ -182,17 +205,24 @@ def setup_mbpp_cli(
     '--workers', '-n', type=int, default=1,
     help=f"# Workers to use"
 )
+@click.option('--generated-test', '-gen',
+              default=None, help='Path to the file with generated tests.')
+@click.option('--random-inputs', '-rinputs',
+              default=0, type=int, help='# rand inputs to add')
 @click.pass_context
 def setup_raw_npv_cli(
         ctx,
         negation,
         workers,
-        # batch_size
+        generated_test,
+        random_inputs
 ):
     setup_raw_npv(
         ctx.obj['DEBUG'],
         negation,
-        workers=workers
+        workers=workers,
+        generated_test_path=generated_test,
+        random_inputs=random_inputs
     )
 
 

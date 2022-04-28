@@ -52,30 +52,30 @@ experiments:
             description: Base Prompt with no formatting
             ++task.params.prompt: base
       - ContextExamples:
-          #          Zero:
-          #            description: No Context Examples
-          #            ++task.params.true_ctx_examples: 0
-          #            ++task.params.false_ctx_examples: 0
-          #          1T0F:
-          #            description: 1 True and 0 False example
-          #            ++task.params.true_ctx_examples: 1
-          #            ++task.params.false_ctx_examples: 0
-          #          0T1F:
-          #            description: 1 True and 0 False example
-          #            ++task.params.true_ctx_examples: 0
-          #            ++task.params.false_ctx_examples: 1
-          #          1T1F:
-          #            description: 1 True and 1 False example
-          #            ++task.params.true_ctx_examples: 1
-          #            ++task.params.false_ctx_examples: 1
-          #          0T2F:
-          #            description: 0 True and 2 False example
-          #            ++task.params.true_ctx_examples: 0
-          #            ++task.params.false_ctx_examples: 2
-          #          2T0F:
-          #            description: 2 True and 0 False example
-          #            ++task.params.true_ctx_examples: 2
-          #            ++task.params.false_ctx_examples: 0
+          Zero:
+            description: No Context Examples
+            ++task.params.true_ctx_examples: 0
+            ++task.params.false_ctx_examples: 0
+          1T0F:
+            description: 1 True and 0 False example
+            ++task.params.true_ctx_examples: 1
+            ++task.params.false_ctx_examples: 0
+          0T1F:
+            description: 1 True and 0 False example
+            ++task.params.true_ctx_examples: 0
+            ++task.params.false_ctx_examples: 1
+          1T1F:
+            description: 1 True and 1 False example
+            ++task.params.true_ctx_examples: 1
+            ++task.params.false_ctx_examples: 1
+          0T2F:
+            description: 0 True and 2 False example
+            ++task.params.true_ctx_examples: 0
+            ++task.params.false_ctx_examples: 2
+          2T0F:
+            description: 2 True and 0 False example
+            ++task.params.true_ctx_examples: 2
+            ++task.params.false_ctx_examples: 0
           2T1F:
             description: 2 True and 1 False example
             ++task.params.true_ctx_examples: 2
@@ -88,22 +88,22 @@ experiments:
             description: 2 True and 2 False example
             ++task.params.true_ctx_examples: 2
             ++task.params.false_ctx_examples: 2
-          4T0F:
-            description: 4 True and 0 False example
-            ++task.params.true_ctx_examples: 4
-            ++task.params.false_ctx_examples: 0
-          3T1F:
-            description: 3 True and 1 False example
-            ++task.params.true_ctx_examples: 3
-            ++task.params.false_ctx_examples: 1
-          1T3F:
-            description: 1 True and 3 False example
-            ++task.params.true_ctx_examples: 1
-            ++task.params.false_ctx_examples: 3
-          0T4F:
-            description: 0 True and 4 False example
-            ++task.params.true_ctx_examples: 0
-            ++task.params.false_ctx_examples: 4
+#          4T0F:
+#            description: 4 True and 0 False example
+#            ++task.params.true_ctx_examples: 4
+#            ++task.params.false_ctx_examples: 0
+#          3T1F:
+#            description: 3 True and 1 False example
+#            ++task.params.true_ctx_examples: 3
+#            ++task.params.false_ctx_examples: 1
+#          1T3F:
+#            description: 1 True and 3 False example
+#            ++task.params.true_ctx_examples: 1
+#            ++task.params.false_ctx_examples: 3
+#          0T4F:
+#            description: 0 True and 4 False example
+#            ++task.params.true_ctx_examples: 0
+#            ++task.params.false_ctx_examples: 4
 
     steps:
       - name: NPV

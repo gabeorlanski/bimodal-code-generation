@@ -64,10 +64,14 @@ def make_samples_from_dict(single_instance, with_negation=False):
             if combo not in io_combos:
                 io_combos.add(combo)
                 exec_info = {
-                    'input'      : left['input'],
-                    'output'     : right['output'],
-                    'op'         : op,
-                    'is_original': i == j
+                    'input'                : left['input'],
+                    'output'               : right['output'],
+                    'op'                   : op,
+                    'is_original'          : i == j,
+                    'is_input_generated'   : left.get('is_generated', False),
+                    'is_output_generated'  : right.get('is_generated', False),
+                    'is_input_from_random' : left.get('is_random', False),
+                    'is_output_from_random': right.get('is_random', False)
                 }
                 to_keep_by_result[str(result)].append(
                     [exec_info, result, is_manual_fix]
@@ -114,8 +118,6 @@ def make_samples_from_dict(single_instance, with_negation=False):
 
 def get_instances_to_save(verified_samples_by_idx, false_to_true_num_mod):
     count_tracker = Counter()
-    count_tracker['no_true_pairs'] = 0
-    count_tracker['not_eq_pair_keys'] = 0
     mean_tracker = defaultdict(list)
 
     to_save = []
@@ -146,21 +148,23 @@ def get_instances_to_save(verified_samples_by_idx, false_to_true_num_mod):
         negations = {}
         num_true_pairs = 0
         num_false_pairs = 0
+
         has_true = has_false = False
         for sample in sample_dict.values():
             io_pair_dict = {
-                'input'         : sample['input'],
-                'op'            : sample['op'],
-                'output'        : sample['output'],
-                'is_manual_fix' : sample['is_manual_fix'],
-                'is_negation_of': sample['is_negation_of'],
-                'is_original'   : sample['is_original'],
-                'task_id'       : sample['task_id'],
-                'result'        : sample['result']
+                'input'                : sample['input'],
+                'op'                   : sample['op'],
+                'output'               : sample['output'],
+                'is_manual_fix'        : sample['is_manual_fix'],
+                'is_negation_of'       : sample['is_negation_of'],
+                'is_original'          : sample['is_original'],
+                'task_id'              : sample['task_id'],
+                'result'               : sample['result'],
+                'is_input_generated'   : sample['is_input_generated'],
+                'is_output_generated'  : sample['is_output_generated'],
+                'is_input_from_random' : sample['is_input_from_random'],
+                'is_output_from_random': sample['is_output_from_random']
             }
-
-            # Care about stats for non-negations only
-            # is_not_negation = io_pair_dict['is_negation_of'] is None
 
             result_str = str(sample['result'])
             tid_to_io_dict[io_pair_dict['task_id']] = io_pair_dict
@@ -206,10 +210,32 @@ def get_instances_to_save(verified_samples_by_idx, false_to_true_num_mod):
         false_count[program_idx] = len(false_examples_to_use)
 
         to_save_task_ids = []
+
+        num_input_generated = 0
+        num_output_generated = 0
+        num_input_random = 0
+        num_output_random = 0
+
         for tid in true_tids + false_examples_to_use:
+            if tid_to_io_dict[tid]['is_output_generated']:
+                num_output_generated += 1
+            if tid_to_io_dict[tid]['is_input_generated']:
+                num_input_generated += 1
+            if tid_to_io_dict[tid]['is_output_from_random']:
+                num_output_random += 1
+            if tid_to_io_dict[tid]['is_input_from_random']:
+                num_input_random += 1
+
             to_save_task_ids.append(tid)
             if tid in negations:
                 to_save_task_ids.append(negations[tid])
+
+        count_tracker['all_pairs'] += len(to_save_task_ids)
+
+        mean_tracker['input_generated'].append(num_input_generated)
+        mean_tracker['output_generated'].append(num_output_generated)
+        mean_tracker['input_random'].append(num_input_random)
+        mean_tracker['output_random'].append(num_output_random)
 
         instance_dict['all_tasks'] = tid_to_io_dict
         instance_dict['instances'] = to_save_task_ids
@@ -219,4 +245,3 @@ def get_instances_to_save(verified_samples_by_idx, false_to_true_num_mod):
 
     stats = (true_count, false_count, mean_tracker, count_tracker)
     return to_save, stats
-

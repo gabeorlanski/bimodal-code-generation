@@ -6,7 +6,7 @@ from src.npv import code_verifcation
 def test_verify_code():
     samples = [
         {
-            'source_file'  : 'mbpp.jsonl', 'function': 'min_cost', 'task': 'MBPP',
+            'source_file'  : 'mbpp.jsonl', 'function': 'testing', 'task': 'MBPP',
             'description'  : 'Test',
             'code'         : 'import re\ndef testing(inputs):'
                              '\n    re.compile(r\'\')\n    return inputs % 2 == 0',
@@ -17,7 +17,7 @@ def test_verify_code():
             'is_manual_fix': False, 'is_negation_of': None
         },
         {
-            'source_file'  : 'mbpp.jsonl', 'function': 'min_cost', 'task': 'MBPP',
+            'source_file'  : 'mbpp.jsonl', 'function': 'testing', 'task': 'MBPP',
             'description'  : 'Test',
             'code'         : 'def testing(inputs):\n    return inputs % 2 == 0',
             'context'      : 'R = 3\nC = 3', 'instance_idx': 0, 'original_task_id': 1,
@@ -27,7 +27,7 @@ def test_verify_code():
             'is_manual_fix': False, 'is_negation_of': 'MBPP_0_0'
         },
         {
-            'source_file'  : 'mbpp.jsonl', 'function': 'min_cost', 'task': 'MBPP',
+            'source_file'  : 'mbpp.jsonl', 'function': 'testing', 'task': 'MBPP',
             'description'  : 'Test',
             'code'         : 'def bad_test(inputs):\n    return inputs % 2 == 0',
             'context'      : 'R = 3\nC = 3', 'instance_idx': 0, 'original_task_id': 1,
@@ -37,7 +37,7 @@ def test_verify_code():
             'is_manual_fix': False, 'is_negation_of': None
         },
         {
-            'source_file'  : 'mbpp.jsonl', 'function': 'min_cost', 'task': 'MBPP',
+            'source_file'  : 'mbpp.jsonl', 'function': 'testing', 'task': 'MBPP',
             'description'  : 'Test',
             'code'         : 'def testing(inputs):\n    return inputs % 2 == 0',
             'context'      : 'R = 3\nC = 3', 'instance_idx': 0, 'original_task_id': 1,
@@ -51,7 +51,8 @@ def test_verify_code():
     rtr = code_verifcation.check_io_sample_executes_correctly(
         'test', samples, 1
     )
-    rtr_values, results = rtr
+    arg_data, rtr_values, results = rtr
+    arg_pool, signatures = arg_data
     assert rtr_values == {
         0: {
             'MBPP_0_0': {'type': 'bool', 'value': 'False'},
@@ -77,3 +78,5 @@ def test_verify_code():
             }
         }
     }
+    assert dict(arg_pool) == {'int': {'1', '4'}}
+    assert signatures == {0: ('int',)}

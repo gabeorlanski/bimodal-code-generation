@@ -10,7 +10,7 @@ from tqdm import tqdm
 
 from src.npv import (
     make_samples_from_dict, check_io_sample_executes_correctly,
-    get_instances_to_save
+    get_instances_to_save, add_random_inputs
 )
 from .program_parsing import SUPPORTED_TASKS
 
@@ -29,7 +29,9 @@ def parse_raw_examples_for_split(
         data_path,
         debug,
         use_negation,
-        workers
+        workers,
+        generated_tests,
+        random_inputs
 ):
     fails = []
     raw_instances = []
@@ -41,6 +43,21 @@ def parse_raw_examples_for_split(
 
             parsed_dataset, parse_fails = SUPPORTED_TASKS[task](file_path)
             for instance in parsed_dataset:
+                for io_idx in range(len(instance['input_output_pairs'])):
+                    instance['input_output_pairs'][io_idx]['is_generated'] = False
+
+                generated_for_instance = generated_tests.get(instance['function'], [])
+                if generated_for_instance:
+
+                    # Never take more than the number of existing samples
+                    # from generated
+                    generated_for_instance = random.sample(
+                        generated_for_instance,
+                        min(len(generated_for_instance),
+                            len(instance['input_output_pairs']))
+                    )
+                    for generated in generated_for_instance:
+                        instance['input_output_pairs'].append({'is_generated': True, **generated})
                 instance['instance_idx'] = len(raw_instances)
                 raw_instances.append(instance)
             if parse_fails:
@@ -50,7 +67,7 @@ def parse_raw_examples_for_split(
     logger.info(f"Found {len(raw_instances)} samples for {split}")
 
     if debug:
-        raw_instances = raw_instances[:50]
+        raw_instances = raw_instances[:10]
 
     logger.info(f"Making samples from {len(raw_instances)} programs")
     unverified_samples = []
@@ -62,24 +79,35 @@ def parse_raw_examples_for_split(
         unverified_samples.extend(instance_samples)
 
     logger.info(f"{len(unverified_samples)} total samples to verify")
-    returned_values, results = check_io_sample_executes_correctly(
+    arguments_info, returned_values, results = check_io_sample_executes_correctly(
         split,
         unverified_samples,
         workers
     )
 
+    logger.info(f"{sum(map(len, results['failed_tests'].values()))} functions failed tests.")
+    logger.info(f"{sum(map(len, results['had_errors'].values()))} had errors.")
+
+    arg_pool, signatures = arguments_info
+
+    # Need to convert to list to sample from
+    arg_pool = {k: list(v) for k, v in arg_pool.items()}
+
     failed_counts = results['failed_counts']
 
-    logger.info(f"{sum(map(len, results['failed_tests'].values()))} total failed tests.")
-    logger.info(f"{sum(map(len, results['had_errors'].values()))} total had errors.")
-
     split_failed_execution = 0
-    with raw_path.joinpath(f'{split}.jsonl').open('w') as f:
-        for i, v in enumerate(raw_instances):
-            if failed_counts[v['instance_idx']] >= num_samples_per[v['instance_idx']]:
-                split_failed_execution += 1
-                continue
+    passed_programs = []
+    for i, v in enumerate(raw_instances):
+        if failed_counts[v['instance_idx']] >= num_samples_per[v['instance_idx']]:
+            split_failed_execution += 1
+            continue
+        passed_programs.append(v)
 
+    passed_programs = add_random_inputs(passed_programs, signatures, arg_pool,
+                                        random_inputs, workers)
+
+    with raw_path.joinpath(f'{split}.jsonl').open('w') as f:
+        for i, v in enumerate(passed_programs):
             v['test_negations'] = list(results['failed_tests'][v['instance_idx']].values())
             v['exclude_tests'] = list(results['had_errors'][v['instance_idx']].values())
             out_str = f"{json.dumps(v)}\n"
@@ -125,7 +153,7 @@ def verify_raw_programs(file_path, out_path, num_false_pair_mod, use_negation, w
         f"true examples and {total_false_examples} false examples"
     )
     logger.info(f"Doing second verification pass for '{split}'")
-    rtr_values, exec_results = check_io_sample_executes_correctly(
+    _, _, exec_results = check_io_sample_executes_correctly(
         split,
         unverified_samples,
         num_workers=workers,

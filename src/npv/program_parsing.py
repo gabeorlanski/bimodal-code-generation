@@ -11,6 +11,7 @@ logger = logging.getLogger(__name__)
 
 __all__ = [
     "SUPPORTED_TASKS",
+    "CustomSourceGenerator"
 ]
 OP_TO_STR = {
     ast.Eq   : '==',
@@ -95,7 +96,7 @@ class IOPairsFromAssertVisitor(ast.NodeVisitor):
         self.io_pairs.append({
             'input' : astor.to_source(node.left).strip(),
             'output': outputs,
-            'ops'   : OP_TO_STR[type(node.ops[0])]  # type:ignore
+            'ops'   : OP_TO_STR[type(node.ops[0])],  # type: ignore
         })
 
         self.generic_visit(node)
