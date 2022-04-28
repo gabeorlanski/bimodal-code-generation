@@ -70,8 +70,6 @@ def make_samples_from_dict(single_instance, with_negation=False):
                     'is_original'          : i == j,
                     'is_input_generated'   : left.get('is_generated', False),
                     'is_output_generated'  : right.get('is_generated', False),
-                    'is_input_from_random' : left.get('is_random', False),
-                    'is_output_from_random': right.get('is_random', False)
                 }
                 to_keep_by_result[str(result)].append(
                     [exec_info, result, is_manual_fix]
@@ -162,8 +160,6 @@ def get_instances_to_save(verified_samples_by_idx, false_to_true_num_mod):
                 'result'               : sample['result'],
                 'is_input_generated'   : sample['is_input_generated'],
                 'is_output_generated'  : sample['is_output_generated'],
-                'is_input_from_random' : sample['is_input_from_random'],
-                'is_output_from_random': sample['is_output_from_random']
             }
 
             result_str = str(sample['result'])
