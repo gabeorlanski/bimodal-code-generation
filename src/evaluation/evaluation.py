@@ -481,7 +481,6 @@ def evaluate_model_classification_task(
             **ex
         }
     )
-    logger.info(f'IN DEBUG MODE')
     if debug_num_samples is None:
         logger.info("Sorting by length")
     tokenized = tokenized.sort('len', reverse=debug_num_samples is None)
