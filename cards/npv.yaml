@@ -19,27 +19,22 @@ experiments:
           ParrotSmall:
             description: CodeParrot Small
             ++model: 'lvwerra/codeparrot-small'
-            ++evaluation.num_generate_per_step: 48
           Neo125M:
             description: GPT Neo 125M
             ++model: 'EleutherAI/gpt-neo-125M'
-            ++evaluation.num_generate_per_step: 40
           Parrot:
             description: CodeParrot Normal
             ++model: 'lvwerra/codeparrot'
-            ++evaluation.num_generate_per_step: 24
           Neo1B:
             description: GPT Neo 1.3B
             ++model: 'EleutherAI/gpt-neo-1.3B'
-            ++evaluation.num_generate_per_step: 18
           Incoder1B:
             description: Incoder 1B
             ++model: 'facebook/incoder-1B'
-            ++evaluation.num_generate_per_step: 16
-          Incoder6B:
-            description: Incoder 6B
-            ++model: 'facebook/incoder-6B'
-            ++evaluation.num_generate_per_step: 4
+#          Incoder6B:
+#            description: Incoder 6B
+#            ++model: 'facebook/incoder-6B'
+#            ++evaluation.num_generate_per_step: 4
 
     steps:
       - name: FineTune
@@ -53,7 +48,6 @@ experiments:
           ++model_path: null
           ++training:
             max_steps: 100
-            deepspeed: deepspeed_configs/large_models.json
             logging_steps: 10
             eval_steps: 25
             warmup_steps: 25

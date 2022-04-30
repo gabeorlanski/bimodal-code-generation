@@ -65,7 +65,11 @@ def load_model_from_cfg(
         model = model_cls.from_pretrained(str(model_path.resolve().absolute()))
     else:
         logger.info('NOT USING CHECKPOINT')
-        model = model_cls.from_pretrained(cfg['model'])
+        if cfg.get('from_scratch', False):
+            logger.info(f"INITIALIZING MODEL FROM SCRATCH")
+            model = model_cls(AutoConfig.from_pretrained(cfg['model']))
+        else:
+            model = model_cls.from_pretrained(cfg['model'])
 
     if 'generation' in cfg:
         for k, v in cfg.generation.items():
