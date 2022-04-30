@@ -451,13 +451,14 @@ def train_model(cfg: DictConfig, train_args):
             for i, v in enumerate(validation_data):
                 if len(data_to_save) >= 25:
                     break
+
+                if v['input_ids'] is None or v['labels'] is None:
+                    logger.warning(f"NONE FOUND at {i=}")
+                    print(v)
                 data_to_save[i] = {
                     'input_ids': tokenizer.decode(v['input_ids']),
                     'labels'   : tokenizer.decode(v['labels'])
                 }
-                if data_to_save[i]['input_ids'] is None or data_to_save[i]['labels'] is None:
-                    logger.warning("NONE FOUND")
-                    print(data_to_save[i])
 
             json.dump(data_to_save, f, indent=True, sort_keys=True)
 
