@@ -27,8 +27,8 @@ experiments:
           Parrot:
             description: CodeParrot Normal
             ++model: 'lvwerra/codeparrot'
-            ++training.batch_size: 2
-            ++training.gradient_accumulation_steps: 4
+            ++training.batch_size: 1
+            ++training.gradient_accumulation_steps: 8
             ++evaluation.num_generate_per_step: 24
           Neo1B:
             description: GPT Neo 1.3B
