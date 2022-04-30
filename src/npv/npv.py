@@ -107,7 +107,7 @@ def parse_raw_examples_for_split(
             split_failed_execution += 1
             continue
         passed_programs.append(v)
-
+    total_overridden = 0
     with raw_path.joinpath(f'{split}.jsonl').open('w') as f:
         for i, v in enumerate(passed_programs):
             returned = returned_values[v['instance_idx']]
@@ -127,6 +127,7 @@ def parse_raw_examples_for_split(
                             f" to {returned[tid]['value']}"
                         )
                         v['input_output_pairs'][found_key]['output'] = returned[tid]['value']
+                        total_overridden += 1
                 else:
                     negated.append(' '.join(failed))
 
@@ -134,7 +135,7 @@ def parse_raw_examples_for_split(
             v['exclude_tests'] = list(results['had_errors'][v['instance_idx']].values())
             out_str = f"{json.dumps(v)}\n"
             f.write(out_str)
-
+    logger.info(f"{total_overridden} total overridden")
     logger.info(f"{split_failed_execution} programs failed all sample execution for '{split}'")
     return fails, split_failed_execution
 
