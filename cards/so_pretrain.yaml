@@ -46,10 +46,10 @@ experiments:
                 ++training.gradient_accumulation_steps: 1
                 ++training.gradient_checkpointing: True
       - RemoveModality:
-          NoNL:
-            description: Remove Natural Language
-            hypothesis: Will do better b/c removed bad NL
-            ++processor.params.remove_modality: NL
+#          NoNL:
+#            description: Remove Natural Language
+#            hypothesis: Will do better b/c removed bad NL
+#            ++processor.params.remove_modality: NL
           NoCode:
             description: Remove Code
             hypothesis: Will do The Worst because there is no Code
