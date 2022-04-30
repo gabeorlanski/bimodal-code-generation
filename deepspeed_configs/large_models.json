@@ -23,7 +23,7 @@
         }
     },
     "zero_optimization": {
-        "stage": 2,
+        "stage": 3,
         "contiguous_gradients": true,
         "overlap_comm": true,
         "reduce_scatter": true,
@@ -32,7 +32,14 @@
         "offload_optimizer": {
             "device": "cpu",
             "pin_memory": true
-         }
+        },
+        "offload_param": {
+            "device": "cpu",
+            "pin_memory": true,
+            "buffer_count": 5,
+            "buffer_size": 1e8,
+            "max_in_cpu": 1e9
+        }
     },
 
     "gradient_accumulation_steps": "auto",

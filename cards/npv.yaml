@@ -36,6 +36,10 @@ experiments:
             description: Incoder 1B
             ++model: 'facebook/incoder-1B'
             ++evaluation.num_generate_per_step: 16
+          Incoder6B:
+            description: Incoder 6B
+            ++model: 'facebook/incoder-6B'
+            ++evaluation.num_generate_per_step: 4
 
     steps:
       - name: FineTune
@@ -48,10 +52,16 @@ experiments:
           ++is_checkpoint: false
           ++model_path: null
           training:
-            max_steps: 1000
+            max_steps: 100
+            ++training.deepspeed: deepspeed_configs/large_models.json
+            logging_steps: 10
+            eval_steps: 25
+            warmup_steps: 25
+            save_steps: 25
           tracking:
             log_model: False
             watch: null
+
 
     command:
       file: templates/commands/finetune.txt
