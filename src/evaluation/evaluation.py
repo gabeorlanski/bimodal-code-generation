@@ -652,19 +652,19 @@ def evaluate_model_classification_task(
                 f"{name}_recall"   : 100 * recall_score(
                     subset_df['target'],
                     subset_df['prediction'],
-                    average='macro',
+                    average='micro',
                     labels=choice_list
                 ),
                 f"{name}_precision": 100 * precision_score(
                     subset_df['target'],
                     subset_df['prediction'],
-                    average='macro',
+                    average='micro',
                     labels=choice_list
                 ),
                 f"{name}_f1"       : 100 * f1_score(
                     subset_df['target'],
                     subset_df['prediction'],
-                    average='macro',
+                    average='micro',
                     labels=choice_list
                 )
             }
