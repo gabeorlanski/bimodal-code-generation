@@ -168,8 +168,8 @@ def generate_predictions(
         num_proc=num_procs
     )
 
-    # if debug:
-    tokenized = tokenized.sort('length', reverse=True)
+    if debug:
+        tokenized = tokenized.sort('length', reverse=True)
     # else:
     #     tokenized = tokenized.sort('task_id')
     tokenized.set_format(type='torch')
@@ -472,22 +472,22 @@ def evaluate_model_classification_task(
     ]  # type:ignore
     logger.info(f"{len(dataset)} total samples found")
 
-    if debug_num_samples is not None or debug:
+    # if debug_num_samples is not None or debug:
 
-        logger.info(f"Adding length to the dataset")
-        tokenized = tokenized.map(
-            lambda ex: {
-                'len': len(ex['input_ids']),
-                **ex
-            }
-        )
-        logger.info(f'IN DEBUG MODE')
-        if debug_num_samples is None:
-            logger.info("Sorting by length")
-        tokenized = tokenized.sort('len', reverse=debug_num_samples is None)
-        if debug_num_samples is not None:
-            logger.warning(f"DEBUG NUMBER OF SAMPLES={debug_num_samples}")
-            tokenized = tokenized.select(list(range(debug_num_samples)))
+    logger.info(f"Adding length to the dataset")
+    tokenized = tokenized.map(
+        lambda ex: {
+            'len': len(ex['input_ids']),
+            **ex
+        }
+    )
+    logger.info(f'IN DEBUG MODE')
+    if debug_num_samples is None:
+        logger.info("Sorting by length")
+    tokenized = tokenized.sort('len', reverse=debug_num_samples is None)
+    if debug_num_samples is not None:
+        logger.warning(f"DEBUG NUMBER OF SAMPLES={debug_num_samples}")
+        tokenized = tokenized.select(list(range(debug_num_samples)))
 
     device = get_device_from_cfg(cfg)
     logger.info(f"Putting model on {device}")
