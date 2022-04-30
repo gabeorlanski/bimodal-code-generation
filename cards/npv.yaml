@@ -51,7 +51,7 @@ experiments:
           task: npv
           ++is_checkpoint: false
           ++model_path: null
-          training:
+          ++training:
             max_steps: 100
             ++training.deepspeed: deepspeed_configs/large_models.json
             logging_steps: 10
