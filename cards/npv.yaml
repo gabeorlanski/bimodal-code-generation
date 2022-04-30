@@ -58,6 +58,8 @@ experiments:
             eval_steps: 25
             warmup_steps: 25
             save_steps: 25
+            half_precision_backend: amp
+            fp16_backend: amp
           tracking:
             log_model: False
             watch: null
