@@ -117,7 +117,8 @@ def setup_raw_npv(
         use_negation,
         workers,
         generated_test_path,
-        seed
+        seed,
+        generated_mod
 ):
     logger = logging.getLogger('setup_datasets')
     data_path = Path(PROJECT_ROOT.joinpath('data/raw_npv'))
@@ -162,7 +163,8 @@ def setup_raw_npv(
         use_negation,
         workers,
         generated_tests,
-        seed
+        seed,
+        generated_mod
     )
     fails.extend(split_fails)
     total_fail_exec += split_failed_exec
@@ -209,13 +211,18 @@ def setup_mbpp_cli(
 )
 @click.option('--generated-test', '-gen',
               default=None, help='Path to the file with generated tests.')
+@click.option('--generated-mod', '-gmod', default=1.5, type=float,
+              help='Int modifier '
+                   'for # Generated to use = gmod*number of gold samples'
+              )
 @click.pass_context
 def setup_raw_npv_cli(
         ctx,
         split,
         negation,
         workers,
-        generated_test
+        generated_test,
+        generated_mod
 ):
     setup_raw_npv(
         ctx.obj['DEBUG'],
@@ -223,7 +230,8 @@ def setup_raw_npv_cli(
         negation,
         workers=workers,
         generated_test_path=generated_test,
-        seed=ctx.obj['SEED']
+        seed=ctx.obj['SEED'],
+        generated_mod=generated_mod
     )
 
 
@@ -232,6 +240,12 @@ def setup_raw_npv_cli(
 @click.option(
     '--num-false-pairs-mod', '-fratio', type=float, default=-1,
     help=f"Float ratio for number of false samples to number of true samples"
+)
+@click.option(
+    '--gold-to-generated-ratio', '-gratio', type=float, default=1,
+    help=f"Float ratio for number of gold samples to number of generated samples"
+         f" for false samples. Not that there is a hard preference to try and "
+         f" get at least 1 false sample per input."
 )
 @click.option('--negation', is_flag=True, default=False,
               help='Use negation for creating more samples')
@@ -246,7 +260,7 @@ def verify_npv(
         num_false_pairs_mod,
         negation,
         workers,
-        # batch_size
+        gold_to_generated_ratio
 ):
     logger = logging.getLogger('setup_datasets')
     data_path = Path(PROJECT_ROOT.joinpath('data/raw_npv'))
@@ -265,7 +279,8 @@ def verify_npv(
         num_false_pairs_mod,
         negation,
         workers,
-        ctx.obj['SEED']
+        ctx.obj['SEED'],
+        gold_to_generated_ratio
     )
 
 

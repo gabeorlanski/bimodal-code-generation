@@ -3,6 +3,7 @@ import logging
 import random
 from collections import defaultdict
 from copy import deepcopy
+import math
 
 import numpy as np
 from tqdm import tqdm
@@ -30,12 +31,15 @@ def parse_raw_examples_for_split(
         use_negation,
         workers,
         generated_tests,
-        seed
+        seed,
+        generated_mod
 ):
     rng = np.random.default_rng(seed)
+    logger.info(f"{generated_mod=}")
 
     fails = []
     raw_instances = []
+    generated_found = 0
     for task, files in file_cfg.items():
         logger.info(f"{len(files)} files to use for task {task} in split {split}")
         for file_name in files:
@@ -54,11 +58,12 @@ def parse_raw_examples_for_split(
                     # from generated
                     generated_for_instance = rng.choice(
                         generated_for_instance,
-                        size=min(
+                        size=int(min(
                             len(generated_for_instance),
-                            len(instance['input_output_pairs']) * 2
-                        )
+                            math.floor(len(instance['input_output_pairs']) * generated_mod)
+                        ))
                     )
+                    generated_found += len(generated_for_instance)
                     for generated in generated_for_instance:
                         instance['input_output_pairs'].append({'is_generated': True, **generated})
                 instance['instance_idx'] = len(raw_instances)
@@ -68,6 +73,7 @@ def parse_raw_examples_for_split(
                 fails.extend(parse_fails)
 
     logger.info(f"Found {len(raw_instances)} samples for {split}")
+    logger.info(f"{generated_found} generated used")
 
     if debug:
         raw_instances = raw_instances[:10]
@@ -82,7 +88,7 @@ def parse_raw_examples_for_split(
         unverified_samples.extend(instance_samples)
 
     logger.info(f"{len(unverified_samples)} total samples to verify")
-    _, returned_values, results = check_io_sample_executes_correctly(
+    returned_values, results = check_io_sample_executes_correctly(
         split,
         unverified_samples,
         workers
@@ -112,7 +118,15 @@ def parse_raw_examples_for_split(
     return fails, split_failed_execution
 
 
-def verify_raw_programs(file_path, out_path, num_false_pair_mod, use_negation, workers, seed):
+def verify_raw_programs(
+        file_path,
+        out_path,
+        num_false_pair_mod,
+        use_negation,
+        workers,
+        seed,
+        gold_to_generated_ratio
+):
     rng = np.random.default_rng(seed)
     passed_programs = list(map(json.loads, file_path.open()))
     split = file_path.stem
@@ -149,7 +163,7 @@ def verify_raw_programs(file_path, out_path, num_false_pair_mod, use_negation, w
         f"true examples and {total_false_examples} false examples"
     )
     logger.info(f"Doing second verification pass for '{split}'")
-    _, _, exec_results = check_io_sample_executes_correctly(
+    _, exec_results = check_io_sample_executes_correctly(
         split,
         unverified_samples,
         num_workers=workers,
@@ -175,7 +189,8 @@ def verify_raw_programs(file_path, out_path, num_false_pair_mod, use_negation, w
     to_save_samples, stats = get_instances_to_save(
         verified_samples_by_idx,
         false_to_true_num_mod=num_false_pair_mod,
-        rng=rng
+        rng=rng,
+        gold_to_generated_ratio=gold_to_generated_ratio
     )
     true_count, false_count, mean_tracker, count_tracker = stats
 

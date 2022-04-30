@@ -102,7 +102,16 @@ def make_samples_from_dict(single_instance, with_negation=False):
     return out
 
 
-def get_instances_to_save(verified_samples_by_idx, false_to_true_num_mod, rng):
+def get_instances_to_save(
+        verified_samples_by_idx,
+        false_to_true_num_mod,
+        rng,
+        gold_to_generated_ratio
+):
+    logger.info(f"{false_to_true_num_mod=}")
+    pct_gold = gold_to_generated_ratio / (gold_to_generated_ratio + 1)
+    logger.info(f"{pct_gold=:.2%} will be from gold")
+
     count_tracker = Counter()
     mean_tracker = defaultdict(list)
 
@@ -166,13 +175,21 @@ def get_instances_to_save(verified_samples_by_idx, false_to_true_num_mod, rng):
             else:
                 assert io_pair_dict['is_negation_of'] not in negations
                 negations[io_pair_dict['is_negation_of']] = io_pair_dict['task_id']
-        if not has_true and not has_false:
-            raise ValueError()
+        if not has_true or not has_false:
+            logger.warning(
+                f"{program_idx} had {num_true_pairs} TRUE and {num_false_pairs} "
+                f"FALSE pairs. Expecting at least 1 for each. Skipping.")
+            continue
 
         # First add 1 false example for each input
         false_examples_to_use = []
-        remaining_false_pool = []
+
+        remaining_generated_false = []
+        remaining_gold_false = []
+
         for input_str, io_pairs in false_pairs.items():
+
+            # We give preference to non-generated outputs
             non_generated = [
                 i for i, c in enumerate(io_pairs)
                 if not c['is_output_generated']
@@ -182,21 +199,48 @@ def get_instances_to_save(verified_samples_by_idx, false_to_true_num_mod, rng):
                 if i == to_keep_idx:
                     false_examples_to_use.append(v['task_id'])
                 else:
-                    remaining_false_pool.append(v['task_id'])
+                    if v['is_output_generated'] or v['is_input_generated']:
+                        remaining_generated_false.append(v['task_id'])
+                    else:
+                        remaining_gold_false.append(v['task_id'])
+
+        logger.debug(
+            f"There are {len(remaining_gold_false) + len(remaining_generated_false)} "
+            f"in the false pool for {program_idx}"
+        )
 
         if false_to_true_num_mod != -1:
-            to_select = min(num_false_pairs,
-                            math.ceil(num_true_pairs * false_to_true_num_mod))
-            to_select = int(max(0, to_select - len(false_examples_to_use)))
+            total_to_select = min(num_false_pairs,
+                                  math.ceil(num_true_pairs * false_to_true_num_mod))
+            total_to_select = int(max(0, total_to_select - len(false_examples_to_use)))
+            logger.debug(
+                f"{program_idx} has {num_true_pairs} true pairs. "
+                f"Selecting {total_to_select} False"
+            )
+
+            num_gold_to_select = int(min(
+                math.ceil(total_to_select * pct_gold),
+                len(remaining_gold_false)
+            ))
+            num_generated_to_select = total_to_select - num_gold_to_select
+
+            logger.debug(f"Selecting {num_gold_to_select} gold False and "
+                         f"{num_generated_to_select} generated False")
             false_examples_to_use.extend(
-                rng.choice(remaining_false_pool, size=min(to_select, len(remaining_false_pool)))
+                rng.choice(
+                    remaining_gold_false,
+                    size=min(
+                        total_to_select,
+                        len(remaining_gold_false) + len(remaining_generated_false))
+                )
             )
         else:
-            false_examples_to_use.extend(remaining_false_pool)
+            false_examples_to_use.extend(remaining_gold_false + remaining_generated_false)
 
         true_count[program_idx] = num_true_pairs
         false_count[program_idx] = len(false_examples_to_use)
-
+        if num_true_pairs != len(false_examples_to_use):
+            logger.warning(f"Unequal {num_true_pairs} != {len(false_examples_to_use)}")
         to_save_task_ids = []
 
         num_generated = 0
