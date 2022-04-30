@@ -220,9 +220,9 @@ def verify_raw_programs(
     logger.info(f"{len(to_save_samples)} unique programs to save")
 
     for k, v in true_count.items():
-        mean_tracker['selected_false'].append(false_count[k])
-        mean_tracker['true_pairs'].append(v)
-        mean_tracker['total_pairs'].append(v + false_count[k])
+        mean_tracker['non_neg_selected_false'].append(false_count[k])
+        mean_tracker['non_neg_true_pairs'].append(v)
+        mean_tracker['non_neg_total_pairs'].append(v + false_count[k])
     rng.shuffle(to_save_samples)
     with out_path.joinpath(f'{split}.jsonl').open('w') as f:
         for sample in to_save_samples:
@@ -230,9 +230,9 @@ def verify_raw_programs(
     logger.info(f"Stats for '{split}':")
 
     for k, v in count_tracker.items():
-        logger.info(f"\t{k:>20} = {v}")
+        logger.info(f"\t{k:>24} = {v}")
 
     for k, v in mean_tracker.items():
-        logger.info(f"\t{k:>20} = {np.mean(v):.2f}")
+        logger.info(f"\t{k:>24} = {np.mean(v):.2f}")
 
     logger.info(f"{total_fail_exec} failed execution for {split}")
