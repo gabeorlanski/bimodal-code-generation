@@ -120,6 +120,7 @@ def parse_raw_examples_for_split(
 
 
 def verify_raw_programs(
+        debug,
         file_path,
         out_path,
         num_false_pair_mod,
@@ -164,29 +165,29 @@ def verify_raw_programs(
         f"true examples and {total_false_examples} false examples"
     )
     logger.info(f"Doing second verification pass for '{split}'")
-    _, exec_results = check_io_sample_executes_correctly(
-        split,
-        unverified_samples,
-        num_workers=workers,
-        with_assert=True
-    )
+    if not debug:
+        _, exec_results = check_io_sample_executes_correctly(
+            split,
+            unverified_samples,
+            num_workers=workers,
+            with_assert=True
+        )
 
-    removed_failed = 0
+        logger.debug("Removing failed tests")
+        for instance_idx, failed_samples in exec_results['failed_tests'].items():
+            for task_id in failed_samples:
+                verified_samples_by_idx[instance_idx].pop(task_id)
+                total_fail_exec += 1
 
-    logger.debug("Removing failed tests")
-    for instance_idx, failed_samples in exec_results['failed_tests'].items():
-        for task_id in failed_samples:
-            verified_samples_by_idx[instance_idx].pop(task_id)
-            removed_failed += 1
+        logger.debug("Removing had errors")
+        for instance_idx, failed_samples in exec_results['had_errors'].items():
+            for task_id in failed_samples:
+                verified_samples_by_idx[instance_idx].pop(task_id)
+                total_fail_exec += 1
 
-    logger.debug("Removing had errors")
-    for instance_idx, failed_samples in exec_results['had_errors'].items():
-        for task_id in failed_samples:
-            verified_samples_by_idx[instance_idx].pop(task_id)
-            removed_failed += 1
-
-    logger.info(f"Removed {removed_failed} program(s) because they failed twice")
-    total_fail_exec += removed_failed
+        logger.info(f"Removed {total_fail_exec} program(s) because they failed twice")
+    else:
+        logger.warning(f"DEBUG IS ENABLED, SKIPPING EXECUTION")
     to_save_samples, stats = get_instances_to_save(
         verified_samples_by_idx,
         false_to_true_num_mod=num_false_pair_mod,

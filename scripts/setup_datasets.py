@@ -274,6 +274,7 @@ def verify_npv(
     assert raw_path.exists()
     raw_file = raw_path.joinpath(f'{split}.jsonl')
     verify_raw_programs(
+        ctx.obj['DEBUG'],
         raw_file,
         out_path,
         num_false_pairs_mod,
