@@ -269,17 +269,26 @@ def get_instances_to_save(
 
         num_generated = 0
 
-        for tid in true_examples_to_use + false_examples_to_use:
+        for tid in true_examples_to_use:
             if tid_to_io_dict[tid]['is_input_generated']:
                 num_generated += 1
 
             to_save_task_ids.append(tid)
+            count_tracker['total_true'] += 1
             if tid in negations:
                 to_save_task_ids.append(negations[tid])
+                count_tracker['total_false'] += 1
+        for tid in false_examples_to_use:
+            if tid_to_io_dict[tid]['is_input_generated']:
+                num_generated += 1
+
+            to_save_task_ids.append(tid)
+            count_tracker['total_false'] += 1
+            if tid in negations:
+                to_save_task_ids.append(negations[tid])
+                count_tracker['total_true'] += 1
 
         count_tracker['all_pairs'] += len(to_save_task_ids)
-        count_tracker['total_true'] += len(true_examples_to_use)
-        count_tracker['total_false'] += len(false_examples_to_use)
 
         mean_tracker['is_generated'].append(num_generated)
 
