@@ -165,10 +165,6 @@ def get_instances_to_save(
             tid_to_io_dict[io_pair_dict['task_id']] = io_pair_dict
             tid_by_result_and_input[result_str][io_pair_dict['input']].append(
                 io_pair_dict['task_id'])
-            if result_str == 'True':
-                count_tracker['total_true'] += 1
-            else:
-                count_tracker['total_false'] += 1
             if io_pair_dict['is_negation_of'] is None:
                 if result_str == 'True':
                     has_true = True
@@ -282,6 +278,8 @@ def get_instances_to_save(
                 to_save_task_ids.append(negations[tid])
 
         count_tracker['all_pairs'] += len(to_save_task_ids)
+        count_tracker['total_true'] += len(true_examples_to_use)
+        count_tracker['total_false'] += len(false_examples_to_use)
 
         mean_tracker['is_generated'].append(num_generated)
 

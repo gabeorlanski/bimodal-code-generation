@@ -112,10 +112,16 @@ def parse_raw_examples_for_split(
         for i, v in enumerate(passed_programs):
             returned = returned_values[v['instance_idx']]
             valid_inputs_to_override = {}
+            skip_this = False
             for j, io_pair in enumerate(v['input_output_pairs']):
+                if 'Index Minimal' in io_pair['input']:
+                    skip_this = True
+                    break
                 if io_pair.get('is_generated'):
                     valid_inputs_to_override[(io_pair['input'], io_pair['ops'])] = j
-
+            if skip_this:
+                logger.info(f"Skipping {v['instance_idx']}")
+                continue
             negated = []
             for tid, failed in results['failed_tests'][v['instance_idx']].items():
                 found_key = valid_inputs_to_override.get((failed[0], failed[1]), )
