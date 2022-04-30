@@ -77,7 +77,7 @@ def parse_raw_examples_for_split(
     logger.info(f"{generated_found} generated used")
 
     if debug:
-        raw_instances = raw_instances[:10]
+        raw_instances = raw_instances[:25] + [raw_instances[75]]
 
     logger.info(f"Making samples from {len(raw_instances)} programs")
     unverified_samples = []
@@ -110,7 +110,27 @@ def parse_raw_examples_for_split(
 
     with raw_path.joinpath(f'{split}.jsonl').open('w') as f:
         for i, v in enumerate(passed_programs):
-            v['test_negations'] = list(results['failed_tests'][v['instance_idx']].values())
+            returned = returned_values[v['instance_idx']]
+            valid_inputs_to_override = {}
+            for j, io_pair in enumerate(v['input_output_pairs']):
+                if io_pair.get('is_generated'):
+                    valid_inputs_to_override[(io_pair['input'], io_pair['ops'])] = j
+
+            negated = []
+            for tid, failed in results['failed_tests'][v['instance_idx']].items():
+                found_key = valid_inputs_to_override.get((failed[0], failed[1]), )
+                if found_key:
+                    if v['input_output_pairs'][found_key]['output'] != returned[tid]['value']:
+                        logger.info(
+                            f"Override ({failed[0]},{failed[1]}) from"
+                            f" {v['input_output_pairs'][found_key]['output']}"
+                            f" to {returned[tid]['value']}"
+                        )
+                        v['input_output_pairs'][found_key]['output'] = returned[tid]['value']
+                else:
+                    negated.append(' '.join(failed))
+
+            v['test_negations'] = list()
             v['exclude_tests'] = list(results['had_errors'][v['instance_idx']].values())
             out_str = f"{json.dumps(v)}\n"
             f.write(out_str)
@@ -165,29 +185,29 @@ def verify_raw_programs(
         f"true examples and {total_false_examples} false examples"
     )
     logger.info(f"Doing second verification pass for '{split}'")
-    if not debug:
-        _, exec_results = check_io_sample_executes_correctly(
-            split,
-            unverified_samples,
-            num_workers=workers,
-            with_assert=True
-        )
+    # if not debug:
+    _, exec_results = check_io_sample_executes_correctly(
+        split,
+        unverified_samples,
+        num_workers=workers,
+        with_assert=True
+    )
 
-        logger.debug("Removing failed tests")
-        for instance_idx, failed_samples in exec_results['failed_tests'].items():
-            for task_id in failed_samples:
-                verified_samples_by_idx[instance_idx].pop(task_id)
-                total_fail_exec += 1
+    logger.debug("Removing failed tests")
+    for instance_idx, failed_samples in exec_results['failed_tests'].items():
+        for task_id in failed_samples:
+            verified_samples_by_idx[instance_idx].pop(task_id)
+            total_fail_exec += 1
 
-        logger.debug("Removing had errors")
-        for instance_idx, failed_samples in exec_results['had_errors'].items():
-            for task_id in failed_samples:
-                verified_samples_by_idx[instance_idx].pop(task_id)
-                total_fail_exec += 1
+    logger.debug("Removing had errors")
+    for instance_idx, failed_samples in exec_results['had_errors'].items():
+        for task_id in failed_samples:
+            verified_samples_by_idx[instance_idx].pop(task_id)
+            total_fail_exec += 1
 
-        logger.info(f"Removed {total_fail_exec} program(s) because they failed twice")
-    else:
-        logger.warning(f"DEBUG IS ENABLED, SKIPPING EXECUTION")
+    logger.info(f"Removed {total_fail_exec} program(s) because they failed twice")
+    # else:
+    #     logger.warning(f"DEBUG IS ENABLED, SKIPPING EXECUTION")
     to_save_samples, stats = get_instances_to_save(
         verified_samples_by_idx,
         false_to_true_num_mod=num_false_pair_mod,

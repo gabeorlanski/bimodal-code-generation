@@ -18,6 +18,7 @@ __all__ = [
     "check_io_sample_executes_correctly",
 ]
 
+
 def make_executable_fn(
         func_name,
         code_str,
@@ -94,10 +95,10 @@ def check_io_sample_executes_correctly(split, unverified_samples, num_workers, w
         for result in exec_results:
             instance = unverified_samples[result['code_idx']]
             task_id = instance['task_id']
-            instance_str = f"{instance['input']} {instance['output']}"
+            instance_elem = (instance['input'], instance['op'], instance['output'])
             if result['had_error']:
                 num_failed_by_idx[result['idx']] += 1
-                had_errors[result['idx']][task_id] = instance_str
+                had_errors[result['idx']][task_id] = instance_elem
 
             else:
                 rtr_values[result['idx']][instance['task_id']] = {
@@ -106,7 +107,7 @@ def check_io_sample_executes_correctly(split, unverified_samples, num_workers, w
                 }
 
                 if not result['passed']:
-                    failed_tests[result['idx']][task_id] = instance_str
+                    failed_tests[result['idx']][task_id] = instance_elem
                     num_failed_by_idx[result['idx']] += 1
                 else:
                     num_passed_by_idx[result['idx']] += 1

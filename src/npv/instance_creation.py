@@ -41,14 +41,16 @@ def make_samples_from_dict(single_instance, with_negation=False):
             op = left['ops']
             result = right['output'] == left['output']
             is_manual_fix = False
-            io_pair = f"{left['input']} {right['output']}"
-            if io_pair in excluded:
+            combo = f"{left['input']} {left['ops']} {right['output']}"
+            if combo in specific_fixes and combo in io_combos:
+                raise ValueError(combo)
+
+            if combo in excluded:
                 continue
-            if io_pair in specific_fixes:
+            if combo in specific_fixes:
                 result = not result
                 is_manual_fix = True
 
-            combo = f"{left['input']} {op} {right['output']}"
             if combo not in io_combos:
                 io_combos.add(combo)
                 exec_info = {
@@ -138,8 +140,8 @@ def get_instances_to_save(
         tid_by_result_and_input = defaultdict(lambda: defaultdict(list))
 
         false_pairs = defaultdict(list)
+        true_tids = defaultdict(list)
         tid_to_io_dict = {}
-        true_tids = []
         negations = {}
         num_true_pairs = 0
         num_false_pairs = 0
@@ -167,7 +169,7 @@ def get_instances_to_save(
                 if result_str == 'True':
                     has_true = True
                     num_true_pairs += 1
-                    true_tids.append(io_pair_dict['task_id'])
+                    true_tids[sample['input']].append(io_pair_dict['task_id'])
                 else:
                     has_false = True
                     num_false_pairs += 1
@@ -182,6 +184,7 @@ def get_instances_to_save(
             )
             continue
 
+        true_examples_to_use = [ex for v in true_tids.values() for ex in v]
         # First add 1 false example for each input
         false_examples_to_use = []
 
@@ -198,7 +201,10 @@ def get_instances_to_save(
             ]
             to_keep_idx = rng.choice(non_generated or range(len(io_pairs)))
             for i, v in enumerate(io_pairs):
-                if i == to_keep_idx:
+
+                # We only want to force keep certain pairs if the input also
+                # has a corresponding true pair.
+                if i == to_keep_idx and input_str in true_tids:
                     false_examples_to_use.append(v['task_id'])
                 else:
                     if v['is_output_generated'] or v['is_input_generated']:
@@ -214,7 +220,7 @@ def get_instances_to_save(
 
         if false_to_true_num_mod != -1 and num_remaining_false > 0:
             total_to_select = min(min(num_false_pairs, num_true_pairs),
-                                  math.ceil(num_true_pairs * false_to_true_num_mod))
+                                  math.floor(num_true_pairs * false_to_true_num_mod))
             total_to_select = int(max(0, total_to_select - len(false_examples_to_use)))
             logger.debug(
                 f"{program_idx} has {num_true_pairs} true pairs. "
@@ -263,7 +269,7 @@ def get_instances_to_save(
 
         num_generated = 0
 
-        for tid in true_tids + false_examples_to_use:
+        for tid in true_examples_to_use + false_examples_to_use:
             if tid_to_io_dict[tid]['is_input_generated']:
                 num_generated += 1
 
