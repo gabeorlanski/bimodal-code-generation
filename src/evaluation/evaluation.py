@@ -597,18 +597,18 @@ def evaluate_model_classification_task(
             targets,
             predictions,
             labels=choice_list,
-            average='macro'
+            average='micro'
         ),
         "recall"   : 100 * recall_score(
             targets,
             predictions,
-            average='macro',
+            average='micro',
             labels=choice_list
         ),
         "precision": 100 * precision_score(
             targets,
             predictions,
-            average='macro',
+            average='micro',
             labels=choice_list
         ),
     }
