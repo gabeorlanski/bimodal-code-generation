@@ -56,13 +56,14 @@ def parse_raw_examples_for_split(
 
                     # Never take more than the number of existing samples
                     # from generated
-                    generated_for_instance = rng.choice(
-                        generated_for_instance,
-                        size=int(min(
-                            len(generated_for_instance),
-                            math.floor(len(instance['input_output_pairs']) * generated_mod)
-                        ))
-                    )
+                    if generated_mod != -1:
+                        generated_for_instance = rng.choice(
+                            generated_for_instance,
+                            size=int(min(
+                                len(generated_for_instance),
+                                math.floor(len(instance['input_output_pairs']) * generated_mod)
+                            ))
+                        )
                     generated_found += len(generated_for_instance)
                     for generated in generated_for_instance:
                         instance['input_output_pairs'].append({'is_generated': True, **generated})
