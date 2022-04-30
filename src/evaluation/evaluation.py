@@ -168,8 +168,8 @@ def generate_predictions(
         num_proc=num_procs
     )
 
-    if debug:
-        tokenized = tokenized.sort('length', reverse=True)
+    # if debug:
+    tokenized = tokenized.sort('length', reverse=True)
     # else:
     #     tokenized = tokenized.sort('task_id')
     tokenized.set_format(type='torch')

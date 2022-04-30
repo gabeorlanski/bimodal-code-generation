@@ -187,6 +187,7 @@ def get_instances_to_save(
 
         remaining_generated_false = []
         remaining_gold_false = []
+        num_remaining_false = 0
 
         for input_str, io_pairs in false_pairs.items():
 
@@ -204,14 +205,15 @@ def get_instances_to_save(
                         remaining_generated_false.append(v['task_id'])
                     else:
                         remaining_gold_false.append(v['task_id'])
+                    num_remaining_false += 1
 
         logger.debug(
             f"There are {len(remaining_gold_false) + len(remaining_generated_false)} "
             f"in the false pool for {program_idx}"
         )
 
-        if false_to_true_num_mod != -1:
-            total_to_select = min(num_false_pairs,
+        if false_to_true_num_mod != -1 and num_remaining_false > 0:
+            total_to_select = min(min(num_false_pairs, num_true_pairs),
                                   math.ceil(num_true_pairs * false_to_true_num_mod))
             total_to_select = int(max(0, total_to_select - len(false_examples_to_use)))
             logger.debug(
@@ -223,18 +225,32 @@ def get_instances_to_save(
                 math.ceil(total_to_select * pct_gold),
                 len(remaining_gold_false)
             ))
-            num_generated_to_select = total_to_select - num_gold_to_select
+            num_generated_to_select = min(
+                total_to_select - num_gold_to_select,
+                len(remaining_generated_false)
+            )
 
             logger.debug(f"Selecting {num_gold_to_select} gold False and "
                          f"{num_generated_to_select} generated False")
-            false_examples_to_use.extend(
-                rng.choice(
-                    remaining_gold_false,
-                    size=min(
-                        total_to_select,
-                        len(remaining_gold_false) + len(remaining_generated_false))
+            selected_some = False
+            if remaining_gold_false and remaining_gold_false:
+                selected_some = True
+                false_examples_to_use.extend(
+                    rng.choice(
+                        remaining_gold_false,
+                        size=num_gold_to_select
+                    )
                 )
-            )
+            if remaining_generated_false and remaining_generated_false:
+                selected_some = True
+                false_examples_to_use.extend(
+                    rng.choice(
+                        remaining_generated_false,
+                        size=num_generated_to_select)
+
+                )
+            if not selected_some:
+                logger.critical(f"DID NOT SELECT ANY for {program_idx}")
         else:
             false_examples_to_use.extend(remaining_gold_false + remaining_generated_false)
 

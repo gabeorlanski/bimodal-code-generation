@@ -60,10 +60,10 @@ experiments:
             description: 1 True and 0 False example
             ++task.params.true_ctx_examples: 1
             ++task.params.false_ctx_examples: 0
-          0T1F:
-            description: 1 True and 0 False example
-            ++task.params.true_ctx_examples: 0
-            ++task.params.false_ctx_examples: 1
+#          0T1F:
+#            description: 1 True and 0 False example
+#            ++task.params.true_ctx_examples: 0
+#            ++task.params.false_ctx_examples: 1
           1T1F:
             description: 1 True and 1 False example
             ++task.params.true_ctx_examples: 1
@@ -80,10 +80,10 @@ experiments:
             description: 2 True and 1 False example
             ++task.params.true_ctx_examples: 2
             ++task.params.false_ctx_examples: 1
-          1T2F:
-            description: 1 True and 2 False example
-            ++task.params.true_ctx_examples: 1
-            ++task.params.false_ctx_examples: 2
+#          1T2F:
+#            description: 1 True and 2 False example
+#            ++task.params.true_ctx_examples: 1
+#            ++task.params.false_ctx_examples: 2
           2T2F:
             description: 2 True and 2 False example
             ++task.params.true_ctx_examples: 2
