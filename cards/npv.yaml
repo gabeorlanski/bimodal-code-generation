@@ -1,16 +1,14 @@
 starting_commands: templates/commands/sbatch_experiment.txt
 experiments:
-  Baselines:
-    add_name: False
+  Finetune:
+    add_name: True
     description: "Fine tune the baseline models on NPV"
     overrides:
       ++device: 0
-      is_checkpoint: false
       objective: lm
       tracking:
         tags:
           - Baseline
-      ++zero_shot: True
       task: npv
       ++tracking.entity: nyu-code-research
       ++task.params.prompt: base_with_description
@@ -19,18 +17,26 @@ experiments:
           ParrotSmall:
             description: CodeParrot Small
             ++model: 'lvwerra/codeparrot-small'
+            ++training.batch_size: 8
           Neo125M:
             description: GPT Neo 125M
             ++model: 'EleutherAI/gpt-neo-125M'
+            ++training.batch_size: 8
           Parrot:
             description: CodeParrot Normal
             ++model: 'lvwerra/codeparrot'
+            ++training.batch_size: 2
+            ++training.gradient_accumulation_steps: 4
           Neo1B:
             description: GPT Neo 1.3B
             ++model: 'EleutherAI/gpt-neo-1.3B'
+            ++training.batch_size: 2
+            ++training.gradient_accumulation_steps: 4
           Incoder1B:
             description: Incoder 1B
             ++model: 'facebook/incoder-1B'
+            ++training.batch_size: 2
+            ++training.gradient_accumulation_steps: 4
 #          Incoder6B:
 #            description: Incoder 6B
 #            ++model: 'facebook/incoder-6B'
@@ -47,7 +53,10 @@ experiments:
           ++is_checkpoint: false
           ++model_path: null
           ++training:
-            max_steps: 100
+            evaluation_strategy: epoch
+            save_strategy: epoch
+            num_train_epochs: 10
+            max_steps: -1
             logging_steps: 10
             eval_steps: 25
             warmup_steps: 25
@@ -55,13 +64,23 @@ experiments:
           tracking:
             log_model: False
             watch: null
+      - name: Eval
+        description: Eval on NPV
+        add_name: True
+        base: train_config.yaml
+        group: NPV
+        overrides:
+          is_checkpoint: True
+          model_path: outputs/npv/${..__META__.ablation.name}/best_model
+
 
 
     command:
-      file: templates/commands/finetune.txt
+      file: templates/commands/npv_finetune.txt
       kwargs:
         train_sbatch: train_single_gpu
         pretrain_time: "12:00:00"
+        finetune_time: "4:00:00"
         use_cds: True
       fields:
         - model_path

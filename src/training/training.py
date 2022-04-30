@@ -119,7 +119,11 @@ def setup_lm(cfg, task):
     )
 
     def make_split(split_name):
-        split_data = task.get_split(split_name, num_procs=cfg.get('num_proc', 1))
+        split_data = task.get_split(
+            split_name,
+            num_procs=cfg.get('num_proc', 1),
+            add_special_tokens=False
+        )
         split_data = Dataset.from_dict(group_texts(split_data['input_ids']))
         return split_data
 
@@ -459,7 +463,6 @@ def train_model(cfg: DictConfig, train_args):
                     }
                 except Exception as e:
                     raise e
-
 
             json.dump(data_to_save, f, indent=True, sort_keys=True)
 

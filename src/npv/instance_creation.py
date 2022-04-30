@@ -1,6 +1,5 @@
 import logging
 import math
-import random
 from collections import defaultdict, Counter
 from copy import deepcopy
 
@@ -103,7 +102,7 @@ def make_samples_from_dict(single_instance, with_negation=False):
     return out
 
 
-def get_instances_to_save(verified_samples_by_idx, false_to_true_num_mod):
+def get_instances_to_save(verified_samples_by_idx, false_to_true_num_mod, rng):
     count_tracker = Counter()
     mean_tracker = defaultdict(list)
 
@@ -178,7 +177,7 @@ def get_instances_to_save(verified_samples_by_idx, false_to_true_num_mod):
                 i for i, c in enumerate(io_pairs)
                 if not c['is_output_generated']
             ]
-            to_keep_idx = random.choice(non_generated or range(len(io_pairs)))
+            to_keep_idx = rng.choice(non_generated or range(len(io_pairs)))
             for i, v in enumerate(io_pairs):
                 if i == to_keep_idx:
                     false_examples_to_use.append(v['task_id'])
@@ -190,7 +189,7 @@ def get_instances_to_save(verified_samples_by_idx, false_to_true_num_mod):
                             math.ceil(num_true_pairs * false_to_true_num_mod))
             to_select = int(max(0, to_select - len(false_examples_to_use)))
             false_examples_to_use.extend(
-                random.sample(remaining_false_pool, min(to_select, len(remaining_false_pool)))
+                rng.choice(remaining_false_pool, size=min(to_select, len(remaining_false_pool)))
             )
         else:
             false_examples_to_use.extend(remaining_false_pool)

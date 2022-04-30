@@ -432,20 +432,23 @@ def evaluate_model_classification_task(
         task.tokenizer.padding_side = 'left'
         task.tokenizer.truncation_side = 'left'
 
-    def tokenize(example, idx):
+    def tokenize(example, example_idx):
+
         # We do not pop so that we can still remove the columns later.
         out = {
-            "idx": idx,
+            "idx": example_idx,
             **task.tokenizer(
-                example["input_sequence"],
+                task.tokenizer.eos_token + example["input_sequence"],
                 truncation=True,
-                max_length=task.tokenizer.model_max_length - 1
+                max_length=task.tokenizer.model_max_length - 1,
+                add_special_tokens=False
             )
         }
         target_tokenized = task.tokenizer(
             example['target'],
             truncation=True,
-            max_length=task.tokenizer.model_max_length - 1
+            max_length=task.tokenizer.model_max_length - 1,
+            add_special_tokens=False
         )
         out.update(
             {
@@ -460,6 +463,13 @@ def evaluate_model_classification_task(
         num_proc=cfg.num_proc,
         remove_columns=[c for c in dataset.column_names],
     )
+
+    choices_tokenized = [
+        task.tokenizer(
+            str(c),
+            add_special_tokens=False
+        )['input_ids'] for c in choice_list
+    ]  # type:ignore
     logger.info(f"{len(dataset)} total samples found")
 
     if debug_num_samples is not None or debug:
@@ -482,7 +492,6 @@ def evaluate_model_classification_task(
     device = get_device_from_cfg(cfg)
     logger.info(f"Putting model on {device}")
     model = model.to(device)
-    # model = amp.initialize(model)
     logger.info(f"Model is on {model.device}")
     logger.debug(f"{type(dataset)=}")
     collator = DataCollatorForSeq2Seq(
@@ -492,8 +501,6 @@ def evaluate_model_classification_task(
         return_tensors='pt',
         label_pad_token_id=task.tokenizer.pad_token_id
     )
-
-    choices_tokenized = [task.tokenizer(str(c))['input_ids'] for c in choice_list]  # type:ignore
 
     sequential_sampler = torch.utils.data.SequentialSampler(tokenized)
     batch_size = cfg.evaluation.num_generate_per_step
@@ -633,9 +640,7 @@ def evaluate_model_classification_task(
     if cfg.task.name == 'npv':
         df = pd.DataFrame.from_records(serialized_predictions)
 
-        # Yes, this is incorrect, but I already ran experiments so I cannot
-        # change this at the moment.
-        df['is_negation'] = pd.isnull(df['is_negation_of'])
+        df['is_negation'] = ~pd.isnull(df['is_negation_of'])
         is_generated_mask = (df['is_input_generated'] | df['is_output_generated'])
         df = df[['prediction', 'target', 'is_negation', 'is_original', 'is_manual_fix', 'op']]
 

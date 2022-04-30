@@ -29,8 +29,11 @@ def parse_raw_examples_for_split(
         debug,
         use_negation,
         workers,
-        generated_tests
+        generated_tests,
+        seed
 ):
+    rng = np.random.default_rng(seed)
+
     fails = []
     raw_instances = []
     for task, files in file_cfg.items():
@@ -49,10 +52,12 @@ def parse_raw_examples_for_split(
 
                     # Never take more than the number of existing samples
                     # from generated
-                    generated_for_instance = random.sample(
+                    generated_for_instance = rng.choice(
                         generated_for_instance,
-                        min(len(generated_for_instance),
-                            len(instance['input_output_pairs'])*2)
+                        size=min(
+                            len(generated_for_instance),
+                            len(instance['input_output_pairs']) * 2
+                        )
                     )
                     for generated in generated_for_instance:
                         instance['input_output_pairs'].append({'is_generated': True, **generated})
@@ -107,7 +112,8 @@ def parse_raw_examples_for_split(
     return fails, split_failed_execution
 
 
-def verify_raw_programs(file_path, out_path, num_false_pair_mod, use_negation, workers):
+def verify_raw_programs(file_path, out_path, num_false_pair_mod, use_negation, workers, seed):
+    rng = np.random.default_rng(seed)
     passed_programs = list(map(json.loads, file_path.open()))
     split = file_path.stem
 
@@ -168,7 +174,8 @@ def verify_raw_programs(file_path, out_path, num_false_pair_mod, use_negation, w
     total_fail_exec += removed_failed
     to_save_samples, stats = get_instances_to_save(
         verified_samples_by_idx,
-        false_to_true_num_mod=num_false_pair_mod
+        false_to_true_num_mod=num_false_pair_mod,
+        rng=rng
     )
     true_count, false_count, mean_tracker, count_tracker = stats
 
@@ -178,7 +185,7 @@ def verify_raw_programs(file_path, out_path, num_false_pair_mod, use_negation, w
         mean_tracker['selected_false'].append(false_count[k])
         mean_tracker['true_pairs'].append(v)
         mean_tracker['total_pairs'].append(v + false_count[k])
-    random.shuffle(to_save_samples)
+    rng.shuffle(to_save_samples)
     with out_path.joinpath(f'{split}.jsonl').open('w') as f:
         for sample in to_save_samples:
             f.write(json.dumps(sample) + '\n')

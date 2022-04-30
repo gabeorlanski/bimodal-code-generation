@@ -1,0 +1,26 @@
+{%- set pretrain_jid= "pretrain_jid"+ idx|string -%}
+{%- set get_info_jid= "get_info_"+ idx|string -%}
+{%- if use_cds is defined and use_cds -%}
+{% set account_str="--account=cds --qos=cds \\" %}
+{% else %}
+{% set account_str="\\" %}
+{%- endif -%}
+{%- set cancel_file="generated_experiments/cancel_scripts/"~job_name~".sh" -%}
+
+rm -f {{ cancel_file }}
+echo "#!/bin/bash" >> {{cancel_file}}
+# Finetuning
+train_jid{{ idx}}=$(sbatch --parsable {{account_str}}
+	--time={{ finetune_time }} \
+	--job-name={{ job_name }}_finetune {{ train_sbatch }}.sbatch {{ FineTune.path}})
+echo "Submitted Train (id=$train_jid{{ idx}})"
+echo "scancel $train_jid{{idx}}" >> {{cancel_file}}
+
+# MBPP Eval
+eval_jid{{idx}}=$(sbatch --parsable \
+	--time={{ finetune_time }} \
+	--job-name={{ job_name }}_eval \
+	--dependency=afterok:$train_jid{{ idx}} eval.sbatch \
+	outputs/npv/{{ FineTune.name }} npv {{ Eval.path }})
+echo "Submitted Eval $eval_jid{{idx}} to run after $1(id=$train_jid{{ idx}})"
+echo "scancel $eval_jid{{idx}}" >> {{cancel_file}}

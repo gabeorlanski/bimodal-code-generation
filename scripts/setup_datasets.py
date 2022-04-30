@@ -116,7 +116,8 @@ def setup_raw_npv(
         split,
         use_negation,
         workers,
-        generated_test_path
+        generated_test_path,
+        seed
 ):
     logger = logging.getLogger('setup_datasets')
     data_path = Path(PROJECT_ROOT.joinpath('data/raw_npv'))
@@ -160,7 +161,8 @@ def setup_raw_npv(
         debug,
         use_negation,
         workers,
-        generated_tests
+        generated_tests,
+        seed
     )
     fails.extend(split_fails)
     total_fail_exec += split_failed_exec
@@ -198,7 +200,7 @@ def setup_mbpp_cli(
 
 
 @setup_datasets.command('raw_npv')
-@click.argument('split',metavar='<SPLIT>')
+@click.argument('split', metavar='<SPLIT>')
 @click.option('--negation', is_flag=True, default=False,
               help='Use negation for creating more samples')
 @click.option(
@@ -220,12 +222,13 @@ def setup_raw_npv_cli(
         split,
         negation,
         workers=workers,
-        generated_test_path=generated_test
+        generated_test_path=generated_test,
+        seed=ctx.obj['SEED']
     )
 
 
 @setup_datasets.command('verify_npv')
-@click.argument('split',metavar="<SPLIT>")
+@click.argument('split', metavar="<SPLIT>")
 @click.option(
     '--num-false-pairs-mod', '-fratio', type=float, default=-1,
     help=f"Float ratio for number of false samples to number of true samples"
@@ -261,7 +264,8 @@ def verify_npv(
         out_path,
         num_false_pairs_mod,
         negation,
-        workers
+        workers,
+        ctx.obj['SEED']
     )
 
 
