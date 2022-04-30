@@ -50,10 +50,14 @@ experiments:
             description: Remove Natural Language
             hypothesis: Will do better b/c removed bad NL
             ++processor.params.remove_modality: NL
-          Full:
-            description: Do Not Remove Anything
-            hypothesis: Will be worse than removing NL
-            ++processor.params.remove_modality: null
+          NoCode:
+            description: Remove Code
+            hypothesis: Will do The Worst because there is no Code
+            ++processor.params.remove_modality: CODE
+#          Full:
+#            description: Do Not Remove Anything
+#            hypothesis: Will be worse than removing NL
+#            ++processor.params.remove_modality: null
 
 
     steps:
