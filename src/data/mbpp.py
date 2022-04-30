@@ -24,7 +24,7 @@ class MBPP(Task):
     """
     SPLIT_MAPPING = {
         "train"     : str(PROJECT_ROOT.joinpath('data', 'MBPP', 'train.jsonl')),
-        "validation": str(PROJECT_ROOT.joinpath('data', 'MBPP', 'validation.jsonl')),
+        "validation": str(PROJECT_ROOT.joinpath('data', 'MBPP', 'mbpp_validation.jsonl')),
         "test"      : str(PROJECT_ROOT.joinpath('data', 'MBPP', 'test.jsonl')),
     }
 

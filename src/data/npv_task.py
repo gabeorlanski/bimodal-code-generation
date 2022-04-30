@@ -38,6 +38,8 @@ PROMPT_TO_USE = None
 class NPV(Task):
     SPLIT_MAPPING = {
         "test": str(PROJECT_ROOT.joinpath('data', 'NPV', 'test.jsonl')),
+        "train": str(PROJECT_ROOT.joinpath('data', 'NPV', 'train.jsonl')),
+        "validation": str(PROJECT_ROOT.joinpath('data', 'NPV', 'validation.jsonl')),
     }
 
     EXCLUDE_KEYS = [

@@ -63,7 +63,7 @@ def test_setup_mbpp_splits(tmpdir):
         "test.jsonl"      : expected_mbpp[2:6],
         "train.jsonl"     : expected_mbpp[6:11],
         "edited.jsonl"    : expected_edited,
-        "validation.jsonl": expected_mbpp[11:],
+        "mbpp_validation.jsonl": expected_mbpp[11:],
     }
 
     with patch("scripts.setup_datasets.random.shuffle", new_callable=lambda: None):

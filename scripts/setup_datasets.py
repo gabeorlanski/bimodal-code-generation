@@ -93,7 +93,7 @@ def setup_mbpp(
         ("Few-Shot", "few_shot.jsonl", few_shot_size),
         ("Test", "test.jsonl", test_size),
         ("Fine-Tuning", "train.jsonl", fine_tuning_size),
-        ("Validation", "validation.jsonl", validation_size),
+        ("Validation", "mbpp_validation.jsonl", validation_size),
     ]
     progress_bar = tqdm(total=len(mbpp_data), desc="Saving Splits", file=sys.stdout)
     current = 0
@@ -113,6 +113,7 @@ def setup_mbpp(
 
 def setup_raw_npv(
         debug,
+        split,
         use_negation,
         workers,
         generated_test_path
@@ -150,21 +151,21 @@ def setup_raw_npv(
         raw_path.mkdir(parents=True)
     fails = []
     total_fail_exec = 0
-    for split, file_cfg in cfg.items():
-        split_fails, split_failed_exec = parse_raw_examples_for_split(
-            split,
-            file_cfg,
-            raw_path,
-            data_path,
-            debug,
-            use_negation,
-            workers,
-            generated_tests
-        )
-        fails.extend(split_fails)
-        total_fail_exec += split_failed_exec
+    file_cfg = cfg[split]
+    split_fails, split_failed_exec = parse_raw_examples_for_split(
+        split,
+        file_cfg,
+        raw_path,
+        data_path,
+        debug,
+        use_negation,
+        workers,
+        generated_tests
+    )
+    fails.extend(split_fails)
+    total_fail_exec += split_failed_exec
 
-    with out_path.joinpath('parse_fails.jsonl').open('w') as f:
+    with raw_path.joinpath(f'{split}_parse_fails.jsonl').open('w') as f:
         for fail in fails:
             f.write(json.dumps(fail) + '\n')
 
@@ -197,6 +198,7 @@ def setup_mbpp_cli(
 
 
 @setup_datasets.command('raw_npv')
+@click.argument('split',metavar='<SPLIT>')
 @click.option('--negation', is_flag=True, default=False,
               help='Use negation for creating more samples')
 @click.option(
@@ -208,12 +210,14 @@ def setup_mbpp_cli(
 @click.pass_context
 def setup_raw_npv_cli(
         ctx,
+        split,
         negation,
         workers,
         generated_test
 ):
     setup_raw_npv(
         ctx.obj['DEBUG'],
+        split,
         negation,
         workers=workers,
         generated_test_path=generated_test
@@ -221,6 +225,7 @@ def setup_raw_npv_cli(
 
 
 @setup_datasets.command('verify_npv')
+@click.argument('split',metavar="<SPLIT>")
 @click.option(
     '--num-false-pairs-mod', '-fratio', type=float, default=-1,
     help=f"Float ratio for number of false samples to number of true samples"
@@ -234,6 +239,7 @@ def setup_raw_npv_cli(
 @click.pass_context
 def verify_npv(
         ctx,
+        split,
         num_false_pairs_mod,
         negation,
         workers,
@@ -243,22 +249,20 @@ def verify_npv(
     data_path = Path(PROJECT_ROOT.joinpath('data/raw_npv'))
     logger.info("Verifying RAW NPV data")
     assert data_path.joinpath('cfg.yaml').exists()
-    cfg = yaml.load(data_path.joinpath('cfg.yaml').open(), yaml.Loader)
 
     out_path = PROJECT_ROOT.joinpath('data/NPV')
     raw_path = out_path.joinpath('raw')
     if not out_path.exists():
         out_path.mkdir(parents=True)
     assert raw_path.exists()
-    for split, file_cfg in cfg.items():
-        raw_file = raw_path.joinpath(f'{split}.jsonl')
-        verify_raw_programs(
-            raw_file,
-            out_path,
-            num_false_pairs_mod,
-            negation,
-            workers
-        )
+    raw_file = raw_path.joinpath(f'{split}.jsonl')
+    verify_raw_programs(
+        raw_file,
+        out_path,
+        num_false_pairs_mod,
+        negation,
+        workers
+    )
 
 
 if __name__ == "__main__":

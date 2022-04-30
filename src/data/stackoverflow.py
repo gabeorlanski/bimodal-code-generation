@@ -4,10 +4,10 @@ Code for handling
 import logging
 from copy import deepcopy
 from datetime import datetime
-from typing import Callable, List, Dict, Iterator
+from typing import Callable, List, Dict
+
 from bs4 import BeautifulSoup
 from bs4.element import Tag
-import re
 from unidecode import unidecode
 
 logger = logging.getLogger(__name__)

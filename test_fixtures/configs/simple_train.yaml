@@ -7,7 +7,7 @@ task:
   name: mbpp
   paths:
     train: MBPP/train.jsonl
-    validation: MBPP/validation.jsonl
+    validation: MBPP/mbpp_validation.jsonl
 model: patrickvonplaten/t5-tiny-random
 model_path: null
 is_checkpoint: false

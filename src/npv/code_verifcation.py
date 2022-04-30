@@ -1,25 +1,16 @@
-import ast
-import time
-
-import astor
 import contextlib
 import inspect
 import io
 import logging
-import math
 import multiprocessing as mp
 import pickle
-import random
 import signal
+import time
 from collections import defaultdict, Counter
-from copy import deepcopy
 
-import torch
 from tqdm import tqdm
-from transformers import AutoTokenizer, AutoModelForCausalLM
 
 from src.evaluation.execute import create_tempdir
-from .program_parsing import CustomSourceGenerator
 
 logger = logging.getLogger(__name__)
 

@@ -12,7 +12,7 @@ from torch.utils.data import IterableDataset
 import datasets
 from omegaconf import DictConfig, OmegaConf
 from torch.utils.data import DataLoader
-from transformers import TrainerCallback, ProgressCallback
+from transformers import TrainerCallback, ProgressCallback, AutoTokenizer
 from transformers.trainer_seq2seq import Seq2SeqTrainer
 from transformers.integrations import WandbCallback
 from tqdm import tqdm
@@ -47,19 +47,23 @@ class HFIterableWrapper(IterableDataset):
         self.field_concat_tokens = field_concat_tokens
         self.concat_token = concat_token
         self.sequence_length = sequence_length
-        self.tokenizer = tokenizer
+        self.tokenizer_name = tokenizer.name_or_path
         self.infinite = infinite
+        self.lm_concat_delim = tokenizer.encode('\n')
 
     def __iter__(self):
         data_iter = iter(self.ds)
         more_examples = True
         ds_epoch = 0
+        tokenizer = AutoTokenizer.from_pretrained(self.tokenizer_name, use_fast=True)
 
         worker_info = torch.utils.data.get_worker_info()
         if worker_info is None:
+            slices_per_worker = self.buffer
             worker_id = 0
         else:
-            raise ValueError(f"Not Compatible with multiple dataset workers")
+            slices_per_worker = int(math.ceil(self.buffer / worker_info.num_workers))
+            worker_id = worker_info.id
         while more_examples:
             instances = []
             while len(instances) < self.buffer:
@@ -74,29 +78,47 @@ class HFIterableWrapper(IterableDataset):
                     else:
                         more_examples = False
                         break
-            os.environ['DS_EPOCH'] = f"{ds_epoch:0.5f}"
-            if self.objective == 'lm':
-                buffer = []
-                for i in instances:
-                    instance_seq = []
-                    for j, f in enumerate(self.input_fields):
-                        if j == len(self.input_fields) - 1:
-                            instance_seq.extend(i[f])
-                        else:
-                            instance_seq.extend(i[f] + self.field_concat_tokens)
-                    buffer.extend(instance_seq + [self.concat_token])
-                for i in range(0, len(buffer), self.sequence_length):
-                    token_start = i
-                    token_end = i + self.sequence_length
-                    input_ids = buffer[token_start:token_end]
-                    if len(input_ids) == self.sequence_length:
-                        yield {
-                            'input_ids': torch.tensor(input_ids),
-                            'labels'   : torch.tensor(input_ids),
-                        }
+            if worker_info is None:
+                start = 0
+                end = self.buffer
             else:
-                for i in instances:
-                    yield i
+                start = worker_id * slices_per_worker
+                end = min(self.buffer, start + slices_per_worker)
+            os.environ['DS_EPOCH'] = f"{ds_epoch:0.5f}"
+            processed_inputs, processed_labels = [], []
+            for line in instances[start:end]:
+                processed_inputs.append(line['input_seq'])
+                processed_labels.append(line['labels'])
+            inputs_tokenized = tokenizer(
+                processed_inputs,
+                max_length=self.sequence_length,
+                truncation=True
+            )['input_ids']
+            labels_tokenized = tokenizer(
+                processed_labels,
+                max_length=self.sequence_length,
+                truncation=True
+            )['input_ids']
+            buffer = []
+            for input_ids, labels in zip(inputs_tokenized, labels_tokenized):
+                buffer.extend(
+                    input_ids
+                    + self.lm_concat_delim
+                    + labels
+                    + [self.concat_token]
+                )
+            logger.debug(
+                f"{worker_id=} has {len(buffer) // self.sequence_length} items to yield")
+            for i in range(0, len(buffer), self.sequence_length):
+                token_start = i
+                token_end = i + self.sequence_length
+                input_ids = buffer[token_start:token_end]
+                if len(input_ids) == self.sequence_length:
+                    yield {
+                        'input_ids': torch.tensor(input_ids),
+                        # 'attention_mask': torch.tensor([1] * len(input_ids)),
+                        'labels'   : torch.tensor(input_ids),
+                    }
 
 
 class CustomTrainer(Seq2SeqTrainer):

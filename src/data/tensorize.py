@@ -1,22 +1,20 @@
 import json
 import logging
 import math
+import multiprocessing as mp
 import os
 from collections import Counter
-from copy import deepcopy, copy
-from dataclasses import dataclass, field, asdict
+from dataclasses import dataclass, field
 from functools import partial
 from pathlib import Path
-import multiprocessing as mp
-from typing import Dict, List
+from typing import Dict
 
-import torch
-from torch.utils.data import IterableDataset
-from transformers import AutoTokenizer, PreTrainedTokenizer
-from tqdm import tqdm
-from src.common.file_util import human_readable_size
 import psutil
+import torch
 import ujson
+from torch.utils.data import IterableDataset
+from tqdm import tqdm
+from transformers import AutoTokenizer, PreTrainedTokenizer
 
 from src.data.stackoverflow import StackOverflowProcessor
 

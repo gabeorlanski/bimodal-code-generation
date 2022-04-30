@@ -6,7 +6,7 @@ task:
   name: mbpp
   paths:
     train: MBPP/train.jsonl
-    validation: MBPP/validation.jsonl
+    validation: MBPP/mbpp_validation.jsonl
 generation:
   num_return_sequences: 5
   max_length: 512

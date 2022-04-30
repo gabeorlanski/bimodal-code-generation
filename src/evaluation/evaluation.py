@@ -632,8 +632,10 @@ def evaluate_model_classification_task(
 
     if cfg.task.name == 'npv':
         df = pd.DataFrame.from_records(serialized_predictions)
+
+        # Yes, this is incorrect, but I already ran experiments so I cannot
+        # change this at the moment.
         df['is_negation'] = pd.isnull(df['is_negation_of'])
-        # df['is_generated'] =
         is_generated_mask = (df['is_input_generated'] | df['is_output_generated'])
         df = df[['prediction', 'target', 'is_negation', 'is_original', 'is_manual_fix', 'op']]
 

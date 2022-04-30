@@ -1,111 +1,5 @@
 starting_commands: templates/commands/sbatch_experiment.txt
 experiments:
-#  Baselines:
-#    add_name: False
-#    description: "Evaluate the baseline models"
-#    overrides:
-#      ++device: 0
-#      is_checkpoint: false
-#      objective: lm
-#      tracking:
-#        tags:
-#          - Baseline
-#      ++zero_shot: True
-#      task: npv
-#      ++tracking.entity: nyu-code-research
-#    ablations:
-#      - Model:
-#          ParrotSmall:
-#            description: CodeParrot Small
-#            ++model: 'lvwerra/codeparrot-small'
-#            ++evaluation.num_generate_per_step: 48
-#          Neo125M:
-#            description: GPT Neo 125M
-#            ++model: 'EleutherAI/gpt-neo-125M'
-#            ++evaluation.num_generate_per_step: 40
-#          Incoder6B:
-#            description: Incoder 6B
-#            ++model: 'facebook/incoder-6B'
-#            ++evaluation.num_generate_per_step: 4
-#          #          GPTJ:
-#          #            description: GPT J 6B
-#          #            ++model: 'EleutherAI/gpt-j-6B'
-#          #            ++evaluation.num_generate_per_step: 4
-#          #          Neo2B:
-#          #            description: GPT Neo 2B
-#          #            ++model: 'EleutherAI/gpt-neo-2.7B'
-#          #            ++evaluation.num_generate_per_step: 8
-#          Parrot:
-#            description: CodeParrot Normal
-#            ++model: 'lvwerra/codeparrot'
-#            ++evaluation.num_generate_per_step: 24
-#          Neo1B:
-#            description: GPT Neo 1.3B
-#            ++model: 'EleutherAI/gpt-neo-1.3B'
-#            ++evaluation.num_generate_per_step: 18
-#          Incoder1B:
-#            description: Incoder 1B
-#            ++model: 'facebook/incoder-1B'
-#            ++evaluation.num_generate_per_step: 16
-#      - TaskPrompt:
-#          Base:
-#            description: Base Prompt with no formatting
-#            ++task.params.prompt: base
-#      - ContextExamples:
-#          #          Zero:
-#          #            description: No Context Examples
-#          #            ++task.params.true_ctx_examples: 0
-#          #            ++task.params.false_ctx_examples: 0
-#          #          1T0F:
-#          #            description: 1 True and 0 False example
-#          #            ++task.params.true_ctx_examples: 1
-#          #            ++task.params.false_ctx_examples: 0
-#          #          0T1F:
-#          #            description: 1 True and 0 False example
-#          #            ++task.params.true_ctx_examples: 0
-#          #            ++task.params.false_ctx_examples: 1
-#          #          1T1F:
-#          #            description: 1 True and 1 False example
-#          #            ++task.params.true_ctx_examples: 1
-#          #            ++task.params.false_ctx_examples: 1
-#          #          0T2F:
-#          #            description: 0 True and 2 False example
-#          #            ++task.params.true_ctx_examples: 0
-#          #            ++task.params.false_ctx_examples: 2
-#          #          2T0F:
-#          #            description: 2 True and 0 False example
-#          #            ++task.params.true_ctx_examples: 2
-#          #            ++task.params.false_ctx_examples: 0
-#          2T1F:
-#            description: 2 True and 1 False example
-#            ++task.params.true_ctx_examples: 2
-#            ++task.params.false_ctx_examples: 1
-#          1T2F:
-#            description: 1 True and 2 False example
-#            ++task.params.true_ctx_examples: 1
-#            ++task.params.false_ctx_examples: 2
-#          2T2F:
-#            description: 2 True and 2 False example
-#            ++task.params.true_ctx_examples: 2
-#            ++task.params.false_ctx_examples: 2
-#
-#    steps:
-#      - name: NPV
-#        description: Zero Shot eval on NPV
-#        add_name: False
-#        base: train_config.yaml
-#        group: NPV
-#        overrides:
-#          model_path: outputs/so/${..__META__.ablation.name}
-#    command:
-#      file: templates/commands/npv_eval.txt
-#      kwargs:
-#        train_sbatch: train_single_gpu
-#        finetune_time: "4:00:00"
-#        pretrain_time: "4:00:00"
-#        use_cds: True
-#      fields:
-#        - model_path
   FullConsole:
     add_name: True
     description: "Evaluate the baseline models"
@@ -125,26 +19,26 @@ experiments:
             description: CodeParrot Small
             ++model: 'lvwerra/codeparrot-small'
             ++evaluation.num_generate_per_step: 48
-          Neo125M:
-            description: GPT Neo 125M
-            ++model: 'EleutherAI/gpt-neo-125M'
-            ++evaluation.num_generate_per_step: 40
-          Incoder6B:
-            description: Incoder 6B
-            ++model: 'facebook/incoder-6B'
-            ++evaluation.num_generate_per_step: 4
-          Parrot:
-            description: CodeParrot Normal
-            ++model: 'lvwerra/codeparrot'
-            ++evaluation.num_generate_per_step: 24
+#          Neo125M:
+#            description: GPT Neo 125M
+#            ++model: 'EleutherAI/gpt-neo-125M'
+#            ++evaluation.num_generate_per_step: 40
+#          Incoder6B:
+#            description: Incoder 6B
+#            ++model: 'facebook/incoder-6B'
+#            ++evaluation.num_generate_per_step: 4
+#          Parrot:
+#            description: CodeParrot Normal
+#            ++model: 'lvwerra/codeparrot'
+#            ++evaluation.num_generate_per_step: 24
           Neo1B:
             description: GPT Neo 1.3B
             ++model: 'EleutherAI/gpt-neo-1.3B'
             ++evaluation.num_generate_per_step: 18
-          Incoder1B:
-            description: Incoder 1B
-            ++model: 'facebook/incoder-1B'
-            ++evaluation.num_generate_per_step: 16
+#          Incoder1B:
+#            description: Incoder 1B
+#            ++model: 'facebook/incoder-1B'
+#            ++evaluation.num_generate_per_step: 16
       - TaskPrompt:
           FullConsole:
             description: Full Console Formatted Prompt

@@ -1,0 +1,63 @@
+starting_commands: templates/commands/sbatch_experiment.txt
+experiments:
+  Baselines:
+    add_name: False
+    description: "Fine tune the baseline models on NPV"
+    overrides:
+      ++device: 0
+      is_checkpoint: false
+      objective: lm
+      tracking:
+        tags:
+          - Baseline
+      ++zero_shot: True
+      task: npv
+      ++tracking.entity: nyu-code-research
+      ++task.params.prompt: base_with_description
+    ablations:
+      - Model:
+          ParrotSmall:
+            description: CodeParrot Small
+            ++model: 'lvwerra/codeparrot-small'
+            ++evaluation.num_generate_per_step: 48
+          Neo125M:
+            description: GPT Neo 125M
+            ++model: 'EleutherAI/gpt-neo-125M'
+            ++evaluation.num_generate_per_step: 40
+          Parrot:
+            description: CodeParrot Normal
+            ++model: 'lvwerra/codeparrot'
+            ++evaluation.num_generate_per_step: 24
+          Neo1B:
+            description: GPT Neo 1.3B
+            ++model: 'EleutherAI/gpt-neo-1.3B'
+            ++evaluation.num_generate_per_step: 18
+          Incoder1B:
+            description: Incoder 1B
+            ++model: 'facebook/incoder-1B'
+            ++evaluation.num_generate_per_step: 16
+
+    steps:
+      - name: FineTune
+        add_name: False
+        description: Finetune on the NPV Data
+        base: mbpp_finetune
+        group: NPV
+        overrides:
+          task: npv
+          ++is_checkpoint: false
+          ++model_path: null
+          training:
+            max_steps: 1000
+          tracking:
+            log_model: False
+            watch: null
+
+    command:
+      file: templates/commands/finetune.txt
+      kwargs:
+        train_sbatch: train_single_gpu
+        pretrain_time: "12:00:00"
+        use_cds: True
+      fields:
+        - model_path

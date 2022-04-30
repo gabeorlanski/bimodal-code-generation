@@ -4,11 +4,19 @@ test:
       - 37
       - 203
       - 339
-#    mbpp_train.jsonl:
-#      - 667
-#      - 674
-#      - REMOVED 816
   human_eval:
     human_eval.jsonl:
       - REMOVED HumanEval/4
       - HumanEval/34
+train:
+  mbpp:
+    mbpp_train.jsonl:
+      - 667
+      - 674
+      - REMOVED 816
+validation:
+  mbpp:
+    mbpp_validation.jsonl:
+      - 667
+      - 674
+      - REMOVED 816
