@@ -176,9 +176,10 @@ def get_instances_to_save(
                 assert io_pair_dict['is_negation_of'] not in negations
                 negations[io_pair_dict['is_negation_of']] = io_pair_dict['task_id']
         if not has_true or not has_false:
-            logger.warning(
+            logger.error(
                 f"{program_idx} had {num_true_pairs} TRUE and {num_false_pairs} "
-                f"FALSE pairs. Expecting at least 1 for each. Skipping.")
+                f"FALSE pairs. Expecting at least 1 for each. Skipping."
+            )
             continue
 
         # First add 1 false example for each input
@@ -240,7 +241,8 @@ def get_instances_to_save(
         true_count[program_idx] = num_true_pairs
         false_count[program_idx] = len(false_examples_to_use)
         if num_true_pairs != len(false_examples_to_use):
-            logger.warning(f"Unequal {num_true_pairs} != {len(false_examples_to_use)}")
+            logger.critical(f"Unequal {num_true_pairs} != "
+                            f"{len(false_examples_to_use)} for {program_idx}")
         to_save_task_ids = []
 
         num_generated = 0
