@@ -2,9 +2,9 @@
 echo ""
 echo "===================================================="
 echo "Making Raw Data"
-python ./scripts/setup_datasets.py raw_npv --seed ${3:-1999} test --negation -n ${2:-4} -gen data/generated_test.json
-python ./scripts/setup_datasets.py raw_npv --seed ${3:-1999} train --negation -n ${2:-4} -gen data/generated_test.json
-python ./scripts/setup_datasets.py raw_npv --seed ${3:-1999} validation --negation -n ${2:-4} -gen data/generated_test.json
+python ./scripts/setup_datasets.py --seed ${3:-1999} raw_npv test --negation -n ${2:-4} -gen data/generated_test.json
+python ./scripts/setup_datasets.py --seed ${3:-1999} raw_npv train --negation -n ${2:-4} -gen data/generated_test.json
+python ./scripts/setup_datasets.py --seed ${3:-1999} raw_npv validation --negation -n ${2:-4} -gen data/generated_test.json
 
 
 echo ""
