@@ -53,7 +53,7 @@ experiments:
           ++model_path: null
           ++training:
             max_steps: 100
-            ++training.deepspeed: deepspeed_configs/large_models.json
+            deepspeed: deepspeed_configs/large_models.json
             logging_steps: 10
             eval_steps: 25
             warmup_steps: 25
