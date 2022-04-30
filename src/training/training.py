@@ -347,10 +347,6 @@ def train_model(cfg: DictConfig, train_args):
         tokenizer = task.tokenizer
         task.preprocessors.append(prompt_preprocessor)
 
-    if tokenizer.pad_token is None:
-        tokenizer.pad_token = tokenizer.eos_token
-        model.config.pad_token_id = tokenizer.pad_token_id
-
     if cfg.objective == 'seq2seq':
         if is_non_registered_task:
             logger.info(f"Setting up the SO pretrain objective")
@@ -393,10 +389,15 @@ def train_model(cfg: DictConfig, train_args):
                 v_use = v
             setattr(model.config, k, v_use)
     elif cfg.objective == 'lm':
-
-        model.config.eos_token_id = tokenizer.eos_token_id
-        model.config.pad_token_id = tokenizer.pad_token_id
-        model.config.bos_token_id = tokenizer.bos_token_id or tokenizer.eos_token
+        eos_token = task.tokenizer.eos_token or task.tokenizer.bos_token
+        task.tokenizer.eos_token = eos_token
+        task.tokenizer.bos_token = eos_token
+        task.tokenizer.pad_token = task.tokenizer.eos_token
+        model.config.eos_token_id = task.tokenizer.eos_token_id
+        model.config.pad_token_id = task.tokenizer.eos_token_id
+        model.config.bos_token_id = task.tokenizer.eos_token_id
+        task.tokenizer.padding_side = 'left'
+        task.tokenizer.truncation_side = 'left'
         if is_non_registered_task:
             logger.info(f"Setting up the SO pretrain objective")
             if cfg.task.name == 'hf_pretrain':
@@ -451,14 +452,14 @@ def train_model(cfg: DictConfig, train_args):
             for i, v in enumerate(validation_data):
                 if len(data_to_save) >= 25:
                     break
-                if v['input_ids'] is None or v['labels'] is None:
-                    logger.warning(f"NONE FOUND at {i=}")
-                    print(v)
-                    
-                data_to_save[i] = {
-                    'input_ids': tokenizer.decode(v['input_ids']),
-                    'labels'   : tokenizer.decode(v['labels'])
-                }
+                try:
+                    data_to_save[i] = {
+                        'input_ids': tokenizer.decode(v['input_ids']),
+                        'labels'   : tokenizer.decode(v['labels'])
+                    }
+                except Exception as e:
+                    raise e
+
 
             json.dump(data_to_save, f, indent=True, sort_keys=True)
 
