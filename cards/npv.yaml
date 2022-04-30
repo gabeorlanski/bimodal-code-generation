@@ -18,25 +18,30 @@ experiments:
             description: CodeParrot Small
             ++model: 'lvwerra/codeparrot-small'
             ++training.batch_size: 8
+            ++evaluation.num_generate_per_step: 48
           Neo125M:
             description: GPT Neo 125M
             ++model: 'EleutherAI/gpt-neo-125M'
             ++training.batch_size: 8
+            ++evaluation.num_generate_per_step: 40
           Parrot:
             description: CodeParrot Normal
             ++model: 'lvwerra/codeparrot'
             ++training.batch_size: 2
             ++training.gradient_accumulation_steps: 4
+            ++evaluation.num_generate_per_step: 24
           Neo1B:
             description: GPT Neo 1.3B
             ++model: 'EleutherAI/gpt-neo-1.3B'
             ++training.batch_size: 2
             ++training.gradient_accumulation_steps: 4
+            ++evaluation.num_generate_per_step: 18
           Incoder1B:
             description: Incoder 1B
             ++model: 'facebook/incoder-1B'
             ++training.batch_size: 2
             ++training.gradient_accumulation_steps: 4
+            ++evaluation.num_generate_per_step: 16
 #          Incoder6B:
 #            description: Incoder 6B
 #            ++model: 'facebook/incoder-6B'
