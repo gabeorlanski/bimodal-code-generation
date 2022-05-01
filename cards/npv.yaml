@@ -1,8 +1,8 @@
 starting_commands: templates/commands/sbatch_experiment.txt
 experiments:
-  Finetune:
+  FinetuneNoDesc:
     add_name: True
-    description: "Fine tune the baseline models on NPV"
+    description: "Fine tune the baseline models on NPV Without Description"
     overrides:
       ++device: 0
       objective: lm
@@ -11,7 +11,7 @@ experiments:
           - Baseline
       task: npv
       ++tracking.entity: nyu-code-research
-      ++task.params.prompt: base_with_description
+      ++task.params.prompt: base
     ablations:
       - Model:
           ParrotSmall:
@@ -24,12 +24,6 @@ experiments:
             ++model: 'EleutherAI/gpt-neo-125M'
             ++training.batch_size: 8
             ++evaluation.num_generate_per_step: 40
-          Parrot:
-            description: CodeParrot Normal
-            ++model: 'lvwerra/codeparrot'
-            ++training.batch_size: 1
-            ++training.gradient_accumulation_steps: 8
-            ++evaluation.num_generate_per_step: 24
           Neo1B:
             description: GPT Neo 1.3B
             ++model: 'EleutherAI/gpt-neo-1.3B'

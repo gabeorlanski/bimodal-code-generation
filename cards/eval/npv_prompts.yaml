@@ -19,26 +19,26 @@ experiments:
             description: CodeParrot Small
             ++model: 'lvwerra/codeparrot-small'
             ++evaluation.num_generate_per_step: 48
-#          Neo125M:
-#            description: GPT Neo 125M
-#            ++model: 'EleutherAI/gpt-neo-125M'
-#            ++evaluation.num_generate_per_step: 40
-#          Incoder6B:
-#            description: Incoder 6B
-#            ++model: 'facebook/incoder-6B'
-#            ++evaluation.num_generate_per_step: 4
-#          Parrot:
-#            description: CodeParrot Normal
-#            ++model: 'lvwerra/codeparrot'
-#            ++evaluation.num_generate_per_step: 24
+          Neo125M:
+            description: GPT Neo 125M
+            ++model: 'EleutherAI/gpt-neo-125M'
+            ++evaluation.num_generate_per_step: 40
+          Incoder6B:
+            description: Incoder 6B
+            ++model: 'facebook/incoder-6B'
+            ++evaluation.num_generate_per_step: 4
+          Parrot:
+            description: CodeParrot Normal
+            ++model: 'lvwerra/codeparrot'
+            ++evaluation.num_generate_per_step: 24
           Neo1B:
             description: GPT Neo 1.3B
             ++model: 'EleutherAI/gpt-neo-1.3B'
             ++evaluation.num_generate_per_step: 18
-#          Incoder1B:
-#            description: Incoder 1B
-#            ++model: 'facebook/incoder-1B'
-#            ++evaluation.num_generate_per_step: 16
+          Incoder1B:
+            description: Incoder 1B
+            ++model: 'facebook/incoder-1B'
+            ++evaluation.num_generate_per_step: 16
       - TaskPrompt:
           FullConsole:
             description: Full Console Formatted Prompt
@@ -54,9 +54,9 @@ experiments:
             ++task.params.true_ctx_examples: 1
             ++task.params.false_ctx_examples: 0
           0T1F:
-            description: 1 True and 0 False example
-            ++task.params.true_ctx_examples: 0
-            ++task.params.false_ctx_examples: 1
+#            description: 1 True and 0 False example
+#            ++task.params.true_ctx_examples: 0
+#            ++task.params.false_ctx_examples: 1
           1T1F:
             description: 1 True and 1 False example
             ++task.params.true_ctx_examples: 1
@@ -73,10 +73,10 @@ experiments:
             description: 2 True and 1 False example
             ++task.params.true_ctx_examples: 2
             ++task.params.false_ctx_examples: 1
-          1T2F:
-            description: 1 True and 2 False example
-            ++task.params.true_ctx_examples: 1
-            ++task.params.false_ctx_examples: 2
+#          1T2F:
+#            description: 1 True and 2 False example
+#            ++task.params.true_ctx_examples: 1
+#            ++task.params.false_ctx_examples: 2
           2T2F:
             description: 2 True and 2 False example
             ++task.params.true_ctx_examples: 2
