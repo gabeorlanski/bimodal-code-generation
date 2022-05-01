@@ -14,34 +14,26 @@ experiments:
       ++tracking.entity: nyu-code-research
     ablations:
       - Model:
-          ParrotSmall:
-            description: CodeParrot Small
-            ++model: 'lvwerra/codeparrot-small'
-            ++evaluation.num_generate_per_step: 48
-          #          Neo125M:
-          #            description: GPT Neo 125M
-          #            ++model: 'EleutherAI/gpt-neo-125M'
-          #            ++evaluation.num_generate_per_step: 40
+#          ParrotSmall:
+#            description: CodeParrot Small
+#            ++model: 'lvwerra/codeparrot-small'
+#            ++evaluation.num_generate_per_step: 48
+          Neo125M:
+            description: GPT Neo 125M
+            ++model: 'EleutherAI/gpt-neo-125M'
+            ++evaluation.num_generate_per_step: 40
           #          Incoder6B:
           #            description: Incoder 6B
           #            ++model: 'facebook/incoder-6B'
           #            ++evaluation.num_generate_per_step: 4
-          #          GPTJ:
-          #            description: GPT J 6B
-          #            ++model: 'EleutherAI/gpt-j-6B'
-          #            ++evaluation.num_generate_per_step: 4
-          #          Neo2B:
-          #            description: GPT Neo 2B
-          #            ++model: 'EleutherAI/gpt-neo-2.7B'
-          #            ++evaluation.num_generate_per_step: 8
-      #          Parrot:
-      #            description: CodeParrot Normal
-      #            ++model: 'lvwerra/codeparrot'
-      #            ++evaluation.num_generate_per_step: 24
-      #          Neo1B:
-      #            description: GPT Neo 1.3B
-      #            ++model: 'EleutherAI/gpt-neo-1.3B'
-      #            ++evaluation.num_generate_per_step: 18
+          Parrot:
+            description: CodeParrot Normal
+            ++model: 'lvwerra/codeparrot'
+            ++evaluation.num_generate_per_step: 24
+          Neo1B:
+            description: GPT Neo 1.3B
+            ++model: 'EleutherAI/gpt-neo-1.3B'
+            ++evaluation.num_generate_per_step: 18
       #          Incoder1B:
       #            description: Incoder 1B
       #            ++model: 'facebook/incoder-1B'
