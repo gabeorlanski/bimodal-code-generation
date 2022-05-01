@@ -61,9 +61,12 @@ class NPV(Task):
             stmt_prompt: str = "{stmt}",
             trailing_newline: bool = False,
             allow_ctx_same_input: bool = False,
-            allow_ctx_same_output: bool = False,
-            allow_negated_ctx_examples: bool = False,
-            allow_generated_output_ctx_examples: bool = False,
+            allow_duplicate_output: bool = False,
+            allow_duplicate_inputs: bool = False,
+            allow_negated_ctx: bool = False,
+            allow_generated_ctx: bool = False,
+            ctx_pool_sorting_method: str = 'random',
+            ctx_example_selection_method: str = 'FIFO',
 
     ):
         super(NPV, self).__init__(
@@ -89,9 +92,22 @@ class NPV(Task):
         self.stmt_prompt = stmt_prompt
         self.trailing_newline = trailing_newline
         self.allow_ctx_same_input = allow_ctx_same_input
-        self.allow_ctx_same_output = allow_ctx_same_output
-        self.allow_negation_ctx_examples = allow_negated_ctx_examples
-        self.allow_generated_output_ctx_examples = allow_generated_output_ctx_examples
+        self.allow_negated_ctx = allow_negated_ctx
+        self.allow_generated_ctx = allow_generated_ctx
+        self.ctx_pool_sorting_method = ctx_pool_sorting_method
+        self.ctx_example_selection_method = ctx_example_selection_method
+        self.allow_duplicate_output = allow_duplicate_output
+        self.allow_duplicate_inputs = allow_duplicate_inputs
+        assert ctx_pool_sorting_method in [
+            'random',
+            'output_length',
+            'input_length',
+            'total_length'
+        ]
+        assert ctx_example_selection_method in [
+            'FIFO',
+            'DIVERSE'
+        ]
 
         self._dataset_mapping = self.initialize_data()
 
@@ -105,10 +121,13 @@ class NPV(Task):
                     desc=f"Reading '{split}'"
             ):
 
-                all_instances = d.pop('all_tasks')
-                instances_to_keep = d.pop('instances')
                 # d['test_stmt'] = self.make_stmt_from_io(d['input'], d['op'], d['output'])
                 true_ctx_examples_pool, false_ctx_examples_pool = self.get_true_false_examples(d)
+                all_instances = d.pop('all_tasks')
+                instances_to_keep = d.pop('instances')
+
+                true_pool = [all_instances[tid] for tid in true_ctx_examples_pool]
+                false_pool = [all_instances[tid] for tid in false_ctx_examples_pool]
 
                 excluded_vals = {k: d[k] for k in self.EXCLUDE_KEYS}
 
@@ -119,45 +138,23 @@ class NPV(Task):
                 for task_dict in map(lambda t: all_instances[t], instances_to_keep):
                     task_to_save = deepcopy(to_keep_dict)
 
-                    task_input = task_dict['input']
                     task_to_save['test_stmt'] = self.make_stmt_from_io(
                         task_dict['input'],
                         task_dict['op'],
                         task_dict['output']
                     )
                     task_to_save.update(task_dict)
-                    true_samples = self.get_ctx_examples_from_pool(
-                        self.num_true_ctx_pairs,
-                        true_ctx_examples_pool,
-                        all_instances,
-                        task_input
-                    )
-                    false_samples = self.get_ctx_examples_from_pool(
-                        self.num_false_ctx_pairs,
-                        false_ctx_examples_pool,
-                        all_instances,
-                        task_input
-                    )
                     context_samples = []
-                    i = j = 0
-                    while i < len(true_samples) or j < len(false_samples):
-                        if i < len(true_samples):
-                            sample = all_instances[true_samples[i]]
-                            stmt = self.make_stmt_from_io(
-                                sample['input'], sample['op'], sample['output'],
-                                is_ctx=True
-                            )
-                            context_samples.append((stmt, 'True'))
-                            i += 1
-                        if j < len(false_samples):
-                            sample = all_instances[false_samples[j]]
-                            stmt = self.make_stmt_from_io(
-                                sample['input'], sample['op'], sample['output'],
-                                is_ctx=True
-                            )
-                            context_samples.append((stmt, 'False'))
-                            j += 1
-
+                    for ex in self.get_ctx_examples_from_pool(
+                            task_dict,
+                            true_pool,
+                            false_pool
+                    ):
+                        stmt = self.make_stmt_from_io(
+                            ex['input'], ex['op'], ex['output'],
+                            is_ctx=True
+                        )
+                        context_samples.append((stmt, ex['result']))
                     if self.shuffle_ctx_pairs:
                         random.shuffle(context_samples)
                     task_to_save['context_examples'] = context_samples
@@ -169,42 +166,115 @@ class NPV(Task):
             out[split] = Dataset.from_dict(split_dict, split=split)
         return DatasetDict(out)
 
-    def get_ctx_examples_from_pool(self, num_to_get, example_pool, all_instances, input_str):
-        out = []
-        pool_iter = iter(example_pool)
-        while len(out) < num_to_get:
-            try:
-                next_input, next_example = next(pool_iter)
-            except StopIteration:
-                break
-            if next_input == input_str and not self.allow_ctx_same_input:
-                continue
-            next_example_dict = all_instances[next_example]
-            if (
-                    next_example_dict['is_output_generated']
-                    and not self.allow_generated_output_ctx_examples
-            ):
-                continue
-            if (
-                    next_example_dict['is_negation_of'] is not None
-                    and not self.allow_negation_ctx_examples
-            ):
-                continue
-            out.append(next_example)
-        return out
+    def should_keep_example(
+            self,
+            ex,
+            input_example,
+            is_second_pass,
+            yielded,
+            yielded_outputs,
+            yielded_inputs
+    ):
 
-    @staticmethod
-    def get_true_false_examples(sample):
+        if ex['task_id'] in yielded:
+            return False
+        if ex['input'] == input_example['input'] and not self.allow_ctx_same_input:
+            return False
+        if ex['is_negation_of'] is not None and not self.allow_negated_ctx:
+            if not is_second_pass:
+                return False
+        if ex['is_output_generated'] and not self.allow_generated_ctx:
+            if not is_second_pass:
+                return False
+        if ex['output'] in yielded_outputs and not self.allow_duplicate_output:
+            if not is_second_pass:
+                return False
+        if ex['input'] in yielded_inputs and not self.allow_duplicate_inputs:
+            if not is_second_pass:
+                return False
+
+        return True
+
+    def get_ctx_examples_from_pool(
+            self,
+            input_example,
+            true_pool,
+            false_pool
+    ):
+        yielded_outputs = set()
+        yielded_inputs = set()
+        yielded = set()
+
+        true_examples = []
+        false_examples = []
+
+        for t_ex, f_ex in zip_longest(true_pool, false_pool):
+            if (
+                    t_ex is not None
+                    and len(true_examples) < self.num_true_ctx_pairs
+                    and self.should_keep_example(t_ex, input_example, False, yielded,
+                                                 yielded_outputs, yielded_inputs)
+            ):
+                yielded.add(t_ex['task_id'])
+                yielded_outputs.add(t_ex['output'])
+                yielded_inputs.add(t_ex['input'])
+                true_examples.append(t_ex)
+            if (
+                    f_ex is not None
+                    and len(false_examples) < self.num_false_ctx_pairs
+                    and self.should_keep_example(f_ex, input_example, False, yielded,
+                                                 yielded_outputs, yielded_inputs)
+            ):
+                yielded.add(f_ex['task_id'])
+                yielded_outputs.add(f_ex['output'])
+                yielded_inputs.add(f_ex['input'])
+                false_examples.append(f_ex)
+        for t_ex, f_ex in zip_longest(true_pool, false_pool):
+            if (
+                    t_ex is not None
+                    and len(true_examples) < self.num_true_ctx_pairs
+                    and self.should_keep_example(t_ex, input_example, True, yielded,
+                                                 yielded_outputs, yielded_inputs)
+            ):
+                yielded.add(t_ex['task_id'])
+                true_examples.append(t_ex)
+            if (
+                    f_ex is not None
+                    and len(false_examples) < self.num_false_ctx_pairs
+                    and self.should_keep_example(f_ex, input_example, True, yielded,
+                                                 yielded_outputs, yielded_inputs)
+            ):
+                yielded.add(f_ex['task_id'])
+                false_examples.append(f_ex)
+        for t_ex, f_ex in zip_longest(true_examples, false_examples):
+            if t_ex:
+                yield t_ex
+            if f_ex:
+                yield f_ex
+
+    def get_true_false_examples(self, sample):
         false_examples = []
         true_examples = []
-
+        all_tasks = sample['all_tasks']
         for input_str, tid_list in sample['tid_by_result']['True'].items():
-            true_examples.extend([(input_str, tid) for tid in tid_list])
+            true_examples.extend(tid_list)
         for input_str, tid_list in sample['tid_by_result']['False'].items():
-            false_examples.extend([(input_str, tid) for tid in tid_list])
+            false_examples.extend(tid_list)
 
-        random.shuffle(true_examples)
-        random.shuffle(false_examples)
+        if self.ctx_pool_sorting_method != 'random':
+            if self.ctx_pool_sorting_method == 'output_length':
+                sort_fn = lambda tid: len(all_tasks[tid]['output'])
+            elif self.ctx_pool_sorting_method == 'input_length':
+                sort_fn = lambda tid: len(all_tasks[tid]['input'])
+            elif self.ctx_pool_sorting_method == 'total_length':
+                sort_fn = lambda tid: len(all_tasks[tid]['input']) + len(all_tasks[tid]['output'])
+            else:
+                raise ValueError(f"Unknown sorting method {self.ctx_pool_sorting_method=}")
+            true_examples = list(sorted(true_examples, key=sort_fn))
+            false_examples = list(sorted(false_examples, key=sort_fn))
+        else:
+            random.shuffle(true_examples)
+            random.shuffle(false_examples)
 
         return true_examples, false_examples
 
@@ -219,16 +289,6 @@ class NPV(Task):
 
     def map_to_standard_entries(self, sample: Dict) -> Dict:
         sample['target'] = sample['result']
-
-        # Some are VERY long, so we need to adapt for that by removing context
-        # examples until we either have no context or have under the threshold.
-        # num_required_chars = len(sample['context'] + sample['code'].lstrip())
-        # context_example_chars = sum(map(len, context_examples))
-        # if num_required_chars + context_example_chars >= 1000:
-        #     logger.warning(f"{sample['task_id']} has too many characters, "
-        #                    f"removing some context examples")
-        #     while num_required_chars + context_example_chars >= 1000 and context_examples:
-        #         context_example_chars -= len(context_examples.pop(-1))
 
         prompt_kwargs = {
             "context_code"    : sample['context'],

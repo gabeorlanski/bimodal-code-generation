@@ -1,0 +1,97 @@
+starting_commands: templates/commands/sbatch_experiment.txt
+experiments:
+  CTXSelection:
+    add_name: True
+    description: "Evaluate the models with different selection schemes for selecting the few shot
+     examples"
+    overrides:
+      ++device: 0
+      is_checkpoint: false
+      objective: lm
+      tracking:
+        tags:
+          - Baseline
+      ++zero_shot: True
+      task: npv
+      ++tracking.entity: nyu-code-research
+    ablations:
+      - Model:
+          ParrotSmall:
+            description: CodeParrot Small
+            ++model: 'lvwerra/codeparrot-small'
+            ++evaluation.num_generate_per_step: 48
+          Neo125M:
+            description: GPT Neo 125M
+            ++model: 'EleutherAI/gpt-neo-125M'
+            ++evaluation.num_generate_per_step: 40
+          Incoder6B:
+            description: Incoder 6B
+            ++model: 'facebook/incoder-6B'
+            ++evaluation.num_generate_per_step: 4
+          Parrot:
+            description: CodeParrot Normal
+            ++model: 'lvwerra/codeparrot'
+            ++evaluation.num_generate_per_step: 24
+          Neo1B:
+            description: GPT Neo 1.3B
+            ++model: 'EleutherAI/gpt-neo-1.3B'
+            ++evaluation.num_generate_per_step: 18
+          Incoder1B:
+            description: Incoder 1B
+            ++model: 'facebook/incoder-1B'
+            ++evaluation.num_generate_per_step: 16
+      - TaskPrompt:
+          FullConsole:
+            description: Full Console Formatted Prompt
+            ++task.params.prompt: full_console
+      - SortingMethod:
+          Random:
+            description: Random Sorting CTX examples
+            ++task.params.ctx_pool_sorting_method: random
+          Output:
+            description: Random Sorting CTX examples shortest length
+            ++task.params.ctx_pool_sorting_method: output_length
+      - CTXCriteria:
+          Base:
+            description: Baseline Settings for the CTX Criteria
+            ++task.params.allow_duplicate_output: True
+            ++task.params.allow_negated_ctx: True
+            ++task.params.allow_generated_ctx: True
+          GeneratedOutputs:
+            description: Generated Outputs allowed
+            ++task.params.allow_negated_ctx: False
+            ++task.params.allow_generated_ctx: True
+            ++task.params.allow_duplicate_output: False
+          GenAndNeg:
+            description: Generated And Negation
+            ++task.params.allow_negated_ctx: True
+            ++task.params.allow_generated_ctx: True
+            ++task.params.allow_duplicate_output: False
+      - ContextExamples:
+#          2T1F:
+#            description: 2 True and 1 False example
+#            ++task.params.true_ctx_examples: 2
+#            ++task.params.false_ctx_examples: 1
+          2T2F:
+            description: 2 True and 2 False example
+            ++task.params.true_ctx_examples: 2
+            ++task.params.false_ctx_examples: 2
+
+    steps:
+      - name: NPV
+        description: Zero Shot eval on NPV
+        add_name: False
+        base: train_config.yaml
+        group: NPV
+        overrides:
+          model_path: outputs/so/${..__META__.ablation.name}
+
+    command:
+      file: templates/commands/npv_eval.txt
+      kwargs:
+        train_sbatch: train_single_gpu
+        finetune_time: "4:00:00"
+        pretrain_time: "4:00:00"
+        use_cds: True
+      fields:
+        - model_path
