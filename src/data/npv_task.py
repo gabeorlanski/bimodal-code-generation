@@ -61,7 +61,10 @@ class NPV(Task):
             stmt_prompt: str = "{stmt}",
             trailing_newline: bool = False,
             allow_ctx_same_input: bool = False,
-            allow_ctx_same_output: bool = False
+            allow_ctx_same_output: bool = False,
+            allow_negated_ctx_examples: bool = False,
+            allow_generated_output_ctx_examples: bool = False,
+
     ):
         super(NPV, self).__init__(
             preprocessors=preprocessors,
@@ -87,6 +90,8 @@ class NPV(Task):
         self.trailing_newline = trailing_newline
         self.allow_ctx_same_input = allow_ctx_same_input
         self.allow_ctx_same_output = allow_ctx_same_output
+        self.allow_negation_ctx_examples = allow_negated_ctx_examples
+        self.allow_generated_output_ctx_examples = allow_generated_output_ctx_examples
 
         self._dataset_mapping = self.initialize_data()
 
@@ -175,8 +180,16 @@ class NPV(Task):
             if next_input == input_str and not self.allow_ctx_same_input:
                 continue
             next_example_dict = all_instances[next_example]
-            # if not self.allow_ctx_same_output and next_example_dict['output'] == output_str:
-            #     continue
+            if (
+                    next_example_dict['is_output_generated']
+                    and not self.allow_generated_output_ctx_examples
+            ):
+                continue
+            if (
+                    next_example_dict['is_negation_of'] is not None
+                    and not self.allow_negation_ctx_examples
+            ):
+                continue
             out.append(next_example)
         return out
 

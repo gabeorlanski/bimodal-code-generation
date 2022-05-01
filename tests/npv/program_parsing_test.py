@@ -79,7 +79,8 @@ def test_parse_mbpp():
             for x in expected
         ]
 
-        assert actual == npv_dataset_creation.serialize_instance_to_dict(
+        assert actual == program_parsing.serialize_instance_to_dict(
+            func_name=line_to_func[i],
             source_file='MBPP.jsonl',
             task='MBPP',
             task_id=line['task_id'],
@@ -145,6 +146,7 @@ def test_parse_human_eval():
         expected_io_pairs.append(p_dict)
 
     assert result[0] == {
+        'function'          : 'has_close_elements',
         'source_file'       : 'HUMAN_EVAL.jsonl',
         'task'              : 'HUMAN_EVAL',
         'task_id'           : 'HumanEval/0',
@@ -172,6 +174,7 @@ def test_special_mbpp(tmpdir):
     result, _ = program_parsing.parse_mbpp(tmpdir_path.joinpath('test.jsonl'))
     assert len(result) == 1
     assert result[0] == {
+        'function'          : 'remove_dirty_chars',
         'source_file'       : 'test.jsonl',
         'task'              : 'MBPP',
         'task_id'           : 18,

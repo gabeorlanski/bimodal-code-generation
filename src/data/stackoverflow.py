@@ -200,7 +200,7 @@ class StackOverflowProcessor:
         copy_prompt_kwargs = deepcopy(prompt_kwargs)
         answer_kwargs = answer_kwargs or {}
         if not is_first_answer and not self.repeat_body_for_each_answer:
-            copy_prompt_kwargs['question'] = None
+            copy_prompt_kwargs['context'] = None
 
         if answer_kwargs.get('quality', None):
             copy_prompt_kwargs['quality'] = answer_kwargs['quality']

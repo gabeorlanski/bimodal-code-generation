@@ -1,8 +1,8 @@
 starting_commands: templates/commands/sbatch_experiment.txt
 experiments:
-  FinetuneNoDesc:
+  Finetune:
     add_name: True
-    description: "Fine tune the baseline models on NPV Without Description"
+    description: "Fine tune the baseline models on NPV"
     overrides:
       ++device: 0
       objective: lm
@@ -36,10 +36,6 @@ experiments:
             ++training.batch_size: 2
             ++training.gradient_accumulation_steps: 4
             ++evaluation.num_generate_per_step: 16
-#          Incoder6B:
-#            description: Incoder 6B
-#            ++model: 'facebook/incoder-6B'
-#            ++evaluation.num_generate_per_step: 4
 
     steps:
       - name: FineTune
@@ -52,15 +48,14 @@ experiments:
           ++is_checkpoint: false
           ++model_path: null
           ++training:
-            evaluation_strategy: epoch
-            save_strategy: epoch
-            num_train_epochs: 10
-            max_steps: -1
-            logging_steps: 10
+            evaluation_strategy: steps
+            save_strategy: steps
+            max_steps: 1000
+            logging_steps: 5
             eval_steps: 25
-            warmup_steps: 25
+            warmup_steps: 50
             save_steps: 25
-            learning_rate: 5e-6
+            learning_rate: 1e-5
           tracking:
             log_model: False
             watch: null
@@ -80,7 +75,7 @@ experiments:
       kwargs:
         train_sbatch: train_single_gpu
         pretrain_time: "12:00:00"
-        finetune_time: "4:00:00"
+        finetune_time: "6:00:00"
         use_cds: True
       fields:
         - model_path

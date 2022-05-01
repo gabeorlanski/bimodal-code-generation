@@ -84,7 +84,7 @@ class TestStackOverflowProcessor:
         prompt_kwargs = {
             "input_sequence": "Title",
             "question_score": "13",
-            "context"       : "Body",
+            "context"      : "Body",
             "tags"          : "python,string,escaping",
             "question_date" : "2008" if date_fmt == '%Y' else '08',
             "answer_date"   : "2009" if date_fmt == '%Y' else '11'
@@ -115,7 +115,7 @@ class TestStackOverflowProcessor:
         expected_inputs = []
         if repeat_prompt:
             for i, v in enumerate(quality_strs):
-                if i > 0 and not repeat_question:
+                if i>0 and not repeat_question:
                     prompt_kwargs['context'] = None
                 prompt_kwargs['quality'] = v[0]
                 prompt_kwargs['answer_score'] = v[1]
@@ -209,7 +209,8 @@ class TestStackOverflowProcessor:
         processor = stackoverflow.StackOverflowProcessor(
             prompt_fn=prompt_fn,
             relative_quality=True,
-            repeat_prompt_each_answer=True
+            repeat_prompt_each_answer=True,
+            repeat_body_for_each_answer=True
         )
         expected_qualities = [
             'BEST',

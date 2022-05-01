@@ -51,8 +51,7 @@ def test_verify_code():
     rtr = code_verifcation.check_io_sample_executes_correctly(
         'test', samples, 1
     )
-    arg_data, rtr_values, results = rtr
-    arg_pool, signatures = arg_data
+    rtr_values, results = rtr
     assert rtr_values == {
         0: {
             'MBPP_0_0': {'type': 'bool', 'value': 'False'},
@@ -60,6 +59,8 @@ def test_verify_code():
             'MBPP_0_3': {'type': 'bool', 'value': 'True'}
         }
     }
+    results['failed_tests'] = dict(results['failed_tests'])
+    results['had_errors'] = dict(results['had_errors'])
     assert results == {
         'failed_counts': Counter({
             0: 2
@@ -67,16 +68,6 @@ def test_verify_code():
         'passed_counts': Counter({
             0: 2
         }),
-        "failed_tests" : {
-            0: {
-                "MBPP_0_3": "testing(4) True"
-            }
-        },
-        "had_errors"   : {
-            0: {
-                "MBPP_0_2": "testing(6) False"
-            }
-        }
+        'failed_tests' : {0: {'MBPP_0_3': ('testing(4)', '==', 'True')}},
+        'had_errors'   : {0: {'MBPP_0_2': ('testing(6)', '==', 'False')}},
     }
-    assert dict(arg_pool) == {'int': {'1', '4'}}
-    assert signatures == {0: ('int',)}

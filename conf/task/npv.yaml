@@ -12,6 +12,8 @@ params:
   trailing_newline: True
   allow_ctx_same_output: False
   allow_ctx_same_input: False
+  allow_generated_output_ctx_examples: True
+  allow_negated_ctx_examples: True
 
 preprocessors: [ ]
 postprocessors: [ ]
