@@ -37,8 +37,8 @@ PROMPT_TO_USE = None
 @Task.register("npv")
 class NPV(Task):
     SPLIT_MAPPING = {
-        "test": str(PROJECT_ROOT.joinpath('data', 'NPV', 'test.jsonl')),
-        "train": str(PROJECT_ROOT.joinpath('data', 'NPV', 'train.jsonl')),
+        "test"      : str(PROJECT_ROOT.joinpath('data', 'NPV', 'test.jsonl')),
+        "train"     : str(PROJECT_ROOT.joinpath('data', 'NPV', 'train.jsonl')),
         "validation": str(PROJECT_ROOT.joinpath('data', 'NPV', 'validation.jsonl')),
     }
 
@@ -232,13 +232,14 @@ class NPV(Task):
 
     def serialize_task_features(self, idx: int, predictions: List, processed_sample: Dict) -> Dict:
         return {
-            'is_negation_of'    : processed_sample['is_negation_of'],
-            'is_manual_fix'     : processed_sample['is_manual_fix'],
-            'is_original'       : processed_sample['is_original'],
-            'is_input_generated': processed_sample['is_input_generated'],
+            'is_negation_of'     : processed_sample['is_negation_of'],
+            'is_manual_fix'      : processed_sample['is_manual_fix'],
+            'is_original'        : processed_sample['is_original'],
+            'is_input_generated' : processed_sample['is_input_generated'],
             'is_output_generated': processed_sample['is_output_generated'],
-            'op'                : processed_sample['op'],
-            'input'             : processed_sample['input'],
-            'output'            : processed_sample['output'],
+            'op'                 : processed_sample['op'],
+            'input'              : processed_sample['input'],
+            'output'             : processed_sample['output'],
+            'context_examples'   : processed_sample['context_examples'],
             **self.excluded_columns_data[idx]
         }
