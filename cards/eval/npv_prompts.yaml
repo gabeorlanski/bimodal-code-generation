@@ -53,7 +53,7 @@ experiments:
             description: 1 True and 0 False example
             ++task.params.true_ctx_examples: 1
             ++task.params.false_ctx_examples: 0
-          0T1F:
+#          0T1F:
 #            description: 1 True and 0 False example
 #            ++task.params.true_ctx_examples: 0
 #            ++task.params.false_ctx_examples: 1
