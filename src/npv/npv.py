@@ -77,7 +77,7 @@ def parse_raw_examples_for_split(
     logger.info(f"{generated_found} generated used")
 
     if debug:
-        raw_instances = raw_instances[:100]
+        raw_instances = raw_instances[:250]
 
     logger.info(f"Making samples from {len(raw_instances)} programs")
     unverified_samples = []
