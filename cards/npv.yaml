@@ -53,9 +53,10 @@ experiments:
             max_steps: 2500
             logging_steps: 5
             eval_steps: 25
-            warmup_steps: 50
+            warmup_steps: 100
             save_steps: 25
             learning_rate: 1e-5
+            lr_scheduler_type: cosine
           tracking:
             log_model: False
             watch: null
