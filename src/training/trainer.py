@@ -72,12 +72,14 @@ class HFIterableWrapper(IterableDataset):
         else:
             slices_per_worker = int(math.ceil(self.buffer / worker_info.num_workers))
             worker_id = worker_info.id
+        total_items_seen = 0
         while more_examples:
             instances = []
             while len(instances) < self.buffer:
 
                 try:
                     instances.append(next(data_iter))
+                    total_items_seen += 1
                 except StopIteration:
                     if self.infinite:
                         if worker_id == 0:
@@ -122,6 +124,8 @@ class HFIterableWrapper(IterableDataset):
                 )
             logger.debug(
                 f"{worker_id=} has {len(buffer) // self.sequence_length} items to yield")
+            if worker_id == 0:
+                logger.info(f"{total_items_seen} total items seen")
             for i in range(0, len(buffer), self.sequence_length):
                 token_start = i
                 token_end = i + self.sequence_length

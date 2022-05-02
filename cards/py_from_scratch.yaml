@@ -62,7 +62,7 @@ experiments:
           is_checkpoint: False
           ++task.sequence_length: 1024
           training:
-            dataloader_num_workers: 16
+            dataloader_num_workers: 8
             fp16_opt_level: O0
             learning_rate: 5.0e-05
             warmup_steps: 750
