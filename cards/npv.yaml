@@ -56,14 +56,13 @@ experiments:
           ++training:
             evaluation_strategy: steps
             save_strategy: steps
-            max_steps: 2500
+            max_steps: 1000
             logging_steps: 5
-            eval_steps: 25
-            warmup_steps: 250
-            save_steps: 25
+            eval_steps: 50
+            warmup_steps: 200
+            save_steps: 50
             learning_rate: 1e-6
             lr_scheduler_type: cosine
-            greater_is_better: True
             metric_for_best_model: True
           tracking:
             log_model: False
