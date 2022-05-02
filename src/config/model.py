@@ -67,7 +67,7 @@ def load_model_from_cfg(
         logger.info('NOT USING CHECKPOINT')
         if cfg.get('from_scratch', False):
             logger.info(f"INITIALIZING MODEL FROM SCRATCH")
-            model = model_cls(AutoConfig.from_pretrained(cfg['model']))
+            model = model_cls.from_config(AutoConfig.from_pretrained(cfg['model']))
         else:
             model = model_cls.from_pretrained(cfg['model'])
 

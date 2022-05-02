@@ -11,7 +11,7 @@ experiments:
           - Baseline
       task: npv
       ++tracking.entity: nyu-code-research
-      ++task.params.prompt: base
+      ++task.params.prompt: full_console
     ablations:
       - Model:
           ParrotSmall:
@@ -24,6 +24,12 @@ experiments:
             ++model: 'EleutherAI/gpt-neo-125M'
             ++training.batch_size: 8
             ++evaluation.num_generate_per_step: 40
+          Parrot:
+            description: CodeParrot Normal
+            ++model: 'lvwerra/codeparrot'
+            ++training.batch_size: 2
+            ++training.gradient_accumulation_steps: 4
+            ++evaluation.num_generate_per_step: 24
           Neo1B:
             description: GPT Neo 1.3B
             ++model: 'EleutherAI/gpt-neo-1.3B'
@@ -53,9 +59,9 @@ experiments:
             max_steps: 2500
             logging_steps: 5
             eval_steps: 25
-            warmup_steps: 100
+            warmup_steps: 250
             save_steps: 25
-            learning_rate: 1e-5
+            learning_rate: 5e-6
             lr_scheduler_type: cosine
           tracking:
             log_model: False

@@ -75,6 +75,7 @@ class HFIterableWrapper(IterableDataset):
         while more_examples:
             instances = []
             while len(instances) < self.buffer:
+
                 try:
                     instances.append(next(data_iter))
                 except StopIteration:
@@ -83,9 +84,13 @@ class HFIterableWrapper(IterableDataset):
                             logger.info(f"New Dataset Epoch")
                         data_iter = iter(self.ds)
                         ds_epoch += 1
+                        continue
                     else:
                         more_examples = False
                         break
+
+                except Exception as e:
+                    raise e
             if worker_info is None:
                 start = 0
                 end = self.buffer

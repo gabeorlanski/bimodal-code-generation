@@ -173,8 +173,8 @@ def setup_hf_pretrain(cfg, tokenizer, train_args, prompt_fn):
     train_dataset = raw_train_dataset.shuffle(seed=cfg.seed, buffer_size=1000).map(
         lambda e: {'input_seq': e[cfg.task.train.text_key], 'labels': e[cfg.task.train.text_key]}
     )
-    for k in cfg.task.train.columns_remove:
-        train_dataset = train_dataset.remove_columns(k)
+    # for k in cfg.task.train.columns_remove:
+    #     train_dataset = train_dataset.remove_columns(k)
 
     if cfg.task.train.get('max_train_samples', -1) > 0:
         logger.info(f"Taking {cfg.task.train.get('max_train_samples')} from train")
