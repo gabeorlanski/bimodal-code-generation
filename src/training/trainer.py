@@ -50,12 +50,20 @@ class HFIterableWrapper(IterableDataset):
         self.tokenizer_name = tokenizer.name_or_path
         self.infinite = infinite
         self.lm_concat_delim = tokenizer.encode('\n')
+        self.tokenizer = tokenizer
 
     def __iter__(self):
         data_iter = iter(self.ds)
         more_examples = True
         ds_epoch = 0
         tokenizer = AutoTokenizer.from_pretrained(self.tokenizer_name, use_fast=True)
+        if self.objective == 'lm':
+            eos_token = tokenizer.eos_token or tokenizer.bos_token
+            tokenizer.eos_token = eos_token
+            tokenizer.bos_token = eos_token
+            tokenizer.pad_token = tokenizer.eos_token
+            tokenizer.padding_side = 'left'
+            tokenizer.truncation_side = 'left'
 
         worker_info = torch.utils.data.get_worker_info()
         if worker_info is None:

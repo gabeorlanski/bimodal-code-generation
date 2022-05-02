@@ -51,3 +51,21 @@ full_console: "{%- if context_code -%}
 {%- endif -%}
   
 >>> {{ test_stmt }}"
+
+no_code: "{% if context_examples -%}
+{%- for stmt,result in context_examples -%}
+{{ stmt }}{{ '\n' }}{{ result ~ '\n' }}
+{%- endfor -%}
+{%- endif -%}
+  
+{{ test_stmt }}"
+
+no_code_description: "{{ description  ~ '\n'}}
+
+{%- if context_examples -%}
+{%- for stmt,result in context_examples -%}
+{{ stmt }}{{ '\n' }}{{ result ~ '\n' }}
+{%- endfor -%}
+{%- endif -%}
+  
+{{ test_stmt }}"

@@ -50,7 +50,7 @@ experiments:
           ++training:
             evaluation_strategy: steps
             save_strategy: steps
-            max_steps: 1000
+            max_steps: 2500
             logging_steps: 5
             eval_steps: 25
             warmup_steps: 50
@@ -75,7 +75,7 @@ experiments:
       kwargs:
         train_sbatch: train_single_gpu
         pretrain_time: "12:00:00"
-        finetune_time: "6:00:00"
+        finetune_time: "12:00:00"
         use_cds: True
       fields:
         - model_path

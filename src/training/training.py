@@ -393,16 +393,18 @@ def train_model(cfg: DictConfig, train_args):
                 v_use = v
             setattr(model.config, k, v_use)
     elif cfg.objective == 'lm':
-        eos_token = task.tokenizer.eos_token or task.tokenizer.bos_token
-        task.tokenizer.eos_token = eos_token
-        task.tokenizer.bos_token = eos_token
-        task.tokenizer.pad_token = task.tokenizer.eos_token
-        model.config.eos_token_id = task.tokenizer.eos_token_id
-        model.config.pad_token_id = task.tokenizer.eos_token_id
-        model.config.bos_token_id = task.tokenizer.eos_token_id
-        task.tokenizer.padding_side = 'left'
-        task.tokenizer.truncation_side = 'left'
+        
         if is_non_registered_task:
+
+            eos_token = tokenizer.eos_token or tokenizer.bos_token
+            tokenizer.eos_token = eos_token
+            tokenizer.bos_token = eos_token
+            tokenizer.pad_token = tokenizer.eos_token
+            model.config.eos_token_id = tokenizer.eos_token_id
+            model.config.pad_token_id = tokenizer.eos_token_id
+            model.config.bos_token_id = tokenizer.eos_token_id
+            tokenizer.padding_side = 'left'
+            tokenizer.truncation_side = 'left'
             logger.info(f"Setting up the SO pretrain objective")
             if cfg.task.name == 'hf_pretrain':
                 train_data, validation_data, evaluate_fn = setup_hf_pretrain(
@@ -412,6 +414,7 @@ def train_model(cfg: DictConfig, train_args):
                     prompt_fn
                 )
             else:
+
                 train_data, validation_data, evaluate_fn = setup_tensorized(
                     cfg,
                     tokenizer,
@@ -419,10 +422,16 @@ def train_model(cfg: DictConfig, train_args):
                     prompt_fn
                 )
         else:
+            eos_token = task.tokenizer.eos_token or task.tokenizer.bos_token
+            task.tokenizer.eos_token = eos_token
+            task.tokenizer.bos_token = eos_token
+            task.tokenizer.pad_token = task.tokenizer.eos_token
+            model.config.eos_token_id = task.tokenizer.eos_token_id
+            model.config.pad_token_id = task.tokenizer.eos_token_id
+            model.config.bos_token_id = task.tokenizer.eos_token_id
+            task.tokenizer.padding_side = 'left'
+            task.tokenizer.truncation_side = 'left'
             logger.info("Setting up the LM objective")
-
-            if task.tokenizer.pad_token is None:
-                task.tokenizer.pad_token = task.tokenizer.eos_token
 
             train_data, validation_data, evaluate_fn = setup_lm(
                 cfg,
