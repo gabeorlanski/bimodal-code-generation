@@ -533,10 +533,11 @@ def evaluate_model_classification_task(
             input_size = batch['input_ids'].size(1)
             max_len = input_size + longest_choice
 
-            local_input_ids = torch.zeros((n_seqs, max_len)).long()
-            local_input_ids[:, :input_size] = batch['input_ids']
-            local_attention_mask = torch.zeros((n_seqs, max_len)).long()
-            local_attention_mask[:, :input_size] = batch['attention_mask']
+            input_ids = torch.zeros((n_seqs, max_len)).long()
+            input_ids[:, :input_size] = batch['input_ids']
+            attention_mask = torch.zeros((n_seqs, max_len)).long()
+            attention_mask[:, :input_size] = batch['attention_mask']
+            attention_mask[:, input_size:input_size + longest_choice] = 1
 
             local_predictions = defaultdict(list)
             targets.extend([dataset[i.item()]['target'] for i in batch['idx']])
@@ -547,7 +548,11 @@ def evaluate_model_classification_task(
                 labels = -100 * torch.ones((n_seqs, max_len)).long()
                 labels[:, input_size:input_size + choice_tensor.size(1)] = choice_tensor
 
+                local_input_ids = input_ids.clone().detach()
+                local_input_ids[:, input_size: input_size + choice_tensor.size(1)] = choice_tensor
                 local_input_ids = local_input_ids.to(device)
+                local_attention_mask = attention_mask.clone().detach()
+                local_attention_mask[:, input_size: input_size + choice_tensor.size(1)] = 1
                 local_attention_mask = local_attention_mask.to(device)
 
                 # This was heavily inspired and has elements from:

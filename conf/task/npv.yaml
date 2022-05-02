@@ -3,8 +3,12 @@ name: npv
 params:
   prompt: base
   choices:
-    - "False"
-    - "True"
+    "False":
+      id: 0
+      text: "False"
+    "True":
+      id: 1
+      text: "True"
   true_ctx_examples: 0
   false_ctx_examples: 0
   shuffle_ctx_pairs: False

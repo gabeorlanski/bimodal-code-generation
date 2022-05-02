@@ -78,7 +78,17 @@ class NPV(Task):
         )
         self.dataset = None
         self.excluded_columns_data = {}
-        self.choices = choices or ["False", 'True']
+        self.choice_map = choices or {
+            'True' : {'id': 1, 'text': 'True'},
+            'False': {'id': 0, 'text': 'False'}
+        }
+        self.choices = [
+            self.choice_map[k]['text']
+            for k in sorted(
+                self.choice_map,
+                key=lambda _c:
+                self.choice_map[_c]['id'])
+        ]
         prompt_dict = yaml.load(PROJECT_ROOT.joinpath('templates/npv_prompts.yaml').open(),
                                 yaml.Loader)
 
@@ -288,7 +298,7 @@ class NPV(Task):
         return out
 
     def map_to_standard_entries(self, sample: Dict) -> Dict:
-        sample['target'] = sample['result']
+        sample['target'] = self.choice_map[str(sample['result'])]['text']
 
         prompt_kwargs = {
             "context_code"    : sample['context'],

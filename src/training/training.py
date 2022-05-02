@@ -5,6 +5,7 @@ from pathlib import Path
 
 import logging
 
+import numpy as np
 import ujson
 from omegaconf import OmegaConf, DictConfig, open_dict
 from transformers import (
@@ -24,9 +25,11 @@ from src.training.trainer import CustomTrainer, HFIterableWrapper
 from src.config import get_steps_from_training_args, get_lr_scheduler, get_prompts_from_cfg
 from src.data.tensorize import TensorizedTask
 from tqdm import tqdm
+from src.data import NPV
 import bitsandbytes as bnb
 from jinja2 import BaseLoader, Environment, StrictUndefined
 from src.common import PROJECT_ROOT
+from sklearn.metrics import f1_score
 
 logger = logging.getLogger(__name__)
 
@@ -58,24 +61,41 @@ def evaluate_seq2seq(eval_predictions: EvalPrediction, task: Task):
     )
 
 
-def evaluate_lm(args, model, data_loader, device):
-    model.eval()
-    losses = []
-    for step, batch in enumerate(data_loader):
-        local_batch = {k: v.to(device) for k, v in batch.items()}
-        with torch.no_grad():
-            outputs = model(
-                local_batch['input_ids'],
-                labels=local_batch.get('labels', local_batch['input_ids'])
-            )
-        loss = outputs.loss.repeat(args.eval_batch_size)
-        losses.append(loss)
-    loss = torch.mean(torch.cat(losses))
-    try:
-        perplexity = torch.exp(loss)
-    except OverflowError:
-        perplexity = float("inf")
-    return {'loss': loss.item(), 'perplexity': perplexity.item()}
+def evaluate_func_npv(eval_predictions: EvalPrediction, choices,
+                      targets,
+                      tokenizer):
+    predictions = []
+
+    tmp_targets = eval_predictions.label_ids.copy()
+    tmp_targets[tmp_targets == -100] = tokenizer.eos_token_id
+    tmp_targets = tokenizer.batch_decode(tmp_targets, skip_special_tokens=True)
+    targets_found = [targets[t] for t in tmp_targets]
+
+    choice_len = max(map(len, choices))
+    assert all(len(c) == choice_len for c in choices)
+
+    for label, pred in zip(eval_predictions.label_ids, eval_predictions.predictions):
+        start = end = -1
+        for i, t in enumerate(label):
+            if t != -100 and start == -1:
+                start = i
+            elif start != -1 and t == -100:
+                end = i
+                break
+        text_span = label[start:end]
+        input_len = text_span.shape[0] - choice_len
+
+        probs = []
+        for i, choice in enumerate(choices):
+            choice_prob = 0
+            for j, t in enumerate(choice):
+                choice_prob += pred[input_len + j][t]
+            probs.append(choice_prob)
+        predictions.append(probs)
+
+    predictions = np.array(predictions).argmax(axis=1)
+    f1 = f1_score(targets_found, predictions, average='macro')
+    return {'f1': f1 * 100}
 
 
 def setup_seq2seq(cfg, task):
@@ -109,7 +129,16 @@ def setup_lm(cfg, task):
         ex['target'] = ex['input_sequence']
         return ex
 
-    task.preprocessors.append(concat)
+    if cfg.task.name == 'npv':
+        def special_concat(ex):
+            ex['input_sequence'] = f"{ex['input_sequence']}{ex['target']}"
+            ex['label'] = ex['target']
+            ex['target'] = ex['input_sequence']
+            return ex
+
+        task.preprocessors.append(special_concat)
+    else:
+        task.preprocessors.append(concat)
 
     group_texts = partial(
         langauge_modeling.raw_group_texts,
@@ -132,7 +161,22 @@ def setup_lm(cfg, task):
     logger.info(f"{len(train_data)} total training samples")
 
     logger.info("Getting validation data")
-    validation_data = make_split('validation')
+    if cfg.task.name == 'npv':
+        task: NPV
+
+        raw_validation_data = task.preprocess('validation')
+        validation_data = task.get_split(
+            'validation',
+            num_procs=cfg.get('num_proc', 1),
+            add_special_tokens=False,
+            do_truncate=True
+        )
+        validation_data = validation_data.map(
+            lambda ex, idx: {'label': raw_validation_data['label'][idx], **ex},
+            with_indices=True
+        )
+    else:
+        validation_data = make_split('validation')
     return train_data, validation_data, None
 
 
@@ -173,9 +217,6 @@ def setup_hf_pretrain(cfg, tokenizer, train_args, prompt_fn):
     train_dataset = raw_train_dataset.shuffle(seed=cfg.seed, buffer_size=1000).map(
         lambda e: {'input_seq': e[cfg.task.train.text_key], 'labels': e[cfg.task.train.text_key]}
     )
-    # for k in cfg.task.train.columns_remove:
-    #     train_dataset = train_dataset.remove_columns(k)
-
     if cfg.task.train.get('max_train_samples', -1) > 0:
         logger.info(f"Taking {cfg.task.train.get('max_train_samples')} from train")
         train_dataset = train_dataset.take(cfg.task.train.get('max_train_samples'))
@@ -393,7 +434,7 @@ def train_model(cfg: DictConfig, train_args):
                 v_use = v
             setattr(model.config, k, v_use)
     elif cfg.objective == 'lm':
-        
+
         if is_non_registered_task:
 
             eos_token = tokenizer.eos_token or tokenizer.bos_token
@@ -438,6 +479,27 @@ def train_model(cfg: DictConfig, train_args):
                 task
             )
 
+            if cfg.task.name == 'npv':
+                task: NPV
+                choices_tokenized = [
+                    task.tokenizer(c, add_special_tokens=False)['input_ids']
+                    for c in task.choices
+                ]
+
+                # Hacky ways to get the labels in Because compute metrics in
+                # huggingface is horrible
+                full_labels = {
+                    task.tokenizer.decode(seq): task.choices.index(l)
+                    for seq, l in zip(validation_data['input_ids'], validation_data['label'])
+                }
+                validation_data = validation_data.remove_columns(['label', 'idx'])
+                evaluate_fn = partial(
+                    evaluate_func_npv,
+                    choices=choices_tokenized,
+                    targets=full_labels,
+                    tokenizer=task.tokenizer
+                )
+
         collator = DataCollatorForSeq2Seq(
             tokenizer=tokenizer,
             padding='longest',
@@ -451,6 +513,8 @@ def train_model(cfg: DictConfig, train_args):
     model.resize_token_embeddings(len(tokenizer))
 
     logger.debug("Initializing trainer")
+    if cfg.debug:
+        validation_data = validation_data.select(range(100))
 
     if train_args.local_rank <= 0:
         logger.info("Training Arguments:")

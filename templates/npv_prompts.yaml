@@ -69,3 +69,22 @@ no_code_description: "{{ description  ~ '\n'}}
 {%- endif -%}
   
 {{ test_stmt }}"
+nl_prompt: "Verify that this code passes the tests:
+
+{% if context_code -%}
+{%- for line in context_code.split('\n') -%}
+{%- if loop.index==1 -%}>>>{%- else -%}...{%- endif %}{{' '~line ~ '\n'}}
+{%- endfor-%}
+{%- endif -%}
+
+{%- for line in code.split('\n') -%}
+{%- if loop.index==1 -%}>>>{%- else -%}...{%- endif %}{{' '~line ~ '\n'}}
+{%- endfor-%}
+
+{% if context_examples -%}
+{%- for stmt,result in context_examples -%}
+>>> {{ stmt }}{{ '\n' }}{{ result ~ '\n' }}
+{%- endfor -%}
+{%- endif -%}
+  
+>>> {{ test_stmt }}"
