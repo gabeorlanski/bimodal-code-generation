@@ -81,7 +81,7 @@ class NPV(Task):
             split_mapping=split_mapping
         )
         self.dataset = None
-        self.excluded_columns_data = {}
+        self.excluded_columns_data = defaultdict(dict)
         self.choice_map = choices or {
             'True' : {'id': 1, 'text': 'True'},
             'False': {'id': 0, 'text': 'False'}
@@ -125,7 +125,7 @@ class NPV(Task):
             'total_length'
         ]
 
-        self.context_samples_by_task = {}
+        self.context_samples_by_task = defaultdict(dict)
         self.raw_processed_dict = defaultdict(dict)
         self._dataset_mapping = self.initialize_data()
 
@@ -137,6 +137,8 @@ class NPV(Task):
             ctx_example_length = []
             num_no_ctx_examples = 0
             split_dict = defaultdict(list)
+            line_num = 0
+
             for d in tqdm(
                     map(json.loads, Path(path).read_text('utf-8').splitlines(False)),
                     desc=f"Reading '{split}'"
@@ -155,6 +157,7 @@ class NPV(Task):
                 to_keep_dict = {
                     k: v for k, v in d.items() if k not in self.EXCLUDE_KEYS + no_save_keys
                 }
+                to_keep_dict['line_num'] = line_num
 
                 for task_dict in map(lambda t: all_instances[t], instances_to_keep):
                     excluded_to_save = deepcopy(excluded_vals)
@@ -183,8 +186,10 @@ class NPV(Task):
                             sum([len(c[0]) for c in instance['context_examples']])
                             if instance['context_examples'] else 0
                         )
-                    self.context_samples_by_task[task_dict['task_id']] = context_examples
-                    self.excluded_columns_data[task_dict['task_id']] = excluded_to_save
+                    self.context_samples_by_task[split][task_dict['task_id']] = context_examples
+                    self.excluded_columns_data[split][task_dict['task_id']] = excluded_to_save
+
+                line_num += 1
 
             out[split] = Dataset.from_dict(split_dict, split=split)
             logger.info(f"{np.mean(num_ctx_examples):.3f} mean context examples")
@@ -199,6 +204,8 @@ class NPV(Task):
             task_dict['op'],
             task_dict['output']
         )
+        if self.num_context_pairs==0:
+            return [],[{'context_examples': [], **instance_dict}]
 
         context_examples = list(self.get_ctx_examples_from_pool(
             task_dict,
@@ -212,11 +219,11 @@ class NPV(Task):
         batch_size = self.ensemble_choices_size if self.ensemble_choices_size > 0 else len(
             context_examples
         )
-        batch_size=max(1,batch_size)
+        batch_size = max(1, batch_size)
         out = []
         for i in range(0, len(context_examples), batch_size):
             batch_ctx_examples = []
-            for ex in context_examples[i:i+batch_size]:
+            for ex in context_examples[i:i + batch_size]:
                 batch_ctx_examples.append((
                     self.make_stmt_from_io(ex['input'], ex['op'], ex['input'], is_ctx=True),
                     ex['result']
@@ -376,6 +383,8 @@ class NPV(Task):
         return sample
 
     def serialize_task_features(self, idx: int, predictions: List, processed_sample: Dict) -> Dict:
+        if processed_sample['task_id'] == 'MBPP_47_0':
+            print()
         return {
             'is_negation_of'     : processed_sample['is_negation_of'],
             'is_manual_fix'      : processed_sample['is_manual_fix'],
@@ -386,8 +395,8 @@ class NPV(Task):
             'input'              : processed_sample['input'],
             'output'             : processed_sample['output'],
             'result'             : processed_sample['result'],
-            'context_examples'   : self.context_samples_by_task[processed_sample['task_id']],
-            **self.excluded_columns_data[processed_sample['task_id']]
+            'context_examples'   : self.context_samples_by_task[idx],
+            **self.excluded_columns_data[idx]
         }
 
     def serialize_predictions(
