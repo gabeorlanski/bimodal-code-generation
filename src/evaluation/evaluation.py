@@ -2,7 +2,7 @@ import copy
 import json
 import math
 import os
-from collections import defaultdict
+from collections import defaultdict, Counter
 from datetime import datetime
 from functools import partial
 from itertools import chain
@@ -410,11 +410,30 @@ def evaluate_model_generation_task(
     return metrics, serialized_predictions
 
 
-def evaluate_model_classification_task(
+def consolidate_ensembled_preds(task: NPV, choice_list, ensemble_choices):
+    num_predictions_made = []
+    predictions = []
+    indices = []
+    targets = []
+    for task_id, probs in ensemble_choices.items():
+        targets.append(task.raw_processed_dict['test'][task_id]['result'])
+        preds = probs.argmax(dim=-1)
+        choice_pred_counts = {k: 0 for k in choice_list}
+        raw_counts = preds.bincount()
+        num_predictions_made.append(len(preds))
+        predicted_choice = choice_list[raw_counts.argmax().item()]
+        predictions.append(predicted_choice)
+        indices.append(task_id)
+        for i, v in enumerate(raw_counts.tolist()):
+            choice_pred_counts[choice_list[i]] = v
+    return num_predictions_made, predictions, indices, targets
+
+
+def eval_log_prob_ranking_classification_task(
         cfg: DictConfig,
         model: PreTrainedModel
 ):
-    task = load_task_from_cfg(cfg)
+    task = load_task_from_cfg(cfg)  # type: Ignore
     logger.info(f"Reading data from '{cfg['data_path']}'")
     debug = cfg.debug
 
@@ -423,16 +442,16 @@ def evaluate_model_classification_task(
     logger.info(f"Getting the data for split {cfg.split}")
     dataset = task.preprocess(cfg.split)
     debug_num_samples = cfg.get('debug_num_samples', None)
-    if cfg.objective == 'lm':
-        eos_token = task.tokenizer.eos_token or task.tokenizer.bos_token
-        task.tokenizer.eos_token = eos_token
-        task.tokenizer.bos_token = eos_token
-        task.tokenizer.pad_token = task.tokenizer.eos_token
-        model.config.eos_token_id = task.tokenizer.eos_token_id
-        model.config.pad_token_id = task.tokenizer.eos_token_id
-        model.config.bos_token_id = task.tokenizer.eos_token_id
-        task.tokenizer.padding_side = 'left'
-        task.tokenizer.truncation_side = 'left'
+
+    eos_token = task.tokenizer.eos_token or task.tokenizer.bos_token
+    task.tokenizer.eos_token = eos_token
+    task.tokenizer.bos_token = eos_token
+    task.tokenizer.pad_token = task.tokenizer.eos_token
+    model.config.eos_token_id = task.tokenizer.eos_token_id
+    model.config.pad_token_id = task.tokenizer.eos_token_id
+    model.config.bos_token_id = task.tokenizer.eos_token_id
+    task.tokenizer.padding_side = 'left'
+    task.tokenizer.truncation_side = 'left'
 
     def tokenize(example, example_idx):
 
@@ -515,11 +534,9 @@ def evaluate_model_classification_task(
         shuffle=False,
         sampler=sequential_sampler,
     )
-    pred_probs = []
-    targets = []
-    indices = []
 
     model.eval()
+    start_time = datetime.utcnow()
     with torch.inference_mode():
         if not debug:
             progress_bar = tqdm(
@@ -529,26 +546,28 @@ def evaluate_model_classification_task(
         else:
             progress_bar = None
         completed = 0
-        longest_choice = max(map(len, choices_tokenized))
+        longest_choice = max(choices_tokenized, key=lambda t: len(t))
+        longest_choice_len = len(longest_choice)
+        ensemble_choices = defaultdict(list)
+
         for batch in dataloader:
             n_seqs = batch['input_ids'].size(0)
             input_size = batch['input_ids'].size(1)
-            max_len = input_size + longest_choice
+            max_len = input_size + longest_choice_len
 
             input_ids = torch.zeros((n_seqs, max_len)).long()
             input_ids[:, :input_size] = batch['input_ids']
             attention_mask = torch.zeros((n_seqs, max_len)).long()
             attention_mask[:, :input_size] = batch['attention_mask']
-            attention_mask[:, input_size:input_size + longest_choice] = 1
+            attention_mask[:, input_size:input_size + longest_choice_len] = 1
 
             local_predictions = defaultdict(list)
-            targets.extend([dataset[i.item()]['target'] for i in batch['idx']])
 
             for choice, choice_tokens in zip(choice_list, choices_tokenized):
 
                 choice_tensor = torch.tensor([choice_tokens] * n_seqs).long()
                 labels = -100 * torch.ones((n_seqs, max_len)).long()
-                labels[:, input_size:input_size + choice_tensor.size(1)] = choice_tensor
+                labels[:, input_size:input_size + len(choice_tokens)] = choice_tensor
 
                 local_input_ids = input_ids.clone().detach()
                 local_input_ids[:, input_size: input_size + choice_tensor.size(1)] = choice_tensor
@@ -563,85 +582,95 @@ def evaluate_model_classification_task(
                     input_ids=local_input_ids,
                     attention_mask=local_attention_mask,
                     # labels=local_input_ids
-                ).logits.cpu()[:, :-1].contiguous()
-                logit_shape = logits.shape
+                ).logits.cpu()
+                logits = logits.contiguous()
 
-                logits = logits.view(-1, logit_shape[-1])
+                # Get the score for each token in the choice tokenized
+                scores = torch.gather(
+                    logits[:, input_size:],
+                    -1,
+                    choice_tensor.unsqueeze(-1)
+                ).squeeze(-1)
 
-                ce_list = F.cross_entropy(
-                    logits,
-                    labels[:, 1:].contiguous().view(-1),
-                    reduction='none'
-                )
-                ce_list = ce_list.view(n_seqs, max_len - 1).sum(dim=1).squeeze().tolist()
-                try:
-                    len(ce_list)
-                except:
-                    ce_list = [ce_list]
-                for idx, p in zip(batch['idx'], ce_list):
+                # Sum up the log probs for each element
+                scores = scores.sum(dim=1).tolist()
+                for idx, p in zip(batch['idx'], scores):
                     local_predictions[idx.item()].append(p)
 
             for k, v in local_predictions.items():
-                indices.append(dataset[k]['task_id'])
-                pred_probs.append(v)
+                task_id = dataset[k]['task_id']
+                ensemble_choices[task_id].append(v)
 
             if progress_bar:
                 progress_bar.update(1)
             completed += n_seqs
             if not progress_bar:
                 logger.info(f"Finished {completed}/{len(dataset)} generations")
+    end_time = datetime.utcnow()
 
-    pred_probs = torch.tensor(pred_probs)
-    pred_ints = pred_probs.argmin(dim=-1)
-    predictions = list(map(lambda i: choice_list[i], pred_ints.tolist()))
+    logger.info("Consolidating the ensemble choices")
+    ensemble_choices = {tid: torch.tensor(v) for tid, v in ensemble_choices.items()}
+    num_predictions_made, predictions, indices, targets = consolidate_ensembled_preds(
+        task,
+        choice_list,
+        ensemble_choices
+    )
+    global_pred_count = Counter(predictions)
 
     metrics = {
-        "accuracy" : 100 * accuracy_score(
+        "accuracy"            : 100 * accuracy_score(
             targets,
             predictions
         ),
-        "f1"       : 100 * f1_score(
+        "f1"                  : 100 * f1_score(
             targets,
             predictions,
             labels=choice_list,
             average='micro'
         ),
-        "recall"   : 100 * recall_score(
+        "recall"              : 100 * recall_score(
             targets,
             predictions,
             average='micro',
             labels=choice_list
         ),
-        "precision": 100 * precision_score(
+        "precision"           : 100 * precision_score(
             targets,
             predictions,
             average='micro',
             labels=choice_list
         ),
+        'eval_seconds'        : (end_time - start_time).total_seconds(),
+        'predictions_per_task': np.mean(num_predictions_made)
     }
 
     precision, recall, f1_arr, occurrences = precision_recall_fscore_support(
         targets, predictions, average=None, labels=choice_list
     )
 
-    pred_counts = pred_ints.bincount()
     task: NPV
     for i, (p, r, f1, o) in enumerate(zip(precision, recall, f1_arr, occurrences)):
-        metrics[f'{task.idx_to_choice[i]}_precision'] = p * 100
-        metrics[f'{task.idx_to_choice[i]}_recall'] = r * 100
-        metrics[f'{task.idx_to_choice[i]}_f1'] = f1 * 100
-        metrics[f'{task.idx_to_choice[i]}_count'] = pred_counts[i].item()
+        choice = task.idx_to_choice[i]
+        metrics[f'{choice}_precision'] = p * 100
+        metrics[f'{choice}_recall'] = r * 100
+        metrics[f'{choice}_f1'] = f1 * 100
+        metrics[f'{choice}_count'] = global_pred_count.get(choice[i], 0)
 
     # Apply softmax to rescale the log probabilities (also multiply by -1 as CE
     # returns a positive number) then multiply by 100 and round to 5 decimal
     # places for sanity. Then convert back to a list for saving.
-    pred_probs = (torch.softmax(pred_probs * -1, dim=-1) * 100).tolist()
 
     serialized_predictions = []
     serialize_generator = task.serialize_predictions(cfg.split, indices, predictions)
     for i, serialized_dict in tqdm(enumerate(serialize_generator), total=len(indices),
                                    desc="Serializing"):
-        choice_probs = {c: round(pred_probs[i][j], 5) for j, c in enumerate(choice_list)}
+        choice_probs = {}
+        task_probs = (
+                torch.softmax(ensemble_choices[serialized_dict['task_id']], dim=-1) * 100
+        ).tolist()
+        for j, probs in enumerate(task_probs):
+            choice_probs[f"PRED_{j}"] = {c: round(probs[ci], 4) for ci, c in enumerate(choice_list)}
+
         serialized_predictions.append({'prob': choice_probs, **serialized_dict})
 
     if cfg.task.name == 'npv':
@@ -726,9 +755,9 @@ def evaluate(
         datasets.enable_caching()
 
     if cfg.task.name in ['npv']:
-        eval_fn = evaluate_model_classification_task
+        eval_fn = eval_log_prob_ranking_classification_task
     else:
-        eval_fn = evaluate_model_classification_task
+        eval_fn = evaluate_model_generation_task
 
     if not dry_run:
         for split in splits_to_use:
@@ -745,7 +774,7 @@ def evaluate(
 
                 print_metrics = []
                 for k in print_csv_metrics:
-                    if isinstance(metrics[k],float):
+                    if isinstance(metrics[k], float):
                         print_metrics.append(f"{metrics[k]:.3f}")
                     else:
                         print_metrics.append(str(metrics[k]))
