@@ -17,9 +17,12 @@ params:
   allow_ctx_same_input: False
   allow_duplicate_output: True
   allow_duplicate_inputs: True
+  enforce_no_negated: False
   allow_negated_ctx: True
   allow_generated_ctx: True
   ctx_pool_sorting_method: random
+  ctx_stmt_prompt: "__input__ __op__ __output__"
+  override_ctx_examples: null
 
 preprocessors: [ ]
 postprocessors: [ ]

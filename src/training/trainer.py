@@ -91,8 +91,8 @@ class HFIterableWrapper(IterableDataset):
                         more_examples = False
                         break
 
-                except Exception as e:
-                    raise e
+                except Exception:
+                    continue
             if worker_info is None:
                 start = 0
                 end = self.buffer

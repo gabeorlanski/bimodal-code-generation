@@ -43,48 +43,6 @@ JINJA_ENV.globals.update(zip=zip)
 JINJA_ENV.undefined = StrictUndefined
 
 
-def evaluate_seq2seq(eval_predictions: EvalPrediction, task: Task):
-    preds, targets = eval_predictions
-    preds = task.tokenizer.batch_decode(
-        preds,
-        skip_special_tokens=True,
-        clean_up_tokenization_spaces=True
-    )
-    targets = task.tokenizer.batch_decode(
-        targets,
-        skip_special_tokens=True,
-        clean_up_tokenization_spaces=True
-    )
-    return task.evaluate(
-        [[p] for p in map(task.postprocess, preds)],
-        list(map(task.postprocess, targets))
-    )
-
-
-def setup_seq2seq(cfg, task):
-    logger.info("Getting train data")
-    train_data = task.get_split("train", num_procs=cfg.get('num_proc', 1))
-    logger.info("Getting validation data")
-    validation_data = task.get_split(
-        "validation", num_procs=cfg.get('num_proc', 1)
-    )
-
-    logger.info(f"{len(train_data)} training samples")
-    logger.info(f"{len(validation_data)} validation samples")
-    for name, ds in [('Train', train_data), ("Validation", validation_data)]:
-        logger.info(f"Stats for {name} data:")
-        input_lens = list(map(len, ds['input_ids']))
-        target_lens = list(map(len, ds['labels']))
-        logger.info(f"\t{name} Inputs:")
-        for metric, value in get_stats_from_list(input_lens).items():
-            logger.info(f"\t\t{metric} = {value:0.2f}")
-        logger.info(f"\t{name} Labels:")
-        for metric, value in get_stats_from_list(target_lens).items():
-            logger.info(f"\t\t{metric} = {value:0.2f}")
-
-    return train_data, validation_data, partial(evaluate_seq2seq, task=task)
-
-
 def setup_lm(cfg, task):
     # Add a preprocessor to concat the inputs and labels.
     def concat(ex):
@@ -126,7 +84,7 @@ def setup_lm(cfg, task):
         validation_data = validation_data.remove_columns(['idx'])
     else:
         validation_data = make_split('validation')
-    return train_data, validation_data, None
+    return train_data, validation_data
 
 
 def setup_hf_pretrain(cfg, tokenizer, train_args, prompt_fn):
@@ -198,7 +156,7 @@ def setup_hf_pretrain(cfg, tokenizer, train_args, prompt_fn):
         concat_token=tokenizer.eos_token_id,
         input_fields=['input_ids'],
         sequence_length=cfg.task.sequence_length
-    ), eval_dataset, None
+    ), eval_dataset
 
 
 def setup_tensorized(cfg, tokenizer, train_args, prompt_fn):
@@ -307,7 +265,7 @@ def setup_tensorized(cfg, tokenizer, train_args, prompt_fn):
             batched=True,
         )
     logger.info(f"{len(eval_dataset)} samples in the eval dataset")
-    return train_dataset, eval_dataset, None
+    return train_dataset, eval_dataset
 
 
 def train_model(cfg: DictConfig, train_args):
@@ -327,123 +285,70 @@ def train_model(cfg: DictConfig, train_args):
     model_cls, model = config.load_model_from_cfg(cfg)
     prompt_fn = get_prompts_from_cfg(cfg, JINJA_ENV)
 
-    def prompt_preprocessor(instance):
-        instance['input_sequence'] = prompt_fn(instance)
-        return instance
-
-    is_non_registered_task = False
+    logger.info("Setting up data and tokenizers")
     if cfg.task.name in NON_REGISTERED_TASKS:
-        is_non_registered_task = True
         tokenizer = config.load_tokenizer_from_cfg(cfg, force_fast=cfg.task.name == 'hf_pretrain')
-        task = None  # type: ignore
+        eos_token = tokenizer.eos_token or tokenizer.bos_token
+        tokenizer.eos_token = eos_token
+        tokenizer.bos_token = eos_token
+        tokenizer.pad_token = tokenizer.eos_token
+        model.config.eos_token_id = tokenizer.eos_token_id
+        model.config.pad_token_id = tokenizer.eos_token_id
+        model.config.bos_token_id = tokenizer.eos_token_id
+        tokenizer.padding_side = 'left'
+        tokenizer.truncation_side = 'left'
+        logger.info(f"Setting up the SO pretrain objective")
+        if cfg.task.name == 'hf_pretrain':
+            train_data, validation_data = setup_hf_pretrain(
+                cfg,
+                tokenizer,
+                train_args,
+                prompt_fn
+            )
+        else:
+
+            train_data, validation_data = setup_tensorized(
+                cfg,
+                tokenizer,
+                train_args,
+                prompt_fn
+            )
     else:
+
+        # For registered tasks, there must be an 'input_sequence' key, thus we
+        # can add the prompt preprocessor.
+        def prompt_preprocessor(instance):
+            instance['input_sequence'] = prompt_fn(instance)
+            return instance
+
         task: Task = config.load_task_from_cfg(cfg)
         tokenizer = task.tokenizer
         task.preprocessors.append(prompt_preprocessor)
+        eos_token = task.tokenizer.eos_token or task.tokenizer.bos_token
+        task.tokenizer.eos_token = eos_token
+        task.tokenizer.bos_token = eos_token
+        task.tokenizer.pad_token = task.tokenizer.eos_token
+        model.config.eos_token_id = task.tokenizer.eos_token_id
+        model.config.pad_token_id = task.tokenizer.eos_token_id
+        model.config.bos_token_id = task.tokenizer.eos_token_id
+        task.tokenizer.padding_side = 'left'
+        task.tokenizer.truncation_side = 'left'
 
-    if cfg.objective == 'seq2seq':
-        if is_non_registered_task:
-            logger.info(f"Setting up the SO pretrain objective")
-            if cfg.task.name == 'hf_pretrain':
-                train_data, validation_data, evaluate_fn = setup_hf_pretrain(
-                    cfg,
-                    tokenizer,
-                    train_args,
-                    prompt_fn
-                )
-            else:
-                train_data, validation_data, evaluate_fn = setup_tensorized(
-                    cfg,
-                    tokenizer,
-                    train_args,
-                    prompt_fn
-                )
-        else:
-            logger.info(f"Setting Up Seq2Seq Objective")
-            train_data, validation_data, evaluate_fn = setup_seq2seq(
-                cfg,
-                task
-            )
-        collator = DataCollatorForSeq2Seq(
-            tokenizer=tokenizer,
-            padding='longest',
-            pad_to_multiple_of=2,
-            return_tensors='pt',
-            label_pad_token_id=tokenizer.pad_token_id
-        )
-        with open_dict(cfg):
-            cfg.training.predict_with_generate = True
-
-        for k, v in cfg.generation.items():
-            if k == 'num_return_sequences':
-                v_use = 1
-            elif k == 'max_length':
-                v_use = 512
-            else:
-                v_use = v
-            setattr(model.config, k, v_use)
-    elif cfg.objective == 'lm':
-
-        if is_non_registered_task:
-
-            eos_token = tokenizer.eos_token or tokenizer.bos_token
-            tokenizer.eos_token = eos_token
-            tokenizer.bos_token = eos_token
-            tokenizer.pad_token = tokenizer.eos_token
-            model.config.eos_token_id = tokenizer.eos_token_id
-            model.config.pad_token_id = tokenizer.eos_token_id
-            model.config.bos_token_id = tokenizer.eos_token_id
-            tokenizer.padding_side = 'left'
-            tokenizer.truncation_side = 'left'
-            logger.info(f"Setting up the SO pretrain objective")
-            if cfg.task.name == 'hf_pretrain':
-                train_data, validation_data, evaluate_fn = setup_hf_pretrain(
-                    cfg,
-                    tokenizer,
-                    train_args,
-                    prompt_fn
-                )
-            else:
-
-                train_data, validation_data, evaluate_fn = setup_tensorized(
-                    cfg,
-                    tokenizer,
-                    train_args,
-                    prompt_fn
-                )
-        else:
-            eos_token = task.tokenizer.eos_token or task.tokenizer.bos_token
-            task.tokenizer.eos_token = eos_token
-            task.tokenizer.bos_token = eos_token
-            task.tokenizer.pad_token = task.tokenizer.eos_token
-            model.config.eos_token_id = task.tokenizer.eos_token_id
-            model.config.pad_token_id = task.tokenizer.eos_token_id
-            model.config.bos_token_id = task.tokenizer.eos_token_id
-            task.tokenizer.padding_side = 'left'
-            task.tokenizer.truncation_side = 'left'
-            logger.info("Setting up the LM objective")
-
-            train_data, validation_data, evaluate_fn = setup_lm(
-                cfg,
-                task
-            )
-
-        collator = DataCollatorForSeq2Seq(
-            tokenizer=tokenizer,
-            padding='longest',
-            pad_to_multiple_of=1,
-            return_tensors='pt'
+        train_data, validation_data = setup_lm(
+            cfg,
+            task
         )
 
-    else:
-        logger.error(f"{cfg.objective} is not a valid objective")
-        raise ValueError("Invalid Objective")
+    collator = DataCollatorForSeq2Seq(
+        tokenizer=tokenizer,
+        padding='longest',
+        pad_to_multiple_of=1,
+        return_tensors='pt'
+    )
+
     model.resize_token_embeddings(len(tokenizer))
 
     logger.debug("Initializing trainer")
-    # if cfg.debug:
-    #     validation_data = validation_data.select(range(100))
-
     if train_args.local_rank <= 0:
         logger.info("Training Arguments:")
         for arg_name in sorted(train_args.to_sanitized_dict()):
@@ -482,7 +387,7 @@ def train_model(cfg: DictConfig, train_args):
                 step_count = cur_step_count
                 resume_path = directory
 
-    logger.info(f"Setting up the optimizer")
+    logger.info("Setting up the optimizer")
     total_steps, warmup_steps = get_steps_from_training_args(train_args, train_data)
     if not train_args.deepspeed:
         if train_args.use_8bit_adam:
@@ -512,10 +417,12 @@ def train_model(cfg: DictConfig, train_args):
         optimizer_arg = (None, None)
 
     logger.info(f"{total_steps} total training steps and {warmup_steps} warmup")
+
     device = train_args.device
-    model = model.to(device)
     logger.info(f"Using device {device}")
+    model = model.to(device)
     logger.info(f"Model Is On {model.device}")
+
     trainer = CustomTrainer(
         cfg,
         model=model,
@@ -524,7 +431,7 @@ def train_model(cfg: DictConfig, train_args):
         tokenizer=tokenizer,
         train_dataset=train_data,
         data_collator=collator,
-        compute_metrics=evaluate_fn,
+        compute_metrics=None,
         optimizers=optimizer_arg
 
     )

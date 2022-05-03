@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import List, Dict, Callable
 
 import astor
+import numpy as np
 import yaml
 from datasets import Dataset, DatasetDict
 from jinja2 import BaseLoader, Environment, StrictUndefined
@@ -58,15 +59,18 @@ class NPV(Task):
             true_ctx_examples: int = 0,
             false_ctx_examples: int = 0,
             shuffle_ctx_pairs: bool = False,
-            stmt_prompt: str = "{stmt}",
+            stmt_prompt: str = "__stmt__",
             trailing_newline: bool = False,
             allow_ctx_same_input: bool = False,
             allow_duplicate_output: bool = False,
             allow_duplicate_inputs: bool = False,
             allow_negated_ctx: bool = False,
             allow_generated_ctx: bool = False,
+            enforce_no_negated: bool = False,
             ctx_pool_sorting_method: str = 'random',
             ctx_example_selection_method: str = 'FIFO',
+            ctx_stmt_prompt: str = "__input__ __op__ __output__",
+            override_ctx_examples: List[Dict] = None
 
     ):
         super(NPV, self).__init__(
@@ -89,6 +93,9 @@ class NPV(Task):
                 key=lambda _c:
                 self.choice_map[_c]['id'])
         ]
+        self.idx_to_choice = {
+            self.choice_map[k]['id']: k for k in self.choice_map
+        }
         prompt_dict = yaml.load(PROJECT_ROOT.joinpath('templates/npv_prompts.yaml').open(),
                                 yaml.Loader)
 
@@ -104,10 +111,13 @@ class NPV(Task):
         self.allow_ctx_same_input = allow_ctx_same_input
         self.allow_negated_ctx = allow_negated_ctx
         self.allow_generated_ctx = allow_generated_ctx
+        self.enforce_no_negated = enforce_no_negated
         self.ctx_pool_sorting_method = ctx_pool_sorting_method
         self.ctx_example_selection_method = ctx_example_selection_method
         self.allow_duplicate_output = allow_duplicate_output
         self.allow_duplicate_inputs = allow_duplicate_inputs
+        self.ctx_stmt_prompt = ctx_stmt_prompt
+        self.override_ctx_examples = override_ctx_examples
         assert ctx_pool_sorting_method in [
             'random',
             'output_length',
@@ -125,6 +135,9 @@ class NPV(Task):
         out = {}
         no_save_keys = ['tid_by_result', 'instances', 'all_tasks']
         for split, path in self.SPLIT_MAPPING.items():
+            num_ctx_examples = []
+            ctx_example_length = []
+            num_no_ctx_examples = 0
             split_dict = defaultdict(list)
             for d in tqdm(
                     map(json.loads, Path(path).read_text('utf-8').splitlines(False)),
@@ -146,6 +159,7 @@ class NPV(Task):
                 }
 
                 for task_dict in map(lambda t: all_instances[t], instances_to_keep):
+                    excluded_to_save = deepcopy(excluded_vals)
                     task_to_save = deepcopy(to_keep_dict)
 
                     task_to_save['test_stmt'] = self.make_stmt_from_io(
@@ -155,25 +169,45 @@ class NPV(Task):
                     )
                     task_to_save.update(task_dict)
                     context_samples = []
-                    for ex in self.get_ctx_examples_from_pool(
-                            task_dict,
-                            true_pool,
-                            false_pool
-                    ):
-                        stmt = self.make_stmt_from_io(
-                            ex['input'], ex['op'], ex['output'],
-                            is_ctx=True
-                        )
-                        context_samples.append((stmt, ex['result']))
+                    context_samples_to_save = []
+                    if self.override_ctx_examples is None:
+                        for ex in self.get_ctx_examples_from_pool(
+                                task_dict,
+                                true_pool,
+                                false_pool
+                        ):
+                            stmt = self.make_stmt_from_io(
+                                ex['input'], ex['op'], ex['output'],
+                                is_ctx=True
+                            )
+                            context_samples.append((stmt, ex['result']))
+                            context_samples_to_save.append(
+                                (ex['input'], ex['op'], ex['output'], ex['result']))
+                    else:
+                        for ex in self.override_ctx_examples:
+                            stmt = self.make_stmt_from_io(
+                                ex['input'], ex['op'], ex['output'],
+                                is_ctx=True
+                            )
+                            context_samples.append((stmt, ex['result']))
                     if self.shuffle_ctx_pairs:
                         random.shuffle(context_samples)
                     task_to_save['context_examples'] = context_samples
+                    task_to_save['context_examples_full'] = context_samples_to_save
+                    num_ctx_examples.append(len(context_samples))
+                    ctx_example_length.append(
+                        sum([len(c[0]) for c in context_samples]) if context_samples else 0)
+                    if not context_samples:
+                        num_no_ctx_examples += 1
 
                     for k, v in task_to_save.items():
                         split_dict[k].append(v)
-                    self.excluded_columns_data[task_dict['task_id']] = excluded_vals
+                    self.excluded_columns_data[task_dict['task_id']] = excluded_to_save
 
             out[split] = Dataset.from_dict(split_dict, split=split)
+            logger.info(f"{np.mean(num_ctx_examples):.3f} mean context examples")
+            logger.info(f"{np.mean(ctx_example_length):.3f} mean total length for ctx examples")
+            logger.info(f"{num_no_ctx_examples}/{len(num_ctx_examples)} had no context examples")
         return DatasetDict(out)
 
     def should_keep_example(
@@ -191,6 +225,8 @@ class NPV(Task):
         if ex['input'] == input_example['input'] and not self.allow_ctx_same_input:
             return False
         if ex['is_negation_of'] is not None and not self.allow_negated_ctx:
+            if self.enforce_no_negated:
+                return False
             if not is_second_pass:
                 return False
         if ex['is_output_generated'] and not self.allow_generated_ctx:
@@ -292,7 +328,13 @@ class NPV(Task):
         return self._dataset_mapping[split]
 
     def make_stmt_from_io(self, input_stmt, op, output_stmt, is_ctx=False):
-        out = self.stmt_prompt.format(stmt=f"{input_stmt} {op} {output_stmt}")
+        if is_ctx:
+            stmt = self.ctx_stmt_prompt.replace('__input__', input_stmt)
+            stmt = stmt.replace('__op__', op)
+            stmt = stmt.replace('__output__', output_stmt)
+        else:
+            stmt = f"{input_stmt} {op} {output_stmt}"
+        out = self.stmt_prompt.replace("{stmt}", stmt)
         if self.trailing_newline and not is_ctx:
             return f"{out}\n"
         return out
@@ -323,6 +365,7 @@ class NPV(Task):
             'op'                 : processed_sample['op'],
             'input'              : processed_sample['input'],
             'output'             : processed_sample['output'],
-            'context_examples'   : processed_sample['context_examples'],
-            **self.excluded_columns_data[idx]
+            'result'             : processed_sample['result'],
+            'context_examples':processed_sample['context_examples_full'],
+            **self.excluded_columns_data[processed_sample['task_id']]
         }

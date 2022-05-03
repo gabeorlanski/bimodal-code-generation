@@ -88,3 +88,48 @@ nl_prompt: "Verify that this code passes the tests:
 {%- endif -%}
   
 >>> {{ test_stmt }}"
+no_ctx_result: "{% if context_code -%}
+{%- for line in context_code.split('\n') -%}
+{%- if loop.index==1 -%}>>>{%- else -%}...{%- endif %}{{' '~line ~ '\n'}}
+{%- endfor-%}
+{%- endif -%}
+
+{%- for line in code.split('\n') -%}
+{%- if loop.index==1 -%}>>>{%- else -%}...{%- endif %}{{' '~line ~ '\n'}}
+{%- endfor %}
+
+>>> # These are examples
+
+{% if context_examples -%}
+{%- for stmt,result in context_examples -%}
+>>> {{ stmt ~ '\n' }}
+{%- endfor -%}
+{%- endif %}
+  
+>>> # What is the Result of this expression? {{ '\n' }}
+
+>>> {{ test_stmt }}"
+
+ctx_prior: "\"\"\"
+
+Examples:
+
+{% if context_examples -%}
+{%- for stmt,result in context_examples -%}
+>>> {{ stmt ~ '\n' }}
+{%- endfor -%}
+{%- endif %}
+
+\"\"\"
+
+{% if context_code -%}
+{%- for line in context_code.split('\n') -%}
+{%- if loop.index==1 -%}>>>{%- else -%}...{%- endif %}{{' '~line ~ '\n'}}
+{%- endfor-%}
+{%- endif -%}
+
+{%- for line in code.split('\n') -%}
+{%- if loop.index==1 -%}>>>{%- else -%}...{%- endif %}{{' '~line ~ '\n'}}
+{%- endfor %}
+
+>>> {{ test_stmt }}"

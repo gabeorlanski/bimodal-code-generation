@@ -35,6 +35,8 @@ from sklearn.metrics import (
 
 import multiprocessing as mp
 
+from src.data import NPV
+
 logger = logging.getLogger(__name__)
 
 EOF_STRINGS = ["\nclass", "\ndef", "\n#", "\n@", "\nprint", "\nif"]
@@ -623,11 +625,12 @@ def evaluate_model_classification_task(
     )
 
     pred_counts = pred_ints.bincount()
+    task: NPV
     for i, (p, r, f1, o) in enumerate(zip(precision, recall, f1_arr, occurrences)):
-        metrics[f'{choice_list[i]}_precision'] = p * 100
-        metrics[f'{choice_list[i]}_recall'] = r * 100
-        metrics[f'{choice_list[i]}_f1'] = f1 * 100
-        metrics[f'{choice_list[i]}_count'] = pred_counts[i].item()
+        metrics[f'{task.idx_to_choice[i]}_precision'] = p * 100
+        metrics[f'{task.idx_to_choice[i]}_recall'] = r * 100
+        metrics[f'{task.idx_to_choice[i]}_f1'] = f1 * 100
+        metrics[f'{task.idx_to_choice[i]}_count'] = pred_counts[i].item()
 
     # Apply softmax to rescale the log probabilities (also multiply by -1 as CE
     # returns a positive number) then multiply by 100 and round to 5 decimal
@@ -699,7 +702,8 @@ def evaluate(
         cfg,
         model,
         out_path: Path,
-        dry_run: bool
+        dry_run: bool,
+        print_csv_metrics: List
 ):
     # datasets.logging.disable_progress_bar()
     seed = cfg["seed"]
@@ -736,6 +740,16 @@ def evaluate(
                 model=model
             )
 
+            if print_csv_metrics:
+                logger.info(f"Metrics for {split}:")
+
+                print_metrics = []
+                for k in print_csv_metrics:
+                    if isinstance(metrics[k],float):
+                        print_metrics.append(f"{metrics[k]:.3f}")
+                    else:
+                        print_metrics.append(str(metrics[k]))
+                logger.info('\t'.join(print_metrics))
             all_metrics.update({f"{split}/{k}": v for k, v in metrics.items()})
             split_path = out_path.joinpath(f'{cfg.split}.jsonl')
             split_paths.append(split_path)

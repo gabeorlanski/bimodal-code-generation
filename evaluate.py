@@ -61,6 +61,9 @@ from src.data import NON_REGISTERED_TASKS
 @click.option(
     '--output-dir', '-o',
     default=None, type=int, help='Output directory name')
+@click.option('--print-csv-metrics', '-csv', default='', type=str,
+              callback=lambda a, b, v: v.split(',') if v.strip() else [],
+              help='Comma list of metrics to print in csv mode')
 @click.pass_context
 def evaluate_cli_entry(
         ctx,
@@ -74,7 +77,8 @@ def evaluate_cli_entry(
         force_create_dir,
         num_workers,
         output_dir,
-        min_batch_size
+        min_batch_size,
+        print_csv_metrics
 ):
     ctx.obj = {
         "DEBUG"                : debug,
@@ -87,7 +91,9 @@ def evaluate_cli_entry(
         "FORCE_CREATE_DIR"     : force_create_dir,
         "num_workers"          : num_workers,
         "out_dir"              : output_dir,
-        "min_batch_size"       : min_batch_size
+        "min_batch_size"       : min_batch_size,
+        "print_csv_metrics"    : print_csv_metrics
+
     }
 
 
@@ -174,7 +180,8 @@ def evaluate_from_ctx_and_cfg(
         cfg,
         model,
         working_dir,
-        dry_run
+        dry_run,
+        ctx.obj['print_csv_metrics']
     )
 
 
@@ -238,7 +245,7 @@ def eval_from_checkpoint(
             cfg.is_checkpoint = True
         else:
             cfg.model_path = None
-            cfg.is_checkpoint=False
+            cfg.is_checkpoint = False
         if 'task' not in cfg or cfg.task.name != task_name:
             cfg.task = task_cfg
 
