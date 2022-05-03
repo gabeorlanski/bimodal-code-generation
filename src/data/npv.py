@@ -210,6 +210,7 @@ class NPV(Task):
         batch_size = self.ensemble_choices_size if self.ensemble_choices_size > 0 else len(
             context_examples
         )
+        batch_size=max(1,batch_size)
         out = []
         for i in range(0, len(context_examples), batch_size):
             batch_ctx_examples = []

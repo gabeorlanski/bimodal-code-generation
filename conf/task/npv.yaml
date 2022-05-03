@@ -22,7 +22,7 @@ params:
   allow_generated_ctx: True
   ctx_pool_sorting_method: random
   ctx_stmt_prompt: "__input__ __op__ __output__"
-  override_ctx_examples: null
+  ensemble_choices_size: 0
 
 preprocessors: [ ]
 postprocessors: [ ]
