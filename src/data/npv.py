@@ -68,6 +68,7 @@ class NPV(Task):
             allow_negated_ctx: bool = False,
             allow_generated_ctx: bool = False,
             enforce_no_negated: bool = False,
+            enforce_no_gen: bool = False,
             ctx_pool_sorting_method: str = 'random',
             ctx_stmt_prompt: str = "__input__ __op__ __output__",
 
@@ -114,6 +115,7 @@ class NPV(Task):
         self.ctx_pool_sorting_method = ctx_pool_sorting_method
         self.allow_duplicate_output = allow_duplicate_output
         self.allow_duplicate_inputs = allow_duplicate_inputs
+        self.enforce_no_gen = enforce_no_gen
         self.ctx_stmt_prompt = ctx_stmt_prompt
         self.ensemble_choices_size = ensemble_choices_size
         assert ctx_pool_sorting_method in [
@@ -244,8 +246,12 @@ class NPV(Task):
             if not is_second_pass:
                 return False
         if ex['is_output_generated'] and not self.allow_generated_ctx:
+            if self.enforce_no_gen:
+                return False
             if not is_second_pass:
                 return False
+        if ex['is_input_generated'] and self.enforce_no_gen:
+            return False
         if ex['output'] in yielded_outputs and not self.allow_duplicate_output:
             if not is_second_pass:
                 return False
