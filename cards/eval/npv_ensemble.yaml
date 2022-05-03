@@ -60,9 +60,9 @@ experiments:
             ++task.params.ensemble_choices_size: 4
       - ContextExamples:
           6T6F:
-            description: 5 True and 5 False example
-            ++task.params.true_ctx_examples: 5
-            ++task.params.false_ctx_examples: 5
+            description: 6 True and 6 False example
+            ++task.params.true_ctx_examples: 6
+            ++task.params.false_ctx_examples: 6
     steps:
       - name: NPV
         description: Zero Shot eval on NPV
