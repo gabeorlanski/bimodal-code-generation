@@ -5,7 +5,7 @@ import random
 import re
 from collections import defaultdict
 from copy import deepcopy
-from itertools import zip_longest
+from itertools import zip_longest, islice
 from pathlib import Path
 from typing import List, Dict, Callable
 
@@ -58,6 +58,7 @@ class NPV(Task):
             choices: List[str] = None,
             true_ctx_examples: int = 0,
             false_ctx_examples: int = 0,
+            ensemble_choices_size: int = 0,
             shuffle_ctx_pairs: bool = False,
             stmt_prompt: str = "__stmt__",
             trailing_newline: bool = False,
@@ -68,9 +69,7 @@ class NPV(Task):
             allow_generated_ctx: bool = False,
             enforce_no_negated: bool = False,
             ctx_pool_sorting_method: str = 'random',
-            ctx_example_selection_method: str = 'FIFO',
             ctx_stmt_prompt: str = "__input__ __op__ __output__",
-            override_ctx_examples: List[Dict] = None
 
     ):
         super(NPV, self).__init__(
@@ -113,22 +112,19 @@ class NPV(Task):
         self.allow_generated_ctx = allow_generated_ctx
         self.enforce_no_negated = enforce_no_negated
         self.ctx_pool_sorting_method = ctx_pool_sorting_method
-        self.ctx_example_selection_method = ctx_example_selection_method
         self.allow_duplicate_output = allow_duplicate_output
         self.allow_duplicate_inputs = allow_duplicate_inputs
         self.ctx_stmt_prompt = ctx_stmt_prompt
-        self.override_ctx_examples = override_ctx_examples
+        self.ensemble_choices_size = ensemble_choices_size
         assert ctx_pool_sorting_method in [
             'random',
             'output_length',
             'input_length',
             'total_length'
         ]
-        assert ctx_example_selection_method in [
-            'FIFO',
-            'DIVERSE'
-        ]
 
+        self.context_samples_by_task = {}
+        self.raw_processed_dict = defaultdict(dict)
         self._dataset_mapping = self.initialize_data()
 
     def initialize_data(self):
@@ -160,48 +156,32 @@ class NPV(Task):
 
                 for task_dict in map(lambda t: all_instances[t], instances_to_keep):
                     excluded_to_save = deepcopy(excluded_vals)
-                    task_to_save = deepcopy(to_keep_dict)
 
-                    task_to_save['test_stmt'] = self.make_stmt_from_io(
-                        task_dict['input'],
-                        task_dict['op'],
-                        task_dict['output']
+                    context_examples, instances = self.mk_instance_from_task(
+                        task_dict,
+                        true_pool,
+                        false_pool
                     )
-                    task_to_save.update(task_dict)
-                    context_samples = []
-                    context_samples_to_save = []
-                    if self.override_ctx_examples is None:
-                        for ex in self.get_ctx_examples_from_pool(
-                                task_dict,
-                                true_pool,
-                                false_pool
-                        ):
-                            stmt = self.make_stmt_from_io(
-                                ex['input'], ex['op'], ex['output'],
-                                is_ctx=True
-                            )
-                            context_samples.append((stmt, ex['result']))
-                            context_samples_to_save.append(
-                                (ex['input'], ex['op'], ex['output'], ex['result']))
-                    else:
-                        for ex in self.override_ctx_examples:
-                            stmt = self.make_stmt_from_io(
-                                ex['input'], ex['op'], ex['output'],
-                                is_ctx=True
-                            )
-                            context_samples.append((stmt, ex['result']))
-                    if self.shuffle_ctx_pairs:
-                        random.shuffle(context_samples)
-                    task_to_save['context_examples'] = context_samples
-                    task_to_save['context_examples_full'] = context_samples_to_save
-                    num_ctx_examples.append(len(context_samples))
-                    ctx_example_length.append(
-                        sum([len(c[0]) for c in context_samples]) if context_samples else 0)
-                    if not context_samples:
-                        num_no_ctx_examples += 1
+                    have_saved_one_instance = False
 
-                    for k, v in task_to_save.items():
-                        split_dict[k].append(v)
+                    if not context_examples:
+                        num_no_ctx_examples += 1
+                    for instance in instances:
+                        if not have_saved_one_instance:
+                            self.raw_processed_dict[split][task_dict['task_id']] = {
+                                **instance, **to_keep_dict
+                            }
+
+                        for k, v in instance.items():
+                            split_dict[k].append(v)
+                        for k, v in to_keep_dict.items():
+                            split_dict[k].append(v)
+                        num_ctx_examples.append(len(instance['context_examples']))
+                        ctx_example_length.append(
+                            sum([len(c[0]) for c in instance['context_examples']])
+                            if instance['context_examples'] else 0
+                        )
+                    self.context_samples_by_task[task_dict['task_id']] = context_examples
                     self.excluded_columns_data[task_dict['task_id']] = excluded_to_save
 
             out[split] = Dataset.from_dict(split_dict, split=split)
@@ -209,6 +189,39 @@ class NPV(Task):
             logger.info(f"{np.mean(ctx_example_length):.3f} mean total length for ctx examples")
             logger.info(f"{num_no_ctx_examples}/{len(num_ctx_examples)} had no context examples")
         return DatasetDict(out)
+
+    def mk_instance_from_task(self, task_dict, true_pool, false_pool):
+        instance_dict = deepcopy(task_dict)
+        instance_dict['test_stmt'] = self.make_stmt_from_io(
+            task_dict['input'],
+            task_dict['op'],
+            task_dict['output']
+        )
+
+        context_examples = list(self.get_ctx_examples_from_pool(
+            task_dict,
+            true_pool,
+            false_pool
+        ))
+
+        if self.shuffle_ctx_pairs:
+            random.shuffle(context_examples)
+
+        batch_size = self.ensemble_choices_size if self.ensemble_choices_size > 0 else len(
+            context_examples
+        )
+        out = []
+        for i in range(0, len(context_examples), batch_size):
+            batch_ctx_examples = []
+            for ex in context_examples[i:i+batch_size]:
+                batch_ctx_examples.append((
+                    self.make_stmt_from_io(ex['input'], ex['op'], ex['input'], is_ctx=True),
+                    ex['result']
+                ))
+            out.append(
+                {'context_examples': batch_ctx_examples, **instance_dict}
+            )
+        return context_examples, out
 
     def should_keep_example(
             self,
@@ -366,6 +379,39 @@ class NPV(Task):
             'input'              : processed_sample['input'],
             'output'             : processed_sample['output'],
             'result'             : processed_sample['result'],
-            'context_examples':processed_sample['context_examples_full'],
+            'context_examples'   : self.context_samples_by_task[processed_sample['task_id']],
             **self.excluded_columns_data[processed_sample['task_id']]
         }
+
+    def serialize_predictions(
+            self,
+            split: str,
+            indices: List,
+            predictions: List[List]
+    ):
+        """
+        Serialize a prediction to a dict.
+
+        Args:
+            split (str): The split the predictions came from.
+            indices (List): The indices corresponding to the predictions.
+            predictions (List[List]): The list of predictions for each sample.
+
+        Returns:
+            A generator of dicts for each sample.
+        """
+
+        assert len(indices) == len(predictions), "Indices must be the same length as predictions"
+
+        for task_id, preds in zip(indices, predictions):
+            raw_sample = self.raw_processed_dict[split][task_id]
+            sample = self.serialize_task_features(task_id, preds, raw_sample)
+            processed_sample = self.map_to_standard_entries(raw_sample)
+
+            yield {
+                'task_id'       : processed_sample['task_id'],
+                'target'        : processed_sample['target'],
+                'input_sequence': processed_sample['input_sequence'],
+                'prediction'    : preds,
+                **sample
+            }

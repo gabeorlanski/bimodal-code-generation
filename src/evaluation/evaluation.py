@@ -654,7 +654,7 @@ def eval_log_prob_ranking_classification_task(
         metrics[f'{choice}_precision'] = p * 100
         metrics[f'{choice}_recall'] = r * 100
         metrics[f'{choice}_f1'] = f1 * 100
-        metrics[f'{choice}_count'] = global_pred_count.get(choice[i], 0)
+        metrics[f'{choice}_count'] = global_pred_count.get(choice_list[i], 0)
 
     # Apply softmax to rescale the log probabilities (also multiply by -1 as CE
     # returns a positive number) then multiply by 100 and round to 5 decimal
@@ -709,12 +709,12 @@ def eval_log_prob_ranking_classification_task(
         # metrics.update(get_subset_stats('Actual',df[df['is_original']]))
         metrics.update(get_subset_stats('Negations', df[df['is_negation']]))
         metrics.update(get_subset_stats('Original', df[~df['is_negation']]))
-        metrics.update(
-            get_subset_stats('Generated', df[is_generated_mask])
-        )
-        metrics.update(
-            get_subset_stats('Gold', df[~is_generated_mask])
-        )
+        # metrics.update(
+        #     get_subset_stats('Generated', df[is_generated_mask])
+        # )
+        # metrics.update(
+        #     get_subset_stats('Gold', df[~is_generated_mask])
+        # )
 
     # Get the full metrics suite for the predictions and the labels
     logger.info("Results:")

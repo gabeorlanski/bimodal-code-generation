@@ -108,7 +108,7 @@ def get_instances_to_save(
         verified_samples_by_idx,
         false_to_true_num_mod,
         rng,
-        gold_to_generated_ratio
+        gold_to_generated_ratio,
 ):
     logger.info(f"{false_to_true_num_mod=}")
     pct_gold = gold_to_generated_ratio / (gold_to_generated_ratio + 1)
@@ -146,6 +146,9 @@ def get_instances_to_save(
         num_true_pairs = 0
         num_false_pairs = 0
 
+        num_gen_true = 0
+        num_gen_false = 0
+
         has_true = has_false = False
         for sample in sample_dict.values():
             io_pair_dict = {
@@ -165,12 +168,19 @@ def get_instances_to_save(
             tid_to_io_dict[io_pair_dict['task_id']] = io_pair_dict
             tid_by_result_and_input[result_str][io_pair_dict['input']].append(
                 io_pair_dict['task_id'])
+            is_gen = io_pair_dict['is_input_generated'] or io_pair_dict['is_output_generated']
             if io_pair_dict['is_negation_of'] is None:
                 if result_str == 'True':
+                    if is_gen:
+                        num_gen_true+=1
+                        continue
                     has_true = True
                     num_true_pairs += 1
                     true_tids[sample['input']].append(io_pair_dict['task_id'])
                 else:
+                    if is_gen:
+                        num_gen_false+=1
+                        continue
                     has_false = True
                     num_false_pairs += 1
                     false_pairs[sample['input']].append(io_pair_dict)
@@ -291,10 +301,13 @@ def get_instances_to_save(
         count_tracker['all_pairs'] += len(to_save_task_ids)
 
         mean_tracker['is_generated'].append(num_generated)
+        mean_tracker['gen_true'].append(num_gen_true)
+        mean_tracker['gen_false'].append(num_gen_false)
 
         instance_dict['all_tasks'] = tid_to_io_dict
         instance_dict['instances'] = to_save_task_ids
         instance_dict['tid_by_result'] = dict(tid_by_result_and_input)
+
 
         to_save.append(instance_dict)
 
