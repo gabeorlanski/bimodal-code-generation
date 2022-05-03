@@ -23,7 +23,7 @@ params:
   ctx_pool_sorting_method: random
   ctx_stmt_prompt: "__input__ __op__ __output__"
   ensemble_choices_size: 0
-  enforce_no_negated: False
+  enforce_no_gen: False
 
 preprocessors: [ ]
 postprocessors: [ ]
