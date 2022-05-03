@@ -429,7 +429,7 @@ def consolidate_ensembled_preds(task: NPV, choice_list, ensemble_choices):
 
         found_correct = False
         for i, v in enumerate(raw_counts.tolist()):
-            if choice_list[i] == target:
+            if choice_list[i] == target and v > 0:
                 found_correct = True
                 oracle_preds.append(choice_list[i])
             choice_pred_counts[choice_list[i]] = v
