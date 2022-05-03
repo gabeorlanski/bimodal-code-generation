@@ -183,10 +183,12 @@ class NPV(Task):
                             split_dict[k].append(v)
                         num_ctx_examples.append(len(instance['context_examples']))
                         ctx_example_length.append(
-                            sum([len(c[0]) for c in instance['context_examples']])
+                            sum([
+                                len(c['input'] + c['op'] + c['output'])
+                                for c in instance['context_examples']
+                            ])
                             if instance['context_examples'] else 0
                         )
-                    self.context_samples_by_task[split][task_dict['task_id']] = context_examples
                     self.excluded_columns_data[split][task_dict['task_id']] = excluded_to_save
 
                 line_num += 1
@@ -204,8 +206,8 @@ class NPV(Task):
             task_dict['op'],
             task_dict['output']
         )
-        if self.num_context_pairs==0:
-            return [],[{'context_examples': [], **instance_dict}]
+        if self.num_context_pairs == 0:
+            return [], [{'context_examples': [], **instance_dict}]
 
         context_examples = list(self.get_ctx_examples_from_pool(
             task_dict,
@@ -224,10 +226,7 @@ class NPV(Task):
         for i in range(0, len(context_examples), batch_size):
             batch_ctx_examples = []
             for ex in context_examples[i:i + batch_size]:
-                batch_ctx_examples.append((
-                    self.make_stmt_from_io(ex['input'], ex['op'], ex['input'], is_ctx=True),
-                    ex['result']
-                ))
+                batch_ctx_examples.append(ex)
             out.append(
                 {'context_examples': batch_ctx_examples, **instance_dict}
             )
@@ -369,9 +368,16 @@ class NPV(Task):
     def map_to_standard_entries(self, sample: Dict) -> Dict:
         sample['target'] = self.choice_map[str(sample['result'])]['text']
 
+        context_examples = []
+        for ex in sample['context_examples']:
+            context_examples.append((
+                self.make_stmt_from_io(ex['input'], ex['op'], ex['output'], is_ctx=True),
+                ex['result']
+            ))
+
         prompt_kwargs = {
             "context_code"    : sample['context'],
-            'context_examples': sample['context_examples'],
+            'context_examples': context_examples,
             'description'     : sample['description'],
             'code'            : sample['code'].lstrip(),
             'test_stmt'       : sample['test_stmt']
@@ -383,8 +389,6 @@ class NPV(Task):
         return sample
 
     def serialize_task_features(self, idx: int, predictions: List, processed_sample: Dict) -> Dict:
-        if processed_sample['task_id'] == 'MBPP_47_0':
-            print()
         return {
             'is_negation_of'     : processed_sample['is_negation_of'],
             'is_manual_fix'      : processed_sample['is_manual_fix'],
@@ -395,8 +399,6 @@ class NPV(Task):
             'input'              : processed_sample['input'],
             'output'             : processed_sample['output'],
             'result'             : processed_sample['result'],
-            'context_examples'   : self.context_samples_by_task[idx],
-            **self.excluded_columns_data[idx]
         }
 
     def serialize_predictions(
@@ -429,5 +431,6 @@ class NPV(Task):
                 'target'        : processed_sample['target'],
                 'input_sequence': processed_sample['input_sequence'],
                 'prediction'    : preds,
+                **self.excluded_columns_data[split][task_id],
                 **sample
             }

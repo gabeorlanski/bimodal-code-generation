@@ -413,10 +413,12 @@ def evaluate_model_generation_task(
 def consolidate_ensembled_preds(task: NPV, choice_list, ensemble_choices):
     num_predictions_made = []
     predictions = []
+    oracle_preds = []
     indices = []
     targets = []
     for task_id, probs in ensemble_choices.items():
-        targets.append(task.raw_processed_dict['test'][task_id]['result'])
+        target = task.raw_processed_dict['test'][task_id]['result']
+        targets.append(target)
         preds = probs.argmax(dim=-1)
         choice_pred_counts = {k: 0 for k in choice_list}
         raw_counts = preds.bincount()
@@ -424,9 +426,16 @@ def consolidate_ensembled_preds(task: NPV, choice_list, ensemble_choices):
         predicted_choice = choice_list[raw_counts.argmax().item()]
         predictions.append(predicted_choice)
         indices.append(task_id)
+
+        found_correct = False
         for i, v in enumerate(raw_counts.tolist()):
+            if choice_list[i] == target:
+                found_correct = True
+                oracle_preds.append(choice_list[i])
             choice_pred_counts[choice_list[i]] = v
-    return num_predictions_made, predictions, indices, targets
+        if not found_correct:
+            oracle_preds.append(predicted_choice)
+    return num_predictions_made, predictions, oracle_preds, indices, targets
 
 
 def eval_log_prob_ranking_classification_task(
@@ -549,6 +558,7 @@ def eval_log_prob_ranking_classification_task(
         longest_choice = max(choices_tokenized, key=lambda t: len(t))
         longest_choice_len = len(longest_choice)
         ensemble_choices = defaultdict(list)
+        ensemble_preds = defaultdict(list)
 
         for batch in dataloader:
             n_seqs = batch['input_ids'].size(0)
@@ -600,6 +610,7 @@ def eval_log_prob_ranking_classification_task(
             for k, v in local_predictions.items():
                 task_id = dataset[k]['task_id']
                 ensemble_choices[task_id].append(v)
+                ensemble_preds[task_id].append(dataset[k]['context_examples'])
 
             if progress_bar:
                 progress_bar.update(1)
@@ -610,7 +621,7 @@ def eval_log_prob_ranking_classification_task(
 
     logger.info("Consolidating the ensemble choices")
     ensemble_choices = {tid: torch.tensor(v) for tid, v in ensemble_choices.items()}
-    num_predictions_made, predictions, indices, targets = consolidate_ensembled_preds(
+    num_predictions_made, predictions, oracle_preds, indices, targets = consolidate_ensembled_preds(
         task,
         choice_list,
         ensemble_choices
@@ -618,6 +629,12 @@ def eval_log_prob_ranking_classification_task(
     global_pred_count = Counter(predictions)
 
     metrics = {
+        "Oracle_f1"           : 100 * f1_score(
+            targets,
+            oracle_preds,
+            labels=choice_list,
+            average='micro'
+        ),
         "accuracy"            : 100 * accuracy_score(
             targets,
             predictions
@@ -665,19 +682,26 @@ def eval_log_prob_ranking_classification_task(
     for i, serialized_dict in tqdm(enumerate(serialize_generator), total=len(indices),
                                    desc="Serializing"):
         choice_probs = {}
+        all_ctx_examples = {}
         task_probs = (
                 torch.softmax(ensemble_choices[serialized_dict['task_id']], dim=-1) * 100
         ).tolist()
         for j, probs in enumerate(task_probs):
             choice_probs[f"PRED_{j}"] = {c: round(probs[ci], 4) for ci, c in enumerate(choice_list)}
+            all_ctx_examples[f'PRED_{j}'] = ensemble_preds[serialized_dict['task_id']][j]
 
-        serialized_predictions.append({'prob': choice_probs, **serialized_dict})
+        has_correct_oracle = oracle_preds[i] != predictions[i]
+        serialized_predictions.append({
+            'has_correct_oracle': has_correct_oracle,
+            'prob'              : choice_probs,
+            'context_examples'  : all_ctx_examples,
+            **serialized_dict
+        })
 
     if cfg.task.name == 'npv':
         df = pd.DataFrame.from_records(serialized_predictions)
 
         df['is_negation'] = ~pd.isnull(df['is_negation_of'])
-        is_generated_mask = (df['is_input_generated'] | df['is_output_generated'])
         df = df[['prediction', 'target', 'is_negation', 'is_original', 'is_manual_fix', 'op']]
 
         def get_subset_stats(name, subset_df):
