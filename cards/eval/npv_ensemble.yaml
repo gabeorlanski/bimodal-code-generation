@@ -12,9 +12,7 @@ experiments:
       ++zero_shot: True
       task: npv
       ++tracking.entity: nyu-code-research
-      ++task:
-        params:
-          ctx_pool_sorting_method: total_length
+
     ablations:
       - Model:
           ParrotSmall:
@@ -58,11 +56,18 @@ experiments:
           4:
             description: Four Context examples
             ++task.params.ensemble_choices_size: 4
+      - PoolSortingMethod:
+          TotalLength:
+            description: Sorting the pool by input + output length
+            ++task.params.ctx_pool_sorting_method: total_length
+          Random:
+            description: Randomly shuffling the pool for sorting
+            ++task.params.ctx_pool_sorting_method: random
       - ContextExamples:
-          6T6F:
-            description: 6 True and 6 False example
-            ++task.params.true_ctx_examples: 6
-            ++task.params.false_ctx_examples: 6
+          3T4F:
+            description: 3 True and 4 False example
+            ++task.params.true_ctx_examples: 3
+            ++task.params.false_ctx_examples: 4
     steps:
       - name: NPV
         description: Zero Shot eval on NPV

@@ -135,7 +135,9 @@ class NPV(Task):
         for split, path in self.SPLIT_MAPPING.items():
             num_ctx_examples = []
             ctx_example_length = []
+            num_tasks = 0
             num_no_ctx_examples = 0
+            num_below_ctx_count = 0
             split_dict = defaultdict(list)
             line_num = 0
 
@@ -171,6 +173,9 @@ class NPV(Task):
 
                     if not context_examples:
                         num_no_ctx_examples += 1
+                    elif len(context_examples) < self.num_context_pairs:
+                        num_below_ctx_count += 1
+                    num_tasks+=1
                     for instance in instances:
                         if not have_saved_one_instance:
                             self.raw_processed_dict[split][task_dict['task_id']] = {
@@ -196,7 +201,9 @@ class NPV(Task):
             out[split] = Dataset.from_dict(split_dict, split=split)
             logger.info(f"{np.mean(num_ctx_examples):.3f} mean context examples")
             logger.info(f"{np.mean(ctx_example_length):.3f} mean total length for ctx examples")
-            logger.info(f"{num_no_ctx_examples}/{len(num_ctx_examples)} had no context examples")
+            logger.info(f"{num_no_ctx_examples}/{num_tasks} had no context examples")
+            logger.info(f"{num_below_ctx_count}/{num_tasks} had "
+                        f"less than {self.num_context_pairs} context examples")
         return DatasetDict(out)
 
     def mk_instance_from_task(self, task_dict, true_pool, false_pool):

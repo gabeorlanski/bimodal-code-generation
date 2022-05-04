@@ -410,20 +410,33 @@ def evaluate_model_generation_task(
     return metrics, serialized_predictions
 
 
-def consolidate_ensembled_preds(task: NPV, choice_list, ensemble_choices):
+def consolidate_ensembled_preds(split, task: NPV, choice_list, ensemble_choices):
     num_predictions_made = []
     predictions = []
     oracle_preds = []
     indices = []
     targets = []
+    tie_break_correct = []
     for task_id, probs in ensemble_choices.items():
-        target = task.raw_processed_dict['test'][task_id]['result']
+        target = task.raw_processed_dict[split][task_id]['result']
         targets.append(target)
         preds = probs.argmax(dim=-1)
         choice_pred_counts = {k: 0 for k in choice_list}
         raw_counts = preds.bincount()
+
         num_predictions_made.append(len(preds))
-        predicted_choice = choice_list[raw_counts.argmax().item()]
+
+        highest_score = raw_counts.max()
+        if all(highest_score == v for v in raw_counts) and raw_counts.size(0) == len(choice_list):
+            tie_break_probs = [[] for _ in range(len(choice_list))]
+            for i, idx in enumerate(preds):
+                tie_break_probs[idx].append(probs[i, idx].item())
+
+            tie_break_probs = torch.tensor(list(map(np.mean, tie_break_probs)))
+            predicted_choice = choice_list[tie_break_probs.argmax().item()]
+            tie_break_correct.append(1 if predicted_choice == target else 0)
+        else:
+            predicted_choice = choice_list[raw_counts.argmax().item()]
         predictions.append(predicted_choice)
         indices.append(task_id)
 
@@ -435,7 +448,7 @@ def consolidate_ensembled_preds(task: NPV, choice_list, ensemble_choices):
             choice_pred_counts[choice_list[i]] = v
         if not found_correct:
             oracle_preds.append(predicted_choice)
-    return num_predictions_made, predictions, oracle_preds, indices, targets
+    return (num_predictions_made, tie_break_correct), predictions, oracle_preds, indices, targets
 
 
 def eval_log_prob_ranking_classification_task(
@@ -621,11 +634,13 @@ def eval_log_prob_ranking_classification_task(
 
     logger.info("Consolidating the ensemble choices")
     ensemble_choices = {tid: torch.tensor(v) for tid, v in ensemble_choices.items()}
-    num_predictions_made, predictions, oracle_preds, indices, targets = consolidate_ensembled_preds(
+    stats, predictions, oracle_preds, indices, targets = consolidate_ensembled_preds(
+        cfg.split,
         task,
         choice_list,
         ensemble_choices
     )
+    num_predictions_made, tie_breaks = stats
     global_pred_count = Counter(predictions)
 
     metrics = {
@@ -658,7 +673,9 @@ def eval_log_prob_ranking_classification_task(
             labels=choice_list
         ),
         'eval_seconds'        : (end_time - start_time).total_seconds(),
-        'predictions_per_task': np.mean(num_predictions_made)
+        'predictions_per_task': np.mean(num_predictions_made),
+        'tie_breaks'          : len(tie_breaks),
+        'tie_breaks_correct'  : sum(tie_breaks) / len(tie_breaks) * 100 if tie_breaks else 0.0
     }
 
     precision, recall, f1_arr, occurrences = precision_recall_fscore_support(
