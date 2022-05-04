@@ -43,6 +43,9 @@ experiments:
           Base:
             description: Base Prompt with no formatting
             ++task.params.prompt: base
+          FullConsole:
+            description: Full Console Prompt
+            ++task.params.prompt: full_console
       - EnsembleBatchSize:
           1:
             description: Single Context example
@@ -53,9 +56,6 @@ experiments:
           3:
             description: Three Context examples
             ++task.params.ensemble_choices_size: 3
-          4:
-            description: Four Context examples
-            ++task.params.ensemble_choices_size: 4
       - PoolSortingMethod:
           TotalLength:
             description: Sorting the pool by input + output length
