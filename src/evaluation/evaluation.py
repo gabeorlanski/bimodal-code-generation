@@ -451,11 +451,64 @@ def consolidate_ensembled_preds(split, task: NPV, choice_list, ensemble_choices)
     return (num_predictions_made, tie_break_correct), predictions, oracle_preds, indices, targets
 
 
-def eval_log_prob_ranking_classification_task(
+def generate_log_probs(
+        batch,
+        choice_list,
+        choices_tokenized,
+        model,
+        longest_choice_len,
+        device
+):
+    n_seqs = batch['input_ids'].size(0)
+    input_size = batch['input_ids'].size(1)
+    max_len = input_size + longest_choice_len
+    input_ids = torch.zeros((n_seqs, max_len)).long()
+    input_ids[:, :input_size] = batch['input_ids']
+    attention_mask = torch.zeros((n_seqs, max_len)).long()
+    attention_mask[:, :input_size] = batch['attention_mask']
+    attention_mask[:, input_size:input_size + longest_choice_len] = 1
+    local_predictions = defaultdict(list)
+    for choice, choice_tokens in zip(choice_list, choices_tokenized):
+
+        choice_tensor = torch.tensor([choice_tokens] * n_seqs).long()
+        labels = -100 * torch.ones((n_seqs, max_len)).long()
+        labels[:, input_size:input_size + len(choice_tokens)] = choice_tensor
+
+        local_input_ids = input_ids.clone().detach()
+        local_input_ids[:, input_size: input_size + choice_tensor.size(1)] = choice_tensor
+        local_input_ids = local_input_ids.to(device)
+        local_attention_mask = attention_mask.clone().detach()
+        local_attention_mask[:, input_size: input_size + choice_tensor.size(1)] = 1
+        local_attention_mask = local_attention_mask.to(device)
+
+        # This was heavily inspired and has elements from:
+        # https://github.com/peterwestuw/surface-form-competition/blob/main/utils.py
+        logits = model(
+            input_ids=local_input_ids,
+            attention_mask=local_attention_mask,
+            # labels=local_input_ids
+        ).logits.cpu()
+        logits = logits.contiguous()
+
+        # Get the score for each token in the choice tokenized
+        scores = torch.gather(
+            logits[:, input_size:],
+            -1,
+            choice_tensor.unsqueeze(-1)
+        ).squeeze(-1)
+
+        # Sum up the log probs for each element
+        scores = scores.sum(dim=1).tolist()
+        for idx, p in zip(batch['idx'], scores):
+            local_predictions[idx.item()].append(p)
+    return local_predictions
+
+
+def evaluate_npv_task(
         cfg: DictConfig,
         model: PreTrainedModel
 ):
-    task = load_task_from_cfg(cfg)  # type: Ignore
+    task: NPV = load_task_from_cfg(cfg)  # type: Ignore
     logger.info(f"Reading data from '{cfg['data_path']}'")
     debug = cfg.debug
 
@@ -463,6 +516,7 @@ def eval_log_prob_ranking_classification_task(
     choice_list = list(map(str, task.choices))  # type: ignore
     logger.info(f"Getting the data for split {cfg.split}")
     dataset = task.preprocess(cfg.split)
+    zero_shot_dataset = task.preprocess(f"zero_shot_{cfg.split}")
     debug_num_samples = cfg.get('debug_num_samples', None)
 
     eos_token = task.tokenizer.eos_token or task.tokenizer.bos_token
@@ -501,6 +555,14 @@ def eval_log_prob_ranking_classification_task(
         return out
 
     tokenized = dataset.map(
+        tokenize,
+        with_indices=True,
+        num_proc=cfg.num_proc,
+        remove_columns=[c for c in dataset.column_names],
+    )
+    if task.with_zero_shot:
+        logger.info(f"Subtracting Zero shot Probs are enabled")
+    zero_shot_tokenized = zero_shot_dataset.map(
         tokenize,
         with_indices=True,
         num_proc=cfg.num_proc,
@@ -573,53 +635,52 @@ def eval_log_prob_ranking_classification_task(
         ensemble_choices = defaultdict(list)
         ensemble_preds = defaultdict(list)
 
+        # A map to store already computed zero-shot probabilities for tasks.
+        zs_probs_map = {}
+
         for batch in dataloader:
             n_seqs = batch['input_ids'].size(0)
             input_size = batch['input_ids'].size(1)
-            max_len = input_size + longest_choice_len
+            to_calc_zs = {}
+            batch_zs_probs = {}
+            for idx in batch['idx'].tolist():
+                tid = zero_shot_dataset[idx]['task_id']
+                if tid in zs_probs_map:
+                    batch_zs_probs[idx] = zs_probs_map[tid]
+                else:
+                    to_calc_zs[idx] = tid
+            if to_calc_zs:
+                zero_shot_batch = zero_shot_tokenized.select(list(to_calc_zs)).to_dict()
+                zero_shot_batch = collator([{k: zero_shot_batch[k][i] for k in zero_shot_batch}
+                                            for i in range(len(to_calc_zs))])
+            else:
+                zero_shot_batch = None
+            local_predictions = generate_log_probs(
+                batch,
+                choice_list,
+                choices_tokenized,
+                model,
+                longest_choice_len,
+                device
+            )
 
-            input_ids = torch.zeros((n_seqs, max_len)).long()
-            input_ids[:, :input_size] = batch['input_ids']
-            attention_mask = torch.zeros((n_seqs, max_len)).long()
-            attention_mask[:, :input_size] = batch['attention_mask']
-            attention_mask[:, input_size:input_size + longest_choice_len] = 1
-
-            local_predictions = defaultdict(list)
-
-            for choice, choice_tokens in zip(choice_list, choices_tokenized):
-
-                choice_tensor = torch.tensor([choice_tokens] * n_seqs).long()
-                labels = -100 * torch.ones((n_seqs, max_len)).long()
-                labels[:, input_size:input_size + len(choice_tokens)] = choice_tensor
-
-                local_input_ids = input_ids.clone().detach()
-                local_input_ids[:, input_size: input_size + choice_tensor.size(1)] = choice_tensor
-                local_input_ids = local_input_ids.to(device)
-                local_attention_mask = attention_mask.clone().detach()
-                local_attention_mask[:, input_size: input_size + choice_tensor.size(1)] = 1
-                local_attention_mask = local_attention_mask.to(device)
-
-                # This was heavily inspired and has elements from:
-                # https://github.com/peterwestuw/surface-form-competition/blob/main/utils.py
-                logits = model(
-                    input_ids=local_input_ids,
-                    attention_mask=local_attention_mask,
-                    # labels=local_input_ids
-                ).logits.cpu()
-                logits = logits.contiguous()
-
-                # Get the score for each token in the choice tokenized
-                scores = torch.gather(
-                    logits[:, input_size:],
-                    -1,
-                    choice_tensor.unsqueeze(-1)
-                ).squeeze(-1)
-
-                # Sum up the log probs for each element
-                scores = scores.sum(dim=1).tolist()
-                for idx, p in zip(batch['idx'], scores):
-                    local_predictions[idx.item()].append(p)
-
+            if task.with_zero_shot:
+                if len(batch_zs_probs) != batch['idx'].size(0) and to_calc_zs:
+                    zs_predictions = generate_log_probs(
+                        zero_shot_batch,
+                        choice_list,
+                        choices_tokenized,
+                        model,
+                        longest_choice_len,
+                        device
+                    )
+                    for k, v in zs_predictions.items():
+                        zs_probs_map[dataset[k]['task_id']] = v
+                        batch_zs_probs[k] = v
+                assert len(batch_zs_probs) == batch['idx'].size(0)
+                for k in local_predictions:
+                    for i in range(len(local_predictions[k])):
+                        local_predictions[k][i] -= batch_zs_probs[k][i]
             for k, v in local_predictions.items():
                 task_id = dataset[k]['task_id']
                 ensemble_choices[task_id].append(v)
@@ -796,7 +857,7 @@ def evaluate(
         datasets.enable_caching()
 
     if cfg.task.name in ['npv']:
-        eval_fn = eval_log_prob_ranking_classification_task
+        eval_fn = evaluate_npv_task
     else:
         eval_fn = evaluate_model_generation_task
 

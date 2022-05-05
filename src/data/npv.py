@@ -37,6 +37,40 @@ PROMPT_TO_USE = None
 
 @Task.register("npv")
 class NPV(Task):
+    """
+
+    Args:
+        prompt: name of the prompt to use from `templates/npv_prompts.yaml`
+        choices: The dict of choices where the key is in `{True,False}` and the
+         value is a dict with `id` and `text` keys.
+        true_ctx_examples: Number of true context examples for the pool
+        false_ctx_examples: Number of False context examples for the pool
+        ensemble_choices_size: Batch size for ensemble. Will make
+            `(# False+# True)//ensemble_choices_size` total samples.
+        shuffle_ctx_pairs: Shuffle the ordering of the CTX pairs. Otherwise will
+            go `TFTFTF...`
+        stmt_prompt: Prompt for the statement. Default is `__stmt__`
+        trailing_newline: Add a trailing newline to the statement
+        allow_ctx_same_input: Allow context samples in the pool if they have the
+         same input as the target
+        allow_duplicate_output: Allow duplicate outputs in the ctx examples on
+            the first pass. On the second pass they will be added regardless.
+        allow_duplicate_inputs: Allow duplicate inputs (not the same as the target)
+            in the ctx examples on the first pass. On the second pass they
+            will be added regardless.
+        allow_negated_ctx: Allow negated context examples on the first pass.
+            On the second pass they will be added regardless.
+        allow_generated_ctx: Allow generated context examples on the first pass.
+            On the second pass they will be added regardless.
+        enforce_no_negated: Do not allow negated context examples on the
+            second pass.
+        enforce_no_gen: Do not allow generated context examples on the
+            second pass.
+        ctx_pool_sorting_method:
+        ctx_stmt_prompt:
+        with_zero_shot:
+        zero_shot_code_only
+    """
     SPLIT_MAPPING = {
         "test"      : str(PROJECT_ROOT.joinpath('data', 'NPV', 'test.jsonl')),
         "train"     : str(PROJECT_ROOT.joinpath('data', 'NPV', 'train.jsonl')),
@@ -71,8 +105,11 @@ class NPV(Task):
             enforce_no_gen: bool = False,
             ctx_pool_sorting_method: str = 'random',
             ctx_stmt_prompt: str = "__input__ __op__ __output__",
-
+            with_zero_shot: bool = False,
+            zero_shot_code_only: bool = False,
+            drop_last_in_ensemble: bool = False
     ):
+
         super(NPV, self).__init__(
             preprocessors=preprocessors,
             tokenizer=tokenizer,
@@ -118,6 +155,9 @@ class NPV(Task):
         self.enforce_no_gen = enforce_no_gen
         self.ctx_stmt_prompt = ctx_stmt_prompt
         self.ensemble_choices_size = ensemble_choices_size
+        self.with_zero_shot = with_zero_shot
+        self.zero_shot_code_only = zero_shot_code_only
+        self.drop_last_in_ensemble = drop_last_in_ensemble
         assert ctx_pool_sorting_method in [
             'random',
             'output_length',
@@ -139,6 +179,7 @@ class NPV(Task):
             num_no_ctx_examples = 0
             num_below_ctx_count = 0
             split_dict = defaultdict(list)
+            zero_shot_dict = defaultdict(list)
             line_num = 0
 
             for d in tqdm(
@@ -175,7 +216,7 @@ class NPV(Task):
                         num_no_ctx_examples += 1
                     elif len(context_examples) < self.num_context_pairs:
                         num_below_ctx_count += 1
-                    num_tasks+=1
+                    num_tasks += 1
                     for instance in instances:
                         if not have_saved_one_instance:
                             self.raw_processed_dict[split][task_dict['task_id']] = {
@@ -183,8 +224,17 @@ class NPV(Task):
                             }
 
                         for k, v in instance.items():
+                            if k != 'context_examples':
+                                zero_shot_dict[k].append(v)
+                            else:
+                                zero_shot_dict[k].append([])
                             split_dict[k].append(v)
+
+                        split_dict['is_zero_shot'].append(False)
+                        zero_shot_dict['is_zero_shot'].append(True)
+
                         for k, v in to_keep_dict.items():
+                            zero_shot_dict[k].append(v)
                             split_dict[k].append(v)
                         num_ctx_examples.append(len(instance['context_examples']))
                         ctx_example_length.append(
@@ -199,6 +249,10 @@ class NPV(Task):
                 line_num += 1
 
             out[split] = Dataset.from_dict(split_dict, split=split)
+            out[f"zero_shot_{split}"] = Dataset.from_dict(
+                zero_shot_dict,
+                split=f"zero_shot_{split}"
+            )
             logger.info(f"{np.mean(num_ctx_examples):.3f} mean context examples")
             logger.info(f"{np.mean(ctx_example_length):.3f} mean total length for ctx examples")
             logger.info(f"{num_no_ctx_examples}/{num_tasks} had no context examples")
@@ -234,6 +288,9 @@ class NPV(Task):
             batch_ctx_examples = []
             for ex in context_examples[i:i + batch_size]:
                 batch_ctx_examples.append(ex)
+
+            if self.drop_last_in_ensemble and len(batch_ctx_examples) != batch_size:
+                continue
             out.append(
                 {'context_examples': batch_ctx_examples, **instance_dict}
             )
@@ -391,8 +448,14 @@ class NPV(Task):
         }
         if self.include_target_in_prompt_kwargs:
             prompt_kwargs['target'] = sample['result']
+
         assert PROMPT_TO_USE is not None
-        sample['input_sequence'] = PROMPT_TO_USE.render(prompt_kwargs)
+        if sample['is_zero_shot'] and self.zero_shot_code_only:
+            prompt_kwargs['test_stmt'] = ''
+            prompt_kwargs['context_examples'] = []
+            sample['input_sequence'] = PROMPT_TO_USE.render(prompt_kwargs).rstrip()
+        else:
+            sample['input_sequence'] = PROMPT_TO_USE.render(prompt_kwargs)
         return sample
 
     def serialize_task_features(self, idx: int, predictions: List, processed_sample: Dict) -> Dict:
@@ -430,6 +493,7 @@ class NPV(Task):
 
         for task_id, preds in zip(indices, predictions):
             raw_sample = self.raw_processed_dict[split][task_id]
+            raw_sample['is_zero_shot'] = False
             sample = self.serialize_task_features(task_id, preds, raw_sample)
             processed_sample = self.map_to_standard_entries(raw_sample)
 

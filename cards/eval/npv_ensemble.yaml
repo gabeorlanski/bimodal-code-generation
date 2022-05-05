@@ -23,22 +23,22 @@ experiments:
             description: GPT Neo 125M
             ++model: 'EleutherAI/gpt-neo-125M'
             ++evaluation.num_generate_per_step: 40
-          Incoder6B:
-            description: Incoder 6B
-            ++model: 'facebook/incoder-6B'
-            ++evaluation.num_generate_per_step: 4
+#          Incoder6B:
+#            description: Incoder 6B
+#            ++model: 'facebook/incoder-6B'
+#            ++evaluation.num_generate_per_step: 4
 #          Parrot:
 #            description: CodeParrot Normal
 #            ++model: 'lvwerra/codeparrot'
 #            ++evaluation.num_generate_per_step: 24
-          Neo1B:
-            description: GPT Neo 1.3B
-            ++model: 'EleutherAI/gpt-neo-1.3B'
-            ++evaluation.num_generate_per_step: 18
-          Incoder1B:
-            description: Incoder 1B
-            ++model: 'facebook/incoder-1B'
-            ++evaluation.num_generate_per_step: 16
+#          Neo1B:
+#            description: GPT Neo 1.3B
+#            ++model: 'EleutherAI/gpt-neo-1.3B'
+#            ++evaluation.num_generate_per_step: 18
+#          Incoder1B:
+#            description: Incoder 1B
+#            ++model: 'facebook/incoder-1B'
+#            ++evaluation.num_generate_per_step: 16
       - TaskPrompt:
           Base:
             description: Base Prompt with no formatting
@@ -53,9 +53,9 @@ experiments:
           2:
             description: Two Context examples
             ++task.params.ensemble_choices_size: 2
-#          3:
-#            description: Three Context examples
-#            ++task.params.ensemble_choices_size: 3
+          3:
+            description: Three Context examples
+            ++task.params.ensemble_choices_size: 3
       - PoolSortingMethod:
           TotalLength:
             description: Sorting the pool by input + output length

@@ -64,8 +64,8 @@ experiments:
           training:
             dataloader_num_workers: 8
             fp16_opt_level: O0
-            learning_rate: 5.0e-05
-            warmup_steps: 750
+            learning_rate: 5.0e-03
+            warmup_steps: 2500
             eval_steps: 500
             lr_scheduler_type: cosine
 

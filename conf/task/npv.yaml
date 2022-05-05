@@ -24,6 +24,9 @@ params:
   ctx_stmt_prompt: "__input__ __op__ __output__"
   ensemble_choices_size: 0
   enforce_no_gen: False
+  with_zero_shot: False
+  zero_shot_code_only: False
+  drop_last_in_ensemble: false
 
 preprocessors: [ ]
 postprocessors: [ ]
