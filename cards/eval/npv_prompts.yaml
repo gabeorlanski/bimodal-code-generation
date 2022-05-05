@@ -97,6 +97,6 @@ experiments:
         train_sbatch: train_single_gpu
         finetune_time: "4:00:00"
         pretrain_time: "4:00:00"
-        use_cds: True
+        use_cds: False
       fields:
         - model_path

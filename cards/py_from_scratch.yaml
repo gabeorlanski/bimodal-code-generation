@@ -64,8 +64,8 @@ experiments:
           training:
             dataloader_num_workers: 8
             fp16_opt_level: O0
-            learning_rate: 5.0e-03
-            warmup_steps: 2500
+            learning_rate: 5.0e-4
+            warmup_steps: 1000
             eval_steps: 500
             lr_scheduler_type: cosine
 
@@ -78,6 +78,6 @@ experiments:
         task_name: MBPP
         train_sbatch: train_single_gpu
         pretrain_time: "48:00:00"
-        use_cds: True
+        use_cds: False
       fields:
         - model_path
