@@ -15,10 +15,10 @@ experiments:
 
     ablations:
       - Model:
-          ParrotSmall:
-            description: CodeParrot Small
-            ++model: 'lvwerra/codeparrot-small'
-            ++evaluation.num_generate_per_step: 48
+#          ParrotSmall:
+#            description: CodeParrot Small
+#            ++model: 'lvwerra/codeparrot-small'
+#            ++evaluation.num_generate_per_step: 48
           Neo125M:
             description: GPT Neo 125M
             ++model: 'EleutherAI/gpt-neo-125M'
@@ -27,10 +27,10 @@ experiments:
             description: Incoder 6B
             ++model: 'facebook/incoder-6B'
             ++evaluation.num_generate_per_step: 4
-          Parrot:
-            description: CodeParrot Normal
-            ++model: 'lvwerra/codeparrot'
-            ++evaluation.num_generate_per_step: 24
+#          Parrot:
+#            description: CodeParrot Normal
+#            ++model: 'lvwerra/codeparrot'
+#            ++evaluation.num_generate_per_step: 24
           Neo1B:
             description: GPT Neo 1.3B
             ++model: 'EleutherAI/gpt-neo-1.3B'
@@ -53,9 +53,9 @@ experiments:
           2:
             description: Two Context examples
             ++task.params.ensemble_choices_size: 2
-          3:
-            description: Three Context examples
-            ++task.params.ensemble_choices_size: 3
+#          3:
+#            description: Three Context examples
+#            ++task.params.ensemble_choices_size: 3
       - PoolSortingMethod:
           TotalLength:
             description: Sorting the pool by input + output length
