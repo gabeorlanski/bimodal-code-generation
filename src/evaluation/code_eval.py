@@ -213,6 +213,9 @@ def parse_results(
             'total'           : pred_count[task_id],
             'error_types'     : Counter({'SyntaxError': invalid_syntax_by_idx[task_id]}),
             'error_messages'  : {},
+            'passed'          : [],
+            'failed_tests'    : [],
+            'timed_out'       : [],
             'runtimes_by_type': {}
 
         }
@@ -237,8 +240,14 @@ def parse_results(
                     task_runtime_errors += 1
                     task_metrics['error_messages'][
                         completion_id] = f"{result_str}: {result_dict['error']}"
+                elif result_str == 'Failed Tests':
+                    task_metrics['failed_tests'].append(completion_id)
+                else:
+                    task_metrics['timed_out'].append(completion_id)
+
 
             else:
+                task_metrics['passed'].append(completion_id)
                 task_correct += 1
 
         # Calculate Percents for the task.
