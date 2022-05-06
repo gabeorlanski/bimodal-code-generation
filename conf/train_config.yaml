@@ -35,7 +35,6 @@ generation:
   max_length: 512
   temperature: 0.5
   top_p: 0.95
-  top_k: 50
 
 training:
   batch_size: 1

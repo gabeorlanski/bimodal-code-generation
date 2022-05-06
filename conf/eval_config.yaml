@@ -15,7 +15,6 @@ generation:
   do_sample: true
   temperature: 0.5
   top_p: 0.95
-  top_k: 50
 tracking:
   watch: "gradients"
   project: ${..project}
