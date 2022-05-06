@@ -3,8 +3,6 @@
 #SBATCH --gres=gpu:rtx8000:1
 #SBATCH --mem=128G
 #SBATCH -c 8
-#SBATCH --account=cds
-#SBATCH --qos=cds
 #SBATCH --kill-on-invalid-dep=yes
 #SBATCH --mail-type=FAIL
 #SBATCH --mail-user=$USER@nyu.edu

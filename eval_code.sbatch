@@ -1,7 +1,6 @@
 #!/bin/bash
 #SBATCH --output=./sbatch_logs/%x.out
 #SBATCH --time=24:00:00
-#SBATCH --account=cds
 #SBATCH --mem=128G
 #SBATCH -c 32
 #SBATCH --kill-on-invalid-dep=no

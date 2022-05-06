@@ -1,6 +1,6 @@
 starting_commands: templates/commands/sbatch_experiment.txt
 experiments:
-  SO:
+  SOHyperParameter:
     description: "Test SO finetuning with no repeating"
     overrides:
       ++device: 0
@@ -45,9 +45,6 @@ experiments:
           2:
             description: Temperature of 0.2
             ++generation.temperature: 0.2
-          4:
-            description: Temperature of 0.4
-            ++generation.temperature: 0.4
           6:
             description: Temperature of 0.6
             ++generation.temperature: 0.6
@@ -61,9 +58,6 @@ experiments:
           95:
             description: Nucleus 0.95
             ++generation.top_p: 0.95
-          99:
-            description: Nucleus of 0.99
-            ++generation.temperature: 0.99
       - RemoveModality:
           NoNL:
             description: Remove Natural Language
