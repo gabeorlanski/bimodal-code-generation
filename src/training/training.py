@@ -121,6 +121,11 @@ def setup_hf_pretrain(cfg, tokenizer, train_args, prompt_fn):
     def tokenize(ex, text_key):
         return {'input_ids': tokenizer(ex[text_key], add_special_tokens=False)['input_ids']}
 
+    if cfg.task.train.skip_amount != -1:
+        logger.info(f"Skipping until {cfg.task.train.skip_amount}")
+        raw_train_dataset = raw_train_dataset.skip(cfg.task.train.skip_amount)
+
+
     train_dataset = raw_train_dataset.shuffle(seed=cfg.seed, buffer_size=1000).map(
         lambda e: {'input_seq': e[cfg.task.train.text_key], 'labels': e[cfg.task.train.text_key]}
     )
@@ -133,6 +138,11 @@ def setup_hf_pretrain(cfg, tokenizer, train_args, prompt_fn):
         cfg.task.validation.subset,
         split=cfg.task.validation.split,
     )
+    if cfg.task.validation.skip_amount != -1:
+        raw_eval_dataset = raw_eval_dataset.select(
+            range(cfg.task.validation.skip_amount, len(raw_eval_dataset))
+        )
+
     if cfg.task.validation.max_val_samples > 0:
         logger.info(f"Selecting {cfg.task.validation.max_val_samples} for debug")
         raw_eval_dataset = raw_eval_dataset.select(range(cfg.task.validation.max_val_samples))
@@ -142,6 +152,7 @@ def setup_hf_pretrain(cfg, tokenizer, train_args, prompt_fn):
         num_proc=cfg.get("num_proc", 4),
         remove_columns=raw_eval_dataset.column_names
     )
+
     eval_dataset = raw_eval_dataset.map(
         group_texts,
         batched=True,

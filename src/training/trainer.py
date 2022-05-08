@@ -1,3 +1,4 @@
+import json
 import math
 import os
 from pathlib import Path
@@ -69,9 +70,12 @@ class HFIterableWrapper(IterableDataset):
         if worker_info is None:
             slices_per_worker = self.buffer
             worker_id = 0
+            debug = Path('debug_train_samples.jsonl').open('w')
         else:
             slices_per_worker = int(math.ceil(self.buffer / worker_info.num_workers))
             worker_id = worker_info.id
+            debug = None
+        logged_samples = 0
         total_items_seen = 0
         while more_examples:
             instances = []
@@ -102,6 +106,10 @@ class HFIterableWrapper(IterableDataset):
             os.environ['DS_EPOCH'] = f"{ds_epoch:0.5f}"
             processed_inputs, processed_labels = [], []
             for line in instances[start:end]:
+                if worker_id == 0 and logged_samples < 25:
+                    debug.write(json.dumps(
+                        {k: v[:256] if isinstance(v, (str, list)) else v for k, v in line.items()}
+                    ) + '\n')
                 processed_inputs.append(line['input_seq'])
                 processed_labels.append(line['labels'])
             inputs_tokenized = tokenizer(

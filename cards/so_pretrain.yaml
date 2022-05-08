@@ -36,28 +36,29 @@ experiments:
                 ++training.batch_size: 32
                 ++training.gradient_accumulation_steps: 1
                 ++training.gradient_checkpointing: True
-          ParrotSmall:
-            description: CodeParrot Small
-            overrides:
-              ++model: 'lvwerra/codeparrot-small'
-            step_overrides:
-              PreTrain:
-                ++training.batch_size: 32
-                ++training.gradient_accumulation_steps: 1
-                ++training.gradient_checkpointing: True
+                ++training.fp16_opt_level: "O0"
+      #          ParrotSmall:
+      #            description: CodeParrot Small
+      #            overrides:
+      #              ++model: 'lvwerra/codeparrot-small'
+      #            step_overrides:
+      #              PreTrain:
+      #                ++training.batch_size: 32
+      #                ++training.gradient_accumulation_steps: 1
+      #                ++training.gradient_checkpointing: True
       - RemoveModality:
-#          NoNL:
-#            description: Remove Natural Language
-#            hypothesis: Will do better b/c removed bad NL
-#            ++processor.params.remove_modality: NL
-          NoCode:
-            description: Remove Code
-            hypothesis: Will do The Worst because there is no Code
-            ++processor.params.remove_modality: CODE
-#          Full:
-#            description: Do Not Remove Anything
-#            hypothesis: Will be worse than removing NL
-#            ++processor.params.remove_modality: null
+          #          NoNL:
+          #            description: Remove Natural Language
+          #            hypothesis: Will do better b/c removed bad NL
+          #            ++processor.params.remove_modality: NL
+          #          NoCode:
+          #            description: Remove Code
+          #            hypothesis: Will do The Worst because there is no Code
+          #            ++processor.params.remove_modality: CODE
+          Full:
+            description: Do Not Remove Anything
+            hypothesis: Will be worse than removing NL
+            ++processor.params.remove_modality: null
 
 
     steps:
@@ -70,11 +71,13 @@ experiments:
           ++task.buffer_size: 5000
           tracking:
             log_model: True
-          is_checkpoint: False
+          is_checkpoint: True
           ++task.sequence_length: 1024
+          model_path: outputs/python/PyFromScratch.Neo125M/best_model
           training:
             dataloader_num_workers: 4
             fp16_opt_level: O2
+            max_steps: 10000
             learning_rate: 5.0e-05
             warmup_steps: 750
             eval_steps: 500
