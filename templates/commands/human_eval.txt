@@ -9,6 +9,9 @@
 
 rm -f {{ cancel_file }}
 echo "#!/bin/bash" >> {{cancel_file}}
+
+rm -f {{ cancel_file }}
+echo "#!/bin/bash" >> {{cancel_file}}
 # Human Eval After PreTrain
 he_so{{idx}}=$(sbatch --job-name='{{ job_name }}_he' \
 	--time={{ finetune_time }} \
