@@ -21,6 +21,7 @@ experiments:
       ++processor.params.repeat_prompt_each_answer: False
       ++processor.params.repeat_body_for_each_answer: False
       ++processor.params.relative_quality: False
+
     ablations:
       - Model:
 #          Neo125M:
@@ -50,9 +51,9 @@ experiments:
           6:
             description: Temperature of 0.6
             ++generation.temperature: 0.6
-          8:
-            description: Temperature of 0.8
-            ++generation.temperature: 0.8
+#          8:
+#            description: Temperature of 0.8
+#            ++generation.temperature: 0.8
       - TopP:
           60:
             description: Nucleus 0.6
@@ -61,10 +62,10 @@ experiments:
             description: Nucleus 0.95
             ++generation.top_p: 0.95
       - RemoveModality:
-          Full:
-            description: Do Not Remove Anything
-            hypothesis: Will be worse than removing NL
-            ++processor.params.remove_modality: null
+#          Full:
+#            description: Do Not Remove Anything
+#            hypothesis: Will be worse than removing NL
+#            ++processor.params.remove_modality: null
           NoNL:
             description: Remove Natural Language
             hypothesis: Will do better b/c removed bad NL
