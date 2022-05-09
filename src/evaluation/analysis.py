@@ -168,9 +168,8 @@ def get_runtime(args_list):
     )
 
 
-def execute_time_check(to_time_check, num_workers, debug=False, timeit_number=100, timeout=3):
+def execute_time_check(to_time_check, num_workers, timeit_number=100, timeout=3):
     logger.info(f"{len(to_time_check)} predictions to time check")
-    timeit_number = 5 if debug else timeit_number
     logger.info(f"Running each program {timeit_number} time(s)")
     mp_args = []
     for sample in to_time_check:

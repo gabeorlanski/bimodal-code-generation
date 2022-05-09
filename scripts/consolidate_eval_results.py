@@ -37,7 +37,8 @@ from src.evaluation.analysis import *
 @click.argument('eval_dir')
 @click.option('--debug', is_flag=True, default=False, help='Enable Debug Mode')
 @click.option('--num-workers', '-n', default=4, type=int)
-def consolidate_results(eval_dir, debug, num_workers):
+@click.option('--timeit-number', '-t', default=100, type=int)
+def consolidate_results(eval_dir, debug, num_workers, timeit_number):
     setup_global_logging(f"consolidate_eval", PROJECT_ROOT.joinpath('logs'),
                          debug=debug)
     logger = logging.getLogger("consolidate_eval")
@@ -93,7 +94,7 @@ def consolidate_results(eval_dir, debug, num_workers):
             if debug:
                 break
 
-    execute_time_check(to_time_check, num_workers, debug)
+    execute_time_check(to_time_check, num_workers, timeit_number=timeit_number)
 
     for task_name in ['MBPP', 'HUMAN_EVAL']:
         with PROJECT_ROOT.joinpath('data', f'eval_{task_name}.jsonl').open('w') as f:
