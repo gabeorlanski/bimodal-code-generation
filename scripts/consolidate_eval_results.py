@@ -49,7 +49,7 @@ def consolidate_results(eval_dir, debug):
     mbpp_eval_runs = {
         p.name.split('_Eval')[0]: p
         for p in mbpp_dir.glob('*')
-        if p.is_dir()
+        if p.is_dir() and p.joinpath('execution_metrics.json').exists()
     }
     logger.info(f"Found {len(mbpp_eval_runs)} directories in  '{mbpp_dir}'")
 
@@ -58,7 +58,7 @@ def consolidate_results(eval_dir, debug):
     human_eval_runs = {
         p.name.split('_HEEval')[0]: p
         for p in human_eval_dir.glob('*')
-        if p.is_dir()
+        if p.is_dir() and p.joinpath('execution_metrics.json').exists()
     }
     logger.info(f"Found {len(human_eval_runs)} directories in  '{human_eval_dir}'")
 
@@ -72,7 +72,7 @@ def consolidate_results(eval_dir, debug):
             logger.warning(f"\tMBPP {r}")
 
     results = defaultdict(lambda: {'MBPP': {}, 'HUMAN_EVAL': {}})
-
+    to_time_check = []
     for task_name, task_dict in {'MBPP': mbpp_eval_runs, 'HUMAN_EVAL': human_eval_runs}.items():
         logger.info(f'Parsing {task_name} runs')
         for run_name, path in tqdm(task_dict.items(), desc='Parsing'):
@@ -83,8 +83,11 @@ def consolidate_results(eval_dir, debug):
                 logger.error(f"{run_name} for task {task_name} "
                              f"is missing 'execution_metrics.json'")
                 continue
-            run_results = parse_eval_results_dir(task_name, path)
+            run_results, run_to_time_check = parse_eval_results_dir(task_name, path)
             results[run_name][task_name] = run_results
+            to_time_check.extend(run_to_time_check)
+
+    logger.info(f"{len(to_time_check)} total to time check")
 
     for task_name in ['MBPP', 'HUMAN_EVAL']:
         with PROJECT_ROOT.joinpath('data', f'eval_{task_name}.jsonl').open('w') as f:
