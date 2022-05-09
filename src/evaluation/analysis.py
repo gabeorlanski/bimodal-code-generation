@@ -157,11 +157,7 @@ def get_runtime(args_list):
         except Exception:
             RESULT_DICT['TIME'] = -1
             had_error = True
-            signal.alarm(0)
-            # Needed for cleaning up.
-            # shutil.rmtree = rmtree
-            # os.rmdir = rmdir
-            # os.chdir = chdir
+        signal.alarm(0)
     stdout_f.close()
     stderr_f.close()
     return dict(
@@ -172,15 +168,15 @@ def get_runtime(args_list):
     )
 
 
-def execute_time_check(to_time_check, num_workers,debug):
+def execute_time_check(to_time_check, num_workers, debug=False, timeit_number=100, timeout=3):
     logger.info(f"{len(to_time_check)} predictions to time check")
-    timeit_number = 5 if debug else 25
+    timeit_number = 5 if debug else timeit_number
     logger.info(f"Running each program {timeit_number} time(s)")
     mp_args = []
     for sample in to_time_check:
-        test_str = '\n'.join(sample['tests'])
+        test_str = '\n'.join([sample['test_setup_code']] + sample['tests'])
         test_str = test_str.replace('assert', 'ASSERT_PLACEHOLDER=')
-        task_id = sample['idx']
+        task_id = sample['task_id']
         test_program = sample['prediction'] + "\n" + test_str
 
         # Wrap the test function with another function so that the
@@ -198,10 +194,10 @@ def execute_time_check(to_time_check, num_workers,debug):
             f"RESULT_DICT['TIME']=timeit.timeit(TEST_CANDIDATE,number={timeit_number})"
         ]
 
-        mp_args.append((sample['run_info'], '\n'.join(test_program), 3, task_id))
+        mp_args.append((sample['run_info'], '\n'.join(test_program), timeout, task_id))
 
     results = defaultdict(lambda: defaultdict(list))
-    with_errors=  0
+    with_errors = []
     with multiprocessing.Pool(num_workers) as pool:
         raw_results = list(tqdm(
             pool.imap_unordered(get_runtime, mp_args),
@@ -211,8 +207,8 @@ def execute_time_check(to_time_check, num_workers,debug):
 
         for r in raw_results:
             if r['had_error']:
-                with_errors+=1
+                with_errors.append((r['run_info'], r['task_id']))
                 continue
             results[r['run_info']][r['task_id']].append(r)
-    logger.info(f"{with_errors}/{len(to_time_check)} had errors")
+    logger.info(f"{len(with_errors)}/{len(to_time_check)} had errors")
     return results
