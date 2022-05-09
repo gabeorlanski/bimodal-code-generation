@@ -1,6 +1,6 @@
 starting_commands: templates/commands/sbatch_experiment.txt
 experiments:
-  PythonBaseline:
+  PythonBaselineFromScratch:
     description: "Test Finetuning on github python"
     overrides:
       ++device: 0

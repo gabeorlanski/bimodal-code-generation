@@ -1,6 +1,6 @@
 starting_commands: templates/commands/sbatch_experiment.txt
 experiments:
-  SO:
+  SOFromScratch:
     description: "Test SO finetuning with no repeating"
     overrides:
       ++device: 0
