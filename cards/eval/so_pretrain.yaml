@@ -58,22 +58,22 @@ experiments:
           60:
             description: Nucleus 0.6
             ++generation.top_p: 0.6
-          95:
-            description: Nucleus 0.95
-            ++generation.top_p: 0.95
+#          95:
+#            description: Nucleus 0.95
+#            ++generation.top_p: 0.95
       - RemoveModality:
-          Full:
-            description: Do Not Remove Anything
-            hypothesis: Will be worse than removing NL
-            ++processor.params.remove_modality: null
+#          Full:
+#            description: Do Not Remove Anything
+#            hypothesis: Will be worse than removing NL
+#            ++processor.params.remove_modality: null
           NoNL:
             description: Remove Natural Language
             hypothesis: Will do better b/c removed bad NL
             ++processor.params.remove_modality: NL
-          NoCode:
-            description: Remove Code
-            hypothesis: Will do The Worst because there is no Code
-            ++processor.params.remove_modality: CODE
+#          NoCode:
+#            description: Remove Code
+#            hypothesis: Will do The Worst because there is no Code
+#            ++processor.params.remove_modality: CODE
 
     steps:
       - name: PreTrain

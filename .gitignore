@@ -199,3 +199,7 @@ data/NPV/train.jsonl
 data/NPV/validation.jsonl
 data/NPV/val.jsonl
 data/NPV/raw/
+
+data/eval_HUMAN_EVAL.jsonl
+
+data/eval_MBPP.jsonl

@@ -67,9 +67,9 @@ def consolidate_results(eval_dir, debug):
         mbpp_missing = set(mbpp_eval_runs).difference(set(human_eval_runs))
         logger.warning(f'{len(human_eval_missing) + len(mbpp_missing)} Missing run(s):')
         for r in mbpp_missing:
-            logger.warning(f"\tMBPP {r}")
-        for r in human_eval_missing:
             logger.warning(f"\tHUMAN_EVAL {r}")
+        for r in human_eval_missing:
+            logger.warning(f"\tMBPP {r}")
 
     results = defaultdict(lambda: {'MBPP': {}, 'HUMAN_EVAL': {}})
 
