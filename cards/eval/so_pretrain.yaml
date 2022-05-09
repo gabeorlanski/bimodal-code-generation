@@ -21,6 +21,7 @@ experiments:
       ++processor.params.repeat_prompt_each_answer: False
       ++processor.params.repeat_body_for_each_answer: False
       ++processor.params.relative_quality: False
+      ++generation.top_p: 0.95
 
     ablations:
       - Model:
@@ -54,13 +55,6 @@ experiments:
           8:
             description: Temperature of 0.8
             ++generation.temperature: 0.8
-      - TopP:
-          60:
-            description: Nucleus 0.6
-            ++generation.top_p: 0.6
-          95:
-            description: Nucleus 0.95
-            ++generation.top_p: 0.95
 
     steps:
       - name: PreTrain
