@@ -175,6 +175,7 @@ def get_runtime(args_list):
 def execute_time_check(to_time_check, num_workers,debug):
     logger.info(f"{len(to_time_check)} predictions to time check")
     timeit_number = 5 if debug else 25
+    logger.info(f"Running each program {timeit_number} time(s)")
     mp_args = []
     for sample in to_time_check:
         test_str = '\n'.join(sample['tests'])
@@ -200,6 +201,7 @@ def execute_time_check(to_time_check, num_workers,debug):
         mp_args.append((sample['run_info'], '\n'.join(test_program), 3, task_id))
 
     results = defaultdict(lambda: defaultdict(list))
+    with_errors=  0
     with multiprocessing.Pool(num_workers) as pool:
         raw_results = list(tqdm(
             pool.imap_unordered(get_runtime, mp_args),
@@ -209,7 +211,8 @@ def execute_time_check(to_time_check, num_workers,debug):
 
         for r in raw_results:
             if r['had_error']:
+                with_errors+=1
                 continue
             results[r['run_info']][r['task_id']].append(r)
-
+    logger.info(f"{with_errors}/{len(to_time_check)} had errors")
     return results
