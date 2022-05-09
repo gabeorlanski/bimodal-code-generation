@@ -12,7 +12,7 @@ from pathlib import Path
 import numpy as np
 import ast
 
-from src.evaluation.execute import check_correctness, create_tempdir, reliability_guard
+from src.evaluation.execute import check_correctness, create_tempdir, reliability_guard, time_limit
 
 logger = logging.getLogger(__name__)
 __all__ = [
@@ -71,7 +71,7 @@ def parse_eval_results_dir(task, dir_path: Path):
             except (SyntaxError, MemoryError):
                 continue
 
-        for k in ['passed', 'failed_tests', 'timed_out']:
+        for k in ['passed']:
 
             for pred_idx in task_results.get(k, []):
                 preds_to_time_check.append(
@@ -133,6 +133,7 @@ def get_runtime(args_list):
     run_info, check_program, timeout, task_id = args_list
     RESULT_DICT = {}
     had_error = False
+    had_timeout = False
     with create_tempdir():
 
         import os
@@ -142,28 +143,28 @@ def get_runtime(args_list):
         rmdir = os.rmdir
         chdir = os.chdir
         # reliability_guard()
-        signal.signal(signal.SIGALRM, timeout_handler)
-        signal.alarm(timeout)
         try:
             stdout_f = io.StringIO()
             stderr_f = io.StringIO()
-            with contextlib.redirect_stdout(stdout_f):
-                with contextlib.redirect_stderr(stderr_f):
-                    _locals = locals()
-                    exec(check_program, globals(), _locals)
-                    RESULT_DICT = _locals['RESULT_DICT']
+            with time_limit(timeout):
+                with contextlib.redirect_stdout(stdout_f):
+                    with contextlib.redirect_stderr(stderr_f):
+                        _locals = locals()
+                        exec(check_program, globals(), _locals)
+                        RESULT_DICT = _locals['RESULT_DICT']
         except TimeoutError:
             RESULT_DICT['TIME'] = timeout
+            had_timeout = True
         except Exception:
             RESULT_DICT['TIME'] = -1
             had_error = True
-        signal.alarm(0)
     stdout_f.close()
     stderr_f.close()
     return dict(
         run_info=run_info,
         task_id=task_id,
         had_error=had_error,
+        had_timeout=had_timeout,
         runtime=RESULT_DICT['TIME'],
     )
 
@@ -197,6 +198,7 @@ def execute_time_check(to_time_check, num_workers, timeit_number=100, timeout=3)
 
     results = defaultdict(lambda: defaultdict(list))
     with_errors = []
+    with_timeout = 0
     with multiprocessing.Pool(num_workers) as pool:
         raw_results = list(tqdm(
             pool.imap_unordered(get_runtime, mp_args),
@@ -208,6 +210,9 @@ def execute_time_check(to_time_check, num_workers, timeit_number=100, timeout=3)
             if r['had_error']:
                 with_errors.append((r['run_info'], r['task_id']))
                 continue
+            if r['had_timeout']:
+                with_timeout += 1
             results[r['run_info']][r['task_id']].append(r)
     logger.info(f"{len(with_errors)}/{len(to_time_check)} had errors")
-    return results
+    logger.info(f"{with_timeout}/{len(to_time_check)} timed out")
+    return results, with_errors
