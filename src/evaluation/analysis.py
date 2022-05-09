@@ -174,7 +174,7 @@ def get_runtime(args_list):
 
 def execute_time_check(to_time_check, num_workers,debug):
     logger.info(f"{len(to_time_check)} predictions to time check")
-    timeit_number = 10 if debug else 100
+    timeit_number = 5 if debug else 25
     mp_args = []
     for sample in to_time_check:
         test_str = '\n'.join(sample['tests'])
