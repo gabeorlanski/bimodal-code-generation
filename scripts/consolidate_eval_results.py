@@ -81,6 +81,7 @@ def consolidate_results(eval_dir, debug, num_workers, debug_samples):
         logger.info(f'Parsing {task_name} runs')
         for run_name, path in tqdm(task_dict.items(), desc='Parsing'):
             if debug_samples > 0 and parsed >= debug_samples:
+                logger.warning(f"Stopping iteration because of parsed")
                 break
             if not path.joinpath('test.jsonl'):
                 logger.error(f"{run_name} for task {task_name} is missing 'test.jsonl'")
@@ -95,7 +96,7 @@ def consolidate_results(eval_dir, debug, num_workers, debug_samples):
                 [{'run_info': (run_name, task_name), **t} for t in run_to_time_check])
             parsed += 1
 
-    execute_time_check(to_time_check, num_workers,debug)
+    execute_time_check(to_time_check, num_workers, debug)
 
     for task_name in ['MBPP', 'HUMAN_EVAL']:
         with PROJECT_ROOT.joinpath('data', f'eval_{task_name}.jsonl').open('w') as f:

@@ -22,6 +22,8 @@ __all__ = [
 
 
 def parse_eval_results_dir(task, dir_path: Path):
+    import warnings
+    warnings.filterwarnings("ignore")
     logger.debug(f"Parsing {dir_path} from {task}")
     logger.debug(f"Loading execution metrics from {dir_path}")
 
@@ -172,7 +174,7 @@ def get_runtime(args_list):
 
 def execute_time_check(to_time_check, num_workers,debug):
     logger.info(f"{len(to_time_check)} predictions to time check")
-    timeit_number = 500 if debug else 5000
+    timeit_number = 10 if debug else 100
     mp_args = []
     for sample in to_time_check:
         test_str = '\n'.join(sample['tests'])
@@ -195,7 +197,7 @@ def execute_time_check(to_time_check, num_workers,debug):
             f"RESULT_DICT['TIME']=timeit.timeit(TEST_CANDIDATE,number={timeit_number})"
         ]
 
-        mp_args.append((sample['run_info'], '\n'.join(test_program), 10, task_id))
+        mp_args.append((sample['run_info'], '\n'.join(test_program), 3, task_id))
 
     results = defaultdict(lambda: defaultdict(list))
     with multiprocessing.Pool(num_workers) as pool:
