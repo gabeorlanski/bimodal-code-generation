@@ -22,28 +22,25 @@ def get_gold_runtime(num_workers, timeit_number, timeout):
     human_eval_data = list(map(json.loads, PROJECT_ROOT.joinpath('data/human_eval.jsonl').open()))
 
     to_time_check = []
-    num_to_check = 10
     for d in mbpp_data:
-        for i in range(num_to_check):
             to_time_check.append({
                 'run_info'       : 'MBPP',
                 'task_id'        : f"{d['task_id']}",
                 'tests'          : d['test_list'],
-                'idx'            : i,
+                'idx'            : 0,
                 'prediction'     : d['code'],
                 'test_setup_code': d['test_setup_code']
             })
     for d in human_eval_data:
 
-        for i in range(num_to_check):
-            to_time_check.append({
-                'run_info'       : 'HUMAN_EVAL',
-                'task_id'        : f"{d['task_id']}",
-                'idx'            : i,
-                'tests'          : [f"{d['test']}\ncheck({d['entry_point']})"],
-                'prediction'     : d['prompt'] + d['canonical_solution'],
-                'test_setup_code': ''
-            })
+        to_time_check.append({
+            'run_info'       : 'HUMAN_EVAL',
+            'task_id'        : f"{d['task_id']}",
+            'idx'            : 0,
+            'tests'          : [f"{d['test']}\ncheck({d['entry_point']})"],
+            'prediction'     : d['prompt'] + d['canonical_solution'],
+            'test_setup_code': ''
+        })
 
     results, with_errors = execute_time_check(to_time_check, num_workers,
                                               timeit_number=timeit_number,
