@@ -1,13 +1,23 @@
+import contextlib
+import io
+import multiprocessing
+import signal
+
+from tqdm import tqdm
+from concurrent.futures import ThreadPoolExecutor, as_completed
 import logging
 import json
 from collections import defaultdict, Counter
 from pathlib import Path
-
 import numpy as np
+import ast
+
+from src.evaluation.execute import check_correctness, create_tempdir, reliability_guard
 
 logger = logging.getLogger(__name__)
 __all__ = [
-    "parse_eval_results_dir"
+    "parse_eval_results_dir",
+    "execute_time_check"
 ]
 
 
@@ -41,6 +51,30 @@ def parse_eval_results_dir(task, dir_path: Path):
 
     for tid, task_results in results_by_task_id.items():
         total_preds = task_results['total']
+
+        preds_for_task = predictions[tid]
+        task_info = {
+            k: preds_for_task[k] for k in
+            ['task_id', 'idx', 'tests']
+        }
+        task_info['test_setup_code'] = preds_for_task.get('test_setup_code', '')
+
+        # I miscalculated the idx for the predictions that passed. So I need to
+        # remove those with bad syntax prior.
+        predictions_w_valid_syntax = []
+        for p in preds_for_task['prediction']:
+            try:
+                ast.parse(p)
+                predictions_w_valid_syntax.append(p)
+            except (SyntaxError, MemoryError):
+                continue
+
+        for k in ['passed', 'failed_tests', 'timed_out']:
+
+            for pred_idx in task_results.get(k, []):
+                preds_to_time_check.append(
+                    {'prediction': predictions_w_valid_syntax[pred_idx], **task_info}
+                )
         if task_results['correct'] == 0:
             task_result_counter['no_correct'] += 1
 
@@ -77,24 +111,6 @@ def parse_eval_results_dir(task, dir_path: Path):
                 num_unique_errors / len(task_results['error_messages']) * 100
             )
 
-        preds_to_get = (
-                task_results.get('failed_tests', [])
-                + task_results.get('passed', [])
-                + task_results.get('timed_out', [])
-        )
-        if preds_to_get:
-
-            preds_for_task = predictions[tid]
-            task_info = {
-                k: preds_for_task[k] for k in
-                ['task_id', 'idx', 'tests']
-            }
-            task_info['test_setup_code'] = preds_for_task.get('test_setup_code', '')
-            for pred_idx in preds_to_get:
-                preds_to_time_check.append(
-                    {'prediction': preds_for_task['prediction'][pred_idx], **task_info}
-                )
-
     out = {}
     for k, v in task_result_counter.items():
         out[f"{k}_pct"] = v / len(results_by_task_id) * 100
@@ -105,3 +121,93 @@ def parse_eval_results_dir(task, dir_path: Path):
         out[f"{k}_std"] = np.std(v)
 
     return out, preds_to_time_check
+
+
+def timeout_handler(signum, frame):
+    raise TimeoutError("Failed to process")
+
+
+def get_runtime(args_list):
+    run_info, check_program, timeout, task_id = args_list
+    RESULT_DICT = {}
+    had_error = False
+    with create_tempdir():
+
+        import os
+        import shutil
+
+        rmtree = shutil.rmtree
+        rmdir = os.rmdir
+        chdir = os.chdir
+        # reliability_guard()
+        signal.signal(signal.SIGALRM, timeout_handler)
+        signal.alarm(timeout)
+        try:
+            stdout_f = io.StringIO()
+            stderr_f = io.StringIO()
+            with contextlib.redirect_stdout(stdout_f):
+                with contextlib.redirect_stderr(stderr_f):
+                    _locals = locals()
+                    exec(check_program, globals(), _locals)
+                    RESULT_DICT = _locals['RESULT_DICT']
+        except TimeoutError:
+            RESULT_DICT['TIME'] = timeout
+        except Exception:
+            RESULT_DICT['TIME'] = -1
+            had_error = True
+            signal.alarm(0)
+            # Needed for cleaning up.
+            # shutil.rmtree = rmtree
+            # os.rmdir = rmdir
+            # os.chdir = chdir
+    stdout_f.close()
+    stderr_f.close()
+    return dict(
+        run_info=run_info,
+        task_id=task_id,
+        had_error=had_error,
+        runtime=RESULT_DICT['TIME'],
+    )
+
+
+def execute_time_check(to_time_check, num_workers,debug):
+    logger.info(f"{len(to_time_check)} predictions to time check")
+    timeit_number = 500 if debug else 5000
+    mp_args = []
+    for sample in to_time_check:
+        test_str = '\n'.join(sample['tests'])
+        test_str = test_str.replace('assert', 'ASSERT_PLACEHOLDER=')
+        task_id = sample['idx']
+        test_program = sample['prediction'] + "\n" + test_str
+
+        # Wrap the test function with another function so that the
+        # entire thing can be called from timeit.
+        wrapped_func = []
+        for line in test_program.split('\n'):
+            wrapped_func.append(f'\t{line}')
+
+        wrapped_func = '\n'.join(wrapped_func)
+        wrapped_func = f"def TEST_CANDIDATE():\n{wrapped_func}"
+
+        test_program = [
+            "import timeit",
+            wrapped_func,
+            f"RESULT_DICT['TIME']=timeit.timeit(TEST_CANDIDATE,number={timeit_number})"
+        ]
+
+        mp_args.append((sample['run_info'], '\n'.join(test_program), 10, task_id))
+
+    results = defaultdict(lambda: defaultdict(list))
+    with multiprocessing.Pool(num_workers) as pool:
+        raw_results = list(tqdm(
+            pool.imap_unordered(get_runtime, mp_args),
+            total=len(to_time_check),
+            desc='Getting Runtime')
+        )
+
+        for r in raw_results:
+            if r['had_error']:
+                continue
+            results[r['run_info']][r['task_id']].append(r)
+
+    return results

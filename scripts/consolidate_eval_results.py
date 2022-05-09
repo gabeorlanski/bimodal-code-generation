@@ -36,7 +36,9 @@ from src.evaluation.analysis import *
 @click.command()
 @click.argument('eval_dir')
 @click.option('--debug', is_flag=True, default=False, help='Enable Debug Mode')
-def consolidate_results(eval_dir, debug):
+@click.option('--num-workers', '-n', default=4, type=int)
+@click.option('--debug-samples', '-n', default=-1, type=int)
+def consolidate_results(eval_dir, debug, num_workers, debug_samples):
     setup_global_logging(f"consolidate_eval", PROJECT_ROOT.joinpath('logs'),
                          debug=debug)
     logger = logging.getLogger("consolidate_eval")
@@ -73,9 +75,13 @@ def consolidate_results(eval_dir, debug):
 
     results = defaultdict(lambda: {'MBPP': {}, 'HUMAN_EVAL': {}})
     to_time_check = []
+    parsed = 0
+
     for task_name, task_dict in {'MBPP': mbpp_eval_runs, 'HUMAN_EVAL': human_eval_runs}.items():
         logger.info(f'Parsing {task_name} runs')
         for run_name, path in tqdm(task_dict.items(), desc='Parsing'):
+            if debug_samples > 0 and parsed >= debug_samples:
+                break
             if not path.joinpath('test.jsonl'):
                 logger.error(f"{run_name} for task {task_name} is missing 'test.jsonl'")
                 continue
@@ -85,9 +91,11 @@ def consolidate_results(eval_dir, debug):
                 continue
             run_results, run_to_time_check = parse_eval_results_dir(task_name, path)
             results[run_name][task_name] = run_results
-            to_time_check.extend(run_to_time_check)
+            to_time_check.extend(
+                [{'run_info': (run_name, task_name), **t} for t in run_to_time_check])
+            parsed += 1
 
-    logger.info(f"{len(to_time_check)} total to time check")
+    execute_time_check(to_time_check, num_workers,debug)
 
     for task_name in ['MBPP', 'HUMAN_EVAL']:
         with PROJECT_ROOT.joinpath('data', f'eval_{task_name}.jsonl').open('w') as f:

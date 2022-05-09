@@ -232,6 +232,9 @@ def parse_results(
 
             task_metrics['correct'] += result_dict['passed']
 
+            if completion_id == 126 and task_id == 11:
+                print("???")
+
             if result_str != 'Passed':
                 task_metrics['error_types'][result_str] += 1
                 assert result_dict['result'] != 'Passed'
