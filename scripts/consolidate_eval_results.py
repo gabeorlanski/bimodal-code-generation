@@ -95,12 +95,25 @@ def consolidate_results(eval_dir, debug, num_workers, timeit_number, timeout):
             if debug:
                 break
 
-    execute_time_check(to_time_check, num_workers, timeit_number=timeit_number, timeout=timeout)
+    runtime_results, *_ = execute_time_check(to_time_check, num_workers, timeit_number=timeit_number,
+                                     timeout=timeout)
+
+    to_write_by_task = defaultdict(lambda: defaultdict(dict))
+    for (run_name, task_name), task_runtimes in runtime_results.items():
+        for task_id, runtimes in task_runtimes.items():
+            runtime_arr = [d['runtime'] for d in runtimes]
+            to_write_by_task[task_name][run_name][task_id] = {
+                'mean'  : np.mean(runtime_arr),
+                'std'   : np.std(runtime_arr),
+                'median': np.median(runtime_arr),
+            }
 
     for task_name in ['MBPP', 'HUMAN_EVAL']:
         with PROJECT_ROOT.joinpath('data', f'eval_{task_name}.jsonl').open('w') as f:
             for run_name, run_results in results.items():
                 f.write(f"{json.dumps({'run_name': run_name, **run_results[task_name]})}\n")
+        with PROJECT_ROOT.joinpath('data', f'runtimes_{task_name}.json').open('w') as f:
+            json.dump(to_write_by_task[task_name], f)
 
 
 if __name__ == '__main__':
