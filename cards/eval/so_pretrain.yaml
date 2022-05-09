@@ -33,24 +33,24 @@ experiments:
                 ++training.batch_size: 32
                 ++training.gradient_accumulation_steps: 1
                 ++training.gradient_checkpointing: True
-#          ParrotSmall:
-#            description: CodeParrot Small
-#            overrides:
-#              ++model: 'lvwerra/codeparrot-small'
-#            step_overrides:
-#              PreTrain:
-#                ++training.batch_size: 32
-#                ++training.gradient_accumulation_steps: 1
-#                ++training.gradient_checkpointing: True
-#              FineTune:
-#                ++training.gradient_checkpointing: True
+          ParrotSmall:
+            description: CodeParrot Small
+            overrides:
+              ++model: 'lvwerra/codeparrot-small'
+            step_overrides:
+              PreTrain:
+                ++training.batch_size: 32
+                ++training.gradient_accumulation_steps: 1
+                ++training.gradient_checkpointing: True
+              FineTune:
+                ++training.gradient_checkpointing: True
       - Temperature:
-#          2:
-#            description: Temperature of 0.2
-#            ++generation.temperature: 0.2
-#          6:
-#            description: Temperature of 0.6
-#            ++generation.temperature: 0.6
+          2:
+            description: Temperature of 0.2
+            ++generation.temperature: 0.2
+          6:
+            description: Temperature of 0.6
+            ++generation.temperature: 0.6
           8:
             description: Temperature of 0.8
             ++generation.temperature: 0.8
@@ -58,22 +58,9 @@ experiments:
           60:
             description: Nucleus 0.6
             ++generation.top_p: 0.6
-#          95:
-#            description: Nucleus 0.95
-#            ++generation.top_p: 0.95
-      - RemoveModality:
-#          Full:
-#            description: Do Not Remove Anything
-#            hypothesis: Will be worse than removing NL
-#            ++processor.params.remove_modality: null
-          NoNL:
-            description: Remove Natural Language
-            hypothesis: Will do better b/c removed bad NL
-            ++processor.params.remove_modality: NL
-#          NoCode:
-#            description: Remove Code
-#            hypothesis: Will do The Worst because there is no Code
-#            ++processor.params.remove_modality: CODE
+          95:
+            description: Nucleus 0.95
+            ++generation.top_p: 0.95
 
     steps:
       - name: PreTrain
@@ -95,8 +82,7 @@ experiments:
         group: HUMAN_EVAL
         overrides:
           task: human_eval
-          ++is_checkpoint: true
-          ++model_path: outputs/so/SO.${__META__.ablation.Model}.${__META__.ablation.RemoveModality}/best_model
+          ++is_checkpoint: false
           tracking:
             log_model: False
             watch: null
@@ -108,8 +94,7 @@ experiments:
         group: MBPP
         overrides:
           task: mbpp
-          ++is_checkpoint: true
-          ++model_path: outputs/so/SO.${__META__.ablation.Model}.${__META__.ablation.RemoveModality}/best_model
+          ++is_checkpoint: false
           tracking:
             log_model: False
             watch: null
@@ -133,7 +118,7 @@ experiments:
             pipe:
               - basic_with_solution
     command:
-      file: templates/commands/mbpp_eval.txt
+      file: templates/commands/evaluate_model.txt
       kwargs:
         train_sbatch: train_single_gpu
         finetune_time: "12:00:00"
