@@ -45,9 +45,13 @@ def get_gold_runtime(num_workers, timeit_number, timeout):
                 'test_setup_code': ''
             })
 
-    results, *_ = execute_time_check(to_time_check, num_workers, timeit_number=timeit_number,
-                                     timeout=timeout)
-
+    results, with_errors = execute_time_check(to_time_check, num_workers,
+                                              timeit_number=timeit_number,
+                                              timeout=timeout)
+    print(f"{len(with_errors)=}")
+    with PROJECT_ROOT.joinpath('data/runtime_errors.txt').open('w') as f:
+        for w in with_errors:
+            f.write(f"{','.join(w)}\n")
     for task_name, task_runtimes in results.items():
         to_write = {}
         for task_id, runtimes in task_runtimes.items():

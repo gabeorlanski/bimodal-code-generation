@@ -12,7 +12,7 @@ from pathlib import Path
 import numpy as np
 import ast
 
-from src.evaluation.execute import check_correctness, create_tempdir, reliability_guard, time_limit
+from src.evaluation.execute import TimeoutException, create_tempdir, time_limit
 
 logger = logging.getLogger(__name__)
 __all__ = [
@@ -152,11 +152,11 @@ def get_runtime(args_list):
                         _locals = locals()
                         exec(check_program, globals(), _locals)
                         RESULT_DICT = _locals['RESULT_DICT']
-        except TimeoutError:
+        except TimeoutException:
             RESULT_DICT['TIME'] = timeout
             had_timeout = True
-        except Exception:
-            RESULT_DICT['TIME'] = -1
+        except Exception as e:
+            RESULT_DICT['TIME'] = str(e)
             had_error = True
     stdout_f.close()
     stderr_f.close()
@@ -208,7 +208,7 @@ def execute_time_check(to_time_check, num_workers, timeit_number=100, timeout=3)
 
         for r in raw_results:
             if r['had_error']:
-                with_errors.append((r['run_info'], r['task_id']))
+                with_errors.append((r['run_info'], r['task_id'], r['runtime']))
                 continue
             if r['had_timeout']:
                 with_timeout += 1

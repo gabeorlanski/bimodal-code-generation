@@ -99,6 +99,8 @@ def consolidate_results(eval_dir, debug, num_workers, timeit_number, timeout):
                                              timeit_number=timeit_number,
                                              timeout=timeout)
 
+
+
     to_write_by_task = defaultdict(lambda: defaultdict(dict))
     for (run_name, task_name), task_runtimes in runtime_results.items():
         for task_id, runtimes in task_runtimes.items():
