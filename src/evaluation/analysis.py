@@ -51,6 +51,8 @@ def parse_eval_results_dir(task, dir_path: Path):
         'has_runtime_errors'
     ]}
 
+    solved_tasks = []
+
     for tid, task_results in results_by_task_id.items():
         total_preds = task_results['total']
 
@@ -79,6 +81,8 @@ def parse_eval_results_dir(task, dir_path: Path):
                 )
         if task_results['correct'] == 0:
             task_result_counter['no_correct'] += 1
+        else:
+            solved_tasks.append(tid)
 
         error_types = task_results['error_types']
         syntax_errors = error_types.get('SyntaxError', 0)
@@ -121,6 +125,7 @@ def parse_eval_results_dir(task, dir_path: Path):
     for k, v in mean_tracker.items():
         out[f"{k}_mean"] = np.mean(v)
         out[f"{k}_std"] = np.std(v)
+    out['solved_tasks'] = solved_tasks
 
     return out, preds_to_time_check
 

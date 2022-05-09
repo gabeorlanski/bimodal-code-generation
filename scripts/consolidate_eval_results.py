@@ -20,10 +20,6 @@ from bs4 import BeautifulSoup
 import click
 import numpy as np
 from tqdm import tqdm
-import csv
-import tldextract
-from urllib.parse import urljoin
-import requests
 
 # If this file is called by itself (for creating the splits) then it will
 # have import issues.
@@ -99,8 +95,6 @@ def consolidate_results(eval_dir, debug, num_workers, timeit_number, timeout):
                                              timeit_number=timeit_number,
                                              timeout=timeout)
 
-
-
     to_write_by_task = defaultdict(lambda: defaultdict(dict))
     for (run_name, task_name), task_runtimes in runtime_results.items():
         for task_id, runtimes in task_runtimes.items():
@@ -111,12 +105,16 @@ def consolidate_results(eval_dir, debug, num_workers, timeit_number, timeout):
                 'median'  : np.median(runtime_arr),
                 'runtimes': runtime_arr
             }
-
+    out_dir = PROJECT_ROOT.joinpath('data', f'eval_analysis')
+    if out_dir.exists():
+        shutil.rmtree(out_dir)
+    out_dir.mkdir(parents=True)
     for task_name in ['MBPP', 'HUMAN_EVAL']:
-        with PROJECT_ROOT.joinpath('data', f'eval_{task_name}.jsonl').open('w') as f:
+
+        with out_dir.joinpath(f'{task_name}.jsonl').open('w') as f:
             for run_name, run_results in results.items():
                 f.write(f"{json.dumps({'run_name': run_name, **run_results[task_name]})}\n")
-        with PROJECT_ROOT.joinpath('data', f'runtimes_{task_name}.json').open('w') as f:
+        with out_dir.joinpath(f'runtimes_{task_name}.json').open('w') as f:
             json.dump(to_write_by_task[task_name], f)
 
 
