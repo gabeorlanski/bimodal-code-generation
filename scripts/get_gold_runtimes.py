@@ -42,22 +42,35 @@ def get_gold_runtime():
     for d in mbpp_data:
         for i in range(num_to_check):
             to_time_check.append({
-                'run_info'  : 'MBPP',
-                'task_id'   : f"{d['task_id']}.{i}",
-                'tests'     : [d['test_setup_code']] + d['test_list'],
-                'prediction': d['code']
+                'run_info'       : 'MBPP',
+                'task_id'        : f"{d['task_id']}",
+                'tests'          : d['test_list'],
+                'idx'            : i,
+                'prediction'     : d['code'],
+                'test_setup_code': d['test_setup_code']
             })
     for d in human_eval_data:
 
         for i in range(num_to_check):
             to_time_check.append({
-                'run_info'  : 'HUMAN_EVAL',
-                'task_id'   : f"{d['task_id']}.{i}",
-                'tests'     : [f"{d['test']}\ncheck({d['entry_point']})"],
-                'prediction': d['prompt'] + d['canonical_solution']
+                'run_info'       : 'HUMAN_EVAL',
+                'task_id'        : f"{d['task_id']}",
+                'idx'            : i,
+                'tests'          : [f"{d['test']}\ncheck({d['entry_point']})"],
+                'prediction'     : d['prompt'] + d['canonical_solution'],
+                'test_setup_code': ''
             })
 
-    results = execute_time_check(to_time_check, 8)
+    results, *_ = execute_time_check(to_time_check, 8)
+
+    for task_name, task_runtimes in results.items():
+        to_write = {}
+        for task_id, runtimes in task_runtimes.items():
+            to_write[task_id] = np.mean([d['runtime'] for d in runtimes])
+
+        with PROJECT_ROOT.joinpath(f'data/gold_{task_name}_runtimes.json').open('w') as f:
+            json.dump(to_write, f, indent=True)
+
     print("Done.")
 
 
