@@ -2,6 +2,8 @@ import contextlib
 import io
 import multiprocessing
 import signal
+import astor
+from copy import deepcopy
 
 from tqdm import tqdm
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -19,6 +21,251 @@ __all__ = [
     "parse_eval_results_dir",
     "execute_time_check"
 ]
+
+
+class CustomSourceGenerator(astor.SourceGenerator):
+    def visit_Dict(self, node):
+        astor.code_gen.set_precedence(astor.op_util.Precedence.Comma, *node.keys)  # type: ignore
+        astor.code_gen.set_precedence(astor.op_util.Precedence.Comma, *node.values)  # type: ignore
+        with self.delimit('{}'):
+            for idx, (key, value) in enumerate(zip(node.keys, node.values)):
+                self.write(', ' if idx else '',
+                           key if key else '',
+                           ': ' if key else '**', value)
+
+    def visit_Tuple(self, node):
+        # with self.delimit(node) as delimiters:
+        # Two things are special about tuples:
+        #   1) We cannot discard the enclosing parentheses if empty
+        # #   2) We need the trailing comma if only one item
+        # elts = node.elts
+        # delimiters.discard = delimiters.discard and elts
+
+        astor.code_gen.set_precedence(
+            astor.op_util.Precedence.Comma,  # type: ignore
+            *node.elts
+        )
+        self.write('(')
+        for idx, item in enumerate(node.elts):
+            self.write(', ' if idx else '', item)
+        if len(node.elts) == 1:
+            self.write(',')
+        self.write(')')
+
+
+class AssertTransformer(ast.NodeTransformer):
+    def visit_Assert(self, node):
+        if isinstance(node.test, ast.Compare):
+            out = node.test.left
+        else:
+            out = node.test
+
+        return ast.Assign(targets=[ast.Name(id='TEST_RESULT')], value=out)
+
+
+class MarkForSkip(Exception):
+    pass
+
+
+class VariableTracer(ast.NodeVisitor):
+    def __init__(self):
+        self.func_traces = []
+        self.imported_libraries = []
+        self.trace = defaultdict(
+            lambda: {
+                'func_name': None, 'func_args': [], 'defined': [], 'used': []
+            }
+        )
+        self.in_aug_assign = False
+        self.in_func = False
+
+        self.tracker_maps = {
+            'control_flow' : {
+                ast.If,
+                ast.For,
+                ast.With,
+                ast.While,
+                ast.Try
+            },
+            'comprehension': {
+                ast.ListComp,
+                ast.DictComp,
+                ast.GeneratorExp,
+                ast.SetComp
+            },
+            'subscripts'   : {
+                ast.Slice,
+                ast.Index,
+                ast.ExtSlice
+            }
+        }
+        self.tracker_counts = {
+            cat: {c: 0 for c in cat_classes}
+            for cat, cat_classes in self.tracker_maps.items()
+        }
+
+    def _clear(self):
+        self.in_aug_assign = False
+        self.in_func = False
+
+    def finish_trace(self):
+        self.func_traces.append(deepcopy(self.trace))
+        self.trace = defaultdict(
+            lambda: {
+                'func_name': None, 'func_args': [], 'defined': [], 'used': []
+            }
+        )
+
+    @staticmethod
+    def parse_trace(trace_dict):
+        unused_vars = set()
+        redefined_vars_no_usage = []
+        used_vars = set()
+        defined_vars = set()
+        func_name = None
+        func_signature = []
+        nested_func_names = []
+        for line_no, line_trace in trace_dict.items():
+            if line_trace['func_name'] is not None:
+                if func_name is None:
+                    func_name = line_trace['func_name']
+                    func_signature = line_trace['func_args']
+                else:
+                    nested_func_names.append(line_trace['func_name'])
+                unused_vars.update(line_trace['func_args'])
+            else:
+                for var_name in line_trace['used']:
+                    if var_name in unused_vars:
+                        unused_vars.remove(var_name)
+                    used_vars.add(var_name)
+
+                for var_name in line_trace['defined']:
+                    if var_name in unused_vars:
+                        redefined_vars_no_usage.append(var_name)
+                    unused_vars.add(var_name)
+                    defined_vars.add(var_name)
+
+        out = {
+            'func_name'              : func_name,
+            'unused_vars'            : list(unused_vars),
+            'redefined_vars_no_usage': redefined_vars_no_usage,
+            'used_vars'              : list(used_vars),
+            'defined_vars'           : list(defined_vars),
+            'line_count'             : max(trace_dict) if trace_dict else 0,
+            'func_signature'         : func_signature,
+            'nested_func_names'      : nested_func_names,
+        }
+        return out
+
+    def __call__(self, code_str):
+
+        tree = ast.parse(code_str)
+
+        for body in tree.body:
+            self._clear()
+            self.visit(body)  # type:ignore
+        self.func_traces.append(self.trace)
+
+        parsed_traces = [
+            self.parse_trace(td) for td in self.func_traces
+        ]
+
+        trace_stats = {}
+        for group, group_dict in self.tracker_counts.items():
+            trace_stats[group] = {c.__name__: v for c, v in group_dict.items()}
+
+        return parsed_traces, trace_stats, self.imported_libraries
+
+    def _handle_import(self, node):
+        for n in node.names:
+            if n.asname is not None:
+                self.imported_libraries.append(n.asname)
+            else:
+                self.imported_libraries.append(n.name)
+
+    def visit_Import(self, node):
+        return self._handle_import(node)
+
+    def visit_ImportFrom(self, node):
+        return self._handle_import(node)
+
+    def visit_FunctionDef(self, node):
+        # We only want to trace functions within their scope
+        if self.trace and not self.in_func:
+            self.finish_trace()
+        self.trace[node.lineno]['func_name'] = node.name  # type: ignore
+        self.in_func = True
+
+        # Some functions are only the comment. We want to skip those, so we
+        # mark them to be skipped.
+        if len(node.body) == 1 and isinstance(node.body[0], ast.Expr):
+            if isinstance(node.body[0].value, ast.Constant):
+                raise MarkForSkip('Invalid function')
+
+        args_found = self.handle_arguments(node.args)
+        self.trace[node.lineno]['func_args'] = args_found
+        return self.generic_visit(node)
+
+    def handle_arguments(self, node: ast.arguments):
+        args_found = []
+        for arg in node.args:
+            args_found.append(arg.arg)
+
+        for arg in node.posonlyargs:
+            args_found.append(arg.arg)
+        for arg in node.kwonlyargs:
+            args_found.append(arg.arg)
+
+        if node.vararg is not None:
+            args_found.append(node.vararg.arg)
+        if node.kwarg is not None:
+            args_found.append(node.kwarg.arg)
+        return args_found
+
+    def visit_Name(self, node: ast.Name):
+        if isinstance(node.ctx, ast.Store) and not self.in_aug_assign:
+            self.trace[node.lineno]['defined'].append(node.id)
+        else:
+            self.trace[node.lineno]['used'].append(node.id)
+
+    def visit_AugAssign(self, node: ast.AugAssign):
+        self.in_aug_assign = True
+        self.generic_visit(node)
+
+    def generic_visit(self, node):
+        for group, group_map in self.tracker_maps.items():
+            if type(node) in group_map:
+                self.tracker_counts[group][type(node)] += 1
+                break
+        return super(VariableTracer, self).generic_visit(node)
+
+
+def get_stats_for_programs(code_str):
+    try:
+
+        # Single parse out here to make sure there are no errors
+        # with the line of code.
+        ast.parse(code_str)
+
+        visitor = VariableTracer()
+        try:
+            parsed_traces, trace_stats, imported = visitor(code_str)
+        except MarkForSkip:
+            return {}, True
+
+        out = {}
+
+        for group, group_dict in trace_stats.items():
+            for c, v in group_dict.items():
+                out[f"{group}_{c}"] = v
+
+        # Multiply by the number of idx with this prediction.
+        out['imports'] = imported
+        out['parsed_bodies'] = parsed_traces
+
+    except (SyntaxError, MemoryError):
+        return None, False
+    return out, False
 
 
 def parse_eval_results_dir(task, dir_path: Path):
@@ -48,12 +295,14 @@ def parse_eval_results_dir(task, dir_path: Path):
         'all_runtime_error',
         'all_syntax_error',
         'all_failed_tests',
-        'has_runtime_errors'
+        'has_runtime_errors',
+        'unique_programs'
     ]}
 
     solved_tasks = []
+    program_stats_by_tid = defaultdict(dict)
 
-    for tid, task_results in results_by_task_id.items():
+    for tid, task_results in tqdm(results_by_task_id.items(), desc='Parsing'):
         total_preds = task_results['total']
 
         preds_for_task = predictions[tid]
@@ -65,20 +314,37 @@ def parse_eval_results_dir(task, dir_path: Path):
 
         # I miscalculated the idx for the predictions that passed. So I need to
         # remove those with bad syntax prior.
-        predictions_w_valid_syntax = []
-        for p in preds_for_task['prediction']:
-            try:
-                ast.parse(p)
-                predictions_w_valid_syntax.append(p)
-            except (SyntaxError, MemoryError):
+        # First, create a list of bool mappings for if we should keep a
+        # prediction
+        to_keep = []
+
+        # Create a dict to map unique predictions to the list of indices they correspond too.
+        unique_pred_to_idx = defaultdict(list)
+        for i, p in enumerate(preds_for_task['prediction']):
+            if task == 'MBPP':
+                p = p.split('# Solution')[0]
+
+            unique_pred_to_idx[p.strip()].append(i)
+
+        task_result_counter['unique_programs'] += len(unique_pred_to_idx)
+        mean_tracker['unique_programs'].append(len(unique_pred_to_idx))
+
+        for p, idx_list in unique_pred_to_idx.items():
+            p_stats, to_skip = get_stats_for_programs(p)
+            if p_stats is None:
                 continue
+            for idx in idx_list:
+                to_keep.append((idx, p))
+                program_stats_by_tid[tid][idx] = p_stats
 
-        for k in ['passed']:
-
-            for pred_idx in task_results.get(k, []):
-                preds_to_time_check.append(
-                    {'prediction': predictions_w_valid_syntax[pred_idx], **task_info}
-                )
+        for pred_idx, pred in to_keep:
+            preds_to_time_check.append(
+                {
+                    'prediction': pred,
+                    'pred_idx'  : pred_idx,
+                    **task_info
+                }
+            )
         if task_results['correct'] == 0:
             task_result_counter['no_correct'] += 1
         else:
@@ -127,7 +393,7 @@ def parse_eval_results_dir(task, dir_path: Path):
         out[f"{k}_std"] = np.std(v)
     out['solved_tasks'] = solved_tasks
 
-    return out, preds_to_time_check
+    return out, program_stats_by_tid, preds_to_time_check
 
 
 def timeout_handler(signum, frame):
@@ -135,7 +401,8 @@ def timeout_handler(signum, frame):
 
 
 def get_runtime(args_list):
-    run_info, check_program, timeout, task_id = args_list
+    run_info, check_program, timeout, sample_idx, task_id = args_list
+    # Allows us to save values from the exec call
     RESULT_DICT = {}
     had_error = False
     had_timeout = False
@@ -161,13 +428,14 @@ def get_runtime(args_list):
             RESULT_DICT['TIME'] = timeout
             had_timeout = True
         except Exception as e:
-            RESULT_DICT['TIME'] = str(e)
+            RESULT_DICT['TIME'] = f"{type(e).__name__}: {str(e)}"
             had_error = True
     stdout_f.close()
     stderr_f.close()
     return dict(
         run_info=run_info,
         task_id=task_id,
+        sample_idx=sample_idx,
         had_error=had_error,
         had_timeout=had_timeout,
         runtime=RESULT_DICT['TIME'],
@@ -178,9 +446,12 @@ def execute_time_check(to_time_check, num_workers, timeit_number=100, timeout=3)
     logger.info(f"{len(to_time_check)} predictions to time check")
     logger.info(f"Running each program {timeit_number} time(s)")
     mp_args = []
-    for sample in to_time_check:
+    with_syntax_errors = 0
+    for sample_idx, sample in tqdm(enumerate(to_time_check), total=len(to_time_check),
+                                   desc='Creating Arguments'):
         test_str = '\n'.join([sample['test_setup_code']] + sample['tests'])
-        test_str = test_str.replace('assert', 'ASSERT_PLACEHOLDER=')
+
+        # test_str = test_str.replace('assert', 'ASSERT_PLACEHOLDER=')
         task_id = sample['task_id']
         test_program = sample['prediction'] + "\n" + test_str
 
@@ -193,15 +464,25 @@ def execute_time_check(to_time_check, num_workers, timeit_number=100, timeout=3)
         wrapped_func = '\n'.join(wrapped_func)
         wrapped_func = f"def TEST_CANDIDATE():\n{wrapped_func}"
 
-        test_program = [
+        wrapped_program = [
             "import timeit",
             wrapped_func,
             f"RESULT_DICT['TIME']=timeit.timeit(TEST_CANDIDATE,number={timeit_number})"
         ]
 
-        mp_args.append((sample['run_info'], '\n'.join(test_program), timeout, task_id))
+        wrapped_program = '\n'.join(wrapped_program)
+        try:
+            ast.parse(wrapped_program)
+        except (SyntaxError, MemoryError) as e:
+            with_syntax_errors += 1
+            continue
+        mp_args.append(
+            (sample['run_info'], wrapped_program, timeout, sample_idx, task_id)
+        )
 
-    results = defaultdict(lambda: defaultdict(list))
+    logger.info(f"{with_syntax_errors}/{len(to_time_check)} had syntax errors")
+
+    task_info = defaultdict(dict)
     with_errors = []
     with_timeout = 0
     with multiprocessing.Pool(num_workers) as pool:
@@ -212,12 +493,25 @@ def execute_time_check(to_time_check, num_workers, timeit_number=100, timeout=3)
         )
 
         for r in raw_results:
+            sample_idx = r.pop('sample_idx')
             if r['had_error']:
-                with_errors.append((r['run_info'], r['task_id'], r['runtime']))
+                # passed_with_errors += r['passed']
+                with_errors.append(
+                    ('_'.join(r['run_info']), r['task_id'], sample_idx, r['runtime'])
+                )
                 continue
             if r['had_timeout']:
                 with_timeout += 1
-            results[r['run_info']][r['task_id']].append(r)
+
+            runtime = r.pop('runtime')
+            if r['task_id'] not in task_info[r['run_info']]:
+                task_info[r['run_info']][r['task_id']] = {
+                    'runtimes': [], 'passed': [], **r
+                }
+
+            task_info[r['run_info']][r['task_id']]['runtimes'].append(runtime)
+            task_info[r['run_info']][r['task_id']]['passed'].append(sample_idx)
+
     logger.info(f"{len(with_errors)}/{len(to_time_check)} had errors")
     logger.info(f"{with_timeout}/{len(to_time_check)} timed out")
-    return results, with_errors
+    return task_info, with_errors

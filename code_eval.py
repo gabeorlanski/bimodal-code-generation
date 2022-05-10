@@ -75,6 +75,7 @@ def run(preds_dir, num_workers, debug, disable_tracking, timeout):
         split = split_file.stem
         logger.info(f"Executing code from {split_file}")
         results = evaluate_code_from_file(
+            cfg.task.name,
             str(split_file),
             samples_per_problem=cfg.evaluation.seq_per_sample,
             num_workers=num_workers,
@@ -118,8 +119,6 @@ def run(preds_dir, num_workers, debug, disable_tracking, timeout):
         wandb_run.finish()
 
     logger.info("Finished Code Eval")
-
-
 
 
 if __name__ == "__main__":

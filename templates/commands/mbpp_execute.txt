@@ -6,21 +6,9 @@
 {% set account_str="\\" %}
 {%- endif -%}
 {%- set cancel_file="generated_experiments/cancel_scripts/"~job_name~".sh" -%}
-
-
-# Human Eval Code Execute Zero Shot
-he_exec{{idx}}=$(sbatch --parsable --job-name='{{ job_name }}_he_execute' \
-	eval_code.sbatch \
-	eval_results/{{ name }}/HUMAN_EVAL/{{ ablation_name }}_HEEval
-)
-echo "Submitted CodeEval(id=$he_exec{{idx}})"
-echo "scancel $he_exec{{idx}}" >> {{cancel_file}}
-
 # MBPP Code Execute After Eval
 exec_jid{{idx}}=$(sbatch --parsable --job-name='{{ job_name }}_execute' \
 	eval_code.sbatch \
 	eval_results/{{ name }}/MBPP/{{ ablation_name }}_Eval)
 echo "Submitted CodeEval(id=$exec_jid{{idx}})"
 echo "scancel $exec_jid{{idx}}" >> {{cancel_file}}
-
-echo ""

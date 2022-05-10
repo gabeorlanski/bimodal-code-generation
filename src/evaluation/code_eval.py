@@ -37,7 +37,8 @@ def get_metrics_from_list(name, list_of_values):
     return {f"{name + '/' if name else ''}{k}": float(v) for k, v in metrics_dict.items()}
 
 
-def get_samples(code_items, samples_per_problem) -> Tuple[List[Sample], List, Dict, Dict, Dict]:
+def get_samples(code_items, samples_per_problem) -> Tuple[
+    List[Sample], List, Dict, Dict, Dict]:
     failed = 0
     sample_num = 0
     total_valid_preds = []
@@ -75,7 +76,7 @@ def get_samples(code_items, samples_per_problem) -> Tuple[List[Sample], List, Di
                 logger.error(f"Could not parse prediction {i} for {idx=} "
                              f"due to {type(e).__name__}:{str(e)}")
                 continue
-            valid_predictions.append(pred)
+            valid_predictions.append((i, pred))
 
         invalid_syntax[idx] = len(sample_dict['prediction']) - len(valid_predictions)
         total_valid_preds.append(len(valid_predictions))
@@ -101,21 +102,21 @@ def get_samples(code_items, samples_per_problem) -> Tuple[List[Sample], List, Di
     return list(all_samples.values()), all_invalid, pred_count, invalid_syntax, metrics
 
 
-def evaluate_code(code_dicts, samples_per_problem, num_workers, timeout):
+def evaluate_code(task, code_dicts, samples_per_problem, num_workers, timeout):
     samples, all_invalid, pred_count, invalid_syntax_by_idx, overview_metrics = get_samples(
         code_dicts,
         samples_per_problem
     )
 
-    results = execute_code(samples, num_workers, timeout)
+    results = execute_code(
+        task, samples, num_workers, timeout)
 
     results_by_task_id, global_error_tracker, metrics, counts = parse_results(
         results,
         pred_count,
         invalid_syntax_by_idx,
         all_invalid,
-        samples_per_problem,
-        timeout
+        samples_per_problem
     )
     correct, runtime_errors = counts
     overview_metrics.update(metrics)
@@ -164,6 +165,7 @@ def evaluate_code(code_dicts, samples_per_problem, num_workers, timeout):
 
 
 def evaluate_code_from_file(
+        task,
         predictions_file: Union[str, Path, os.PathLike],
         samples_per_problem: int,
         num_workers: int,
@@ -180,7 +182,7 @@ def evaluate_code_from_file(
     logger.info(f"Reading {predictions_file}")
     code_dicts = list(map(json.loads, predictions_file.read_text().splitlines(False)))
 
-    return evaluate_code(code_dicts, samples_per_problem, num_workers, timeout)
+    return evaluate_code(task, code_dicts, samples_per_problem, num_workers, timeout)
 
 
 def parse_results(
@@ -188,17 +190,12 @@ def parse_results(
         pred_count,
         invalid_syntax_by_idx,
         all_invalid,
-        samples_per_problem,
-        timeout
+        samples_per_problem
 ):
     global_error_tracker = Counter({k: 0 for k in BASE_ERROR_TYPES})
     results_by_task_id = {}
 
     correct, runtime_errors, runtimes = [], [], []
-
-    # Keep a separate list to track the runtimes of full executions, so
-    # timeouts and passes.
-    runtimes_for_executions = []
 
     for task_id, task_results in execution_results.items():
         task_results.sort()
@@ -209,14 +206,13 @@ def parse_results(
         # Setup the dict for tracking metrics for a given task.
         task_runtimes_dict = defaultdict(list)
         task_metrics = {
-            'correct'         : 0,
-            'total'           : pred_count[task_id],
-            'error_types'     : Counter({'SyntaxError': invalid_syntax_by_idx[task_id]}),
-            'error_messages'  : {},
-            'passed'          : [],
-            'failed_tests'    : [],
-            'timed_out'       : [],
-            'runtimes_by_type': {}
+            'correct'       : 0,
+            'total'         : pred_count[task_id],
+            'error_types'   : Counter({'SyntaxError': invalid_syntax_by_idx[task_id]}),
+            'error_messages': {},
+            'passed'        : [],
+            'failed_tests'  : [],
+            'timed_out'     : []
 
         }
         task_correct = task_runtime_errors = 0
@@ -232,9 +228,6 @@ def parse_results(
 
             task_metrics['correct'] += result_dict['passed']
 
-            if completion_id == 126 and task_id == 11:
-                print("???")
-
             if result_str != 'Passed':
                 task_metrics['error_types'][result_str] += 1
                 assert result_dict['result'] != 'Passed'
@@ -242,11 +235,11 @@ def parse_results(
                 if result_str != 'Timed Out' and result_str != 'Failed Tests':
                     task_runtime_errors += 1
                     task_metrics['error_messages'][
-                        completion_id] = f"{result_str}: {result_dict['error']}"
+                        result_dict['pred_idx']] = f"{result_str}: {result_dict['error']}"
                 elif result_str == 'Failed Tests':
-                    task_metrics['failed_tests'].append(completion_id)
+                    task_metrics['failed_tests'].append(result_dict['pred_idx'])
                 else:
-                    task_metrics['timed_out'].append(completion_id)
+                    task_metrics['timed_out'].append(result_dict['pred_idx'])
 
 
             else:
@@ -257,24 +250,9 @@ def parse_results(
         task_metrics['correct_pct'] = task_metrics['correct'] / task_metrics['total'] * 100
         task_metrics['runtime_error_pct'] = task_runtime_errors / task_metrics['total'] * 100
 
-        task_runtime = []
-        execution_runtimes = []
-        for k, v in task_runtimes_dict.items():
-            if k in ['Passed', 'Timeout']:
-                execution_runtimes.extend(v)
-
-            task_metrics['runtimes_by_type'][k] = np.mean(v)
-            task_runtime.extend(v)
-        task_metrics['runtime'] = np.mean(task_runtime)
-
-        if execution_runtimes:
-            task_metrics['execution_runtime'] = np.mean(execution_runtimes)
-        else:
-            task_metrics['execution_runtime'] = 2 * timeout
-        runtimes.extend(task_runtime)
         correct.append(task_correct)
         runtime_errors.append(task_runtime_errors)
-        runtimes_for_executions.extend(execution_runtimes)
+        # runtimes_for_executions.extend(execution_runtimes)
 
         # Add the error types to the global tracker.
         for error_type, count in task_metrics['error_types'].items():
@@ -297,22 +275,17 @@ def parse_results(
 
     correct = np.array(correct)
     runtime_errors = np.array(runtime_errors)
-    if runtimes_for_executions:
-        runtimes_for_executions = np.mean(runtimes_for_executions)
-    else:
-        runtimes_for_executions = 2 * timeout
     metrics = {
         'runtime_error_pct_mean': np.mean(runtime_errors / samples_per_problem * 100),
-        'runtime_mean'          : np.mean(runtimes),
-        'runtime_execution_mean': runtimes_for_executions,
     }
 
     return results_by_task_id, global_error_tracker, metrics, (correct, runtime_errors)
 
 
-def execute_code(samples, num_workers, timeout):
+def execute_code(task, samples, num_workers, timeout):
     to_run = sum(map(lambda s: len(s.predictions), samples))
     logger.info(f"{to_run} predictions to check")
+
     with tqdm(total=to_run, desc='Running Code') as pbar:
         with ThreadPoolExecutor(max_workers=num_workers) as executor:
             futures = []
@@ -322,9 +295,11 @@ def execute_code(samples, num_workers, timeout):
 
             for sample in samples:
                 task_id = sample.idx
-                for candidate in sample.predictions:
+                for pred_idx, candidate in sample.predictions:
+                    if task.lower() == 'mbpp':
+                        candidate = candidate.split('# Solution')[0]
                     test_program = candidate + "\n" + '\n'.join(sample.tests)
-                    args = (test_program, timeout, task_id, completion_id[task_id])
+                    args = (test_program, timeout, task_id, completion_id[task_id], pred_idx)
                     future = executor.submit(check_correctness, *args)
                     futures.append(future)
                     completion_id[task_id] += 1
@@ -332,7 +307,7 @@ def execute_code(samples, num_workers, timeout):
 
             for future in as_completed(futures):
                 result = future.result()
-                results[result["task_id"]].append((result["completion_id"], result))
+                results[result["task_id"]].append((result["pred_idx"], result))
                 pbar.update(1)
     return results
 

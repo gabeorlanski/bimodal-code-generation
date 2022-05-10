@@ -35,10 +35,14 @@ from src.evaluation.analysis import *
 @click.option('--num-workers', '-n', default=4, type=int)
 @click.option('--timeit-number', '-tn', default=100, type=int)
 @click.option('--timeout', '-to', default=3, type=int)
-def consolidate_results(eval_dir, debug, num_workers, timeit_number, timeout):
+@click.option('--file-path', '-f', default=None)
+def consolidate_results(eval_dir, debug, num_workers, timeit_number, timeout, file_path):
     setup_global_logging(f"consolidate_eval", PROJECT_ROOT.joinpath('logs'),
-                         debug=debug)
+                         debug=debug, disable_issues_file=True)
     logger = logging.getLogger("consolidate_eval")
+
+    if file_path is not None:
+        file_path = PROJECT_ROOT.joinpath(file_path).absolute()
 
     eval_dir = PROJECT_ROOT.joinpath(eval_dir)
     logger.info(f"Getting '{eval_dir}'")
@@ -72,11 +76,15 @@ def consolidate_results(eval_dir, debug, num_workers, timeit_number, timeout):
 
     results = defaultdict(lambda: {'MBPP': {}, 'HUMAN_EVAL': {}})
     to_time_check = []
+    all_program_stats = {}
 
-    for task_name, task_dict in {'MBPP': mbpp_eval_runs, 'HUMAN_EVAL': human_eval_runs}.items():
+    for task_name, task_dict in {'HUMAN_EVAL': human_eval_runs, 'MBPP': mbpp_eval_runs}.items():
+
         logger.info(f'Parsing {task_name} runs')
-        for run_name, path in tqdm(task_dict.items(), desc='Parsing'):
-
+        task_program_stats = {}
+        for run_name, path in task_dict.items():
+            if file_path is not None and file_path != path:
+                continue
             if not path.joinpath('test.jsonl'):
                 logger.error(f"{run_name} for task {task_name} is missing 'test.jsonl'")
                 continue
@@ -84,36 +92,69 @@ def consolidate_results(eval_dir, debug, num_workers, timeit_number, timeout):
                 logger.error(f"{run_name} for task {task_name} "
                              f"is missing 'execution_metrics.json'")
                 continue
-            run_results, run_to_time_check = parse_eval_results_dir(task_name, path)
+            run_results, program_stats, run_to_time_check = parse_eval_results_dir(task_name, path)
             results[run_name][task_name] = run_results
+            task_program_stats[run_name] = program_stats
             to_time_check.extend(
                 [{'run_info': (run_name, task_name), **t} for t in run_to_time_check])
-            if debug:
-                break
+        all_program_stats[task_name] = task_program_stats
 
-    runtime_results, *_ = execute_time_check(to_time_check, num_workers,
-                                             timeit_number=timeit_number,
-                                             timeout=timeout)
-
-    to_write_by_task = defaultdict(lambda: defaultdict(dict))
-    for (run_name, task_name), task_runtimes in runtime_results.items():
-        for task_id, runtimes in task_runtimes.items():
-            runtime_arr = [d['runtime'] for d in runtimes]
-            to_write_by_task[task_name][run_name][task_id] = {
-                'mean'    : np.mean(runtime_arr),
-                'std'     : np.std(runtime_arr),
-                'median'  : np.median(runtime_arr),
-                'runtimes': runtime_arr
-            }
     out_dir = PROJECT_ROOT.joinpath('data', f'eval_analysis')
     if out_dir.exists():
         shutil.rmtree(out_dir)
     out_dir.mkdir(parents=True)
-    for task_name in ['MBPP', 'HUMAN_EVAL']:
+    # for task_name in ['MBPP', 'HUMAN_EVAL']:
+    #
+    #     with out_dir.joinpath(f'{task_name}.jsonl').open('w') as f:
+    #         for run_name, run_results in results.items():
+    #             f.write(f"{json.dumps({'run_name': run_name, **run_results[task_name]})}\n")
+    #
+    #     if task_name not in all_program_stats:
+    #         continue
+    #
+    #     with out_dir.joinpath(f'program_stats_{task_name}.jsonl').open('w') as f:
+    #         for run_name, run_results in all_program_stats[task_name].items():
+    #             f.write(f"{json.dumps({'run_name': run_name, 'stats': run_results})}\n")
 
-        with out_dir.joinpath(f'{task_name}.jsonl').open('w') as f:
-            for run_name, run_results in results.items():
-                f.write(f"{json.dumps({'run_name': run_name, **run_results[task_name]})}\n")
+    result_runtimes, errors = execute_time_check(
+        to_time_check, num_workers,
+        timeit_number=timeit_number,
+        timeout=timeout
+    )
+
+    to_write_by_task = defaultdict(lambda: defaultdict(dict))
+    num_single_passed = 0
+    for (run_name, task_name), task_runtimes in result_runtimes.items():
+        for task_id, runtimes in task_runtimes.items():
+            runtimes_dict = {
+                'passed': runtimes['passed_runtimes'], 'failed': runtimes['failed_runtimes']
+            }
+            all_runtimes = runtimes_dict['passed'] + runtimes_dict['failed']
+            if len(all_runtimes) == 1 or len(runtimes_dict['passed']) == 1:
+                num_single_passed += 1
+            runtime_result_dict = {}
+            for k, v in runtimes_dict.items():
+                runtime_result_dict.update({
+                    f'{k}_mean'         : np.mean(v),
+                    f'{k}_std'          : np.std(v),
+                    f'{k}_median'       : np.median(v),
+                    f'{k}_runtimes'     : v,
+                    f'{k}_runtime_count': len(v)
+                })
+            runtime_result_dict.update({
+                'mean'         : np.mean(all_runtimes),
+                'std'          : np.std(all_runtimes),
+                'median'       : np.median(all_runtimes),
+                '25_percentile': np.percentile(all_runtimes, 25)
+            })
+            to_write_by_task[task_name][run_name][task_id] = runtime_result_dict
+
+    logger.info(f"{num_single_passed} only had a single runtime pass")
+
+    with out_dir.joinpath('errors.txt').open('w') as f:
+        for error in errors:
+            f.write('\t'.join(map(str, error)) + '\n')
+    for task_name in ['MBPP', 'HUMAN_EVAL']:
         with out_dir.joinpath(f'runtimes_{task_name}.json').open('w') as f:
             json.dump(to_write_by_task[task_name], f)
 
