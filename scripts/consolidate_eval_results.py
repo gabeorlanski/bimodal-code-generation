@@ -103,60 +103,58 @@ def consolidate_results(eval_dir, debug, num_workers, timeit_number, timeout, fi
     if out_dir.exists():
         shutil.rmtree(out_dir)
     out_dir.mkdir(parents=True)
-    # for task_name in ['MBPP', 'HUMAN_EVAL']:
-    #
-    #     with out_dir.joinpath(f'{task_name}.jsonl').open('w') as f:
-    #         for run_name, run_results in results.items():
-    #             f.write(f"{json.dumps({'run_name': run_name, **run_results[task_name]})}\n")
-    #
-    #     if task_name not in all_program_stats:
-    #         continue
-    #
-    #     with out_dir.joinpath(f'program_stats_{task_name}.jsonl').open('w') as f:
-    #         for run_name, run_results in all_program_stats[task_name].items():
-    #             f.write(f"{json.dumps({'run_name': run_name, 'stats': run_results})}\n")
-
-    result_runtimes, errors = execute_time_check(
-        to_time_check, num_workers,
-        timeit_number=timeit_number,
-        timeout=timeout
-    )
-
-    to_write_by_task = defaultdict(lambda: defaultdict(dict))
-    num_single_passed = 0
-    for (run_name, task_name), task_runtimes in result_runtimes.items():
-        for task_id, runtimes in task_runtimes.items():
-            runtimes_dict = {
-                'passed': runtimes['passed_runtimes'], 'failed': runtimes['failed_runtimes']
-            }
-            all_runtimes = runtimes_dict['passed'] + runtimes_dict['failed']
-            if len(all_runtimes) == 1 or len(runtimes_dict['passed']) == 1:
-                num_single_passed += 1
-            runtime_result_dict = {}
-            for k, v in runtimes_dict.items():
-                runtime_result_dict.update({
-                    f'{k}_mean'         : np.mean(v),
-                    f'{k}_std'          : np.std(v),
-                    f'{k}_median'       : np.median(v),
-                    f'{k}_runtimes'     : v,
-                    f'{k}_runtime_count': len(v)
-                })
-            runtime_result_dict.update({
-                'mean'         : np.mean(all_runtimes),
-                'std'          : np.std(all_runtimes),
-                'median'       : np.median(all_runtimes),
-                '25_percentile': np.percentile(all_runtimes, 25)
-            })
-            to_write_by_task[task_name][run_name][task_id] = runtime_result_dict
-
-    logger.info(f"{num_single_passed} only had a single runtime pass")
-
-    with out_dir.joinpath('errors.txt').open('w') as f:
-        for error in errors:
-            f.write('\t'.join(map(str, error)) + '\n')
     for task_name in ['MBPP', 'HUMAN_EVAL']:
-        with out_dir.joinpath(f'runtimes_{task_name}.json').open('w') as f:
-            json.dump(to_write_by_task[task_name], f)
+
+        with out_dir.joinpath(f'{task_name}.jsonl').open('w') as f:
+            for run_name, run_results in results.items():
+                f.write(f"{json.dumps({'run_name': run_name, **run_results[task_name]})}\n")
+
+
+        with out_dir.joinpath(f'program_stats_{task_name}.jsonl').open('w') as f:
+            for run_name, run_results in all_program_stats[task_name].items():
+                f.write(f"{json.dumps({'run_name': run_name, 'stats': run_results})}\n")
+
+    # result_runtimes, errors = execute_time_check(
+    #     to_time_check, num_workers,
+    #     timeit_number=timeit_number,
+    #     timeout=timeout
+    # )
+    #
+    # to_write_by_task = defaultdict(lambda: defaultdict(dict))
+    # num_single_passed = 0
+    # for (run_name, task_name), task_runtimes in result_runtimes.items():
+    #     for task_id, runtimes in task_runtimes.items():
+    #         runtimes_dict = {
+    #             'passed': runtimes['passed_runtimes'], 'failed': runtimes['failed_runtimes']
+    #         }
+    #         all_runtimes = runtimes_dict['passed'] + runtimes_dict['failed']
+    #         if len(all_runtimes) == 1 or len(runtimes_dict['passed']) == 1:
+    #             num_single_passed += 1
+    #         runtime_result_dict = {}
+    #         for k, v in runtimes_dict.items():
+    #             runtime_result_dict.update({
+    #                 f'{k}_mean'         : np.mean(v),
+    #                 f'{k}_std'          : np.std(v),
+    #                 f'{k}_median'       : np.median(v),
+    #                 f'{k}_runtimes'     : v,
+    #                 f'{k}_runtime_count': len(v)
+    #             })
+    #         runtime_result_dict.update({
+    #             'mean'         : np.mean(all_runtimes),
+    #             'std'          : np.std(all_runtimes),
+    #             'median'       : np.median(all_runtimes),
+    #             '25_percentile': np.percentile(all_runtimes, 25)
+    #         })
+    #         to_write_by_task[task_name][run_name][task_id] = runtime_result_dict
+    #
+    # logger.info(f"{num_single_passed} only had a single runtime pass")
+
+    # with out_dir.joinpath('errors.txt').open('w') as f:
+    #     for error in errors:
+    #         f.write('\t'.join(map(str, error)) + '\n')
+    # for task_name in ['MBPP', 'HUMAN_EVAL']:
+    #     with out_dir.joinpath(f'runtimes_{task_name}.json').open('w') as f:
+    #         json.dump(to_write_by_task[task_name], f)
 
 
 if __name__ == '__main__':
