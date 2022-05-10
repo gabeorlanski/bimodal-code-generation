@@ -316,18 +316,15 @@ def parse_eval_results_dir(task, dir_path: Path):
         # remove those with bad syntax prior.
         # First, create a list of bool mappings for if we should keep a
         # prediction
-        to_keep = [None] * len(preds_for_task['prediction'])
-        force_skip = [False] * len(preds_for_task['prediction'])
+        to_keep = []
 
         # Create a dict to map unique predictions to the list of indices they correspond too.
         unique_pred_to_idx = defaultdict(list)
-        predicted_by_idx = []
         for i, p in enumerate(preds_for_task['prediction']):
             if task == 'MBPP':
                 p = p.split('# Solution')[0]
 
             unique_pred_to_idx[p.strip()].append(i)
-            predicted_by_idx.append(p.strip())
 
         task_result_counter['unique_programs'] += len(unique_pred_to_idx)
         mean_tracker['unique_programs'].append(len(unique_pred_to_idx))
@@ -337,35 +334,19 @@ def parse_eval_results_dir(task, dir_path: Path):
             if p_stats is None:
                 continue
             for idx in idx_list:
-                force_skip[idx] = to_skip
-                to_keep[idx] = p_stats
-
-        predictions_w_valid_syntax = []
-        valid_force_skip = []
-        idx_to_prog_stats = {}
-
-        for i, p_stats in enumerate(to_keep):
-            if p_stats is None:
-                continue
-            if tid == '42' and len(valid_force_skip) >= 195:
-                print("???")
-            valid_force_skip.append(force_skip[i])
-            idx_to_prog_stats[len(predictions_w_valid_syntax)] = p_stats
-            predictions_w_valid_syntax.append(predicted_by_idx[i])
-
-        for k in ['passed', 'failed_tests']:
-
-            for pred_idx in task_results.get(k, []):
-                if valid_force_skip[pred_idx]:
+                if str(idx) in task_results['error_messages']:
                     continue
-                program_stats_by_tid[tid][pred_idx] = idx_to_prog_stats[pred_idx]
-                preds_to_time_check.append(
-                    {
-                        'prediction': predictions_w_valid_syntax[pred_idx],
-                        'passed'    : k == 'passed',
-                        **task_info
-                    }
-                )
+                to_keep.append((idx, p))
+                program_stats_by_tid[tid][idx] = p_stats
+
+        for pred_idx, pred in to_keep:
+            preds_to_time_check.append(
+                {
+                    'prediction': pred,
+                    'pred_idx'  : pred_idx,
+                    **task_info
+                }
+            )
         if task_results['correct'] == 0:
             task_result_counter['no_correct'] += 1
         else:
@@ -422,7 +403,7 @@ def timeout_handler(signum, frame):
 
 
 def get_runtime(args_list):
-    run_info, passed, check_program, timeout, sample_idx, task_id = args_list
+    run_info, check_program, timeout, sample_idx, task_id = args_list
     # Allows us to save values from the exec call
     RESULT_DICT = {}
     had_error = False
@@ -455,7 +436,6 @@ def get_runtime(args_list):
     stderr_f.close()
     return dict(
         run_info=run_info,
-        passed=passed,
         task_id=task_id,
         sample_idx=sample_idx,
         had_error=had_error,
@@ -469,20 +449,9 @@ def execute_time_check(to_time_check, num_workers, timeit_number=100, timeout=3)
     logger.info(f"Running each program {timeit_number} time(s)")
     mp_args = []
     with_syntax_errors = 0
-    passed_with_syntax_errors = 0
     for sample_idx, sample in tqdm(enumerate(to_time_check), total=len(to_time_check),
                                    desc='Creating Arguments'):
         test_str = '\n'.join([sample['test_setup_code']] + sample['tests'])
-        try:
-            visitor = AssertTransformer()
-            test_str = astor.to_source(
-                visitor.visit(ast.parse(test_str)),
-                source_generator_class=CustomSourceGenerator
-            )
-        except (SyntaxError, MemoryError):
-            if sample['passed']:
-                passed_with_syntax_errors += 1
-            continue
 
         # test_str = test_str.replace('assert', 'ASSERT_PLACEHOLDER=')
         task_id = sample['task_id']
@@ -497,31 +466,26 @@ def execute_time_check(to_time_check, num_workers, timeit_number=100, timeout=3)
         wrapped_func = '\n'.join(wrapped_func)
         wrapped_func = f"def TEST_CANDIDATE():\n{wrapped_func}"
 
-        test_program = [
+        wrapped_program = [
             "import timeit",
             wrapped_func,
             f"RESULT_DICT['TIME']=timeit.timeit(TEST_CANDIDATE,number={timeit_number})"
         ]
 
-        test_program = '\n'.join(test_program)
+        wrapped_program = '\n'.join(wrapped_program)
         try:
-            ast.parse(test_program)
-        except (SyntaxError, MemoryError):
+            ast.parse(wrapped_program)
+        except (SyntaxError, MemoryError) as e:
             with_syntax_errors += 1
-            if sample['passed']:
-                passed_with_syntax_errors += 1
             continue
         mp_args.append(
-            (sample['run_info'], sample['passed'], test_program, timeout, sample_idx, task_id)
+            (sample['run_info'], wrapped_program, timeout, sample_idx, task_id)
         )
 
     logger.info(f"{with_syntax_errors}/{len(to_time_check)} had syntax errors")
-    logger.info(
-        f"{passed_with_syntax_errors} passed examples had syntax errors")
 
     task_info = defaultdict(dict)
     with_errors = []
-    passed_with_errors = 0
     with_timeout = 0
     with multiprocessing.Pool(num_workers) as pool:
         raw_results = list(tqdm(
@@ -533,27 +497,23 @@ def execute_time_check(to_time_check, num_workers, timeit_number=100, timeout=3)
         for r in raw_results:
             sample_idx = r.pop('sample_idx')
             if r['had_error']:
-                passed_with_errors += r['passed']
+                # passed_with_errors += r['passed']
                 with_errors.append(
-                    ('_'.join(r['run_info']), r['passed'], r['task_id'], sample_idx, r['runtime'])
+                    ('_'.join(r['run_info']), r['task_id'], sample_idx, r['runtime'])
                 )
                 continue
             if r['had_timeout']:
                 with_timeout += 1
 
             runtime = r.pop('runtime')
-            passed = r.pop('passed')
             if r['task_id'] not in task_info[r['run_info']]:
                 task_info[r['run_info']][r['task_id']] = {
-                    'passed_runtimes': [], 'failed_runtimes': [], **r
+                    'runtimes': [], 'passed': [], **r
                 }
 
-            if passed:
-                task_info[r['run_info']][r['task_id']]['passed_runtimes'].append(runtime)
-            else:
-                task_info[r['run_info']][r['task_id']]['failed_runtimes'].append(runtime)
+            task_info[r['run_info']][r['task_id']]['runtimes'].append(runtime)
+            task_info[r['run_info']][r['task_id']]['passed'].append(sample_idx)
 
     logger.info(f"{len(with_errors)}/{len(to_time_check)} had errors")
-    logger.info(f"{passed_with_errors} passed examples had errors")
     logger.info(f"{with_timeout}/{len(to_time_check)} timed out")
     return task_info, with_errors

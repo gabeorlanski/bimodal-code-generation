@@ -103,18 +103,18 @@ def consolidate_results(eval_dir, debug, num_workers, timeit_number, timeout, fi
     if out_dir.exists():
         shutil.rmtree(out_dir)
     out_dir.mkdir(parents=True)
-    for task_name in ['MBPP', 'HUMAN_EVAL']:
-
-        with out_dir.joinpath(f'{task_name}.jsonl').open('w') as f:
-            for run_name, run_results in results.items():
-                f.write(f"{json.dumps({'run_name': run_name, **run_results[task_name]})}\n")
-
-        if task_name not in all_program_stats:
-            continue
-
-        with out_dir.joinpath(f'program_stats_{task_name}.jsonl').open('w') as f:
-            for run_name, run_results in all_program_stats[task_name].items():
-                f.write(f"{json.dumps({'run_name': run_name, 'stats': run_results})}\n")
+    # for task_name in ['MBPP', 'HUMAN_EVAL']:
+    #
+    #     with out_dir.joinpath(f'{task_name}.jsonl').open('w') as f:
+    #         for run_name, run_results in results.items():
+    #             f.write(f"{json.dumps({'run_name': run_name, **run_results[task_name]})}\n")
+    #
+    #     if task_name not in all_program_stats:
+    #         continue
+    #
+    #     with out_dir.joinpath(f'program_stats_{task_name}.jsonl').open('w') as f:
+    #         for run_name, run_results in all_program_stats[task_name].items():
+    #             f.write(f"{json.dumps({'run_name': run_name, 'stats': run_results})}\n")
 
     result_runtimes, errors = execute_time_check(
         to_time_check, num_workers,

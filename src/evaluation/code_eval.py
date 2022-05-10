@@ -282,19 +282,6 @@ def parse_results(
     return results_by_task_id, global_error_tracker, metrics, (correct, runtime_errors)
 
 
-def check_code_correct(args):
-    check_program, timeout, task_id, completion_id, pred_idx = args
-    dict(
-        task_id=task_id,
-        pred_idx=pred_idx,
-        passed=result[0][0] == "Passed",
-        result=result[0][0],
-        time=result[0][1],
-        error=result[0][2],
-        completion_id=completion_id,
-    )
-
-
 def execute_code(task, samples, num_workers, timeout):
     to_run = sum(map(lambda s: len(s.predictions), samples))
     logger.info(f"{to_run} predictions to check")
