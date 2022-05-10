@@ -307,7 +307,7 @@ def execute_code(task, samples, num_workers, timeout):
 
             for future in as_completed(futures):
                 result = future.result()
-                results[result["task_id"]].append((result["completion_id"], result))
+                results[result["task_id"]].append((result["pred_idx"], result))
                 pbar.update(1)
     return results
 
