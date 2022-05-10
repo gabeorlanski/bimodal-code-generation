@@ -1,56 +1,60 @@
 starting_commands: templates/commands/sbatch_experiment.txt
 experiments:
-  Baselines:
-    add_name: True
-    description: "Evaluate the baseline models"
+  SOHyperParameter:
+    description: "Test SO finetuning with no repeating"
     overrides:
       ++device: 0
+      +processor: stackoverflow
+      ++raw_dump_path: data/dumps
       is_checkpoint: true
       objective: lm
+      ++tracking.tags:
+        - O2
+        - SO
       ++evaluation:
         num_generate_per_step: 200
-        remove_input_ids: True
+        remove_input_ids: False
         seq_per_sample: 200
-      ++raw_dump_path: data/dumps
       ++task.dump_name: python_${..__META__.ablation.name}
       ++task.raw_dump_name: python
       ++task.tensorized_name: python_${..__META__.ablation.name}
-      tracking:
-        tags:
-          - Baseline
+      ++processor.params.repeat_prompt_each_answer: False
+      ++processor.params.repeat_body_for_each_answer: False
+      ++processor.params.relative_quality: False
+      ++generation.top_p: 0.95
+
     ablations:
       - Model:
-#          Neo125M:
-#            description: GPT Neo 125M
-#            overrides:
-#              ++model: 'EleutherAI/gpt-neo-125M'
-#              ++training.gradient_checkpointing: True
-#            step_overrides:
-#              PreTrain:
-#                ++training.batch_size: 32
-#                ++training.gradient_accumulation_steps: 1
-#          ParrotSmall:
-#            description: CodeParrot Small
-#            overrides:
-#              ++model: 'lvwerra/codeparrot-small'
-#            step_overrides:
-#              PreTrain:
-#                ++training.batch_size: 32
-#                ++training.gradient_accumulation_steps: 1
-#                ++training.gradient_checkpointing: True
-          GPT2:
-            description: GPT2 Base
+          Neo125M:
+            description: GPT Neo 125M
             overrides:
-              ++model: 'gpt2'
-              ++evaluation:
-                num_generate_per_step: 175
-                remove_input_ids: True
-                seq_per_sample: 200
+              ++model: 'EleutherAI/gpt-neo-125M'
             step_overrides:
               PreTrain:
                 ++training.batch_size: 32
                 ++training.gradient_accumulation_steps: 1
                 ++training.gradient_checkpointing: True
+          ParrotSmall:
+            description: CodeParrot Small
+            overrides:
+              ++model: 'lvwerra/codeparrot-small'
+            step_overrides:
+              PreTrain:
+                ++training.batch_size: 32
+                ++training.gradient_accumulation_steps: 1
+                ++training.gradient_checkpointing: True
+              FineTune:
+                ++training.gradient_checkpointing: True
+      - Temperature:
+          2:
+            description: Temperature of 0.2
+            ++generation.temperature: 0.2
+          6:
+            description: Temperature of 0.6
+            ++generation.temperature: 0.6
+          8:
+            description: Temperature of 0.8
+            ++generation.temperature: 0.8
 
     steps:
       - name: PreTrain
@@ -73,7 +77,6 @@ experiments:
         overrides:
           task: human_eval
           ++is_checkpoint: false
-          ++model_path: outputs/so/${..__META__.ablation.name}/best_model
           tracking:
             log_model: False
             watch: null
@@ -86,7 +89,6 @@ experiments:
         overrides:
           task: mbpp
           ++is_checkpoint: false
-          ++model_path: null
           tracking:
             log_model: False
             watch: null
@@ -101,7 +103,7 @@ experiments:
         overrides:
           task: mbpp
           ++is_checkpoint: true
-          ++model_path: outputs/MBPP/${..__META__.ablation.name}/best_model
+          ++model_path: outputs/MBPP/${..name}/best_model
           tracking:
             log_model: False
             watch: null
@@ -113,8 +115,8 @@ experiments:
       file: templates/commands/evaluate_model.txt
       kwargs:
         train_sbatch: train_single_gpu
-        finetune_time: "12:00:00"
-        pretrain_time: "12:00:00"
+        finetune_time: "7:00:00"
+        pretrain_time: "7:00:00"
         use_cds: False
       fields:
         - model_path

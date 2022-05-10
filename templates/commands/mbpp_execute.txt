@@ -1,0 +1,6 @@
+# MBPP Code Execute After Eval
+exec_jid{{idx}}=$(sbatch --parsable --job-name='{{ job_name }}_execute' \
+	eval_code.sbatch \
+	eval_results/{{ name }}/MBPP/{{ ablation_name }}_Eval)
+echo "Submitted CodeEval(id=$exec_jid{{idx}})"
+echo "scancel $exec_jid{{idx}}" >> {{cancel_file}}

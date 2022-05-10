@@ -2,6 +2,7 @@ import contextlib
 import io
 import multiprocessing
 import signal
+from copy import deepcopy
 
 from tqdm import tqdm
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -19,6 +20,172 @@ __all__ = [
     "parse_eval_results_dir",
     "execute_time_check"
 ]
+
+
+class VariableTracer(ast.NodeVisitor):
+    def __init__(self):
+        self.func_traces = []
+        self.imported_libraries = []
+        self.trace = defaultdict(
+            lambda: {
+                'func_name': None, 'func_args': [], 'defined': [], 'used': []
+            }
+        )
+        self.in_aug_assign = False
+        self.in_func = False
+
+        self.tracker_maps = {
+            'control_flow' : {
+                ast.If,
+                ast.For,
+                ast.With,
+                ast.While,
+                ast.Try
+            },
+            'comprehension': {
+                ast.ListComp,
+                ast.DictComp,
+                ast.GeneratorExp,
+                ast.SetComp
+            },
+            'subscripts'   : {
+                ast.Slice,
+                ast.Index,
+                ast.ExtSlice
+            }
+        }
+        self.tracker_counts = {
+            cat: {c: 0 for c in cat_classes}
+            for cat, cat_classes in self.tracker_maps.items()
+        }
+
+    def _clear(self):
+        self.in_aug_assign = False
+        self.in_func = False
+
+    def finish_trace(self):
+        self.func_traces.append(deepcopy(self.trace))
+        self.trace = defaultdict(
+            lambda: {
+                'func_name': None, 'func_args': [], 'defined': [], 'used': []
+            }
+        )
+
+    @staticmethod
+    def parse_trace(trace_dict):
+        unused_vars = set()
+        redefined_vars_no_usage = []
+        used_vars = set()
+        defined_vars = set()
+        func_name = None
+        func_signature = []
+        nested_func_names = []
+        for line_no, line_trace in trace_dict.items():
+            if line_trace['func_name'] is not None:
+                if func_name is None:
+                    func_name = line_trace['func_name']
+                    func_signature = line_trace['func_args']
+                else:
+                    nested_func_names.append(line_trace['func_name'])
+                unused_vars.update(line_trace['func_args'])
+            else:
+                for var_name in line_trace['used']:
+                    if var_name in unused_vars:
+                        unused_vars.remove(var_name)
+                    used_vars.add(var_name)
+
+                for var_name in line_trace['defined']:
+                    if var_name in unused_vars:
+                        redefined_vars_no_usage.append(var_name)
+                    unused_vars.add(var_name)
+                    defined_vars.add(var_name)
+
+        out = {
+            'func_name'              : func_name,
+            'unused_vars'            : list(unused_vars),
+            'redefined_vars_no_usage': redefined_vars_no_usage,
+            'used_vars'              : list(used_vars),
+            'defined_vars'           : list(defined_vars),
+            'line_count'             : max(trace_dict) if trace_dict else 0,
+            'func_signature'         : func_signature,
+            'nested_func_names'      : nested_func_names,
+        }
+        return out
+
+    def __call__(self, code_str):
+
+        tree = ast.parse(code_str)
+
+        for body in tree.body:
+            self._clear()
+            self.visit(body)  # type:ignore
+        self.func_traces.append(self.trace)
+
+        parsed_traces = [
+            self.parse_trace(td) for td in self.func_traces
+        ]
+
+        trace_stats = {}
+        for group, group_dict in self.tracker_counts.items():
+            trace_stats[group] = {c.__name__: v for c, v in group_dict.items()}
+
+        return parsed_traces, trace_stats, self.imported_libraries
+
+    def _handle_import(self, node):
+        for n in node.names:
+            if n.asname is not None:
+                self.imported_libraries.append(n.asname)
+            else:
+                self.imported_libraries.append(n.name)
+
+    def visit_Import(self, node):
+        return self._handle_import(node)
+
+    def visit_ImportFrom(self, node):
+        return self._handle_import(node)
+
+    def visit_FunctionDef(self, node):
+        # We only want to trace functions within their scope
+        if self.trace and not self.in_func:
+            self.finish_trace()
+        self.trace[node.lineno]['func_name'] = node.name  # type: ignore
+        self.in_func = True
+        args_found = self.handle_arguments(node.args)
+        self.trace[node.lineno]['func_args'] = args_found
+        return self.generic_visit(node)
+
+    def handle_arguments(self, node: ast.arguments):
+        args_found = []
+        for arg in node.args:
+            args_found.append(arg.arg)
+
+        for arg in node.posonlyargs:
+            args_found.append(arg.arg)
+        for arg in node.kwonlyargs:
+            args_found.append(arg.arg)
+
+        if node.vararg is not None:
+            args_found.append(node.vararg.arg)
+        if node.kwarg is not None:
+            args_found.append(node.kwarg.arg)
+        return args_found
+
+    def visit_Name(self, node: ast.Name):
+        if isinstance(node.ctx, ast.Store) and not self.in_aug_assign:
+            self.trace[node.lineno]['defined'].append(node.id)
+        else:
+            self.trace[node.lineno]['used'].append(node.id)
+
+    def visit_AugAssign(self, node: ast.AugAssign):
+        self.in_aug_assign = True
+        self.generic_visit(node)
+
+    def generic_visit(self, node):
+        for group, group_map in self.tracker_maps.items():
+            if type(node) in group_map:
+                self.tracker_counts[group][type(node)] += 1
+                break
+        return super(VariableTracer, self).generic_visit(node)
 
 
 def parse_eval_results_dir(task, dir_path: Path):
@@ -54,7 +221,7 @@ def parse_eval_results_dir(task, dir_path: Path):
 
     solved_tasks = []
 
-    for tid, task_results in results_by_task_id.items():
+    for tid, task_results in tqdm(results_by_task_id.items(), desc='Parsing'):
         total_preds = task_results['total']
 
         preds_for_task = predictions[tid]
@@ -81,23 +248,57 @@ def parse_eval_results_dir(task, dir_path: Path):
         task_result_counter['unique_programs'] += len(unique_pred_to_idx)
         mean_tracker['unique_programs'].append(len(unique_pred_to_idx))
 
+        stat_tracker = defaultdict(list)
+        func_name_counter = Counter()
+        signature_counter = Counter()
+
         for p, idx_list in unique_pred_to_idx.items():
             try:
-                ast.parse(p)
+                visitor = VariableTracer()
+                parsed_traces, trace_stats, imported = visitor(p)
+
+                for group, group_dict in trace_stats.items():
+                    for c, v in group_dict.items():
+                        stat_tracker[f"{group}_{c}"].append(v)
+
+                stat_tracker['num_bodies'].append(len(parsed_traces))
+                stat_tracker['num_imports'].append(len(imported))
+                for t in parsed_traces:
+                    if t['func_name'] is not None:
+                        func_name_counter[t['func_name']] += 1
+                        signature_counter[','.join(t['func_signature'])] += 1
+
+                    for name in ['unused_vars', 'redefined_vars_no_usage', 'used_vars',
+                                 'defined_vars']:
+                        stat_tracker[name].append(len(t[name]))
+                    stat_tracker['line_count'].append(t['line_count'])
+                    stat_tracker['nested_funcs'].append(len(t['nested_func_names']))
                 for i in idx_list:
                     to_keep[i] = True
             except (SyntaxError, MemoryError):
                 continue
 
+        for k, v in stat_tracker.items():
+            mean_tracker[f'{k}-mean'].append(np.mean(v))
+            mean_tracker[f'{k}-median'].append(np.mean(v))
+            mean_tracker[f'{k}-std'].append(np.std(v))
+            mean_tracker[f'{k}-total'].append(np.sum(v))
+
+        mean_tracker['func_names'].append(len(func_name_counter))
+        mean_tracker['func_signatures'].append(len(signature_counter))
         predictions_w_valid_syntax = [
             p for i, p in enumerate(preds_for_task['prediction']) if to_keep[i]
         ]
 
-        for k in ['passed']:
+        for k in ['passed', 'failed_tests']:
 
             for pred_idx in task_results.get(k, []):
                 preds_to_time_check.append(
-                    {'prediction': predictions_w_valid_syntax[pred_idx], **task_info}
+                    {
+                        'prediction': predictions_w_valid_syntax[pred_idx],
+                        'passed'    : k == 'passed',
+                        **task_info
+                    }
                 )
         if task_results['correct'] == 0:
             task_result_counter['no_correct'] += 1
@@ -155,7 +356,7 @@ def timeout_handler(signum, frame):
 
 
 def get_runtime(args_list):
-    run_info, check_program, timeout, task_id = args_list
+    run_info, passed, check_program, timeout, task_id = args_list
     RESULT_DICT = {}
     had_error = False
     had_timeout = False
@@ -187,6 +388,7 @@ def get_runtime(args_list):
     stderr_f.close()
     return dict(
         run_info=run_info,
+        passed=passed,
         task_id=task_id,
         had_error=had_error,
         had_timeout=had_timeout,
@@ -219,9 +421,11 @@ def execute_time_check(to_time_check, num_workers, timeit_number=100, timeout=3)
             f"RESULT_DICT['TIME']=timeit.timeit(TEST_CANDIDATE,number={timeit_number})"
         ]
 
-        mp_args.append((sample['run_info'], '\n'.join(test_program), timeout, task_id))
+        mp_args.append(
+            (sample['run_info'], sample['passed'], '\n'.join(test_program), timeout, task_id)
+        )
 
-    results = defaultdict(lambda: defaultdict(list))
+    task_info = defaultdict(dict)
     with_errors = []
     with_timeout = 0
     with multiprocessing.Pool(num_workers) as pool:
@@ -237,7 +441,19 @@ def execute_time_check(to_time_check, num_workers, timeit_number=100, timeout=3)
                 continue
             if r['had_timeout']:
                 with_timeout += 1
-            results[r['run_info']][r['task_id']].append(r)
+
+            runtime = r.pop('runtime')
+            passed = r.pop('passed')
+            if r['task_id'] not in task_info[r['run_info']]:
+                task_info[r['run_info']][r['task_id']] = {
+                    'passed_runtimes': [], 'failed_runtimes': [], **r
+                }
+
+            if passed:
+                task_info[r['run_info']][r['task_id']]['passed_runtimes'].append(runtime)
+            else:
+                task_info[r['run_info']][r['task_id']]['failed_runtimes'].append(runtime)
+
     logger.info(f"{len(with_errors)}/{len(to_time_check)} had errors")
     logger.info(f"{with_timeout}/{len(to_time_check)} timed out")
-    return results, with_errors
+    return task_info, with_errors

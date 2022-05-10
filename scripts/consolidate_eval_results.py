@@ -75,7 +75,7 @@ def consolidate_results(eval_dir, debug, num_workers, timeit_number, timeout):
 
     for task_name, task_dict in {'MBPP': mbpp_eval_runs, 'HUMAN_EVAL': human_eval_runs}.items():
         logger.info(f'Parsing {task_name} runs')
-        for run_name, path in tqdm(task_dict.items(), desc='Parsing'):
+        for run_name, path in task_dict.items():
 
             if not path.joinpath('test.jsonl'):
                 logger.error(f"{run_name} for task {task_name} is missing 'test.jsonl'")
@@ -91,20 +91,38 @@ def consolidate_results(eval_dir, debug, num_workers, timeit_number, timeout):
             if debug:
                 break
 
-    runtime_results, *_ = execute_time_check(to_time_check, num_workers,
-                                             timeit_number=timeit_number,
-                                             timeout=timeout)
+    result_runtimes, *_ = execute_time_check(
+        to_time_check, num_workers,
+        timeit_number=timeit_number,
+        timeout=timeout
+    )
 
     to_write_by_task = defaultdict(lambda: defaultdict(dict))
-    for (run_name, task_name), task_runtimes in runtime_results.items():
+    for (run_name, task_name), task_runtimes in result_runtimes.items():
         for task_id, runtimes in task_runtimes.items():
-            runtime_arr = [d['runtime'] for d in runtimes]
+            runtimes_dict = {'passed': [], 'failed': []}
+            for d in runtimes:
+                runtimes_dict['passed'].extend(d['passed_runtimes'])
+                runtimes_dict['failed'].extend(d['failed_runtimes'])
+            all_runtimes = runtimes_dict['passed'] + runtimes_dict['failed']
+
+            for k, v in runtimes_dict.items():
+                to_write_by_task[task_name][run_name][task_id] = {
+                    f'{k}_mean'         : np.mean(v),
+                    f'{k}_std'          : np.std(v),
+                    f'{k}_median'       : np.median(v),
+                    f'{k}_25_percentile': np.percentile(v, 25),
+                    f'{k}_runtimes'     : v
+                }
+
             to_write_by_task[task_name][run_name][task_id] = {
-                'mean'    : np.mean(runtime_arr),
-                'std'     : np.std(runtime_arr),
-                'median'  : np.median(runtime_arr),
-                'runtimes': runtime_arr
+                f'mean'         : np.mean(all_runtimes),
+                f'std'          : np.std(all_runtimes),
+                f'median'       : np.median(all_runtimes),
+                f'25_percentile': np.percentile(all_runtimes, 25),
+                f'runtimes'     : all_runtimes
             }
+
     out_dir = PROJECT_ROOT.joinpath('data', f'eval_analysis')
     if out_dir.exists():
         shutil.rmtree(out_dir)
