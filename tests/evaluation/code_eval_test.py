@@ -76,7 +76,7 @@ def test_evaluate_code(code_preds_dir):
                 'Failed Tests': 1,
                 'TypeError'   : 1
             }),
-            'failed_tests'     : [0],
+            'failed_tests'     : [1],
             'passed'           : [2],
             'runtime_error_pct': 25.0,
             'timed_out'        : [],
