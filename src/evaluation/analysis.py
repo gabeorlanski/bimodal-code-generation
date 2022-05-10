@@ -2,6 +2,7 @@ import contextlib
 import io
 import multiprocessing
 import signal
+import astor
 from copy import deepcopy
 
 from tqdm import tqdm
@@ -20,6 +21,50 @@ __all__ = [
     "parse_eval_results_dir",
     "execute_time_check"
 ]
+
+
+class CustomSourceGenerator(astor.SourceGenerator):
+    def visit_Dict(self, node):
+        astor.code_gen.set_precedence(astor.op_util.Precedence.Comma, *node.keys)  # type: ignore
+        astor.code_gen.set_precedence(astor.op_util.Precedence.Comma, *node.values)  # type: ignore
+        with self.delimit('{}'):
+            for idx, (key, value) in enumerate(zip(node.keys, node.values)):
+                self.write(', ' if idx else '',
+                           key if key else '',
+                           ': ' if key else '**', value)
+
+    def visit_Tuple(self, node):
+        # with self.delimit(node) as delimiters:
+        # Two things are special about tuples:
+        #   1) We cannot discard the enclosing parentheses if empty
+        # #   2) We need the trailing comma if only one item
+        # elts = node.elts
+        # delimiters.discard = delimiters.discard and elts
+
+        astor.code_gen.set_precedence(
+            astor.op_util.Precedence.Comma,  # type: ignore
+            *node.elts
+        )
+        self.write('(')
+        for idx, item in enumerate(node.elts):
+            self.write(', ' if idx else '', item)
+        if len(node.elts) == 1:
+            self.write(',')
+        self.write(')')
+
+
+class AssertTransformer(ast.NodeTransformer):
+    def visit_Assert(self, node):
+        if isinstance(node.test, ast.Compare):
+            out = node.test.left
+        else:
+            out = node.test
+
+        return ast.Assign(targets=[ast.Name(id='TEST_RESULT')], value=out)
+
+
+class MarkForSkip(Exception):
+    pass
 
 
 class VariableTracer(ast.NodeVisitor):
@@ -150,6 +195,13 @@ class VariableTracer(ast.NodeVisitor):
             self.finish_trace()
         self.trace[node.lineno]['func_name'] = node.name  # type: ignore
         self.in_func = True
+
+        # Some functions are only the comment. We want to skip those, so we
+        # mark them to be skipped.
+        if len(node.body) == 1 and isinstance(node.body[0], ast.Expr):
+            if isinstance(node.body[0].value, ast.Constant):
+                raise MarkForSkip('Invalid function')
+
         args_found = self.handle_arguments(node.args)
         self.trace[node.lineno]['func_args'] = args_found
         return self.generic_visit(node)
@@ -188,6 +240,34 @@ class VariableTracer(ast.NodeVisitor):
         return super(VariableTracer, self).generic_visit(node)
 
 
+def get_stats_for_programs(code_str):
+    try:
+
+        # Single parse out here to make sure there are no errors
+        # with the line of code.
+        ast.parse(code_str)
+
+        visitor = VariableTracer()
+        try:
+            parsed_traces, trace_stats, imported = visitor(code_str)
+        except MarkForSkip:
+            return {}, True
+
+        out = {}
+
+        for group, group_dict in trace_stats.items():
+            for c, v in group_dict.items():
+                out[f"{group}_{c}"] = v
+
+        # Multiply by the number of idx with this prediction.
+        out['imports'] = imported
+        out['parsed_bodies'] = parsed_traces
+
+    except (SyntaxError, MemoryError):
+        return None, False
+    return out, False
+
+
 def parse_eval_results_dir(task, dir_path: Path):
     import warnings
     warnings.filterwarnings("ignore")
@@ -220,6 +300,7 @@ def parse_eval_results_dir(task, dir_path: Path):
     ]}
 
     solved_tasks = []
+    program_stats_by_tid = defaultdict(dict)
 
     for tid, task_results in tqdm(results_by_task_id.items(), desc='Parsing'):
         total_preds = task_results['total']
@@ -235,64 +316,47 @@ def parse_eval_results_dir(task, dir_path: Path):
         # remove those with bad syntax prior.
         # First, create a list of bool mappings for if we should keep a
         # prediction
-        to_keep = [False] * len(preds_for_task['prediction'])
+        to_keep = [None] * len(preds_for_task['prediction'])
+        force_skip = [False] * len(preds_for_task['prediction'])
 
         # Create a dict to map unique predictions to the list of indices they correspond too.
         unique_pred_to_idx = defaultdict(list)
+        predicted_by_idx = []
         for i, p in enumerate(preds_for_task['prediction']):
             if task == 'MBPP':
                 p = p.split('# Solution')[0]
 
             unique_pred_to_idx[p.strip()].append(i)
+            predicted_by_idx.append(p.strip())
 
         task_result_counter['unique_programs'] += len(unique_pred_to_idx)
         mean_tracker['unique_programs'].append(len(unique_pred_to_idx))
 
-        stat_tracker = defaultdict(list)
-        func_name_counter = Counter()
-        signature_counter = Counter()
-
         for p, idx_list in unique_pred_to_idx.items():
-            try:
-                visitor = VariableTracer()
-                parsed_traces, trace_stats, imported = visitor(p)
-
-                for group, group_dict in trace_stats.items():
-                    for c, v in group_dict.items():
-                        stat_tracker[f"{group}_{c}"].append(v)
-
-                stat_tracker['num_bodies'].append(len(parsed_traces))
-                stat_tracker['num_imports'].append(len(imported))
-                for t in parsed_traces:
-                    if t['func_name'] is not None:
-                        func_name_counter[t['func_name']] += 1
-                        signature_counter[','.join(t['func_signature'])] += 1
-
-                    for name in ['unused_vars', 'redefined_vars_no_usage', 'used_vars',
-                                 'defined_vars']:
-                        stat_tracker[name].append(len(t[name]))
-                    stat_tracker['line_count'].append(t['line_count'])
-                    stat_tracker['nested_funcs'].append(len(t['nested_func_names']))
-                for i in idx_list:
-                    to_keep[i] = True
-            except (SyntaxError, MemoryError):
+            p_stats, to_skip = get_stats_for_programs(p)
+            if p_stats is None:
                 continue
+            for idx in idx_list:
+                force_skip[idx] = to_skip
+                to_keep[idx] = p_stats
 
-        for k, v in stat_tracker.items():
-            mean_tracker[f'{k}-mean'].append(np.mean(v))
-            mean_tracker[f'{k}-median'].append(np.mean(v))
-            mean_tracker[f'{k}-std'].append(np.std(v))
-            mean_tracker[f'{k}-total'].append(np.sum(v))
+        predictions_w_valid_syntax = []
+        valid_force_skip = []
+        idx_to_prog_stats = {}
 
-        mean_tracker['func_names'].append(len(func_name_counter))
-        mean_tracker['func_signatures'].append(len(signature_counter))
-        predictions_w_valid_syntax = [
-            p for i, p in enumerate(preds_for_task['prediction']) if to_keep[i]
-        ]
+        for i, p_stats in enumerate(to_keep):
+            if p_stats is None:
+                continue
+            valid_force_skip.append(force_skip[i])
+            idx_to_prog_stats[len(predictions_w_valid_syntax)] = p_stats
+            predictions_w_valid_syntax.append(predicted_by_idx[i])
 
         for k in ['passed', 'failed_tests']:
 
             for pred_idx in task_results.get(k, []):
+                if valid_force_skip[pred_idx]:
+                    continue
+                program_stats_by_tid[tid][pred_idx] = idx_to_prog_stats[pred_idx]
                 preds_to_time_check.append(
                     {
                         'prediction': predictions_w_valid_syntax[pred_idx],
@@ -348,7 +412,7 @@ def parse_eval_results_dir(task, dir_path: Path):
         out[f"{k}_std"] = np.std(v)
     out['solved_tasks'] = solved_tasks
 
-    return out, preds_to_time_check
+    return out, program_stats_by_tid, preds_to_time_check
 
 
 def timeout_handler(signum, frame):
@@ -356,7 +420,8 @@ def timeout_handler(signum, frame):
 
 
 def get_runtime(args_list):
-    run_info, passed, check_program, timeout, task_id = args_list
+    run_info, passed, check_program, timeout, sample_idx, task_id = args_list
+    # Allows us to save values from the exec call
     RESULT_DICT = {}
     had_error = False
     had_timeout = False
@@ -382,7 +447,7 @@ def get_runtime(args_list):
             RESULT_DICT['TIME'] = timeout
             had_timeout = True
         except Exception as e:
-            RESULT_DICT['TIME'] = str(e)
+            RESULT_DICT['TIME'] = f"{type(e).__name__}: {str(e)}"
             had_error = True
     stdout_f.close()
     stderr_f.close()
@@ -390,6 +455,7 @@ def get_runtime(args_list):
         run_info=run_info,
         passed=passed,
         task_id=task_id,
+        sample_idx=sample_idx,
         had_error=had_error,
         had_timeout=had_timeout,
         runtime=RESULT_DICT['TIME'],
@@ -400,9 +466,23 @@ def execute_time_check(to_time_check, num_workers, timeit_number=100, timeout=3)
     logger.info(f"{len(to_time_check)} predictions to time check")
     logger.info(f"Running each program {timeit_number} time(s)")
     mp_args = []
-    for sample in to_time_check:
+    with_syntax_errors = 0
+    passed_with_syntax_errors = 0
+    for sample_idx, sample in tqdm(enumerate(to_time_check), total=len(to_time_check),
+                                   desc='Creating Arguments'):
         test_str = '\n'.join([sample['test_setup_code']] + sample['tests'])
-        test_str = test_str.replace('assert', 'ASSERT_PLACEHOLDER=')
+        try:
+            visitor = AssertTransformer()
+            test_str = astor.to_source(
+                visitor.visit(ast.parse(test_str)),
+                source_generator_class=CustomSourceGenerator
+            )
+        except (SyntaxError, MemoryError):
+            if sample['passed']:
+                passed_with_syntax_errors += 1
+            continue
+
+        # test_str = test_str.replace('assert', 'ASSERT_PLACEHOLDER=')
         task_id = sample['task_id']
         test_program = sample['prediction'] + "\n" + test_str
 
@@ -421,12 +501,25 @@ def execute_time_check(to_time_check, num_workers, timeit_number=100, timeout=3)
             f"RESULT_DICT['TIME']=timeit.timeit(TEST_CANDIDATE,number={timeit_number})"
         ]
 
+        test_program = '\n'.join(test_program)
+        try:
+            ast.parse(test_program)
+        except (SyntaxError, MemoryError):
+            with_syntax_errors += 1
+            if sample['passed']:
+                passed_with_syntax_errors += 1
+            continue
         mp_args.append(
-            (sample['run_info'], sample['passed'], '\n'.join(test_program), timeout, task_id)
+            (sample['run_info'], sample['passed'], test_program, timeout, sample_idx, task_id)
         )
+
+    logger.info(f"{with_syntax_errors}/{len(to_time_check)} had syntax errors")
+    logger.info(
+        f"{passed_with_syntax_errors} passed examples had syntax errors")
 
     task_info = defaultdict(dict)
     with_errors = []
+    passed_with_errors = 0
     with_timeout = 0
     with multiprocessing.Pool(num_workers) as pool:
         raw_results = list(tqdm(
@@ -436,8 +529,12 @@ def execute_time_check(to_time_check, num_workers, timeit_number=100, timeout=3)
         )
 
         for r in raw_results:
+            sample_idx = r.pop('sample_idx')
             if r['had_error']:
-                with_errors.append((r['run_info'], r['task_id'], r['runtime']))
+                passed_with_errors += r['passed']
+                with_errors.append(
+                    ('_'.join(r['run_info']), r['passed'], r['task_id'], sample_idx, r['runtime'])
+                )
                 continue
             if r['had_timeout']:
                 with_timeout += 1
@@ -455,5 +552,6 @@ def execute_time_check(to_time_check, num_workers, timeit_number=100, timeout=3)
                 task_info[r['run_info']][r['task_id']]['failed_runtimes'].append(runtime)
 
     logger.info(f"{len(with_errors)}/{len(to_time_check)} had errors")
+    logger.info(f"{passed_with_errors} passed examples had errors")
     logger.info(f"{with_timeout}/{len(to_time_check)} timed out")
     return task_info, with_errors
