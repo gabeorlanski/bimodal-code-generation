@@ -10,7 +10,7 @@ experiments:
       objective: lm
       ++tracking.tags:
         - O2
-        - SO
+        - Baselines
       ++evaluation:
         num_generate_per_step: 200
         remove_input_ids: False
@@ -112,7 +112,7 @@ experiments:
             pipe:
               - basic_with_solution
     command:
-      file: templates/commands/evaluate_model.txt
+      file: templates/commands/execute_code.txt
       kwargs:
         train_sbatch: train_single_gpu
         finetune_time: "7:00:00"

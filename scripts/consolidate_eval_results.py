@@ -35,10 +35,14 @@ from src.evaluation.analysis import *
 @click.option('--num-workers', '-n', default=4, type=int)
 @click.option('--timeit-number', '-tn', default=100, type=int)
 @click.option('--timeout', '-to', default=3, type=int)
-def consolidate_results(eval_dir, debug, num_workers, timeit_number, timeout):
+@click.option('--file-path', '-f', default=None)
+def consolidate_results(eval_dir, debug, num_workers, timeit_number, timeout, file_path):
     setup_global_logging(f"consolidate_eval", PROJECT_ROOT.joinpath('logs'),
-                         debug=debug)
+                         debug=debug, disable_issues_file=True)
     logger = logging.getLogger("consolidate_eval")
+
+    if file_path is not None:
+        file_path = PROJECT_ROOT.joinpath(file_path).absolute()
 
     eval_dir = PROJECT_ROOT.joinpath(eval_dir)
     logger.info(f"Getting '{eval_dir}'")
@@ -75,10 +79,12 @@ def consolidate_results(eval_dir, debug, num_workers, timeit_number, timeout):
     all_program_stats = {}
 
     for task_name, task_dict in {'HUMAN_EVAL': human_eval_runs, 'MBPP': mbpp_eval_runs}.items():
+
         logger.info(f'Parsing {task_name} runs')
         task_program_stats = {}
         for run_name, path in task_dict.items():
-
+            if file_path is not None and file_path != path:
+                continue
             if not path.joinpath('test.jsonl'):
                 logger.error(f"{run_name} for task {task_name} is missing 'test.jsonl'")
                 continue
@@ -91,11 +97,7 @@ def consolidate_results(eval_dir, debug, num_workers, timeit_number, timeout):
             task_program_stats[run_name] = program_stats
             to_time_check.extend(
                 [{'run_info': (run_name, task_name), **t} for t in run_to_time_check])
-            if debug:
-                break
         all_program_stats[task_name] = task_program_stats
-        if debug:
-            break
 
     out_dir = PROJECT_ROOT.joinpath('data', f'eval_analysis')
     if out_dir.exists():

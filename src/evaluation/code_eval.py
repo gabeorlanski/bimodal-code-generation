@@ -76,7 +76,7 @@ def get_samples(code_items, samples_per_problem) -> Tuple[
                 logger.error(f"Could not parse prediction {i} for {idx=} "
                              f"due to {type(e).__name__}:{str(e)}")
                 continue
-            valid_predictions.append(pred)
+            valid_predictions.append((i, pred))
 
         invalid_syntax[idx] = len(sample_dict['prediction']) - len(valid_predictions)
         total_valid_preds.append(len(valid_predictions))
@@ -228,9 +228,6 @@ def parse_results(
 
             task_metrics['correct'] += result_dict['passed']
 
-            if completion_id == 126 and task_id == 11:
-                print("???")
-
             if result_str != 'Passed':
                 task_metrics['error_types'][result_str] += 1
                 assert result_dict['result'] != 'Passed'
@@ -238,11 +235,11 @@ def parse_results(
                 if result_str != 'Timed Out' and result_str != 'Failed Tests':
                     task_runtime_errors += 1
                     task_metrics['error_messages'][
-                        completion_id] = f"{result_str}: {result_dict['error']}"
+                        result_dict['pred_idx']] = f"{result_str}: {result_dict['error']}"
                 elif result_str == 'Failed Tests':
-                    task_metrics['failed_tests'].append(completion_id)
+                    task_metrics['failed_tests'].append(result_dict['pred_idx'])
                 else:
-                    task_metrics['timed_out'].append(completion_id)
+                    task_metrics['timed_out'].append(result_dict['pred_idx'])
 
 
             else:
@@ -285,9 +282,23 @@ def parse_results(
     return results_by_task_id, global_error_tracker, metrics, (correct, runtime_errors)
 
 
+def check_code_correct(args):
+    check_program, timeout, task_id, completion_id, pred_idx = args
+    dict(
+        task_id=task_id,
+        pred_idx=pred_idx,
+        passed=result[0][0] == "Passed",
+        result=result[0][0],
+        time=result[0][1],
+        error=result[0][2],
+        completion_id=completion_id,
+    )
+
+
 def execute_code(task, samples, num_workers, timeout):
     to_run = sum(map(lambda s: len(s.predictions), samples))
     logger.info(f"{to_run} predictions to check")
+
     with tqdm(total=to_run, desc='Running Code') as pbar:
         with ThreadPoolExecutor(max_workers=num_workers) as executor:
             futures = []
@@ -297,11 +308,11 @@ def execute_code(task, samples, num_workers, timeout):
 
             for sample in samples:
                 task_id = sample.idx
-                for candidate in sample.predictions:
+                for pred_idx, candidate in sample.predictions:
                     if task.lower() == 'mbpp':
                         candidate = candidate.split('# Solution')[0]
                     test_program = candidate + "\n" + '\n'.join(sample.tests)
-                    args = (test_program, timeout, task_id, completion_id[task_id])
+                    args = (test_program, timeout, task_id, completion_id[task_id], pred_idx)
                     future = executor.submit(check_correctness, *args)
                     futures.append(future)
                     completion_id[task_id] += 1

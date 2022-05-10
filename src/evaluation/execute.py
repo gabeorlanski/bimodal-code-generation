@@ -14,7 +14,7 @@ import tempfile
 import time
 
 
-def check_correctness(check_program, timeout, task_id, completion_id):
+def check_correctness(check_program, timeout, task_id, completion_id, pred_idx):
     """
     Evaluates the functional correctness of a completion by running the test
     suite provided in the problem.
@@ -36,13 +36,13 @@ def check_correctness(check_program, timeout, task_id, completion_id):
 
     return dict(
         task_id=task_id,
+        pred_idx=pred_idx,
         passed=result[0][0] == "Passed",
         result=result[0][0],
         time=result[0][1],
         error=result[0][2],
         completion_id=completion_id,
     )
-
 
 
 def unsafe_execute(check_program, timeout):

@@ -7,28 +7,19 @@
 {%- endif -%}
 {%- set cancel_file="generated_experiments/cancel_scripts/"~job_name~".sh" -%}
 
-rm -f {{ cancel_file }}
-echo "#!/bin/bash" >> {{cancel_file}}
 
 # Human Eval Code Execute Zero Shot
 he_exec{{idx}}=$(sbatch --parsable --job-name='{{ job_name }}_he_execute' \
 	eval_code.sbatch \
-	eval_results/HUMAN_EVAL "SO.{{ name }}.{{ ablation_name }}" test.jsonl
+	eval_results/{{ name }}/HUMAN_EVAL/{{ ablation_name }}_HEEval
 )
 echo "Submitted CodeEval(id=$he_exec{{idx}})"
 echo "scancel $he_exec{{idx}}" >> {{cancel_file}}
 
-# Human Eval Code Execute FineTune
-hef_exec{{idx}}=$(sbatch --parsable --job-name='{{ job_name }}_hef_execute' \
-	eval_code.sbatch \
-	eval_results/HUMAN_EVAL "MBPP.{{ name }}.{{ ablation_name }}" test.jsonl
-)
-echo "Submitted CodeEval(id=$hef_exec{{idx}})"
-echo "scancel $hef_exec{{idx}}" >> {{cancel_file}}
-
-# Normal Code Execute After Eval
+# MBPP Code Execute After Eval
 exec_jid{{idx}}=$(sbatch --parsable --job-name='{{ job_name }}_execute' \
-	eval_code.sbatch eval_results/{{ task_name }} {{ Eval.save_name }})
+	eval_code.sbatch \
+	eval_results/{{ name }}/MBPP/{{ ablation_name }}_Eval)
 echo "Submitted CodeEval(id=$exec_jid{{idx}})"
 echo "scancel $exec_jid{{idx}}" >> {{cancel_file}}
 

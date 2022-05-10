@@ -64,51 +64,49 @@ def test_evaluate_code(code_preds_dir):
             results['results_by_task_id'][k].pop('execution_runtime')
 
     assert results['results_by_task_id'] == {
-        "939": {
-            "correct"          : 1,
+        '939': {
+            'correct'          : 1,
+            'correct_pct'      : 25.0,
+            'error_messages'   : {
+                2: 'TypeError: unsupported operand type(s) for -: '
+                   "'int' and 'str'"
+            },
+            'error_types'      : Counter({
+                'SyntaxError' : 1,
+                'Failed Tests': 1,
+                'TypeError'   : 1
+            }),
             'failed_tests'     : [0],
             'passed'           : [2],
             'runtime_error_pct': 25.0,
             'timed_out'        : [],
-            "total"            : 4,
-            'error_messages'   : {
-                1: 'TypeError: unsupported operand type(s) for -: '
-                   "'int' and 'str'"
-            },
-            "error_types"      : Counter({
-                "SyntaxError" : 1,
-                "Failed Tests": 1,
-                "TypeError"   : 1
-            }),
-            "correct_pct"      : 1 / 4 * 100
+            'total'            : 4
         },
-        "940": {
-            "correct"          : 1,
-            'failed_tests'     : [2],
-            'passed'           : [3],
-            'runtime_error_pct': 50.0,
-            'timed_out'        : [],
-            "total"            : 4,
+        '940': {
+            'correct'          : 1,
+            'correct_pct'      : 25.0,
             'error_messages'   : {
                 0: 'KeyError: 4',
                 1: "TypeError: 'int' object is not subscriptable"
             },
-            "error_types"      : Counter({
-                "SyntaxError" : 0,
-                "Failed Tests": 1,
-                "TypeError"   : 1,
-                "KeyError"    : 1
+            'error_types'      : Counter({
+                'KeyError'    : 1,
+                'TypeError'   : 1,
+                'Failed Tests': 1,
+                'SyntaxError' : 0
             }),
-            "correct_pct"      : 1 / 4 * 100
+            'failed_tests'     : [2],
+            'passed'           : [3],
+            'runtime_error_pct': 50.0,
+            'timed_out'        : [],
+            'total'            : 4
         },
-        "941": {
-            "correct"          : 0,
-            "total"            : 4,
-            "error_types"      : Counter({
-                "SyntaxError": 4
-            }),
+        '941': {
+            'correct'          : 0,
+            'correct_pct'      : 0.0,
+            'error_types'      : Counter({'SyntaxError': 4}),
             'runtime_error_pct': 0.0,
-            "correct_pct"      : 0,
-        },
+            'total'            : 4
+        }
     }
     assert results['outcome_pcts'] == expected_outcomes_pct

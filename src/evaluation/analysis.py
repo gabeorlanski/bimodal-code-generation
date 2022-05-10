@@ -347,6 +347,8 @@ def parse_eval_results_dir(task, dir_path: Path):
         for i, p_stats in enumerate(to_keep):
             if p_stats is None:
                 continue
+            if tid == '42' and len(valid_force_skip) >= 195:
+                print("???")
             valid_force_skip.append(force_skip[i])
             idx_to_prog_stats[len(predictions_w_valid_syntax)] = p_stats
             predictions_w_valid_syntax.append(predicted_by_idx[i])
