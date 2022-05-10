@@ -48,7 +48,8 @@ def parse_eval_results_dir(task, dir_path: Path):
         'all_runtime_error',
         'all_syntax_error',
         'all_failed_tests',
-        'has_runtime_errors'
+        'has_runtime_errors',
+        'unique_programs'
     ]}
 
     solved_tasks = []
@@ -65,13 +66,32 @@ def parse_eval_results_dir(task, dir_path: Path):
 
         # I miscalculated the idx for the predictions that passed. So I need to
         # remove those with bad syntax prior.
-        predictions_w_valid_syntax = []
-        for p in preds_for_task['prediction']:
+        # First, create a list of bool mappings for if we should keep a
+        # prediction
+        to_keep = [False] * len(preds_for_task['prediction'])
+
+        # Create a dict to map unique predictions to the list of indices they correspond too.
+        unique_pred_to_idx = defaultdict(list)
+        for i, p in enumerate(preds_for_task['prediction']):
+            if task == 'MBPP':
+                p = p.split('# Solution')[0]
+
+            unique_pred_to_idx[p.strip()].append(i)
+
+        task_result_counter['unique_programs'] += len(unique_pred_to_idx)
+        mean_tracker['unique_programs'].append(len(unique_pred_to_idx))
+
+        for p, idx_list in unique_pred_to_idx.items():
             try:
                 ast.parse(p)
-                predictions_w_valid_syntax.append(p)
+                for i in idx_list:
+                    to_keep[i] = True
             except (SyntaxError, MemoryError):
                 continue
+
+        predictions_w_valid_syntax = [
+            p for i, p in enumerate(preds_for_task['prediction']) if to_keep[i]
+        ]
 
         for k in ['passed']:
 
