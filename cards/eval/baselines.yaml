@@ -115,8 +115,8 @@ experiments:
       file: templates/commands/execute_code.txt
       kwargs:
         train_sbatch: train_single_gpu
-        finetune_time: "7:00:00"
-        pretrain_time: "7:00:00"
+        finetune_time: "2:00:00"
+        pretrain_time: "2:00:00"
         use_cds: False
       fields:
         - model_path
