@@ -334,8 +334,6 @@ def parse_eval_results_dir(task, dir_path: Path):
             if p_stats is None:
                 continue
             for idx in idx_list:
-                if str(idx) in task_results['error_messages']:
-                    continue
                 to_keep.append((idx, p))
                 program_stats_by_tid[tid][idx] = p_stats
 
