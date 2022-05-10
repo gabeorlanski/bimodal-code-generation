@@ -45,6 +45,7 @@ def run(file, num_workers, seq_per_sample, debug, timeout):
     logger.info(f"CWD={Path().absolute().resolve()}")
     logger.info(f"Executing code from {path_to_preds}")
     results = evaluate_code_from_file(
+        'task',
         str(path_to_preds),
         samples_per_problem=seq_per_sample,
         num_workers=num_workers,

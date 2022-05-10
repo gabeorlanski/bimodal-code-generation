@@ -219,7 +219,7 @@ def parse_results(
 
         # Go through and calculate metrics on both a task and global level.
         for completion_id, result_dict in task_results:
-            assert result_dict['completion_id'] == completion_id
+            assert result_dict['pred_idx'] == completion_id
             assert result_dict['task_id'] == task_id
 
             result_str = result_dict['result']
