@@ -56,57 +56,38 @@ def test_evaluate_code(code_preds_dir):
     # Again, small floats that we only care are present.
     for k in results['results_by_task_id']:
         v = results['results_by_task_id'][k]
-        if 'runtime' in v:
-            assert 'execution_runtime' in v
-            assert 'runtimes_by_type' in v
-            results['results_by_task_id'][k].pop('runtimes_by_type')
-            results['results_by_task_id'][k].pop('runtime')
-            results['results_by_task_id'][k].pop('execution_runtime')
+        for p in v['pred_results']:
+            assert isinstance(v['pred_results'][p].pop('time'), float)
 
     assert results['results_by_task_id'] == {
-        '939': {
-            'correct'          : 1,
-            'correct_pct'      : 25.0,
-            'error_messages'   : {
-                2: 'TypeError: unsupported operand type(s) for -: '
-                   "'int' and 'str'"
-            },
-            'error_types'      : Counter({
-                'SyntaxError' : 1,
-                'Failed Tests': 1,
-                'TypeError'   : 1
-            }),
-            'failed_tests'     : [1],
-            'passed'           : [2],
-            'runtime_error_pct': 25.0,
-            'timed_out'        : [],
-            'total'            : 4
-        },
-        '940': {
-            'correct'          : 1,
-            'correct_pct'      : 25.0,
-            'error_messages'   : {
-                0: 'KeyError: 4',
-                1: "TypeError: 'int' object is not subscriptable"
-            },
-            'error_types'      : Counter({
-                'KeyError'    : 1,
-                'TypeError'   : 1,
-                'Failed Tests': 1,
-                'SyntaxError' : 0
-            }),
-            'failed_tests'     : [2],
-            'passed'           : [3],
-            'runtime_error_pct': 50.0,
-            'timed_out'        : [],
-            'total'            : 4
-        },
-        '941': {
-            'correct'          : 0,
-            'correct_pct'      : 0.0,
-            'error_types'      : Counter({'SyntaxError': 4}),
-            'runtime_error_pct': 0.0,
-            'total'            : 4
+        '939'   : {
+            'correct'    : 1,
+            'total'      : 4,
+            'error_types': Counter({'SyntaxError': 1, 'Failed Tests': 1, 'TypeError': 1}),
+            'correct_pct': 25.0, 'runtime_error_pct': 25.0, 'pred_results': {
+                0   : {'result': 'SyntaxError', 'is_failure': True},
+                1   : {'is_failure': False, 'result': 'Failed Tests'}, 2: {
+                    'is_failure': True,
+                    'result'    : "TypeError: unsupported operand type(s) for -: 'int' and 'str'"
+                }, 3: {'is_failure': False, 'result': 'Passed'}
+            }
+        }, '940': {
+            'correct'    : 1, 'total': 4, 'error_types': Counter(
+                {'KeyError': 1, 'TypeError': 1, 'Failed Tests': 1, 'SyntaxError': 0}),
+            'correct_pct': 25.0, 'runtime_error_pct': 50.0, 'pred_results': {
+                0: {'is_failure': True, 'result': 'KeyError: 4'},
+                1: {'is_failure': True, 'result': "TypeError: 'int' object is not subscriptable"},
+                2: {'is_failure': False, 'result': 'Failed Tests'},
+                3: {'is_failure': False, 'result': 'Passed'}
+            }
+        }, '941': {
+            'correct'       : 0, 'total': 4, 'error_types': Counter({'SyntaxError': 4}),
+            'pred_results'  : {
+                0: {'result': 'SyntaxError', 'is_failure': True},
+                1: {'result': 'SyntaxError', 'is_failure': True},
+                2: {'result': 'SyntaxError', 'is_failure': True},
+                3: {'result': 'SyntaxError', 'is_failure': True}
+            }, 'correct_pct': 0.0, 'runtime_error_pct': 0.0
         }
     }
     assert results['outcome_pcts'] == expected_outcomes_pct
