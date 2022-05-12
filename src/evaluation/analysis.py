@@ -396,7 +396,8 @@ def parse_eval_results_dir(task, dir_path: Path):
         out[f"{k}_mean"] = np.mean(v)
         out[f"{k}_std"] = np.std(v)
     out['solved_tasks'] = solved_tasks
-    out['solved_pct'] = len(solved_tasks)/len(results_by_task_id)
+    out['solved_pct'] = len(solved_tasks)/len(results_by_task_id)*100
+    out.update(execution_metrics['test']['overview'])
 
     return out, program_stats_by_tid, preds_to_time_check
 
