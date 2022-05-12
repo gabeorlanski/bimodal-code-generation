@@ -303,11 +303,12 @@ def calc_stats_for_task(task, task_prediction_dict, task_results):
         'with_runtime_errors'     : with_runtime_errors,
         'with_syntax_errors'      : with_syntax_errors,
         "with_signature_errors"   : with_signature_errors,
-        "runtime_unique_per_total": len(unique_errors) / task_results['total'],
         "unique_errors"           : len(unique_errors),
         "unique_programs"         : len(unique_pred_to_idx),
         "prog_unique_per_total"   : len(unique_pred_to_idx) / task_results['total']
     }
+    if with_runtime_errors > 0:
+        out["runtime_unique_per_total"] = len(unique_errors) / with_runtime_errors
 
     return out
 
