@@ -373,26 +373,19 @@ def parse_eval_results_dir(task, dir_path: Path):
 
         mean_tracker['correct'].append(task_results['correct'])
         total_runtime_errors = 0
-        for outcome in all_outcomes:
-            if outcome == 'Correct':
-                continue
-
-            outcome_key = outcome.replace("_", '')
-            outcome_count = error_types.get(outcome.replace('_', ' '), 0)
-            if outcome_key not in ['TimedOut', 'SyntaxError', 'FailedTests']:
-                total_runtime_errors += outcome_count
-            mean_tracker[outcome_key].append(outcome_count)
+        # for outcome in all_outcomes:
+        #     if outcome == 'Correct':
+        #         continue
+        #
+        #     outcome_key = outcome.replace("_", '')
+        #     outcome_count = error_types.get(outcome.replace('_', ' '), 0)
+        #     if outcome_key not in ['TimedOut', 'SyntaxError', 'FailedTests']:
+        #         total_runtime_errors += outcome_count
+        #     mean_tracker[outcome_key].append(outcome_count)
 
         if total_runtime_errors == total_preds:
             task_result_counter['all_runtime_error'] += 1
         mean_tracker['TotalRuntimeErrors'].append(total_runtime_errors)
-        if 'error_messages' in task_results and total_runtime_errors > 0:
-            task_result_counter['has_runtime_errors'] += 1
-            num_unique_errors = len(set(task_results['error_messages'].values()))
-            mean_tracker['UniqueErrors'].append(num_unique_errors)
-            mean_tracker['PCT_UniqueErrors'].append(
-                num_unique_errors / len(task_results['error_messages']) * 100
-            )
 
     out = {}
     for k, v in task_result_counter.items():

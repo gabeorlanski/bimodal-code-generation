@@ -204,3 +204,5 @@ data/eval_HUMAN_EVAL.jsonl
 
 data/eval_MBPP.jsonl
 data/eval_analysis/
+
+data/eval_analysis.zip
