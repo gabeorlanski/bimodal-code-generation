@@ -268,6 +268,50 @@ def get_stats_for_programs(code_str):
     return out, False
 
 
+def calc_stats_for_task(task, task_prediction_dict, task_results):
+    task_info = {
+        k: task_prediction_dict[k] for k in
+        ['task_id', 'idx', 'tests']
+    }
+    task_info['test_setup_code'] = task_prediction_dict.get('test_setup_code', '')
+
+    # Create a dict to map unique predictions to the list of indices they correspond too.
+    unique_pred_to_idx = defaultdict(list)
+    with_runtime_errors = 0
+    with_syntax_errors = 0
+    with_signature_errors = 0
+    unique_errors = set()
+
+    for pred_idx, pred_result in task_results['pred_results'].items():
+        if pred_result['result'] == 'SyntaxError':
+            with_syntax_errors += 1
+            continue
+        elif pred_result['is_failure']:
+
+            if all(w in pred_result['result'] for w in ['positional', 'argument', 'takes']):
+                with_signature_errors += 1
+            with_runtime_errors += 1
+            unique_errors.add(pred_result['result'])
+
+        pred = task_prediction_dict['prediction'][int(pred_idx)]
+        if task == 'MBPP':
+            pred = pred.split('# Solution')[0]
+
+        unique_pred_to_idx[pred.strip()].append(int(pred_idx))
+
+    out = {
+        'with_runtime_errors'     : with_runtime_errors,
+        'with_syntax_errors'      : with_syntax_errors,
+        "with_signature_errors"   : with_signature_errors,
+        "runtime_unique_per_total": len(unique_errors) / task_results['total'],
+        "unique_errors"           : len(unique_errors),
+        "unique_programs"         : len(unique_pred_to_idx),
+        "prog_unique_per_total"   : len(unique_pred_to_idx) / task_results['total']
+    }
+
+    return out
+
+
 def parse_eval_results_dir(task, dir_path: Path):
     import warnings
     warnings.filterwarnings("ignore")
@@ -289,7 +333,7 @@ def parse_eval_results_dir(task, dir_path: Path):
     preds_to_time_check = []
 
     # Make sure that every one of the keys are present
-    task_result_counter = {k: 0 for k in [
+    task_result_counter = Counter({k: 0 for k in [
         'no_correct',
         'all_correct',
         'all_runtime_error',
@@ -297,7 +341,7 @@ def parse_eval_results_dir(task, dir_path: Path):
         'all_failed_tests',
         'has_runtime_errors',
         'unique_programs'
-    ]}
+    ]})
 
     solved_tasks = []
     program_stats_by_tid = defaultdict(dict)
@@ -306,45 +350,12 @@ def parse_eval_results_dir(task, dir_path: Path):
         total_preds = task_results['total']
 
         preds_for_task = predictions[tid]
-        task_info = {
-            k: preds_for_task[k] for k in
-            ['task_id', 'idx', 'tests']
-        }
-        task_info['test_setup_code'] = preds_for_task.get('test_setup_code', '')
 
-        # I miscalculated the idx for the predictions that passed. So I need to
-        # remove those with bad syntax prior.
-        # First, create a list of bool mappings for if we should keep a
-        # prediction
-        to_keep = []
+        task_stats = calc_stats_for_task(task, preds_for_task, task_results)
+        for k, v in task_stats.items():
+            task_result_counter[k] += v
+            mean_tracker[k].append(v)
 
-        # Create a dict to map unique predictions to the list of indices they correspond too.
-        unique_pred_to_idx = defaultdict(list)
-        for i, p in enumerate(preds_for_task['prediction']):
-            if task == 'MBPP':
-                p = p.split('# Solution')[0]
-
-            unique_pred_to_idx[p.strip()].append(i)
-
-        task_result_counter['unique_programs'] += len(unique_pred_to_idx)
-        mean_tracker['unique_programs'].append(len(unique_pred_to_idx))
-
-        for p, idx_list in unique_pred_to_idx.items():
-            p_stats, to_skip = get_stats_for_programs(p)
-            if p_stats is None:
-                continue
-            for idx in idx_list:
-                to_keep.append((idx, p))
-                program_stats_by_tid[tid][idx] = p_stats
-
-        for pred_idx, pred in to_keep:
-            preds_to_time_check.append(
-                {
-                    'prediction': pred,
-                    'pred_idx'  : pred_idx,
-                    **task_info
-                }
-            )
         if task_results['correct'] == 0:
             task_result_counter['no_correct'] += 1
         else:
