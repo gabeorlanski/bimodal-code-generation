@@ -293,7 +293,7 @@ def calc_stats_for_task(task, task_prediction_dict, task_results):
                 with_signature_errors += 1
             with_runtime_errors += 1
             unique_errors.add(pred_result['result'])
-        elif pred_result['result']=='Failed Tests':
+        elif pred_result['result'] == 'Failed Tests':
             failed_tests += 1
 
         pred = task_prediction_dict['prediction'][int(pred_idx)]
@@ -303,17 +303,18 @@ def calc_stats_for_task(task, task_prediction_dict, task_results):
         unique_pred_to_idx[pred.strip()].append(int(pred_idx))
 
     out = {
-        'with_runtime_errors'  : with_runtime_errors,
-        'with_syntax_errors'   : with_syntax_errors,
+        'runtime_errors'       : with_runtime_errors,
+        'syntax_errors'        : with_syntax_errors,
         'failed_tests'         : failed_tests,
+        'correct'              : task_results['correct'],
         "with_signature_errors": with_signature_errors,
         "unique_errors"        : len(unique_errors),
         "unique_programs"      : len(unique_pred_to_idx),
-        "prog_unique_per_total": len(unique_pred_to_idx) / task_results['total'],
-        'per_task_runtime_pct'          : with_runtime_errors / task_results['total'] * 100,
-        'per_task_syntax_pct'           : with_syntax_errors / task_results['total'] * 100,
-        'per_task_test_pct'             : failed_tests / task_results['total'] * 100,
-        'per_task_correct_pct'          : task_results['correct'] / task_results['total'] * 100,
+        "prog_unique_per_total": len(unique_pred_to_idx) / task_results['total']*100,
+        'per_task_runtime_pct' : with_runtime_errors / task_results['total'] * 100,
+        'per_task_syntax_pct'  : with_syntax_errors / task_results['total'] * 100,
+        'per_task_test_pct'    : failed_tests / task_results['total'] * 100,
+        'per_task_correct_pct' : task_results['correct'] / task_results['total'] * 100,
     }
     if with_runtime_errors > 0:
         out["runtime_unique_per_total"] = len(unique_errors) / with_runtime_errors
@@ -356,7 +357,7 @@ def parse_eval_results_dir(task, dir_path: Path):
 
         task_stats = calc_stats_for_task(task, preds_for_task, task_results)
         for k, v in task_stats.items():
-            task_result_counter[k] += v
+            # task_result_counter[k] += v
             mean_tracker[k].append(v)
 
         if task_results['correct'] == 0:
