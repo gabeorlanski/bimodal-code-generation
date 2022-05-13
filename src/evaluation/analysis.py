@@ -280,6 +280,7 @@ def calc_stats_for_task(task, task_prediction_dict, task_results):
     with_runtime_errors = 0
     with_syntax_errors = 0
     with_signature_errors = 0
+    failed_tests = 0
     unique_errors = set()
 
     for pred_idx, pred_result in task_results['pred_results'].items():
@@ -292,6 +293,8 @@ def calc_stats_for_task(task, task_prediction_dict, task_results):
                 with_signature_errors += 1
             with_runtime_errors += 1
             unique_errors.add(pred_result['result'])
+        elif pred_result['result']=='Failed Tests':
+            failed_tests += 1
 
         pred = task_prediction_dict['prediction'][int(pred_idx)]
         if task == 'MBPP':
@@ -300,12 +303,17 @@ def calc_stats_for_task(task, task_prediction_dict, task_results):
         unique_pred_to_idx[pred.strip()].append(int(pred_idx))
 
     out = {
-        'with_runtime_errors'     : with_runtime_errors,
-        'with_syntax_errors'      : with_syntax_errors,
-        "with_signature_errors"   : with_signature_errors,
-        "unique_errors"           : len(unique_errors),
-        "unique_programs"         : len(unique_pred_to_idx),
-        "prog_unique_per_total"   : len(unique_pred_to_idx) / task_results['total']
+        'with_runtime_errors'  : with_runtime_errors,
+        'with_syntax_errors'   : with_syntax_errors,
+        'failed_tests'         : failed_tests,
+        "with_signature_errors": with_signature_errors,
+        "unique_errors"        : len(unique_errors),
+        "unique_programs"      : len(unique_pred_to_idx),
+        "prog_unique_per_total": len(unique_pred_to_idx) / task_results['total'],
+        'per_task_runtime_pct'          : with_runtime_errors / task_results['total'] * 100,
+        'per_task_syntax_pct'           : with_syntax_errors / task_results['total'] * 100,
+        'per_task_test_pct'             : failed_tests / task_results['total'] * 100,
+        'per_task_correct_pct'          : task_results['correct'] / task_results['total'] * 100,
     }
     if with_runtime_errors > 0:
         out["runtime_unique_per_total"] = len(unique_errors) / with_runtime_errors
@@ -336,11 +344,6 @@ def parse_eval_results_dir(task, dir_path: Path):
     # Make sure that every one of the keys are present
     task_result_counter = Counter({k: 0 for k in [
         'no_correct',
-        'all_correct',
-        'all_runtime_error',
-        'all_syntax_error',
-        'all_failed_tests',
-        'has_runtime_errors',
         'unique_programs'
     ]})
 
@@ -348,7 +351,6 @@ def parse_eval_results_dir(task, dir_path: Path):
     program_stats_by_tid = defaultdict(dict)
 
     for tid, task_results in tqdm(results_by_task_id.items(), desc='Parsing'):
-        total_preds = task_results['total']
 
         preds_for_task = predictions[tid]
 
@@ -361,32 +363,7 @@ def parse_eval_results_dir(task, dir_path: Path):
             task_result_counter['no_correct'] += 1
         else:
             solved_tasks.append(tid)
-
-        error_types = task_results['error_types']
-        syntax_errors = error_types.get('SyntaxError', 0)
-        failed_tests = error_types.get('Failed Tests', 0)
-        if syntax_errors == total_preds:
-            task_result_counter['all_syntax_error'] += 1
-        elif failed_tests == total_preds:
-            task_result_counter['all_failed_tests'] += 1
-        elif task_results['correct'] == total_preds:
-            task_result_counter['all_correct'] += 1
-
         mean_tracker['correct'].append(task_results['correct'])
-        total_runtime_errors = 0
-        # for outcome in all_outcomes:
-        #     if outcome == 'Correct':
-        #         continue
-        #
-        #     outcome_key = outcome.replace("_", '')
-        #     outcome_count = error_types.get(outcome.replace('_', ' '), 0)
-        #     if outcome_key not in ['TimedOut', 'SyntaxError', 'FailedTests']:
-        #         total_runtime_errors += outcome_count
-        #     mean_tracker[outcome_key].append(outcome_count)
-
-        if total_runtime_errors == total_preds:
-            task_result_counter['all_runtime_error'] += 1
-        mean_tracker['TotalRuntimeErrors'].append(total_runtime_errors)
 
     out = {}
     for k, v in task_result_counter.items():
@@ -395,9 +372,9 @@ def parse_eval_results_dir(task, dir_path: Path):
 
     for k, v in mean_tracker.items():
         out[f"{k}_mean"] = np.mean(v)
-        out[f"{k}_std"] = np.std(v)
+        # out[f"{k}_std"] = np.std(v)
     out['solved_tasks'] = solved_tasks
-    out['solved_pct'] = len(solved_tasks)/len(results_by_task_id)*100
+    out['solved_pct'] = len(solved_tasks) / len(results_by_task_id) * 100
     out.update(execution_metrics['test']['overview'])
 
     return out, program_stats_by_tid, preds_to_time_check
