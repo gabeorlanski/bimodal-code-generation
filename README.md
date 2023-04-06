@@ -1,4 +1,4 @@
-Spring Research Project
+Code for the paper [Evaluating How Fine-tuning on Bimodal Data Effects Code Generation](https://arxiv.org/abs/2211.07842)
 
 ### Install Instructions
 
@@ -60,3 +60,13 @@ indicates hierarchy in yaml configs):
       from the generated output.
 4. To load a checkpoint into training  (instead of starting from a HF
    checkpoint) set the argument `is_checkpoint=true`.
+   
+## Citation
+```
+@article{orlanski2022evaluating,
+  title={Evaluating How Fine-tuning on Bimodal Data Effects Code Generation},
+  author={Orlanski, Gabriel and Yang, Seonhye and Healy, Michael},
+  journal={arXiv preprint arXiv:2211.07842},
+  year={2022}
+}
+```
